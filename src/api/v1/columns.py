@@ -7,6 +7,7 @@ from src.db.database import get_session
 from src.db.models import ColumnModel, ColumnMode as DBColumnMode
 from src.schemas.column import ColumnCreate, ColumnUpdate, ColumnResponse, ColumnMode as SchemaColumnMode
 from src.services import column_service
+from src.schemas.column import ColumnReorder
 
 router = APIRouter(prefix="/columns", tags=["columns"])
 
@@ -54,6 +55,11 @@ async def create_column(column_in: ColumnCreate, db: AsyncSession = Depends(get_
         tasks=[],
     )
 
+
+@router.post("/reorder", status_code=status.HTTP_200_OK)
+async def reorder_columns_endpoint(reorder_data: ColumnReorder, db: AsyncSession = Depends(get_session)):
+    await column_service.reorder_columns(db, reorder_data.ordered_ids)
+    return {"message": "Порядок обновлен"}
 
 @router.put("/{column_id}", response_model=ColumnResponse)
 async def update_column(column_id: int, column_in: ColumnUpdate, db: AsyncSession = Depends(get_session)):

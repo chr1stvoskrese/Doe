@@ -1,6 +1,5 @@
 /* ---------- ПАЛИТРА И ПЕРЕМЕННЫЕ (UI Kit) ---------- */
 :root {
-    /* Light Theme */
     --bg-canvas: #F4F3EF;
     --bg-board: #EBEAE3;
     --surface-card: #FFFFFF;
@@ -27,7 +26,6 @@
     --transition-apple: 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* 🌙 DARK THEME (Aesthetic Sanctuary) */
 [data-theme="dark"] {
     --bg-canvas: #161815;
     --bg-board: #1C1E1B;
@@ -48,7 +46,6 @@
     --shadow-drag: 0 30px 60px rgba(0, 0, 0, 0.7), 0 12px 24px rgba(0,0,0,0.5);
 }
 
-/* Точечные адаптации полупрозрачных элементов под тёмную тему */
 [data-theme="dark"] .icon-btn:hover,[data-theme="dark"] .icon-btn.active,
 [data-theme="dark"] .workspace-btn:hover,[data-theme="dark"] .menu-btn:hover,[data-theme="dark"] .menu-btn.active,[data-theme="dark"] .menu-item:hover,
 [data-theme="dark"] .meta-pill, [data-theme="dark"] .column.collapsed,
@@ -63,335 +60,150 @@
 [data-theme="dark"] .new-column-btn { border-color: rgba(137, 160, 133, 0.25); }
 [data-theme="dark"] .modal-overlay { background: rgba(0, 0, 0, 0.5); }
 
-/* ✨ Анимация переключения темы (View Transitions API) */
-::view-transition-old(root),
-::view-transition-new(root) {
-    animation: none;
-    mix-blend-mode: normal;
-}
+::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
 ::view-transition-old(root) { z-index: 1; }
-::view-transition-new(root) {
-    z-index: 2;
-    animation: theme-wipe 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both;
-}
-@keyframes theme-wipe {
-    0% { clip-path: circle(0% at 0% 0%); }
-    100% { clip-path: circle(150% at 0% 0%); }
-}
+::view-transition-new(root) { z-index: 2; animation: theme-wipe 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+@keyframes theme-wipe { 0% { clip-path: circle(0% at 0% 0%); } 100% { clip-path: circle(150% at 0% 0%); } }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
-
 body {
-    background-color: var(--bg-canvas);
-    font-family: var(--font-main);
-    color: var(--text-primary);
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    /* ✦ FIX: изолируем stacking context — backdrop-filter не трогает соседние слои */
+    background-color: var(--bg-canvas); font-family: var(--font-main);
+    color: var(--text-primary); height: 100vh; display: flex;
+    flex-direction: column; overflow: hidden;
+    -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
     isolation: isolate;
 }
 
-/* 🎛 ШАПКА ПРИЛОЖЕНИЯ */
 .app-header {
-    padding: 24px 40px;
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    flex-shrink: 0;
-    position: relative;
-    z-index: 50;
-    /* ✦ FIX: пре-промоутим шапку на GPU до того, как backdrop-filter её тронет */
-    transform: translateZ(0);
-    will-change: transform;
+    padding: 24px 40px; display: flex; align-items: center; gap: 20px;
+    flex-shrink: 0; position: relative; z-index: 50; transform: translateZ(0); will-change: transform;
 }
-
 .settings-wrapper { position: relative; }
-
 .icon-btn {
-    background: transparent;
-    border: none;
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--text-secondary);
-    cursor: pointer;
-    transition: all 0.2s ease;
+    background: transparent; border: none; width: 36px; height: 36px;
+    border-radius: 10px; display: flex; align-items: center; justify-content: center;
+    color: var(--text-secondary); cursor: pointer; transition: all 0.2s ease;
 }
-.icon-btn:hover, .icon-btn.active {
-    background: rgba(0,0,0,0.05);
-    color: var(--text-primary);
-}
+.icon-btn:hover, .icon-btn.active { background: rgba(0,0,0,0.05); color: var(--text-primary); }
 
 .workspace-btn {
-    background: transparent;
-    border: none;
-    font-family: var(--font-main);
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--text-primary);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
-    border-radius: 10px;
-    transition: background 0.2s;
-    letter-spacing: -0.01em;
+    background: transparent; border: none; font-family: var(--font-main);
+    font-size: 16px; font-weight: 600; color: var(--text-primary);
+    cursor: pointer; display: flex; align-items: center; gap: 8px;
+    padding: 8px 12px; border-radius: 10px; transition: background 0.2s; letter-spacing: -0.01em;
 }
 .workspace-btn:hover { background: rgba(0,0,0,0.04); }
 .workspace-btn svg { opacity: 0.5; width: 16px; height: 16px; }
 
-/* 📋 КОНТЕЙНЕР ДОСКИ */
 .board-container {
-    flex: 1;
-    padding: 0 40px 40px;
-    overflow-x: auto;
-    overflow-y: hidden;
-    /* ✦ FIX: пре-промоутим контент доски на GPU */
-    transform: translateZ(0);
-    will-change: transform;
+    flex: 1; padding: 0 40px 40px; overflow-x: auto; overflow-y: hidden;
+    transform: translateZ(0); will-change: transform;
 }
+.board { display: flex; gap: 24px; height: 100%; padding-right: 40px; }
 
-.board {
-    display: flex;
-    gap: 24px;
-    height: 100%;
-    padding-right: 40px;
-}
-
-/* КОЛОНКА */
 .column {
-    background: var(--bg-board);
-    width: 320px;
-    max-height: 100%;
-    flex-shrink: 0;
-    border-radius: var(--radius-board);
-    display: flex;
-    flex-direction: column;
-    border: 1px solid var(--border-light);
-    position: relative;
-    transition: width var(--transition-apple), background var(--transition-apple);
+    background: var(--bg-board); width: 320px; max-height: 100%;
+    flex-shrink: 0; border-radius: var(--radius-board); display: flex;
+    flex-direction: column; border: 1px solid var(--border-light);
+    position: relative; transition: width var(--transition-apple), background var(--transition-apple);
+    cursor: grab;
 }
+.column:active { cursor: grabbing; }
 
-/* СВЕРНУТАЯ КОЛОНКА */
 .column.collapsed {
-    width: 60px;
-    cursor: pointer;
-    background: rgba(0,0,0,0.02);
-    border-color: rgba(0,0,0,0.04);
+    width: 60px; cursor: pointer; background: rgba(0,0,0,0.02); border-color: rgba(0,0,0,0.04);
 }
-.column.collapsed:hover {
-    background: rgba(0,0,0,0.05);
-}
-.column.collapsed .card-list,
-.column.collapsed .btn-add-card,
-.column.collapsed .column-actions {
-    display: none;
-}
-.column.collapsed .column-header {
-    padding: 24px 0;
-    justify-content: center;
-    height: 100%;
-}
+.column.collapsed:hover { background: rgba(0,0,0,0.05); }
+.column.collapsed .card-list, .column.collapsed .btn-add-card, .column.collapsed .column-actions { display: none; }
+.column.collapsed .column-header { padding: 24px 0; justify-content: center; height: 100%; }
 .column.collapsed .column-title {
-    writing-mode: vertical-rl;
-    transform: rotate(180deg);
-    color: var(--text-primary);
-    font-size: 13px;
-    letter-spacing: 0.02em;
-    white-space: nowrap;
+    writing-mode: vertical-rl; transform: rotate(180deg);
+    color: var(--text-primary); font-size: 13px; letter-spacing: 0.02em; white-space: nowrap;
 }
 
-/* ЗАГОЛОВОК КОЛОНКИ */
 .column-header {
-    padding: 20px 20px 12px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+    padding: 20px 20px 12px; display: flex; align-items: center; justify-content: space-between;
+    user-select: none; -webkit-user-select: none;
 }
 
-.column-title {
-    font-weight: 600;
-    font-size: 15px;
-    letter-spacing: -0.01em;
-    color: var(--text-primary);
-}
-
+.column-title { font-weight: 600; font-size: 15px; letter-spacing: -0.01em; color: var(--text-primary); pointer-events: none; }
 .column-actions { display: flex; align-items: center; gap: 8px; }
 
-/* 💊 ПИЛЮЛЯ */
 .meta-pill {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 13px;
-    font-weight: 600;
-    padding: 4px 10px;
-    border-radius: 20px;
+    display: flex; align-items: center; gap: 6px; font-size: 13px;
+    font-weight: 600; padding: 4px 10px; border-radius: 20px; pointer-events: none;
 }
 .meta-pill.default { background: rgba(0,0,0,0.04); color: var(--text-secondary); }
 .meta-pill.track-time { background: rgba(0,0,0,0.04); color: var(--text-secondary); }
 .meta-pill.completion { background: rgba(0,0,0,0.04); color: var(--text-secondary); }
 .meta-pill svg { width: 14px; height: 14px; opacity: 0.9; }
 
-/* КНОПКИ МЕНЮ */
 .menu-btn {
-    background: none; border: none; width: 28px; height: 28px;
-    border-radius: 8px; display: flex; align-items: center; justify-content: center;
-    color: var(--text-secondary); cursor: pointer; transition: all 0.15s ease;
+    background: none; border: none; width: 28px; height: 28px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center; color: var(--text-secondary);
+    cursor: pointer; transition: all 0.15s ease; pointer-events: auto;
 }
 .menu-btn:hover, .menu-btn.active { background: rgba(0,0,0,0.06); color: var(--text-primary); }
 
-/* 🗄 ВЫПАДАЮЩЕЕ МЕНЮ */
 .dropdown-menu {
-    position: absolute;
-    background: rgba(255, 255, 255, 0.85);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
-    border-radius: 14px;
-    box-shadow: var(--shadow-menu);
-    padding: 8px;
-    min-width: 220px;
-    z-index: 100;
-    border: 1px solid rgba(255,255,255,0.5);
-    opacity: 0; visibility: hidden;
-    transform: translateY(-8px) scale(0.96);
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    position: absolute; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px); border-radius: 14px; box-shadow: var(--shadow-menu);
+    padding: 8px; min-width: 220px; z-index: 100; border: 1px solid rgba(255,255,255,0.5);
+    opacity: 0; visibility: hidden; transform: translateY(-8px) scale(0.96); transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
-
 .column .dropdown-menu { top: 56px; right: 16px; transform-origin: top right; }
 .settings-wrapper .dropdown-menu { top: 44px; left: 0; transform-origin: top left; }
-
 .dropdown-menu.show { opacity: 1; visibility: visible; transform: translateY(0) scale(1); }
 
-.menu-label {
-    font-size: 11px; font-weight: 600; text-transform: uppercase;
-    letter-spacing: 0.04em; color: var(--text-secondary); padding: 8px 12px 6px;
-}
-
-.menu-item {
-    padding: 8px 12px; border-radius: 8px; font-size: 13px; font-weight: 500;
-    color: var(--text-primary); cursor: pointer; display: flex; align-items: center;
-    gap: 10px; transition: background 0.1s;
-}
-
+.menu-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-secondary); padding: 8px 12px 6px; }
+.menu-item { padding: 8px 12px; border-radius: 8px; font-size: 13px; font-weight: 500; color: var(--text-primary); cursor: pointer; display: flex; align-items: center; gap: 10px; transition: background 0.1s; }
 .menu-item:hover { background: rgba(0,0,0,0.04); }
 .menu-item.danger { color: #D35446; }
 .menu-item.danger:hover { background: rgba(211, 84, 70, 0.08); }
-
-.menu-item.selected {
-    background: rgba(0,0,0,0.02);
-    font-weight: 600;
-}
-
-.menu-item svg.check-icon {
-    opacity: 0; width: 14px; height: 14px; margin-left: auto;
-    transform: scale(0.8); transition: all 0.2s ease;
-    color: var(--text-primary);
-}
+.menu-item.selected { background: rgba(0,0,0,0.02); font-weight: 600; }
+.menu-item svg.check-icon { opacity: 0; width: 14px; height: 14px; margin-left: auto; transform: scale(0.8); transition: all 0.2s ease; color: var(--text-primary); }
 .menu-item.selected svg.check-icon { opacity: 1; transform: scale(1); }
 .menu-icon { width: 16px; height: 16px; opacity: 0.6; }
-
 .menu-divider { height: 1px; background: var(--border-light); margin: 6px 0; }
 
-/* КАРТОЧКИ (СПИСОК) */
 .card-list {
-    padding: 4px 16px 16px;
-    display: flex; flex-direction: column; gap: 12px;
-    overflow-y: auto; flex: 1;
-    scrollbar-width: none;
+    padding: 4px 16px 16px; display: flex; flex-direction: column; gap: 12px;
+    overflow-y: auto; flex: 1; scrollbar-width: none; pointer-events: auto;
 }
 .card-list::-webkit-scrollbar { display: none; }
 
-/* КАРТОЧКА */
 .card {
-    background: var(--surface-card);
-    border-radius: var(--radius-card);
-    padding: 16px 16px;
-    box-shadow: var(--shadow-card);
-    border: 1px solid var(--border-light);
-    cursor: grab;
+    background: var(--surface-card); border-radius: var(--radius-card); padding: 16px 16px;
+    box-shadow: var(--shadow-card); border: 1px solid var(--border-light); cursor: grab;
     transition: transform var(--transition-apple), box-shadow var(--transition-apple), background-color var(--transition-apple);
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 8px 12px;
-    outline: none !important;
-    -webkit-tap-highlight-color: transparent;
-    -webkit-user-select: none;
-    user-select: none;
-    will-change: transform, box-shadow;
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px 12px;
+    user-select: none; will-change: transform, box-shadow; pointer-events: auto;
 }
-
 .card:active { cursor: grabbing; }
-.card:focus, .card:active, .card:focus-visible { outline: none !important; }
+.card:hover { transform: translate3d(0, -2px, 0); box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04); }
 
-.card:hover {
-    transform: translate3d(0, -2px, 0);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
-}
-
-/* ✨ ЗАВЕРШЕННАЯ КАРТОЧКА */
-.card.is-completed {
-    background: #F7F6F3;
-}
-.card.is-completed:hover {
-    transform: translate3d(0, -2px, 0);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
-}
-
-.card-title-wrapper {
-    width: 100%;
-    display: flex;
-    align-items: flex-start;
-    gap: 8px;
-    margin-bottom: 4px;
-    pointer-events: none;
-}
-
-.completed-icon {
-    color: var(--success-done);
-    flex-shrink: 0;
-    margin-top: 2px;
-    display: none;
-}
-
+.card.is-completed { background: #F7F6F3; }
+.card.is-completed:hover { transform: translate3d(0, -2px, 0); box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04); }
+.card-title-wrapper { width: 100%; display: flex; align-items: flex-start; gap: 8px; margin-bottom: 4px; pointer-events: none; }
+.completed-icon { color: var(--success-done); flex-shrink: 0; margin-top: 2px; display: none; }
 .card.is-completed .completed-icon { display: block; }
-
 .card-title { font-size: 14px; font-weight: 500; line-height: 1.4; color: var(--text-primary); transition: color 0.2s; pointer-events: none; }
+.card.is-completed .card-title { text-decoration: line-through; color: var(--text-secondary); }
 
-.card.is-completed .card-title {
-    text-decoration: line-through;
-    color: var(--text-secondary);
-}
-
-/* ТАЙМЕР И ПОДЗАДАЧИ */
 .card-timer {
-    font-family: var(--font-mono); font-size: 12px; color: var(--timer-text);
-    background: var(--timer-bg); display: inline-flex; padding: 4px 10px;
-    border-radius: 8px; font-weight: 600; letter-spacing: 0.02em;
+    font-family: var(--font-mono); font-size: 12px; color: var(--timer-text); background: var(--timer-bg);
+    display: inline-flex; padding: 4px 10px; border-radius: 8px; font-weight: 600; letter-spacing: 0.02em;
     margin-top: 0; order: 3; pointer-events: none;
 }
-
 .subtask-meta {
-    font-size: 12px; color: var(--text-secondary);
-    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; color: var(--text-secondary); display: flex; align-items: center; gap: 6px;
     margin-top: 0; order: 2; pointer-events: none;
 }
 
-/* КНОПКИ ДОБАВЛЕНИЯ */
 .btn-add-card {
-    margin: 0 16px 16px; padding: 12px; background: transparent; border: none;
-    color: var(--text-secondary); font-size: 14px; font-weight: 500; text-align: left;
-    cursor: pointer; border-radius: 10px; transition: all 0.15s ease;
+    margin: 0 16px 16px; padding: 12px; background: transparent; border: none; color: var(--text-secondary);
+    font-size: 14px; font-weight: 500; text-align: left; cursor: pointer; border-radius: 10px; transition: all 0.15s ease;
+    pointer-events: auto;
 }
 .btn-add-card:hover { background: rgba(0,0,0,0.03); color: var(--text-primary); }
 
@@ -402,118 +214,89 @@ body {
 }
 .new-column-btn:hover { background: rgba(74, 90, 72, 0.03); border-color: rgba(74, 90, 72, 0.3); }
 
-/* --- КЛАССЫ ДЛЯ DRAG & DROP ДВИЖКА --- */
-.card.is-ghost {
-    opacity: 0.3 !important;
-    background: var(--border-light) !important;
-    box-shadow: none !important;
-    transform: none !important;
-}
 
+/* --- DRAG & DROP ДВИЖОК --- */
+
+/* Клон карточки */
 .card-drag-clone {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    transform-origin: top left;
-    z-index: 9999;
-    pointer-events: none;
-    margin: 0 !important;
-    width: 288px;
-    box-shadow: var(--shadow-drag) !important;
+    position: fixed !important; top: 0 !important; left: 0 !important;
+    transform-origin: top left; z-index: 9999; 
+    pointer-events: none !important;
+    margin: 0 !important; width: 288px; box-shadow: var(--shadow-drag) !important;
     will-change: transform;
 }
+.card-drag-clone * {
+    pointer-events: none !important;
+}
+
+/* Клон колонки (летит за мышкой) */
+.column-drag-clone {
+    position: fixed !important; top: 0 !important; left: 0 !important;
+    transform-origin: top left !important;
+    z-index: 9999; pointer-events: none !important; 
+    margin: 0 !important; box-shadow: var(--shadow-drag) !important; 
+    will-change: transform; opacity: 1 !important;
+    display: flex !important; flex-direction: column !important;
+    background: var(--bg-board) !important;
+    border-radius: var(--radius-board) !important;
+}
+/* ВАЖНО: Только pointer-events, без position: fixed, чтобы не сломать сетку внутри */
+.column-drag-clone * {
+    pointer-events: none !important;
+}
+
+/* Призрак карточки (пустое место на доске) */
+.card.is-ghost {
+    opacity: 0.3 !important; background: var(--border-light) !important;
+    box-shadow: none !important; transform: none !important;
+}
+
+/* Призрак колонки (пустой слот) */
+.column.is-ghost {
+    background: var(--bg-canvas) !important;
+    border: 2px dashed var(--border-light) !important;
+    box-shadow: none !important;
+    opacity: 0.6 !important;
+    transition: none !important;
+}
+.column.is-ghost > * { visibility: hidden !important; }
 
 /* --- МОДАЛЬНЫЕ ОКНА --- */
 .modal-overlay {
-    position: fixed; inset: 0;
-    background: rgba(0, 0, 0, 0.15);
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
+    position: fixed; inset: 0; background: rgba(0, 0, 0, 0.15);
+    backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
     display: flex; align-items: center; justify-content: center;
-    opacity: 0; visibility: hidden; z-index: 1000;
-    transition: opacity 0.2s ease, visibility 0.2s;
-    /* ✦ FIX: держим compositor layer наготове — браузер не пересчитывает соседей при открытии */
-    will-change: opacity;
+    opacity: 0; visibility: hidden; z-index: 1000; transition: opacity 0.2s ease, visibility 0.2s; will-change: opacity;
 }
-.modal-overlay.show {
-    opacity: 1; visibility: visible;
-}
+.modal-overlay.show { opacity: 1; visibility: visible; }
 
 .modal-card {
-    background: var(--surface-card);
-    width: 320px;
-    border-radius: var(--radius-card);
-    box-shadow: var(--shadow-menu);
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    border: 1px solid var(--border-light);
-    opacity: 0;
-    transform: translateY(15px);
-    transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
-    -webkit-font-smoothing: antialiased;
+    background: var(--surface-card); width: 320px; border-radius: var(--radius-card);
+    box-shadow: var(--shadow-menu); overflow: hidden; display: flex; flex-direction: column;
+    border: 1px solid var(--border-light); opacity: 0; transform: translateY(15px);
+    transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1); -webkit-font-smoothing: antialiased;
 }
-.modal-overlay.show .modal-card {
-    opacity: 1;
-    transform: translateY(0);
-}
+.modal-overlay.show .modal-card { opacity: 1; transform: translateY(0); }
 
-.modal-header {
-    padding: 16px 20px; border-bottom: 1px solid var(--border-light);
-    display: flex; align-items: center; justify-content: space-between;
-}
+.modal-header { padding: 16px 20px; border-bottom: 1px solid var(--border-light); display: flex; align-items: center; justify-content: space-between; }
 .modal-title { font-weight: 600; font-size: 15px; color: var(--text-primary); }
 .modal-close {
-    background: none; border: none; cursor: pointer; color: var(--text-secondary);
-    display: flex; align-items: center; justify-content: center; padding: 6px; margin: -6px;
-    border-radius: 8px; transition: background 0.15s, color 0.15s;
+    background: none; border: none; cursor: pointer; color: var(--text-secondary); display: flex; align-items: center;
+    justify-content: center; padding: 6px; margin: -6px; border-radius: 8px; transition: background 0.15s, color 0.15s;
 }
 .modal-close:hover { background: rgba(0,0,0,0.05); color: var(--text-primary); }
-
 .modal-body { padding: 12px; display: flex; flex-direction: column; gap: 4px; }
 
 .lang-item {
-    padding: 12px 14px; border-radius: 10px; cursor: pointer;
-    display: flex; align-items: center; justify-content: space-between;
-    font-size: 14px; font-weight: 500; color: var(--text-primary);
-    transition: background 0.15s;
+    padding: 12px 14px; border-radius: 10px; cursor: pointer; display: flex; align-items: center;
+    justify-content: space-between; font-size: 14px; font-weight: 500; color: var(--text-primary); transition: background 0.15s;
 }
 .lang-item:hover { background: rgba(0,0,0,0.03); }
 .lang-item.active { background: rgba(0,0,0,0.04); font-weight: 600; }
-
-.lang-item .check-icon {
-    opacity: 0; width: 18px; height: 18px;
-    transform: scale(0.8); transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-    color: var(--text-primary);
-}
+.lang-item .check-icon { opacity: 0; width: 18px; height: 18px; transform: scale(0.8); transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1); color: var(--text-primary); }
 .lang-item.active .check-icon { opacity: 1; transform: scale(1); }
 
-.about-content {
-    padding: 32px 24px;
-    text-align: center;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 180px;
-}
-.about-logo {
-    font-size: 24px; font-weight: 700; color: var(--brand-pine);
-    letter-spacing: -0.03em; margin-bottom: 8px;
-}
-.about-desc {
-    font-size: 14px;
-    color: var(--text-secondary);
-    font-weight: 500;
-    line-height: 22px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    transform: translateZ(0);
-    backface-visibility: hidden;
-}
-.about-version {
-    margin-top: 24px; font-family: var(--font-mono); font-size: 11px;
-    color: var(--text-secondary); opacity: 0.6; letter-spacing: 0.05em;
-}
+.about-content { padding: 32px 24px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 180px; }
+.about-logo { font-size: 24px; font-weight: 700; color: var(--brand-pine); letter-spacing: -0.03em; margin-bottom: 8px; }
+.about-desc { font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 22px; display: flex; flex-direction: column; align-items: center; text-align: center; transform: translateZ(0); backface-visibility: hidden; }
+.about-version { margin-top: 24px; font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary); opacity: 0.6; letter-spacing: 0.05em; }

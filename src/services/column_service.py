@@ -77,6 +77,19 @@ async def get_columns_with_tasks(db: AsyncSession):
 
     return response_columns
 
+async def reorder_columns(db: AsyncSession, ordered_ids: list[int]) -> None:
+    # Запрашиваем нужные колонки
+    result = await db.execute(select(ColumnModel).where(ColumnModel.id.in_(ordered_ids)))
+    columns = result.scalars().all()
+    
+    col_map = {col.id: col for col in columns}
+    
+    # Обновляем позиции (используем индекс в массиве как позицию)
+    for index, col_id in enumerate(ordered_ids):
+        if col_id in col_map:
+            col_map[col_id].position = float(index)
+            
+    await db.commit()
 
 async def update_column_with_tasks(db: AsyncSession, column_id: int, update_data: dict) -> ColumnModel:
     result = await db.execute(select(ColumnModel).where(ColumnModel.id == column_id))

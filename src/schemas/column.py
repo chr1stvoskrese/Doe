@@ -40,3 +40,6 @@ class ColumnResponse(ColumnBase):
 
     class Config:
         from_attributes = True
+
+class ColumnReorder(BaseModel):
+    ordered_ids: List[int]

@@ -1,85 +1,26 @@
 // ---------- ГЛОБАЛЬНОЕ СОСТОЯНИЕ ----------
-let state = {
-    columns: []
-};
-
+let state = { columns: [] };
 const API_BASE = '/api/v1';
 
 // ---------- ЛОКАЛИЗАЦИЯ ----------
 const translations = {
     ru: {
-        settings: 'Настройки',
-        theme: 'Тема',
-        language: 'Язык',
-        about: 'О приложении',
-        workspace: 'Doe Board',
-        newColumn: '+ Создать колонку',
-        newTask: '+ Новая задача',
-        columnModes: {
-            default: 'Стандартный',
-            track_time: 'Учёт времени',
-            completion: 'Результирующий'
-        },
-        menu: {
-            mode: 'Режим колонки',
-            collapse: 'Свернуть колонку',
-            rename: 'Переименовать',
-            delete: 'Удалить'
-        },
-        modals: {
-            themeTitle: 'Тема оформления',
-            light: 'Светлая',
-            dark: 'Тёмная',
-            langTitle: 'Выберите язык',
-            aboutTitle: 'О приложении',
-            aboutDesc: 'эстетика, грация локального<br>Kanban-хранилища'
-        },
-        card: {
-            timeSpent: 'Времени потрачено:'
-        },
-        prompts: {
-            taskTitle: 'Название задачи:',
-            columnTitle: 'Название колонки:',
-            renameColumn: 'Новое название:',
-            deleteConfirm: (title) => `Удалить колонку «${title}» и все задачи в ней?`
-        }
+        settings: 'Настройки', theme: 'Тема', language: 'Язык', about: 'О приложении', workspace: 'Doe Board',
+        newColumn: '+ Создать колонку', newTask: '+ Новая задача',
+        columnModes: { default: 'Стандартный', track_time: 'Учёт времени', completion: 'Результирующий' },
+        menu: { mode: 'Режим колонки', collapse: 'Свернуть колонку', rename: 'Переименовать', delete: 'Удалить' },
+        modals: { themeTitle: 'Тема оформления', light: 'Светлая', dark: 'Тёмная', langTitle: 'Выберите язык', aboutTitle: 'О приложении', aboutDesc: 'эстетика, грация локального<br>Kanban-хранилища' },
+        card: { timeSpent: 'Времени потрачено:' },
+        prompts: { taskTitle: 'Название задачи:', columnTitle: 'Название колонки:', renameColumn: 'Новое название:', deleteConfirm: (title) => `Удалить колонку «${title}» и все задачи в ней?` }
     },
     en: {
-        settings: 'Settings',
-        theme: 'Theme',
-        language: 'Language',
-        about: 'About',
-        workspace: 'Doe Board',
-        newColumn: '+ Create column',
-        newTask: '+ New task',
-        columnModes: {
-            default: 'Standard',
-            track_time: 'Track time',
-            completion: 'Completed'
-        },
-        menu: {
-            mode: 'Column mode',
-            collapse: 'Collapse column',
-            rename: 'Rename',
-            delete: 'Delete'
-        },
-        modals: {
-            themeTitle: 'Theme',
-            light: 'Light',
-            dark: 'Dark',
-            langTitle: 'Select language',
-            aboutTitle: 'About',
-            aboutDesc: 'aesthetic local-first<br>kanban sanctuary'
-        },
-        card: {
-            timeSpent: 'Time spent:'
-        },
-        prompts: {
-            taskTitle: 'Task title:',
-            columnTitle: 'Column title:',
-            renameColumn: 'New name:',
-            deleteConfirm: (title) => `Delete column «${title}» and all its tasks?`
-        }
+        settings: 'Settings', theme: 'Theme', language: 'Language', about: 'About', workspace: 'Doe Board',
+        newColumn: '+ Create column', newTask: '+ New task',
+        columnModes: { default: 'Standard', track_time: 'Track time', completion: 'Completed' },
+        menu: { mode: 'Column mode', collapse: 'Collapse column', rename: 'Rename', delete: 'Delete' },
+        modals: { themeTitle: 'Theme', light: 'Light', dark: 'Dark', langTitle: 'Select language', aboutTitle: 'About', aboutDesc: 'aesthetic local-first<br>kanban sanctuary' },
+        card: { timeSpent: 'Time spent:' },
+        prompts: { taskTitle: 'Task title:', columnTitle: 'Column title:', renameColumn: 'New name:', deleteConfirm: (title) => `Delete column «${title}» and all its tasks?` }
     }
 };
 
@@ -89,24 +30,18 @@ function applyLanguage(lang) {
     currentLang = lang;
     localStorage.setItem('doe-lang', lang);
 
-    // Обновляем все элементы с data-i18n
     document.querySelectorAll('[data-i18n]').forEach(el => {
         const key = el.dataset.i18n;
         const translation = getNestedTranslation(lang, key);
         if (translation) {
-            if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
-                el.placeholder = translation;
-            } else {
-                el.textContent = translation;
-            }
+            if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') el.placeholder = translation;
+            else el.textContent = translation;
         }
     });
 
-    // Обновляем пункт "Язык" в меню шапки
     const langSpan = document.querySelector('[data-action="change-lang"] span');
     if (langSpan) langSpan.textContent = translations[lang].language;
 
-    // Обновляем модальные окна
     document.querySelector('#theme-modal .modal-title').textContent = translations[lang].modals.themeTitle;
     document.querySelector('#theme-list .lang-item[data-theme-value="light"] span').textContent = translations[lang].modals.light;
     document.querySelector('#theme-list .lang-item[data-theme-value="dark"] span').textContent = translations[lang].modals.dark;
@@ -114,17 +49,10 @@ function applyLanguage(lang) {
     document.querySelector('#about-modal .modal-title').textContent = translations[lang].modals.aboutTitle;
     document.querySelector('#about-modal .about-desc').innerHTML = translations[lang].modals.aboutDesc;
 
-    // Перерисовываем доску, чтобы обновить динамические тексты (кнопки, меню)
-    if (state.columns.length > 0) {
-        renderBoard();
-    }
+    if (state.columns.length > 0) renderBoard();
 }
 
-function getNestedTranslation(lang, path) {
-    return path.split('.').reduce((obj, key) => obj?.[key], translations[lang]);
-}
-
-// Удобная функция для получения перевода в коде
+function getNestedTranslation(lang, path) { return path.split('.').reduce((obj, key) => obj?.[key], translations[lang]); }
 function t(key, ...args) {
     const translation = getNestedTranslation(currentLang, key);
     if (typeof translation === 'function') return translation(...args);
@@ -132,89 +60,45 @@ function t(key, ...args) {
 }
 
 // ---------- API-КЛИЕНТ ----------
-async function fetchColumns() {
-    const res = await fetch(`${API_BASE}/columns/`);
-    if (!res.ok) throw new Error('Ошибка загрузки колонок');
-    return res.json();
+async function fetchColumns() { const res = await fetch(`${API_BASE}/columns/`); if (!res.ok) throw new Error('Error'); return res.json(); }
+async function saveColumnsOrder(orderedIds) {
+    const res = await fetch(`${API_BASE}/columns/reorder`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ordered_ids: orderedIds })
+    });
+    if (!res.ok) throw new Error('Error');
 }
-
 async function createColumn(title, mode = 'default') {
-    const res = await fetch(`${API_BASE}/columns/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, mode })
-    });
-    if (!res.ok) throw new Error('Ошибка создания колонки');
-    return res.json();
+    const res = await fetch(`${API_BASE}/columns/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title, mode }) });
+    if (!res.ok) throw new Error('Error'); return res.json();
 }
-
 async function updateColumn(id, data) {
-    const res = await fetch(`${API_BASE}/columns/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-    });
-    if (!res.ok) throw new Error('Ошибка обновления колонки');
-    return res.json();
+    const res = await fetch(`${API_BASE}/columns/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+    if (!res.ok) throw new Error('Error'); return res.json();
 }
-
 function formatTotalTime(seconds) {
     const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
     const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
     const s = Math.floor(seconds % 60).toString().padStart(2, '0');
     return `${h}:${m}:${s}`;
 }
-
-async function deleteColumn(id) {
-    const res = await fetch(`${API_BASE}/columns/${id}`, { method: 'DELETE' });
-    if (!res.ok) throw new Error('Ошибка удаления колонки');
-}
-
+async function deleteColumn(id) { const res = await fetch(`${API_BASE}/columns/${id}`, { method: 'DELETE' }); if (!res.ok) throw new Error('Error'); }
 async function createTask(title, columnId) {
-    const res = await fetch(`${API_BASE}/tasks/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, column_id: columnId })
-    });
-    if (!res.ok) throw new Error('Ошибка создания задачи');
-    return res.json();
+    const res = await fetch(`${API_BASE}/tasks/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title, column_id: columnId }) });
+    if (!res.ok) throw new Error('Error'); return res.json();
 }
-
 async function updateTask(id, data) {
-    const res = await fetch(`${API_BASE}/tasks/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-    });
-    if (!res.ok) throw new Error('Ошибка обновления задачи');
-    return res.json();
+    const res = await fetch(`${API_BASE}/tasks/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+    if (!res.ok) throw new Error('Error'); return res.json();
 }
-
-async function deleteTask(id) {
-    const res = await fetch(`${API_BASE}/tasks/${id}`, { method: 'DELETE' });
-    if (!res.ok) throw new Error('Ошибка удаления задачи');
-}
-
+async function deleteTask(id) { const res = await fetch(`${API_BASE}/tasks/${id}`, { method: 'DELETE' }); if (!res.ok) throw new Error('Error'); }
 async function moveTask(taskId, targetColumnId) {
-    const res = await fetch(`${API_BASE}/tasks/${taskId}/move`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ target_column_id: targetColumnId })
-    });
-    if (!res.ok) throw new Error('Ошибка перемещения задачи');
-    return res.json();
+    const res = await fetch(`${API_BASE}/tasks/${taskId}/move`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ target_column_id: targetColumnId }) });
+    if (!res.ok) throw new Error('Error'); return res.json();
 }
 
-// ---------- УТИЛИТЫ ----------
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
+function escapeHtml(text) { const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
 function formatTime(startTime) {
-    const start = new Date(startTime);
-    const diff = Math.floor((Date.now() - start) / 1000);
+    const start = new Date(startTime); const diff = Math.floor((Date.now() - start) / 1000);
     const h = Math.floor(diff / 3600).toString().padStart(2, '0');
     const m = Math.floor((diff % 3600) / 60).toString().padStart(2, '0');
     const s = (diff % 60).toString().padStart(2, '0');
@@ -225,12 +109,8 @@ function formatTime(startTime) {
 function renderBoard() {
     const board = document.getElementById('board');
     board.innerHTML = '';
-
     const sorted = [...state.columns].sort((a, b) => a.position - b.position);
-
-    for (const col of sorted) {
-        board.appendChild(createColumnElement(col));
-    }
+    for (const col of sorted) board.appendChild(createColumnElement(col));
 
     const addColBtn = document.createElement('button');
     addColBtn.className = 'new-column-btn';
@@ -240,22 +120,16 @@ function renderBoard() {
 }
 
 function updateCardAppearance(cardElement, task, columnMode) {
-    // Обновляем класс is-completed
-    if (task.completed_at) {
-        cardElement.classList.add('is-completed');
-    } else {
-        cardElement.classList.remove('is-completed');
-    }
+    if (task.completed_at) cardElement.classList.add('is-completed');
+    else cardElement.classList.remove('is-completed');
 
-    // Управляем таймером и отображением времени
     const existingTimer = cardElement.querySelector('.card-timer');
     const existingMeta = cardElement.querySelector('.subtask-meta');
 
     if (columnMode === 'track_time' && task.active_timer) {
         if (!existingTimer) {
             const timerDiv = document.createElement('div');
-            timerDiv.className = 'card-timer';
-            timerDiv.dataset.taskId = task.id;
+            timerDiv.className = 'card-timer'; timerDiv.dataset.taskId = task.id;
             timerDiv.textContent = formatTime(task.active_timer.start_time);
             cardElement.appendChild(timerDiv);
         } else {
@@ -267,10 +141,12 @@ function updateCardAppearance(cardElement, task, columnMode) {
         if (!existingMeta) {
             const metaDiv = document.createElement('div');
             metaDiv.className = 'subtask-meta';
-            metaDiv.textContent = `Времени потрачено: ${formatTotalTime(task.total_time_spent)}`;
+            // ИСПРАВЛЕНО: Теперь используем функцию t() вместо жесткого текста
+            metaDiv.textContent = `${t('card.timeSpent')} ${formatTotalTime(task.total_time_spent)}`;
             cardElement.appendChild(metaDiv);
         } else {
-            existingMeta.textContent = `Времени потрачено: ${formatTotalTime(task.total_time_spent)}`;
+            // ИСПРАВЛЕНО: Здесь тоже
+            existingMeta.textContent = `${t('card.timeSpent')} ${formatTotalTime(task.total_time_spent)}`;
         }
     } else {
         if (existingTimer) existingTimer.remove();
@@ -282,10 +158,9 @@ function createColumnElement(column) {
     const colDiv = document.createElement('div');
     colDiv.className = 'column';
     colDiv.dataset.columnId = column.id;
-    if (column.collapsed) {
-        colDiv.classList.add('collapsed');
-    }
-    colDiv.dataset.columnId = column.id;
+    colDiv.setAttribute('draggable', 'true');
+    
+    if (column.collapsed) colDiv.classList.add('collapsed');
 
     let pillClass = 'meta-pill default';
     let modeIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/></svg>';
@@ -352,14 +227,12 @@ function createColumnElement(column) {
         <button class="btn-add-card">${t('newTask')}</button>
     `;
 
-    // Обработчики
     const addBtn = colDiv.querySelector('.btn-add-card');
     addBtn.addEventListener('click', () => onAddTask(column.id));
 
     const menuBtn = colDiv.querySelector('.menu-btn');
     menuBtn.addEventListener('click', (e) => toggleColumnMenu(e, colDiv));
 
-    // Drag & drop приём
     colDiv.addEventListener('dragover', e => e.preventDefault());
     colDiv.addEventListener('drop', e => onDropToColumn(e, column.id));
 
@@ -370,42 +243,18 @@ function createColumnElement(column) {
 async function refreshBoard() {
     try {
         const columns = await fetchColumns();
-        // Добавляем флаг collapsed, если его нет
-        state.columns = columns.map(col => ({
-            ...col,
-            collapsed: col.collapsed || false
-        }));
+        state.columns = columns.map(col => ({ ...col, collapsed: col.collapsed || false }));
         renderBoard();
-    } catch (e) {
-        console.error(e);
-        alert('Не удалось загрузить доску');
-    }
+    } catch (e) { console.error(e); alert('Не удалось загрузить доску'); }
 }
 
-async function onAddTask(columnId) {
-    const title = prompt(t('prompts.taskTitle'));
-    if (!title) return;
-    try {
-        await createTask(title, columnId);
-        await refreshBoard();
-    } catch (e) {
-        alert('Ошибка создания задачи');
-    }
-}
-
-async function onCreateColumn() {
-    const title = prompt(t('prompts.columnTitle'));
-    if (!title) return;
-    try {
-        await createColumn(title, 'default');
-        await refreshBoard();
-    } catch (e) {
-        alert('Ошибка создания колонки');
-    }
-}
+async function onAddTask(columnId) { const title = prompt(t('prompts.taskTitle')); if (!title) return; try { await createTask(title, columnId); await refreshBoard(); } catch (e) { alert('Ошибка'); } }
+async function onCreateColumn() { const title = prompt(t('prompts.columnTitle')); if (!title) return; try { await createColumn(title, 'default'); await refreshBoard(); } catch (e) { alert('Ошибка'); } }
 
 async function onDropToColumn(e, columnId) {
     e.preventDefault();
+    if (dragType === 'column') return;
+
     const taskId = e.dataTransfer.getData('text/plain');
     if (!taskId) return;
 
@@ -416,73 +265,61 @@ async function onDropToColumn(e, columnId) {
     if (!card || !sourceColumn || !targetColumn) return;
     if (sourceColumn === targetColumn) return;
 
-    // Оптимистичное перемещение с анимацией
     card.style.transition = 'opacity 0.15s ease, transform 0.2s ease';
-    card.style.opacity = '0.6';
-    card.style.transform = 'scale(0.98)';
+    card.style.opacity = '0.6'; card.style.transform = 'scale(0.98)';
 
     const targetCardList = targetColumn.querySelector('.card-list');
     targetCardList.appendChild(card);
 
-    requestAnimationFrame(() => {
-        card.style.opacity = '1';
-        card.style.transform = 'scale(1)';
-    });
+    requestAnimationFrame(() => { card.style.opacity = '1'; card.style.transform = 'scale(1)'; });
 
-    updateColumnCount(sourceColumn);
-    updateColumnCount(targetColumn);
+    updateColumnCount(sourceColumn); updateColumnCount(targetColumn);
 
     try {
         const updatedTask = await moveTask(parseInt(taskId), columnId);
 
-        // Обновляем состояние
         const sourceCol = state.columns.find(c => c.id === parseInt(sourceColumn.dataset.columnId));
         const targetCol = state.columns.find(c => c.id === columnId);
         const taskIndex = sourceCol.tasks.findIndex(t => t.id == taskId);
         if (taskIndex !== -1) {
             const [movedTask] = sourceCol.tasks.splice(taskIndex, 1);
-            movedTask.column_id = columnId;
-            movedTask.completed_at = updatedTask.completed_at;
-            movedTask.active_timer = updatedTask.active_timer;
-            movedTask.total_time_spent = updatedTask.total_time_spent;
+            movedTask.column_id = columnId; movedTask.completed_at = updatedTask.completed_at;
+            movedTask.active_timer = updatedTask.active_timer; movedTask.total_time_spent = updatedTask.total_time_spent;
             targetCol.tasks.push(movedTask);
         }
 
-        // Обновляем внешний вид карточки
         updateCardAppearance(card, updatedTask, targetCol.mode);
+        updateColumnCount(sourceColumn, sourceCol.tasks.length); updateColumnCount(targetColumn, targetCol.tasks.length);
 
-        // Обновляем счётчики
-        updateColumnCount(sourceColumn, sourceCol.tasks.length);
-        updateColumnCount(targetColumn, targetCol.tasks.length);
-
-        card.style.transition = '';
-        card.style.opacity = '';
-        card.style.transform = '';
-
-        // Обновляем все таймеры
+        card.style.transition = ''; card.style.opacity = ''; card.style.transform = '';
         updateTimers();
     } catch (error) {
-        // Возврат при ошибке
         const sourceCardList = sourceColumn.querySelector('.card-list');
         sourceCardList.appendChild(card);
-        updateColumnCount(sourceColumn);
-        updateColumnCount(targetColumn);
-        card.style.transition = '';
-        card.style.opacity = '';
-        card.style.transform = '';
-        alert('Ошибка перемещения');
+        updateColumnCount(sourceColumn); updateColumnCount(targetColumn);
+        card.style.transition = ''; card.style.opacity = ''; card.style.transform = '';
     }
 }
 
 // ---------- МЕНЮ КОЛОНКИ ----------
+function closeAllDropdowns() {
+    document.querySelectorAll('.dropdown-menu.show').forEach(m => m.classList.remove('show'));
+    document.querySelectorAll('.menu-btn.active').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.settings-trigger.active').forEach(b => b.classList.remove('active'));
+}
+
 function toggleColumnMenu(e, columnEl) {
     e.stopPropagation();
     const menu = columnEl.querySelector('.dropdown-menu');
     const btn = columnEl.querySelector('.menu-btn');
-    document.querySelectorAll('.dropdown-menu.show').forEach(m => m.classList.remove('show'));
-    document.querySelectorAll('.menu-btn.active').forEach(b => b.classList.remove('active'));
-    menu.classList.add('show');
-    btn.classList.add('active');
+    const isShowing = menu.classList.contains('show');
+    
+    closeAllDropdowns();
+    
+    if (!isShowing) {
+        menu.classList.add('show');
+        btn.classList.add('active');
+    }
 }
 
 async function handleColumnMenu(action, columnEl, menuItem) {
@@ -492,39 +329,23 @@ async function handleColumnMenu(action, columnEl, menuItem) {
 
     if (action === 'set-mode') {
         const mode = menuItem.dataset.mode;
-        try {
-            await updateColumn(columnId, { mode });
-            await refreshBoard();
-        } catch (e) {
-            alert('Ошибка смены режима');
-        }
+        try { await updateColumn(columnId, { mode }); await refreshBoard(); } catch (e) { }
     } else if (action === 'rename-column') {
         const newTitle = prompt(t('prompts.renameColumn'), column.title);
-        if (newTitle && newTitle !== column.title) {
-            try {
-                await updateColumn(columnId, { title: newTitle });
-                await refreshBoard();
-            } catch (e) {
-                alert('Ошибка переименования');
-            }
-        }
+        if (newTitle && newTitle !== column.title) { try { await updateColumn(columnId, { title: newTitle }); await refreshBoard(); } catch (e) {} }
     } else if (action === 'delete-column') {
         if (!confirm(t('prompts.deleteConfirm', column.title))) return;
-        try {
-            await deleteColumn(columnId);
-            await refreshBoard();
-        } catch (e) {
-            alert('Ошибка удаления');
-        }
+        try { await deleteColumn(columnId); await refreshBoard(); } catch (e) {}
     } else if (action === 'collapse-column') {
-        column.collapsed = !column.collapsed; // переключаем
-        renderBoard(); // перерисовываем доску
+        column.collapsed = !column.collapsed; renderBoard();
     }
 }
 
-// ---------- ФИЗИЧЕСКИЙ DRAG & DROP (КАК В СТАРОМ СКРИПТЕ) ----------
+// ---------- ФИЗИЧЕСКИЙ DRAG & DROP ----------
 let dragClone = null;
 let isDragging = false;
+let dragType = null;
+let draggedElement = null;
 let mouseX = 0, mouseY = 0, lastMouseX = 0;
 let currentRotation = 0, targetRotation = 0;
 let rafId = null;
@@ -532,21 +353,48 @@ const emptyImg = new Image();
 emptyImg.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
 
 document.addEventListener('dragstart', (e) => {
+    if (e.target.closest('.menu-btn') || e.target.closest('.btn-add-card')) {
+        e.preventDefault(); return;
+    }
+
     const card = e.target.closest('.card');
-    if (!card) return;
+    const column = e.target.closest('.column');
+
+    if (card) {
+        dragType = 'card';
+        draggedElement = card;
+        e.dataTransfer.setData('text/plain', card.dataset.cardId);
+    } else if (column) {
+        dragType = 'column';
+        draggedElement = column;
+        e.dataTransfer.setData('text/column', column.dataset.columnId); 
+    } else {
+        return;
+    }
 
     e.dataTransfer.setDragImage(emptyImg, 0, 0);
     e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', card.dataset.cardId);
 
-    const rect = card.getBoundingClientRect();
-    dragClone = card.cloneNode(true);
-    dragClone.classList.add('card-drag-clone');
+    const rect = draggedElement.getBoundingClientRect();
+    dragClone = draggedElement.cloneNode(true);
+    
+    dragClone.style.width = `${rect.width}px`;
+    dragClone.style.height = `${rect.height}px`;
+    dragClone.style.minWidth = `${rect.width}px`;
+    dragClone.style.minHeight = `${rect.height}px`;
+    dragClone.style.margin = '0';
+    
+    dragClone.classList.remove('is-ghost');
+
+    if (dragType === 'card') dragClone.classList.add('card-drag-clone');
+    if (dragType === 'column') dragClone.classList.add('column-drag-clone');
+
     document.body.appendChild(dragClone);
+    
     dragClone.dataset.offsetX = e.clientX - rect.left;
     dragClone.dataset.offsetY = e.clientY - rect.top;
 
-    setTimeout(() => card.classList.add('is-ghost'), 0);
+    setTimeout(() => draggedElement.classList.add('is-ghost'), 0);
 
     isDragging = true;
     mouseX = e.clientX;
@@ -561,62 +409,97 @@ document.addEventListener('dragover', (e) => {
     if (!isDragging) return;
     mouseX = e.clientX;
     mouseY = e.clientY;
+
+    if (dragType === 'column') {
+        const hoverColumn = e.target.closest('.column');
+        // ЗАЩИТА: Сортируем только внутри контейнера #board
+        if (hoverColumn && hoverColumn !== draggedElement && !hoverColumn.classList.contains('is-ghost') && hoverColumn.closest('#board')) {
+            const rect = hoverColumn.getBoundingClientRect();
+            const midX = rect.left + rect.width / 2;
+            
+            if (mouseX > midX) {
+                if (hoverColumn.nextElementSibling !== draggedElement) hoverColumn.after(draggedElement);
+            } else {
+                if (hoverColumn.previousElementSibling !== draggedElement) hoverColumn.before(draggedElement);
+            }
+        }
+    }
 });
 
 function renderPhysics() {
-    if (!isDragging) return;
+    if (!isDragging || !dragClone) return;
     const deltaX = mouseX - lastMouseX;
     lastMouseX = mouseX;
-    targetRotation = Math.max(-12, Math.min(12, deltaX * 0.8));
+    
+    const maxRotation = dragType === 'column' ? 3 : 12; 
+    targetRotation = Math.max(-maxRotation, Math.min(maxRotation, deltaX * 0.4));
     currentRotation += (targetRotation - currentRotation) * 0.15;
     targetRotation *= 0.8;
 
-    if (dragClone) {
-        const x = mouseX - parseFloat(dragClone.dataset.offsetX);
-        const y = mouseY - parseFloat(dragClone.dataset.offsetY);
-        dragClone.style.transform = `translate3d(${x}px, ${y}px, 0) rotate(${currentRotation}deg) scale(1.04)`;
-    }
+    const x = mouseX - parseFloat(dragClone.dataset.offsetX);
+    const y = mouseY - parseFloat(dragClone.dataset.offsetY);
+    const scale = dragType === 'column' ? 1.02 : 1.04;
+    
+    dragClone.style.transform = `translate3d(${x}px, ${y}px, 0) rotate(${currentRotation}deg) scale(${scale})`;
+    
     rafId = requestAnimationFrame(renderPhysics);
 }
 
-document.addEventListener('dragend', () => {
+document.addEventListener('dragend', async () => {
+    if (!isDragging) return;
     isDragging = false;
     cancelAnimationFrame(rafId);
+    
     if (dragClone) {
         dragClone.remove();
         dragClone = null;
     }
-    document.querySelectorAll('.card.is-ghost').forEach(c => c.classList.remove('is-ghost'));
+    
+    if (draggedElement) {
+        draggedElement.classList.remove('is-ghost');
+        
+        if (dragType === 'column') {
+            const currentColumns = Array.from(document.querySelectorAll('#board .column'));
+            const orderedIds = currentColumns.map(col => parseInt(col.dataset.columnId));
+            state.columns.sort((a, b) => orderedIds.indexOf(a.id) - orderedIds.indexOf(b.id));
+            
+            // Защитный рендер, чтобы доска точно обновилась корректно
+            renderBoard();
+            
+            try { await saveColumnsOrder(orderedIds); } catch (error) {}
+        }
+    }
+
+    dragType = null;
+    draggedElement = null;
     currentRotation = targetRotation = 0;
 });
 
 // ---------- ГЛОБАЛЬНЫЕ КЛИКИ (меню, модалки) ----------
 document.addEventListener('click', (e) => {
-    // Закрытие меню при клике вне
-    if (!e.target.closest('.dropdown-menu') && !e.target.closest('.menu-btn')) {
-        document.querySelectorAll('.dropdown-menu.show').forEach(m => m.classList.remove('show'));
-        document.querySelectorAll('.menu-btn.active').forEach(b => b.classList.remove('active'));
-    }
-
-    // Меню настроек шапки
-    if (e.target.closest('.settings-trigger')) {
+    
+    const settingsTrigger = e.target.closest('.settings-trigger');
+    if (settingsTrigger) {
         const menu = document.querySelector('.settings-wrapper .dropdown-menu');
-        menu.classList.toggle('show');
-        e.target.closest('.settings-trigger').classList.toggle('active');
+        const isShowing = menu.classList.contains('show');
+        
+        closeAllDropdowns(); 
+        
+        if (!isShowing) { 
+            menu.classList.add('show');
+            settingsTrigger.classList.add('active');
+        }
+        return; 
     }
 
-    // Пункты меню колонки
     const menuItem = e.target.closest('.menu-item');
     if (menuItem) {
         const columnEl = menuItem.closest('.column');
         if (columnEl) {
             handleColumnMenu(menuItem.dataset.action, columnEl, menuItem);
-            columnEl.querySelector('.dropdown-menu')?.classList.remove('show');
-            columnEl.querySelector('.menu-btn')?.classList.remove('active');
         }
     }
 
-    // Модалки из шапки
     const action = e.target.closest('[data-action]')?.dataset.action;
     if (action === 'theme') {
         const currentTheme = document.documentElement.hasAttribute('data-theme') ? 'dark' : 'light';
@@ -628,12 +511,10 @@ document.addEventListener('click', (e) => {
     if (action === 'change-lang') document.getElementById('lang-modal').classList.add('show');
     if (action === 'about') document.getElementById('about-modal').classList.add('show');
 
-    // Закрытие модалок
     if (e.target.closest('.modal-close') || e.target.classList.contains('modal-overlay')) {
         document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('show'));
     }
 
-    // Выбор темы
     const themeItem = e.target.closest('#theme-list .lang-item');
     if (themeItem) {
         document.querySelectorAll('#theme-list .lang-item').forEach(el => el.classList.remove('active'));
@@ -648,11 +529,10 @@ document.addEventListener('click', (e) => {
             if (theme === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
             else document.documentElement.removeAttribute('data-theme');
         }
-        localStorage.setItem('doe-theme', theme);   // ← ВОТ ЭТА СТРОКА ДОБАВЛЕНА
+        localStorage.setItem('doe-theme', theme);
         document.getElementById('theme-modal').classList.remove('show');
     }
 
-    // Выбор языка
     const langItem = e.target.closest('#lang-list .lang-item');
     if (langItem) {
         document.querySelectorAll('#lang-list .lang-item').forEach(el => el.classList.remove('active'));
@@ -662,7 +542,6 @@ document.addEventListener('click', (e) => {
         document.getElementById('lang-modal').classList.remove('show');
     }
 
-    // Свёрнутая колонка
     const collapsed = e.target.closest('.column.collapsed');
     if (collapsed) {
         const columnId = parseInt(collapsed.dataset.columnId);
@@ -671,6 +550,10 @@ document.addEventListener('click', (e) => {
             column.collapsed = false;
             renderBoard();
         }
+    }
+
+    if (!e.target.closest('.dropdown-menu')) {
+        closeAllDropdowns();
     }
 });
 
@@ -696,14 +579,11 @@ function updateColumnCount(columnEl, count = null) {
     }
 }
 
-// ---------- ИНИЦИАЛИЗАЦИЯ ЯЗЫКА ----------
-
 function initLanguage() {
     const savedLang = localStorage.getItem('doe-lang') || 'ru';
     applyLanguage(savedLang);
 }
 
-// ---------- ИНИЦИАЛИЗАЦИЯ ТЕМЫ ----------
 function initTheme() {
     const savedTheme = localStorage.getItem('doe-theme');
     if (savedTheme === 'dark') {
@@ -713,7 +593,6 @@ function initTheme() {
     }
 }
 
-// ---------- ЗАПУСК ----------
 (async () => {
     initLanguage();
     initTheme();

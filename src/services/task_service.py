@@ -55,8 +55,11 @@ async def create_task(db: AsyncSession, task_in: TaskCreate) -> TaskModel:
     await db.commit()
     await db.refresh(db_task)
 
+    # Получаем данные колонки, чтобы проверить её режим
     result = await db.execute(select(ColumnModel).where(ColumnModel.id == task_in.column_id))
     column = result.scalar_one()
+
+    # 1. Если создаем в режиме таймера — запускаем таймер
     if column.mode == ColumnMode.TRACK_TIME:
         new_session = TimerSessionModel(
             task_id=db_task.id,
@@ -64,6 +67,11 @@ async def create_task(db: AsyncSession, task_in: TaskCreate) -> TaskModel:
             is_active=True,
         )
         db.add(new_session)
+        await db.commit()
+
+    # 2. ИСПРАВЛЕНИЕ: Если создаем в режиме завершения — помечаем как выполненную
+    if column.mode == ColumnMode.COMPLETION:
+        db_task.completed_at = datetime.utcnow()
         await db.commit()
 
     await db.refresh(db_task, attribute_names=['timer_sessions'])
