@@ -461,12 +461,22 @@ document.addEventListener('dragend', async () => {
         if (dragType === 'column') {
             const currentColumns = Array.from(document.querySelectorAll('#board .column'));
             const orderedIds = currentColumns.map(col => parseInt(col.dataset.columnId));
-            state.columns.sort((a, b) => orderedIds.indexOf(a.id) - orderedIds.indexOf(b.id));
             
-            // Защитный рендер, чтобы доска точно обновилась корректно
+            // 🔥 ВОТ ОН, ТОТ САМЫЙ ФИКС 🔥
+            // Обновляем локальное свойство position у каждой колонки
+            state.columns.forEach(col => {
+                col.position = orderedIds.indexOf(col.id);
+            });
+            
+            // Теперь renderBoard отрендерит их ровно в том порядке, как мы перетащили
             renderBoard();
             
-            try { await saveColumnsOrder(orderedIds); } catch (error) {}
+            // Отправляем на бэкенд
+            try { 
+                await saveColumnsOrder(orderedIds); 
+            } catch (error) {
+                console.error("Не удалось сохранить порядок на сервере", error);
+            }
         }
     }
 
