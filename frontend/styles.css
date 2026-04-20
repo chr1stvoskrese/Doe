@@ -48,7 +48,7 @@
 
 [data-theme="dark"] .icon-btn:hover,[data-theme="dark"] .icon-btn.active,
 [data-theme="dark"] .workspace-btn:hover,[data-theme="dark"] .menu-btn:hover,[data-theme="dark"] .menu-btn.active,[data-theme="dark"] .menu-item:hover,
-[data-theme="dark"] .meta-pill, [data-theme="dark"] .column.collapsed,
+[data-theme="dark"] .meta-pill,
 [data-theme="dark"] .lang-item:hover,[data-theme="dark"] .lang-item.active {
     background: rgba(255, 255, 255, 0.06);
 }
@@ -114,9 +114,15 @@ body {
 .column:active { cursor: grabbing; }
 
 .column.collapsed {
-    width: 60px; cursor: pointer; background: rgba(0,0,0,0.02); border-color: rgba(0,0,0,0.04);
+    width: 60px;
+    cursor: pointer;
+    background: var(--bg-board);
+    border: 1px solid var(--border-light);
+    transition: border-color 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.column.collapsed:hover { background: rgba(0,0,0,0.05); }
+.column.collapsed:hover {
+    border-color: rgba(0, 0, 0, 0.14);
+}
 .column.collapsed .card-list, .column.collapsed .btn-add-card, .column.collapsed .column-actions { display: none; }
 .column.collapsed .column-header { padding: 24px 0; justify-content: center; height: 100%; }
 .column.collapsed .column-title {
@@ -405,8 +411,8 @@ body {
     transform: translateY(0);
     pointer-events: auto;
     transition:
-        opacity 0.1s cubic-bezier(0.16, 1, 0.3, 1) 0.05s,
-        transform 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+        opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1) 0.05s,
+        transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* --- Микро-шейк при ошибке --- */
@@ -442,4 +448,14 @@ body {
     border-color: rgba(137, 160, 133, 0.45);
     background: var(--surface-card);
     box-shadow: none;
+}
+
+/* --- Свернутая колонка — соответствие несвернутой, мягкий hover --- */
+[data-theme="dark"] .column.collapsed {
+    background: var(--bg-board);
+    border: 1px solid var(--border-light);
+}
+
+[data-theme="dark"] .column.collapsed:hover {
+    border-color: rgba(255, 255, 255, 0.14);
 }
