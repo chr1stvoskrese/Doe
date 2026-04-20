@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doe — Aesthetic Kanban</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=block" rel="stylesheet"> 
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+
+<!-- 🎛 ШАПКА -->
+<header class="app-header">
+    <div class="settings-wrapper">
+        <button class="icon-btn settings-trigger" aria-label="Настройки">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
+        </button>
+        <div class="dropdown-menu">
+            <div class="menu-item" data-action="theme">
+                <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                <span data-i18n="theme">Тема</span>
+            </div>
+            <div class="menu-item" data-action="change-lang">
+                <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                <span data-i18n="language">Язык</span>
+            </div>
+            <div class="menu-divider"></div>
+            <div class="menu-item" data-action="about">
+              <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="16" x2="12" y2="12"></line>
+              <line x1="12" y1="8" x2="12.01" y2="8"></line>
+              </svg>
+              <span data-i18n="about">О приложении</span>
+            </div>
+        </div>
+    </div>
+    
+    <button class="workspace-btn" data-action="switch-workspace">
+        <span data-i18n="workspace">Doe Board</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+    </button>
+</header>
+
+<!-- 📋 КОНТЕЙНЕР ДОСКИ -->
+<main class="board-container">
+    <div class="board" id="board">
+        <!-- Здесь будет рендериться доска через JS -->
+    </div>
+</main>
+
+<!-- 🎨 МОДАЛКА ВЫБОРА ТЕМЫ -->
+<div class="modal-overlay" id="theme-modal">
+    <div class="modal-card">
+        <div class="modal-header">
+            <span class="modal-title" data-i18n="modals.themeTitle">Тема оформления</span>
+            <button class="modal-close" aria-label="Закрыть">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+        </div>
+        <div class="modal-body" id="theme-list">
+            <div class="lang-item active" data-theme-value="light">
+                <span data-i18n="modals.light">Светлая</span>
+                <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <div class="lang-item" data-theme-value="dark">
+                <span data-i18n="modals.dark">Тёмная</span>
+                <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 🌍 МОДАЛКА ВЫБОРА ЯЗЫКА -->
+<div class="modal-overlay" id="lang-modal">
+    <div class="modal-card">
+        <div class="modal-header">
+            <span class="modal-title" data-i18n="modals.langTitle">Выберите язык</span>
+            <button class="modal-close" aria-label="Закрыть">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+        </div>
+        <div class="modal-body" id="lang-list">
+            <div class="lang-item active" data-value="ru">
+                <span>Русский</span>
+                <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <div class="lang-item" data-value="en">
+                <span>English</span>
+                <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ✨ МОДАЛКА О ПРИЛОЖЕНИИ -->
+<div class="modal-overlay" id="about-modal">
+    <div class="modal-card">
+        <div class="modal-header">
+            <span class="modal-title" data-i18n="modals.aboutTitle">О приложении</span>
+            <button class="modal-close" aria-label="Закрыть">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+        </div>
+        <div class="about-content">
+            <div class="about-logo">Doe</div>
+            <div class="about-desc" data-i18n="modals.aboutDesc">aesthetic local-first<br>kanban sanctuary</div>
+            <div class="about-version">v1</div>
+        </div>
+    </div>
+</div>
+
+<!-- Подключаем наш объединённый скрипт -->
+<script src="/static/app.js"></script>
+</body>
+</html>
