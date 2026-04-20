@@ -249,7 +249,193 @@ async function refreshBoard() {
 }
 
 async function onAddTask(columnId) { const title = prompt(t('prompts.taskTitle')); if (!title) return; try { await createTask(title, columnId); await refreshBoard(); } catch (e) { alert('Ошибка'); } }
-async function onCreateColumn() { const title = prompt(t('prompts.columnTitle')); if (!title) return; try { await createColumn(title, 'default'); await refreshBoard(); } catch (e) { alert('Ошибка'); } }
+
+// ==========================================
+// АНИМАЦИЯ СОЗДАНИЯ КОЛОНКИ (Column Birth)
+// ==========================================
+
+// ==========================================
+// АНИМАЦИЯ СОЗДАНИЯ КОЛОНКИ (исправленная)
+// ==========================================
+
+function createColumnFormElement() {
+    const col = document.createElement('div');
+    col.className = 'column column-entering';
+    const placeholder = t('prompts.columnTitle').replace(/:$/, '');
+    col.innerHTML = `
+        <div class="column-form-inner">
+            <input 
+                type="text" 
+                class="column-input" 
+                placeholder="${placeholder}" 
+                autocomplete="off"
+                spellcheck="false"
+            >
+        </div>
+    `;
+    return col;
+}
+
+function restoreAddButton() {
+    const board = document.getElementById('board');
+    if (board.querySelector('.new-column-btn')) return;
+    
+    const btn = document.createElement('button');
+    btn.className = 'new-column-btn';
+    btn.textContent = t('newColumn');
+    btn.addEventListener('click', onCreateColumn);
+    board.appendChild(btn);
+}
+
+async function onCreateColumn() {
+    // Если форма уже открыта — просто фокусируем
+    const existingForm = document.querySelector('.column-entering');
+    if (existingForm) {
+        existingForm.querySelector('input')?.focus();
+        return;
+    }
+
+    const board = document.getElementById('board');
+    const addBtn = board.querySelector('.new-column-btn');
+    if (!addBtn) return;
+
+    const formCol = createColumnFormElement();
+    
+    // Заменяем кнопку на форму 1-к-1. Никакого сдвига соседей.
+    addBtn.replaceWith(formCol);
+
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            formCol.classList.add('entered');
+        });
+    });
+
+    const input = formCol.querySelector('.column-input');
+    input.focus();
+
+    let isResolved = false;
+
+    const cancel = (animate = true) => {
+        if (isResolved) return;
+        isResolved = true;
+
+        if (!animate) {
+            formCol.remove();
+            restoreAddButton();
+            return;
+        }
+
+        formCol.classList.remove('entered');
+        formCol.classList.add('is-exiting');
+
+        const onTransitionEnd = (e) => {
+            if (e.propertyName === 'opacity') {
+                formCol.remove();
+                formCol.removeEventListener('transitionend', onTransitionEnd);
+                restoreAddButton();
+            }
+        };
+        formCol.addEventListener('transitionend', onTransitionEnd);
+        
+        setTimeout(() => {
+            if (formCol.parentNode) {
+                formCol.remove();
+                restoreAddButton();
+            }
+        }, 400);
+    };
+
+    const submit = async () => {
+        const title = input.value.trim();
+        if (!title) {
+            cancel(true);
+            return;
+        }
+        if (isResolved) return;
+        isResolved = true;
+
+        input.disabled = true;
+        formCol.classList.add('is-submitting');
+
+        try {
+            const newColumn = await createColumn(title, 'default');
+
+            state.columns.push({
+                ...newColumn,
+                collapsed: false,
+                tasks: newColumn.tasks || []
+            });
+
+            const realCol = createColumnElement({
+                ...newColumn,
+                collapsed: false,
+                tasks: newColumn.tasks || []
+            });
+            realCol.classList.add('column-birth');
+
+            // Заменяем форму на реальную колонку на том же месте
+            formCol.replaceWith(realCol);
+
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    realCol.classList.add('born');
+                });
+            });
+
+            const cleanup = (e) => {
+                if (e.propertyName === 'transform') {
+                    realCol.classList.remove('column-birth', 'born');
+                    realCol.removeEventListener('transitionend', cleanup);
+                }
+            };
+            realCol.addEventListener('transitionend', cleanup);
+            setTimeout(() => realCol.classList.remove('column-birth', 'born'), 500);
+
+            // Возвращаем кнопку «+ Создать колонку» в конец доски
+            restoreAddButton();
+
+        } catch (err) {
+            console.error('Column creation failed:', err);
+            isResolved = false;
+            input.disabled = false;
+            formCol.classList.remove('is-submitting');
+            formCol.classList.add('is-error');
+            setTimeout(() => formCol.classList.remove('is-error'), 400);
+            input.focus();
+        }
+    };
+
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            submit();
+        }
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            cancel(true);
+        }
+    });
+
+    input.addEventListener('blur', () => {
+        if (isResolved) return;
+
+        requestAnimationFrame(() => {
+            if (isResolved) return;
+
+            const active = document.activeElement;
+            if (active && active.closest('.new-column-btn')) {
+                cancel(false);
+                return;
+            }
+
+            if (input.value.trim()) {
+                submit();
+            } else {
+                cancel(true);
+            }
+        });
+    });
+}
 
 async function onDropToColumn(e, columnId) {
     e.preventDefault();
