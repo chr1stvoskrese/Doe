@@ -75,5 +75,8 @@ class TaskResponse(TaskBase):
     class Config:
         from_attributes = True
 
+class TaskReorder(BaseModel):
+    """Схема для изменения порядка задач."""
+    ordered_ids: List[int]
 
 TaskResponse.model_rebuild()

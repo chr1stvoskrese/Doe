@@ -61,6 +61,15 @@ function t(key, ...args) {
 }
 
 // ---------- API-КЛИЕНТ ----------
+
+
+async function saveTasksOrder(orderedIds) {
+    const res = await fetch(`${API_BASE}/tasks/reorder`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ordered_ids: orderedIds })
+    });
+    if (!res.ok) throw new Error('Error');
+}
+
 async function fetchColumns() { const res = await fetch(`${API_BASE}/columns/`); if (!res.ok) throw new Error('Error'); return res.json(); }
 async function saveColumnsOrder(orderedIds) {
     const res = await fetch(`${API_BASE}/columns/reorder`, {
@@ -173,7 +182,9 @@ function createColumnElement(column) {
         modeIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>';
     }
 
-    const tasksHtml = column.tasks.map(task => {
+    const sortedTasks = [...column.tasks].sort((a, b) => a.position - b.position);
+    
+    const tasksHtml = sortedTasks.map(task => {
         let timeHtml = '';
         if (task.active_timer) {
             timeHtml = `<div class="card-timer" data-task-id="${task.id}">${formatTime(task.active_timer.start_time)}</div>`;
@@ -235,7 +246,6 @@ function createColumnElement(column) {
     menuBtn.addEventListener('click', (e) => toggleColumnMenu(e, colDiv));
 
     colDiv.addEventListener('dragover', e => e.preventDefault());
-    colDiv.addEventListener('drop', e => onDropToColumn(e, column.id));
 
     return colDiv;
 }
@@ -438,56 +448,6 @@ async function onCreateColumn() {
     });
 }
 
-async function onDropToColumn(e, columnId) {
-    e.preventDefault();
-    if (dragType === 'column') return;
-
-    const taskId = e.dataTransfer.getData('text/plain');
-    if (!taskId) return;
-
-    const card = document.querySelector(`.card[data-card-id="${taskId}"]`);
-    const sourceColumn = card.closest('.column');
-    const targetColumn = document.querySelector(`.column[data-column-id="${columnId}"]`);
-
-    if (!card || !sourceColumn || !targetColumn) return;
-    if (sourceColumn === targetColumn) return;
-
-    card.style.transition = 'opacity 0.15s ease, transform 0.2s ease';
-    card.style.opacity = '0.6'; card.style.transform = 'scale(0.98)';
-
-    const targetCardList = targetColumn.querySelector('.card-list');
-    targetCardList.appendChild(card);
-
-    requestAnimationFrame(() => { card.style.opacity = '1'; card.style.transform = 'scale(1)'; });
-
-    updateColumnCount(sourceColumn); updateColumnCount(targetColumn);
-
-    try {
-        const updatedTask = await moveTask(parseInt(taskId), columnId);
-
-        const sourceCol = state.columns.find(c => c.id === parseInt(sourceColumn.dataset.columnId));
-        const targetCol = state.columns.find(c => c.id === columnId);
-        const taskIndex = sourceCol.tasks.findIndex(t => t.id == taskId);
-        if (taskIndex !== -1) {
-            const [movedTask] = sourceCol.tasks.splice(taskIndex, 1);
-            movedTask.column_id = columnId; movedTask.completed_at = updatedTask.completed_at;
-            movedTask.active_timer = updatedTask.active_timer; movedTask.total_time_spent = updatedTask.total_time_spent;
-            targetCol.tasks.push(movedTask);
-        }
-
-        updateCardAppearance(card, updatedTask, targetCol.mode);
-        updateColumnCount(sourceColumn, sourceCol.tasks.length); updateColumnCount(targetColumn, targetCol.tasks.length);
-
-        card.style.transition = ''; card.style.opacity = ''; card.style.transform = '';
-        updateTimers();
-    } catch (error) {
-        const sourceCardList = sourceColumn.querySelector('.card-list');
-        sourceCardList.appendChild(card);
-        updateColumnCount(sourceColumn); updateColumnCount(targetColumn);
-        card.style.transition = ''; card.style.opacity = ''; card.style.transform = '';
-    }
-}
-
 // ---------- МЕНЮ КОЛОНКИ ----------
 function closeAllDropdowns() {
     document.querySelectorAll('.dropdown-menu.show').forEach(m => m.classList.remove('show'));
@@ -551,6 +511,8 @@ document.addEventListener('dragstart', (e) => {
         dragType = 'card';
         draggedElement = card;
         e.dataTransfer.setData('text/plain', card.dataset.cardId);
+        // Запоминаем из какой колонки мы достали карточку
+        draggedElement.dataset.sourceColumnId = column.dataset.columnId;
     } else if (column) {
         dragType = 'column';
         draggedElement = column;
@@ -577,7 +539,6 @@ document.addEventListener('dragstart', (e) => {
     if (dragType === 'column') dragClone.classList.add('column-drag-clone');
 
     document.body.appendChild(dragClone);
-
     document.body.classList.add(`is-dragging-${dragType}`);
     
     dragClone.dataset.offsetX = e.clientX - rect.left;
@@ -601,7 +562,6 @@ document.addEventListener('dragover', (e) => {
 
     if (dragType === 'column') {
         const hoverColumn = e.target.closest('.column');
-        // ЗАЩИТА: Сортируем только внутри контейнера #board
         if (hoverColumn && hoverColumn !== draggedElement && !hoverColumn.classList.contains('is-ghost') && hoverColumn.closest('#board')) {
             const rect = hoverColumn.getBoundingClientRect();
             const midX = rect.left + rect.width / 2;
@@ -610,6 +570,33 @@ document.addEventListener('dragover', (e) => {
                 if (hoverColumn.nextElementSibling !== draggedElement) hoverColumn.after(draggedElement);
             } else {
                 if (hoverColumn.previousElementSibling !== draggedElement) hoverColumn.before(draggedElement);
+            }
+        }
+    }
+
+    if (dragType === 'card') {
+        const hoverColumn = e.target.closest('.column');
+        if (!hoverColumn || hoverColumn.classList.contains('is-ghost')) return;
+
+        const cardList = hoverColumn.querySelector('.card-list');
+        if (!cardList) return;
+
+        const hoverCard = e.target.closest('.card:not(.is-ghost):not(.card-drag-clone)');
+
+        // Логика сортировки по Y-оси внутри колонки
+        if (hoverCard && hoverCard !== draggedElement) {
+            const rect = hoverCard.getBoundingClientRect();
+            const midY = rect.top + rect.height / 2;
+            
+            if (mouseY > midY) {
+                if (hoverCard.nextElementSibling !== draggedElement) hoverCard.after(draggedElement);
+            } else {
+                if (hoverCard.previousElementSibling !== draggedElement) hoverCard.before(draggedElement);
+            }
+        } else if (!hoverCard) {
+            // Если мышка над пустой областью списка карточек или пустой колонкой
+            if (!cardList.contains(draggedElement)) {
+                cardList.appendChild(draggedElement);
             }
         }
     }
@@ -649,24 +636,71 @@ document.addEventListener('dragend', async () => {
     if (draggedElement) {
         draggedElement.classList.remove('is-ghost');
         
+        // --- ЗАВЕРШЕНИЕ ПЕРЕТАСКИВАНИЯ КОЛОНКИ ---
         if (dragType === 'column') {
             const currentColumns = Array.from(document.querySelectorAll('#board .column'));
             const orderedIds = currentColumns.map(col => parseInt(col.dataset.columnId));
             
-            // 🔥 ВОТ ОН, ТОТ САМЫЙ ФИКС 🔥
-            // Обновляем локальное свойство position у каждой колонки
-            state.columns.forEach(col => {
-                col.position = orderedIds.indexOf(col.id);
-            });
-            
-            // Теперь renderBoard отрендерит их ровно в том порядке, как мы перетащили
+            state.columns.forEach(col => { col.position = orderedIds.indexOf(col.id); });
             renderBoard();
             
-            // Отправляем на бэкенд
-            try { 
-                await saveColumnsOrder(orderedIds); 
-            } catch (error) {
-                console.error("Не удалось сохранить порядок на сервере", error);
+            try { await saveColumnsOrder(orderedIds); } 
+            catch (error) { console.error("Ошибка сохранения порядка колонок", error); }
+        }
+
+        // --- ЗАВЕРШЕНИЕ ПЕРЕТАСКИВАНИЯ КАРТОЧКИ ---
+        if (dragType === 'card') {
+            const newColumnEl = draggedElement.closest('.column');
+            if (newColumnEl) {
+                const newColumnId = parseInt(newColumnEl.dataset.columnId);
+                const sourceColumnId = parseInt(draggedElement.dataset.sourceColumnId);
+                const taskId = parseInt(draggedElement.dataset.cardId);
+                
+                // Читаем физический порядок DOM
+                const currentCards = Array.from(newColumnEl.querySelectorAll('.card:not(.card-drag-clone)'));
+                const orderedIds = currentCards.map(c => parseInt(c.dataset.cardId));
+
+                // Визуально обновляем счетчики
+                const sourceColumnEl = document.querySelector(`.column[data-column-id="${sourceColumnId}"]`);
+                if (sourceColumnEl) updateColumnCount(sourceColumnEl);
+                updateColumnCount(newColumnEl);
+
+                try {
+                    const targetCol = state.columns.find(c => c.id === newColumnId);
+                    const sourceCol = state.columns.find(c => c.id === sourceColumnId);
+
+                    // 1. Если колонка изменилась - дергаем API перемещения (там таймеры и статусы)
+                    if (newColumnId !== sourceColumnId) {
+                        const updatedTask = await moveTask(taskId, newColumnId);
+                        
+                        // Обновляем локальный стейт (перекладываем объект задачи в другую колонку)
+                        const taskIndex = sourceCol.tasks.findIndex(t => t.id == taskId);
+                        if (taskIndex !== -1) {
+                            const [movedTask] = sourceCol.tasks.splice(taskIndex, 1);
+                            movedTask.column_id = newColumnId; 
+                            movedTask.completed_at = updatedTask.completed_at;
+                            movedTask.active_timer = updatedTask.active_timer; 
+                            movedTask.total_time_spent = updatedTask.total_time_spent;
+                            targetCol.tasks.push(movedTask);
+                        }
+                        // Обновляем UI карточки (таймеры, чекбокс завершения)
+                        updateCardAppearance(draggedElement, updatedTask, targetCol.mode);
+                    }
+
+                    // 2. ВСЕГДА отправляем новый порядок карточек для целевой колонки
+                    await saveTasksOrder(orderedIds);
+                    
+                    // Обновляем position в стейте, чтобы при ререндере ничего не прыгало
+                    targetCol.tasks.forEach(t => {
+                        t.position = orderedIds.indexOf(t.id);
+                    });
+                    
+                    updateTimers();
+
+                } catch (error) {
+                    console.error("Ошибка при перемещении карточки", error);
+                    await refreshBoard(); // Откат при ошибке
+                }
             }
         }
     }

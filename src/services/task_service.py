@@ -162,3 +162,15 @@ async def move_task(db: AsyncSession, task_id: int, target_column_id: int) -> Ta
     
     _calculate_task_time(task)
     return task
+
+async def reorder_tasks(db: AsyncSession, ordered_ids: list[int]) -> None:
+    result = await db.execute(select(TaskModel).where(TaskModel.id.in_(ordered_ids)))
+    tasks = result.scalars().all()
+    
+    task_map = {task.id: task for task in tasks}
+    
+    for index, task_id in enumerate(ordered_ids):
+        if task_id in task_map:
+            task_map[task_id].position = float(index)
+            
+    await db.commit()

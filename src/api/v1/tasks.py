@@ -8,7 +8,8 @@ from src.schemas.task import (
     TaskUpdate,
     TaskMove,
     TaskResponse,
-    TaskCreateResponse,   # <-- новый импорт
+    TaskCreateResponse,
+    TaskReorder,
 )
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
@@ -48,3 +49,8 @@ async def move_task(task_id: int, move_in: TaskMove, db: AsyncSession = Depends(
         return task
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    
+@router.post("/reorder", status_code=status.HTTP_200_OK)
+async def reorder_tasks_endpoint(reorder_data: TaskReorder, db: AsyncSession = Depends(get_session)):
+    await task_service.reorder_tasks(db, reorder_data.ordered_ids)
+    return {"message": "Порядок задач обновлен"}

@@ -25,7 +25,7 @@ class ColumnModel(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    tasks = relationship("TaskModel", back_populates="column", cascade="all, delete-orphan")
+    tasks = relationship("TaskModel", back_populates="column", cascade="all, delete-orphan", order_by="TaskModel.position")
 
 
 class TaskModel(Base):
