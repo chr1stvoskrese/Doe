@@ -11,7 +11,8 @@ const translations = {
         menu: { mode: 'Режим колонки', collapse: 'Свернуть колонку', rename: 'Переименовать', delete: 'Удалить' },
         modals: { themeTitle: 'Тема оформления', light: 'Светлая', dark: 'Тёмная', langTitle: 'Выберите язык', aboutTitle: 'О приложении', aboutDesc: 'эстетика, грация локального<br>Kanban-хранилища' },
         card: { timeSpent: 'Времени потрачено:' },
-        prompts: { taskTitle: 'Название задачи:', columnTitle: 'Название колонки:', renameColumn: 'Новое название:', deleteConfirm: (title) => `Удалить колонку «${title}» и все задачи в ней?` }
+        prompts: { taskTitle: 'Название задачи:', columnTitle: 'Название колонки:', renameColumn: 'Новое название:', deleteConfirm: (title) => `Удалить колонку «${title}» и все задачи в ней?` },
+        alerts: { loadError: 'Не удалось загрузить доску', error: 'Ошибка' }
     },
     en: {
         settings: 'Settings', theme: 'Theme', language: 'Language', about: 'About', workspace: 'Doe Board',
@@ -20,7 +21,8 @@ const translations = {
         menu: { mode: 'Column mode', collapse: 'Collapse column', rename: 'Rename', delete: 'Delete' },
         modals: { themeTitle: 'Theme', light: 'Light', dark: 'Dark', langTitle: 'Select language', aboutTitle: 'About', aboutDesc: 'aesthetic local-first<br>kanban sanctuary' },
         card: { timeSpent: 'Time spent:' },
-        prompts: { taskTitle: 'Task title:', columnTitle: 'Column title:', renameColumn: 'New name:', deleteConfirm: (title) => `Delete column «${title}» and all its tasks?` }
+        prompts: { taskTitle: 'Task title:', columnTitle: 'Column title:', renameColumn: 'New name:', deleteConfirm: (title) => `Delete column «${title}» and all its tasks?` },
+        alerts: { loadError: 'Failed to load board', error: 'Error' }
     }
 };
 
@@ -35,6 +37,7 @@ function applyLanguage(lang) {
         const translation = getNestedTranslation(lang, key);
         if (translation) {
             if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') el.placeholder = translation;
+            else if (key === 'modals.aboutDesc') el.innerHTML = translation;
             else el.textContent = translation;
         }
     });
@@ -42,12 +45,10 @@ function applyLanguage(lang) {
     const langSpan = document.querySelector('[data-action="change-lang"] span');
     if (langSpan) langSpan.textContent = translations[lang].language;
 
-    document.querySelector('#theme-modal .modal-title').textContent = translations[lang].modals.themeTitle;
-    document.querySelector('#theme-list .lang-item[data-theme-value="light"] span').textContent = translations[lang].modals.light;
-    document.querySelector('#theme-list .lang-item[data-theme-value="dark"] span').textContent = translations[lang].modals.dark;
-    document.querySelector('#lang-modal .modal-title').textContent = translations[lang].modals.langTitle;
-    document.querySelector('#about-modal .modal-title').textContent = translations[lang].modals.aboutTitle;
-    document.querySelector('#about-modal .about-desc').innerHTML = translations[lang].modals.aboutDesc;
+    // Вот это ставит правильную галочку в меню выбора языка:
+    document.querySelectorAll('#lang-list .lang-item').forEach(el => {
+        el.classList.toggle('active', el.dataset.value === lang);
+    });
 
     if (state.columns.length > 0) renderBoard();
 }
@@ -245,10 +246,10 @@ async function refreshBoard() {
         const columns = await fetchColumns();
         state.columns = columns.map(col => ({ ...col, collapsed: col.collapsed || false }));
         renderBoard();
-    } catch (e) { console.error(e); alert('Не удалось загрузить доску'); }
+    } catch (e) { console.error(e); alert(t('alerts.loadError')); }
 }
 
-async function onAddTask(columnId) { const title = prompt(t('prompts.taskTitle')); if (!title) return; try { await createTask(title, columnId); await refreshBoard(); } catch (e) { alert('Ошибка'); } }
+async function onAddTask(columnId) { const title = prompt(t('prompts.taskTitle')); if (!title) return; try { await createTask(title, columnId); await refreshBoard(); } catch (e) { alert(t('alerts.error')); } }
 
 // ==========================================
 // АНИМАЦИЯ СОЗДАНИЯ КОЛОНКИ (Column Birth)
@@ -785,12 +786,18 @@ function initLanguage() {
 }
 
 function initTheme() {
-    const savedTheme = localStorage.getItem('doe-theme');
+    const savedTheme = localStorage.getItem('doe-theme') || 'light';
+    
     if (savedTheme === 'dark') {
         document.documentElement.setAttribute('data-theme', 'dark');
-    } else if (savedTheme === 'light') {
+    } else {
         document.documentElement.removeAttribute('data-theme');
     }
+
+    // Вот это ставит правильную галочку в меню выбора темы:
+    document.querySelectorAll('#theme-list .lang-item').forEach(el => {
+        el.classList.toggle('active', el.dataset.themeValue === savedTheme);
+    });
 }
 
 (async () => {
