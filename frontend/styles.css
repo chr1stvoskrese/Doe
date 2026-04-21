@@ -78,7 +78,7 @@ body {
 }
 
 .app-header {
-    padding: 24px 40px; display: flex; align-items: center; gap: 20px;
+    padding: 24px 48px; display: flex; align-items: center; gap: 24px;
     flex-shrink: 0; position: relative; z-index: 50; transform: translateZ(0); will-change: transform;
 }
 .settings-wrapper { position: relative; }
@@ -93,16 +93,26 @@ body {
     background: transparent; border: none; font-family: var(--font-main);
     font-size: 16px; font-weight: 600; color: var(--text-primary);
     cursor: pointer; display: flex; align-items: center; gap: 8px;
-    padding: 8px 12px; border-radius: 10px; transition: background 0.2s; letter-spacing: -0.01em;
+    padding: 8px 4px 8px 8px; border-radius: 10px; transition: background 0.2s; letter-spacing: -0.01em;
 }
 .workspace-btn:hover { background: rgba(0,0,0,0.04); }
 .workspace-btn svg { opacity: 0.5; width: 16px; height: 16px; }
 
 .board-container {
-    flex: 1; padding: 0 40px 40px; overflow-x: auto; overflow-y: hidden;
-    transform: translateZ(0); will-change: transform;
+    flex: 1;
+    padding: 0 0 48px 48px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    transform: translateZ(0);
+    will-change: transform;
 }
-.board { display: flex; gap: 24px; height: 100%; padding-right: 40px; }
+.board {
+    display: flex;
+    gap: 24px;
+    height: 100%;
+    width: max-content;
+    padding-right: 48px;
+}
 
 .column {
     background: var(--bg-board); width: 320px; max-height: 100%;
@@ -217,6 +227,7 @@ body {
 .btn-add-card:hover { background: rgba(0,0,0,0.03); color: var(--text-primary); }
 
 .new-column-btn {
+    width: 320px;
     min-width: 320px;
     height: 60px;
     background: transparent;
