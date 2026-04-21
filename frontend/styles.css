@@ -459,3 +459,14 @@ body {
 [data-theme="dark"] .column.collapsed:hover {
     border-color: rgba(255, 255, 255, 0.14);
 }
+
+/* --- FIX: Блокировка ховеров внутри колонки при Drag & Drop --- */
+body.is-dragging-column .card,
+body.is-dragging-column .btn-add-card,
+body.is-dragging-column .menu-btn {
+    pointer-events: none !important;
+}
+
+body.is-dragging-card .column-header {
+    pointer-events: none !important;
+}

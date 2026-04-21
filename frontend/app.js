@@ -576,6 +576,8 @@ document.addEventListener('dragstart', (e) => {
     if (dragType === 'column') dragClone.classList.add('column-drag-clone');
 
     document.body.appendChild(dragClone);
+
+    document.body.classList.add(`is-dragging-${dragType}`);
     
     dragClone.dataset.offsetX = e.clientX - rect.left;
     dragClone.dataset.offsetY = e.clientY - rect.top;
@@ -635,6 +637,8 @@ document.addEventListener('dragend', async () => {
     if (!isDragging) return;
     isDragging = false;
     cancelAnimationFrame(rafId);
+    
+    document.body.classList.remove('is-dragging-column', 'is-dragging-card');
     
     if (dragClone) {
         dragClone.remove();
