@@ -17,7 +17,7 @@ class ColumnMode(str, Enum):
 
 
 class ColumnBase(BaseModel):
-    title: str = Field(..., min_length=1, max_length=100)
+    title: str = Field(..., min_length=1)
     mode: ColumnMode = Field(default=ColumnMode.DEFAULT)
 
 
@@ -26,7 +26,7 @@ class ColumnCreate(ColumnBase):
 
 
 class ColumnUpdate(BaseModel):
-    title: Optional[str] = Field(None, min_length=1, max_length=100)
+    title: Optional[str] = Field(None, min_length=1)
     mode: Optional[ColumnMode] = None
     position: Optional[float] = None
 

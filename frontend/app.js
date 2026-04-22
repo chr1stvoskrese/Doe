@@ -127,6 +127,11 @@ function renderBoard() {
     addColBtn.textContent = t('newColumn');
     addColBtn.addEventListener('click', onCreateColumn);
     board.appendChild(addColBtn);
+    // Корректируем ширину свёрнутых колонок после layout
+    requestAnimationFrame(() => {
+        adjustCollapsedColumnWidths();
+        clampExpandedTitles();  // ← добавлено
+    });
 }
 
 function updateCardAppearance(cardElement, task, columnMode) {
@@ -204,7 +209,7 @@ function createColumnElement(column) {
 
     colDiv.innerHTML = `
         <div class="column-header">
-            <span class="column-title">${escapeHtml(column.title)}</span>
+            <span class="column-title" data-full-title="${escapeHtml(column.title)}">${escapeHtml(column.title)}</span>
             <div class="column-actions">
                 <div class="${pillClass}">
                     <span class="card-count">${column.tasks.length}</span>
@@ -250,7 +255,6 @@ function createColumnElement(column) {
     return colDiv;
 }
 
-// ---------- ДЕЙСТВИЯ С КОЛОНКАМИ И ЗАДАЧАМИ ----------
 async function refreshBoard() {
     try {
         const columns = await fetchColumns();
@@ -275,13 +279,13 @@ function createColumnFormElement() {
     const placeholder = t('prompts.columnTitle').replace(/:$/, '');
     col.innerHTML = `
         <div class="column-form-inner">
-            <input 
-                type="text" 
+            <textarea 
                 class="column-input" 
                 placeholder="${placeholder}" 
                 autocomplete="off"
                 spellcheck="false"
-            >
+                rows="1"
+            ></textarea>
         </div>
     `;
     return col;
@@ -322,6 +326,28 @@ async function onCreateColumn() {
     });
 
     const input = formCol.querySelector('.column-input');
+    
+    // Авто-resize со скроллом при превышении высоты экрана
+    const autoResize = () => {
+        input.style.height = 'auto';
+        const sh = input.scrollHeight;
+        const boardHeight = document.getElementById('board').clientHeight;
+        
+        // Здесь только форма, вычитаем 60px
+        const maxAllowedHeight = Math.max(60, boardHeight - 60);
+        
+        if (sh > maxAllowedHeight) {
+            input.style.height = maxAllowedHeight + 'px';
+            input.style.overflowY = 'auto';
+        } else {
+            input.style.height = sh + 'px';
+            input.style.overflowY = 'hidden';
+        }
+    };
+    
+    input.addEventListener('input', autoResize);
+    autoResize();
+
     input.focus();
 
     let isResolved = false;
@@ -478,14 +504,151 @@ async function handleColumnMenu(action, columnEl, menuItem) {
         const mode = menuItem.dataset.mode;
         try { await updateColumn(columnId, { mode }); await refreshBoard(); } catch (e) { }
     } else if (action === 'rename-column') {
-        const newTitle = prompt(t('prompts.renameColumn'), column.title);
-        if (newTitle && newTitle !== column.title) { try { await updateColumn(columnId, { title: newTitle }); await refreshBoard(); } catch (e) {} }
+        closeAllDropdowns();
+        setTimeout(() => startColumnRename(columnEl, column), 50);
     } else if (action === 'delete-column') {
         if (!confirm(t('prompts.deleteConfirm', column.title))) return;
         try { await deleteColumn(columnId); await refreshBoard(); } catch (e) {}
     } else if (action === 'collapse-column') {
         column.collapsed = !column.collapsed; renderBoard();
     }
+}
+
+function startColumnRename(columnEl, column) {
+    const titleSpan = columnEl.querySelector('.column-title');
+    if (!titleSpan || columnEl.classList.contains('is-renaming')) return;
+
+    const input = document.createElement('textarea');
+    input.className = 'column-title-input';
+    input.value = column.title;
+    input.rows = 1;
+    input.spellcheck = false;
+
+    titleSpan.replaceWith(input);
+    columnEl.setAttribute('draggable', 'false');
+    columnEl.classList.add('is-renaming');
+
+    // Авто-resize по содержимому
+    let lastValidValue = input.value;
+    const autoResize = () => {
+        input.style.height = 'auto';
+        const sh = input.scrollHeight;
+        const boardHeight = document.getElementById('board').clientHeight;
+        
+        // Здесь есть список и кнопка, вычитаем 140px, чтобы их не выдавило
+        const maxAllowedHeight = Math.max(60, boardHeight - 140);
+        
+        if (sh > maxAllowedHeight) {
+            input.style.height = maxAllowedHeight + 'px';
+            input.style.overflowY = 'auto';
+        } else {
+            input.style.height = sh + 'px';
+            input.style.overflowY = 'hidden';
+        }
+    };
+    input.addEventListener('input', autoResize);
+
+    input.focus();
+    input.setSelectionRange(input.value.length, input.value.length);
+    requestAnimationFrame(autoResize); // первичный расчёт высоты
+
+    let committed = false;
+
+    const restore = (title) => {
+        const span = document.createElement('span');
+        span.className = 'column-title';
+        span.textContent = title;
+        span.dataset.fullTitle = title;
+        if (input.parentNode) input.replaceWith(span);
+        columnEl.setAttribute('draggable', 'true');
+        columnEl.classList.remove('is-renaming');
+        // Пересчитываем clamping после восстановления
+        requestAnimationFrame(clampExpandedTitles);
+    };
+
+    const commit = async () => {
+        if (committed) return;
+        committed = true;
+        const newTitle = input.value.trim();
+        const finalTitle = newTitle || column.title;
+        restore(finalTitle);
+        if (newTitle && newTitle !== column.title) {
+            try {
+                await updateColumn(column.id, { title: newTitle });
+                column.title = newTitle;
+            } catch (_) {
+                const span = columnEl.querySelector('.column-title');
+                if (span) span.textContent = column.title;
+            }
+        }
+        requestAnimationFrame(clampExpandedTitles);  // ← добавлено
+    };
+
+    const cancel = () => {
+        if (committed) return;
+        committed = true;
+        restore(column.title);
+    };
+
+    input.addEventListener('mousedown', (e) => e.stopPropagation());
+    input.addEventListener('click',     (e) => e.stopPropagation());
+
+    input.addEventListener('keydown', (e) => {
+        e.stopPropagation();
+        if (e.key === 'Enter')  { e.preventDefault(); commit(); }
+        if (e.key === 'Escape') { e.preventDefault(); cancel(); }
+    });
+
+    input.addEventListener('blur', () => {
+        setTimeout(() => { if (!committed) commit(); }, 120);
+    });
+}
+
+function adjustCollapsedColumnWidths() {
+    const CHAR_HEIGHT = 18.2;  // 13px * 1.4 line-height
+    const MAX_LINES = 5;
+    const PADDING = 32;        // 16px с каждой стороны
+    const CHAR_WIDTH = 22;     // ширина одного вертикального столбца
+
+    document.querySelectorAll('#board .column.collapsed').forEach(colEl => {
+        const titleEl = colEl.querySelector('.column-title');
+        if (!titleEl) return;
+
+        const fullTitle = titleEl.dataset.fullTitle || titleEl.textContent;
+        const colHeight = colEl.getBoundingClientRect().height - 24; // минус padding колонки
+        if (colHeight < 10) return;
+
+        titleEl.style.maxHeight = colHeight + 'px';
+
+        // Сколько символов влезает в одну вертикальную линию
+        const charsPerLine = Math.max(1, Math.floor(colHeight / CHAR_HEIGHT));
+        // Всего символов на 5 линий
+        const maxChars = charsPerLine * MAX_LINES;
+
+        // Сохраняем оригинал
+        if (!titleEl.dataset.fullTitle) {
+            titleEl.dataset.fullTitle = fullTitle;
+        }
+
+        const isClamped = fullTitle.length > maxChars;
+
+        if (isClamped) {
+            // Обрезаем и добавляем троеточие в конец последней строки
+            const visibleChars = maxChars - 1; // место для …
+            titleEl.textContent = fullTitle.substring(0, visibleChars) + '…';
+            titleEl.dataset.clamped = 'true';
+        } else {
+            titleEl.textContent = fullTitle;
+            titleEl.dataset.clamped = 'false';
+        }
+
+        // Вычисляем ширину колонки по фактическому числу линий
+        const actualLines = Math.min(MAX_LINES, Math.ceil(fullTitle.length / charsPerLine));
+        const colWidth = Math.max(60, PADDING + actualLines * CHAR_WIDTH);
+
+        colEl.style.width = colWidth + 'px';
+        colEl.style.minWidth = colWidth + 'px';
+    });
 }
 
 // ---------- ФИЗИЧЕСКИЙ DRAG & DROP ----------
@@ -500,6 +663,7 @@ const emptyImg = new Image();
 emptyImg.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
 
 document.addEventListener('dragstart', (e) => {
+    if (e.target.closest('.column.is-renaming')) { e.preventDefault(); return; }
     if (e.target.closest('.menu-btn') || e.target.closest('.btn-add-card')) {
         e.preventDefault(); return;
     }
@@ -834,9 +998,150 @@ function initTheme() {
     });
 }
 
+
+// ---------- УПРАВЛЕНИЕ ВЫСОТОЙ ЗАГОЛОВКА РАЗВЁРНУТОЙ КОЛОНКИ ----------
+function clampExpandedTitles() {
+    const MAX_HEIGHT_PX = window.innerHeight * 0.2; // 20% экрана
+
+    document.querySelectorAll('.column:not(.collapsed) .column-title').forEach(titleEl => {
+        const fullTitle = titleEl.dataset.fullTitle || titleEl.textContent;
+
+        // Сначала сбрасываем, чтобы измерить реальную высоту
+        titleEl.style.webkitLineClamp = 'unset';
+        titleEl.style.display = 'block';
+        const naturalHeight = titleEl.scrollHeight;
+
+        // Восстанавливаем flex-контейнер
+        titleEl.style.display = '-webkit-box';
+
+        if (naturalHeight > MAX_HEIGHT_PX) {
+            // Находим сколько строк влезает
+            const lineHeight = parseFloat(getComputedStyle(titleEl).lineHeight) || 21.75;
+            const maxLines = Math.max(2, Math.floor(MAX_HEIGHT_PX / lineHeight));
+
+            titleEl.style.webkitLineClamp = String(maxLines);
+            titleEl.dataset.fullTitle = fullTitle;
+            titleEl.dataset.clamped = 'true';
+        } else {
+            titleEl.style.webkitLineClamp = 'unset';
+            titleEl.dataset.clamped = 'false';
+            // Не чистим fullTitle — он может понадобиться при ресайзе вверх
+            if (titleEl.textContent === fullTitle) {
+                delete titleEl.dataset.fullTitle;
+            }
+        }
+    });
+}
+
+function initTooltip() {
+    const tooltip = document.createElement('div');
+    tooltip.id = 'tooltip';
+    tooltip.className = 'custom-tooltip';
+    
+    // ДОБАВЛЕНО: Внутренний контейнер для чистого среза текста
+    const tooltipInner = document.createElement('div');
+    tooltipInner.className = 'tooltip-inner';
+    tooltip.appendChild(tooltipInner);
+    
+    document.body.appendChild(tooltip);
+
+    let activeTitle = null;
+
+    function updateTooltipPosition(e) {
+        if (!activeTitle) return;
+
+        const tooltipRect = tooltip.getBoundingClientRect();
+        
+        let left = e.clientX + 14; 
+        let top = e.clientY + 14;
+
+        if (left + tooltipRect.width > window.innerWidth - 8) {
+            left = e.clientX - tooltipRect.width - 14;
+        }
+        if (left < 8) left = 8;
+
+        const fitsBelow = (e.clientY + 14 + tooltipRect.height) <= (window.innerHeight - 8);
+        const fitsAbove = (e.clientY - 14 - tooltipRect.height) >= 8;
+
+        if (!fitsBelow && fitsAbove) {
+            top = e.clientY - tooltipRect.height - 14;
+        } else if (!fitsBelow && !fitsAbove) {
+            top = 8;
+        }
+        
+        tooltip.style.left = left + 'px';
+        tooltip.style.top = top + 'px';
+    }
+
+    document.addEventListener('mouseover', (e) => {
+        if (typeof isDragging !== 'undefined' && isDragging) return;
+
+        const titleEl = e.target.closest('.column-title');
+        if (!titleEl || titleEl.dataset.clamped !== 'true') return;
+
+        activeTitle = titleEl;
+        
+        // Сбрасываем лимит у внутреннего контейнера
+        tooltipInner.style.webkitLineClamp = 'unset';
+        tooltipInner.textContent = titleEl.dataset.fullTitle || titleEl.textContent;
+        
+        const paddingY = 16; 
+        const safeMarginY = 32; 
+        const maxAvailableHeight = window.innerHeight - paddingY - safeMarginY;
+        
+        const computedStyle = window.getComputedStyle(tooltipInner);
+        const lineHeight = parseFloat(computedStyle.lineHeight) || 19.5;
+        
+        const maxLines = Math.max(1, Math.floor(maxAvailableHeight / lineHeight));
+        
+        // Применяем лимит к tooltipInner
+        tooltipInner.style.webkitLineClamp = maxLines.toString();
+
+        tooltip.classList.add('visible');
+        updateTooltipPosition(e);
+    });
+
+    document.addEventListener('mousemove', (e) => {
+        if (activeTitle) {
+            if (!document.body.contains(activeTitle)) {
+                activeTitle = null;
+                tooltip.classList.remove('visible');
+                return;
+            }
+            updateTooltipPosition(e);
+        }
+    });
+
+    document.addEventListener('mouseout', (e) => {
+        const titleEl = e.target.closest('.column-title');
+        if (titleEl && titleEl === activeTitle) {
+            activeTitle = null;
+            tooltip.classList.remove('visible');
+        }
+    });
+
+    document.addEventListener('mousedown', () => {
+        if (activeTitle) {
+            activeTitle = null;
+            tooltip.classList.remove('visible');
+        }
+    });
+}
+
 (async () => {
+    initTooltip();
     initLanguage();
     initTheme();
     await refreshBoard();
     setInterval(updateTimers, 1000);
+    
+    // Пересчитываем clamping при ресайзе
+    let resizeTimeout;
+    window.addEventListener('resize', () => {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => {
+            clampExpandedTitles();
+            adjustCollapsedColumnWidths();
+        }, 150);
+    });
 })();
