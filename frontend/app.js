@@ -536,7 +536,7 @@ function startColumnRename(columnEl, column) {
         const boardHeight = document.getElementById('board').clientHeight;
         
         // Здесь есть список и кнопка, вычитаем 140px, чтобы их не выдавило
-        const maxAllowedHeight = Math.max(60, boardHeight - 140);
+        const maxAllowedHeight = Math.max(60, boardHeight - 250);
         
         if (sh > maxAllowedHeight) {
             input.style.height = maxAllowedHeight + 'px';
@@ -1136,12 +1136,15 @@ function initTooltip() {
     setInterval(updateTimers, 1000);
     
     // Пересчитываем clamping при ресайзе
-    let resizeTimeout;
+    let isResizing = false;
     window.addEventListener('resize', () => {
-        clearTimeout(resizeTimeout);
-        resizeTimeout = setTimeout(() => {
-            clampExpandedTitles();
-            adjustCollapsedColumnWidths();
-        }, 150);
+        if (!isResizing) {
+            isResizing = true;
+            requestAnimationFrame(() => {
+                clampExpandedTitles();
+                adjustCollapsedColumnWidths();
+                isResizing = false;
+            });
+        }
     });
 })();

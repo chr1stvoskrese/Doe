@@ -149,15 +149,23 @@ body {
     writing-mode: vertical-rl;
     transform: rotate(180deg);
     color: var(--text-primary);
-    font-size: 13px;
+    font-size: 15px;
     letter-spacing: 0.02em;
-    word-break: break-all; /* Изменено: позволяет плотно переносить текст */
+    word-break: break-all;
     overflow: hidden;
-    flex: none;
+    flex: 1; 
+    min-height: 0;
+    max-height: 100%; 
     min-width: auto;
     line-height: 1.4;
     padding: 8px 0;
-    white-space: normal; /* Изменено: разрешает перенос на 5 линий */
+    white-space: normal;
+    
+    /* ДОБАВЛЕНО: Идеальное центрирование текста */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
 }
 
 .column-header {
@@ -178,6 +186,7 @@ body {
     word-break: break-word;
     display: -webkit-box;
     -webkit-line-clamp: unset;
+    line-clamp: unset;
     -webkit-box-orient: vertical;
     overflow: hidden;
     flex: 1;
@@ -523,7 +532,6 @@ body {
    e.g. right after the ".column.collapsed" rules.
    ============================================================ */
 
-/* ── Inline rename input ────────────────────────────────── */
 .column-title-input {
     background: var(--brand-pale);
     border: none;
@@ -541,16 +549,19 @@ body {
     user-select: text;
     -webkit-user-select: text;
     transition: background 0.2s ease;
-    /* textarea */
     resize: none;
     overflow: hidden;
     display: block;
-    line-height: 1.45;
+    
+    /* ИЗМЕНЕНО: Отдаем контроль над высотой строк самому шрифту */
+    line-height: normal; 
+    
     min-height: 26px;
 }
 
 .column-title-input::selection {
-    background: rgba(74, 90, 72, 0.18);
+    background: #C3C6BC; /* Строго HEX без прозрачности! */
+    color: var(--text-primary);
 }
 
 /* While renaming: kill grab cursor on the whole column */
@@ -566,7 +577,8 @@ body {
     background: rgba(137, 160, 133, 0.12);
 }
 [data-theme="dark"] .column-title-input::selection {
-    background: rgba(137, 160, 133, 0.25);
+    background: #41493E; /* Строго HEX без прозрачности! */
+    color: var(--text-primary);
 }
 
 
@@ -623,4 +635,72 @@ body.is-dragging-card .column-header {
     display: -webkit-box;
     -webkit-box-orient: vertical;
     overflow: hidden;
+}
+
+/* ==========================================
+   КАСТОМНЫЙ СКРОЛЛБАР ДЛЯ ПОЛЕЙ ВВОДА
+   ========================================== */
+
+/* 1. Стандарт для Firefox */
+.column-input,
+.column-title-input {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(74, 90, 72, 0.25) transparent;
+}[data-theme="dark"] .column-input,
+[data-theme="dark"] .column-title-input {
+    scrollbar-color: rgba(137, 160, 133, 0.35) transparent;
+}
+
+/* 2. Для Chrome / Edge / Safari / pywebview */
+.column-input::-webkit-scrollbar,
+.column-title-input::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.column-input::-webkit-scrollbar-track,
+.column-title-input::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 4px;
+}
+
+/* Цвет ползунка (светлая тема) */
+.column-input::-webkit-scrollbar-thumb,
+.column-title-input::-webkit-scrollbar-thumb {
+    background: rgba(74, 90, 72, 0.25);
+    border-radius: 4px;
+}
+
+.column-input::-webkit-scrollbar-thumb:hover,
+.column-title-input::-webkit-scrollbar-thumb:hover {
+    background: rgba(74, 90, 72, 0.45);
+}
+
+/* Цвет ползунка (темная тема) */
+[data-theme="dark"] .column-input::-webkit-scrollbar-thumb,
+[data-theme="dark"] .column-title-input::-webkit-scrollbar-thumb {
+    background: rgba(137, 160, 133, 0.35);
+}
+
+[data-theme="dark"] .column-input::-webkit-scrollbar-thumb:hover,
+[data-theme="dark"] .column-title-input::-webkit-scrollbar-thumb:hover {
+    background: rgba(137, 160, 133, 0.55);
+}
+
+
+/* ==========================================
+   ФИКС "ТАНЦУЮЩИХ" БУКВ ПРИ ПЕРЕТАСКИВАНИИ
+   ========================================== */
+.column-drag-clone,
+.card-drag-clone,
+.column-drag-clone *,
+.card-drag-clone * {
+    /* Заставляем браузер отрендерить элемент как битмап (картинку), 
+       а не пересчитывать векторы шрифта на каждом кадре */
+    backface-visibility: hidden !important;
+    transform-style: preserve-3d !important;
+    
+    /* Фиксируем сглаживание шрифта на время полета */
+    -webkit-font-smoothing: antialiased !important;
+    -moz-osx-font-smoothing: grayscale !important;
 }
