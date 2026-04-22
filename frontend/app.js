@@ -414,6 +414,11 @@ async function onCreateColumn() {
             formCol.replaceWith(realCol);
 
             requestAnimationFrame(() => {
+                const newTitle = realCol.querySelector('.column-title');
+                clampSingleTitle(newTitle);
+            });
+
+            requestAnimationFrame(() => {
                 requestAnimationFrame(() => {
                     realCol.classList.add('born');
                 });
@@ -581,7 +586,10 @@ function startColumnRename(columnEl, column) {
                 if (span) span.textContent = column.title;
             }
         }
-        requestAnimationFrame(clampExpandedTitles);  // ← добавлено
+        requestAnimationFrame(() => {
+            const titleEl = columnEl.querySelector('.column-title');
+            clampSingleTitle(titleEl);
+        });
     };
 
     const cancel = () => {
@@ -999,38 +1007,41 @@ function initTheme() {
 }
 
 
-// ---------- УПРАВЛЕНИЕ ВЫСОТОЙ ЗАГОЛОВКА РАЗВЁРНУТОЙ КОЛОНКИ ----------
-function clampExpandedTitles() {
+// Выносим логику обрезки в отдельную функцию для конкретного элемента
+function clampSingleTitle(titleEl) {
+    if (!titleEl) return;
     const MAX_HEIGHT_PX = window.innerHeight * 0.2; // 20% экрана
 
-    document.querySelectorAll('.column:not(.collapsed) .column-title').forEach(titleEl => {
-        const fullTitle = titleEl.dataset.fullTitle || titleEl.textContent;
+    const fullTitle = titleEl.dataset.fullTitle || titleEl.textContent;
 
-        // Сначала сбрасываем, чтобы измерить реальную высоту
+    // Сначала сбрасываем, чтобы измерить реальную высоту
+    titleEl.style.webkitLineClamp = 'unset';
+    titleEl.style.display = 'block';
+    const naturalHeight = titleEl.scrollHeight;
+
+    // Восстанавливаем flex-контейнер
+    titleEl.style.display = '-webkit-box';
+
+    if (naturalHeight > MAX_HEIGHT_PX) {
+        // Находим сколько строк влезает
+        const lineHeight = parseFloat(getComputedStyle(titleEl).lineHeight) || 21.75;
+        const maxLines = Math.max(2, Math.floor(MAX_HEIGHT_PX / lineHeight));
+
+        titleEl.style.webkitLineClamp = String(maxLines);
+        titleEl.dataset.fullTitle = fullTitle;
+        titleEl.dataset.clamped = 'true';
+    } else {
         titleEl.style.webkitLineClamp = 'unset';
-        titleEl.style.display = 'block';
-        const naturalHeight = titleEl.scrollHeight;
-
-        // Восстанавливаем flex-контейнер
-        titleEl.style.display = '-webkit-box';
-
-        if (naturalHeight > MAX_HEIGHT_PX) {
-            // Находим сколько строк влезает
-            const lineHeight = parseFloat(getComputedStyle(titleEl).lineHeight) || 21.75;
-            const maxLines = Math.max(2, Math.floor(MAX_HEIGHT_PX / lineHeight));
-
-            titleEl.style.webkitLineClamp = String(maxLines);
-            titleEl.dataset.fullTitle = fullTitle;
-            titleEl.dataset.clamped = 'true';
-        } else {
-            titleEl.style.webkitLineClamp = 'unset';
-            titleEl.dataset.clamped = 'false';
-            // Не чистим fullTitle — он может понадобиться при ресайзе вверх
-            if (titleEl.textContent === fullTitle) {
-                delete titleEl.dataset.fullTitle;
-            }
+        titleEl.dataset.clamped = 'false';
+        if (titleEl.textContent === fullTitle) {
+            delete titleEl.dataset.fullTitle;
         }
-    });
+    }
+}
+
+// Оригинальная функция теперь просто вызывает clampSingleTitle для всех колонок (нужно при ресайзе окна)
+function clampExpandedTitles() {
+    document.querySelectorAll('.column:not(.collapsed) .column-title').forEach(clampSingleTitle);
 }
 
 function initTooltip() {
