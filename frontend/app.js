@@ -5,28 +5,37 @@ const API_BASE = '/api/v1';
 // ---------- ЛОКАЛИЗАЦИЯ ----------
 const translations = {
     ru: {
-        settings: 'Настройки', theme: 'Тема', language: 'Язык', about: 'О приложении', workspace: 'Doe Board',
+        settings: 'Настройки', theme: 'Тема', language: 'Язык', about: 'О приложении', workspace: 'Doe Board', cancel: 'Отмена',
         newColumn: '+ Создать колонку', newTask: '+ Новая задача',
         columnModes: { default: 'Стандартный', track_time: 'Учёт времени', completion: 'Результирующий' },
         menu: { mode: 'Режим колонки', collapse: 'Свернуть колонку', rename: 'Переименовать', delete: 'Удалить' },
         modals: { themeTitle: 'Тема оформления', light: 'Светлая', dark: 'Тёмная', langTitle: 'Выберите язык', aboutTitle: 'О приложении', aboutDesc: 'эстетика, грация локального<br>Kanban-хранилища' },
         card: { timeSpent: 'Времени потрачено:' },
-        prompts: { taskTitle: 'Название задачи:', columnTitle: 'Название колонки:', renameColumn: 'Новое название:', deleteConfirm: (title) => `Удалить колонку «${title}» и все задачи в ней?` },
+        prompts: { 
+            taskTitle: 'Название задачи:', columnTitle: 'Название колонки:', renameColumn: 'Новое название:', 
+            deleteConfirmTitle: 'Удалить колонку?',
+            deleteConfirmDesc: 'Все задачи внутри будут потеряны.' 
+        },
         alerts: { loadError: 'Не удалось загрузить доску', error: 'Ошибка' }
     },
     en: {
-        settings: 'Settings', theme: 'Theme', language: 'Language', about: 'About', workspace: 'Doe Board',
+        settings: 'Settings', theme: 'Theme', language: 'Language', about: 'About', workspace: 'Doe Board', cancel: 'Cancel',
         newColumn: '+ Create column', newTask: '+ New task',
         columnModes: { default: 'Standard', track_time: 'Track time', completion: 'Completed' },
         menu: { mode: 'Column mode', collapse: 'Collapse column', rename: 'Rename', delete: 'Delete' },
         modals: { themeTitle: 'Theme', light: 'Light', dark: 'Dark', langTitle: 'Select language', aboutTitle: 'About', aboutDesc: 'aesthetic local-first<br>kanban sanctuary' },
         card: { timeSpent: 'Time spent:' },
-        prompts: { taskTitle: 'Task title:', columnTitle: 'Column title:', renameColumn: 'New name:', deleteConfirm: (title) => `Delete column «${title}» and all its tasks?` },
+        prompts: { 
+            taskTitle: 'Task title:', columnTitle: 'Column title:', renameColumn: 'New name:', 
+            deleteConfirmTitle: 'Delete column?',
+            deleteConfirmDesc: 'All tasks inside will be lost.' 
+        },
         alerts: { loadError: 'Failed to load board', error: 'Error' }
     }
 };
 
 let currentLang = 'ru';
+let activeConfirmResolve = null; // Добавили эту строку
 
 function applyLanguage(lang) {
     currentLang = lang;
@@ -500,6 +509,23 @@ function toggleColumnMenu(e, columnEl) {
     }
 }
 
+// --- ФУНКЦИЯ КАСТОМНОГО ПОДТВЕРЖДЕНИЯ (Идеальная плавность) ---
+function showConfirmModal(title, message) {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('confirm-modal');
+        modal.querySelector('.confirm-title').textContent = title;
+        modal.querySelector('.confirm-text').textContent = message;
+        
+        // Переводим кнопки на текущий язык
+        modal.querySelector('.cancel-btn').textContent = t('cancel');
+        modal.querySelector('.danger-btn').textContent = t('menu.delete');
+        
+        activeConfirmResolve = resolve; // Запоминаем функцию завершения
+        modal.classList.add('show');    // Мгновенный показ
+    });
+}
+
+// --- ОБНОВЛЁННАЯ ФУНКЦИЯ МЕНЮ КОЛОНКИ ---
 async function handleColumnMenu(action, columnEl, menuItem) {
     const columnId = parseInt(columnEl.dataset.columnId);
     const column = state.columns.find(c => c.id === columnId);
@@ -511,11 +537,61 @@ async function handleColumnMenu(action, columnEl, menuItem) {
     } else if (action === 'rename-column') {
         closeAllDropdowns();
         setTimeout(() => startColumnRename(columnEl, column), 50);
-    } else if (action === 'delete-column') {
-        if (!confirm(t('prompts.deleteConfirm', column.title))) return;
-        try { await deleteColumn(columnId); await refreshBoard(); } catch (e) {}
     } else if (action === 'collapse-column') {
         column.collapsed = !column.collapsed; renderBoard();
+    } else if (action === 'delete-column') {
+        
+        closeAllDropdowns(); // Обязательно закрываем меню до клонирования
+        
+        const isConfirmed = await showConfirmModal(
+            t('prompts.deleteConfirmTitle'), 
+            t('prompts.deleteConfirmDesc')
+        );
+        
+        if (!isConfirmed) return;
+
+        // 1. Снимаем точные координаты и размеры удаляемой колонки
+        const rect = columnEl.getBoundingClientRect();
+
+        // 2. Создаем визуального клона для красивого растворения
+        const clone = columnEl.cloneNode(true);
+        clone.classList.add('column-deleting-clone');
+        clone.style.left = `${rect.left}px`;
+        clone.style.top = `${rect.top}px`;
+        clone.style.width = `${rect.width}px`;
+        clone.style.height = `${rect.height}px`;
+        document.body.appendChild(clone);
+
+        // 3. Создаем невидимую пустую распорку для плавного сдвига соседей
+        const spacer = document.createElement('div');
+        spacer.className = 'column-spacer';
+        spacer.style.width = `${rect.width}px`;
+        spacer.style.minWidth = `${rect.width}px`;
+        
+        // Моментально меняем настоящую колонку на пустую распорку
+        columnEl.replaceWith(spacer);
+
+        // 4. Обновляем стейт и отправляем запрос на сервер
+        state.columns = state.columns.filter(c => c.id !== columnId);
+        deleteColumn(columnId).catch(async e => {
+            console.error("Delete column failed:", e);
+            await refreshBoard();
+            alert(t('alerts.error'));
+        });
+
+        // 5. Запускаем анимации на следующем кадре (чтобы браузер успел отрисовать DOM)
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                clone.classList.add('is-animating'); // Клон улетает в прозрачность
+                spacer.classList.add('is-shrinking'); // Соседи плавно смыкаются
+            });
+        });
+
+        // 6. Убираем мусор из DOM после завершения анимации
+        setTimeout(() => {
+            if (clone.parentNode) clone.remove();
+            if (spacer.parentNode) spacer.remove();
+        }, 450);
     }
 }
 
@@ -884,6 +960,18 @@ document.addEventListener('dragend', async () => {
 
 // ---------- ГЛОБАЛЬНЫЕ КЛИКИ (меню, модалки) ----------
 document.addEventListener('click', (e) => {
+
+    // --- ОБРАБОТКА КНОПОК АЛЕРТА ---
+    if (e.target.closest('[data-action="confirm-cancel"]')) {
+        if (activeConfirmResolve) { activeConfirmResolve(false); activeConfirmResolve = null; }
+        document.getElementById('confirm-modal').classList.remove('show');
+        return;
+    }
+    if (e.target.closest('[data-action="confirm-delete"]')) {
+        if (activeConfirmResolve) { activeConfirmResolve(true); activeConfirmResolve = null; }
+        document.getElementById('confirm-modal').classList.remove('show');
+        return;
+    }
     
     const settingsTrigger = e.target.closest('.settings-trigger');
     if (settingsTrigger) {
@@ -919,6 +1007,11 @@ document.addEventListener('click', (e) => {
     if (action === 'about') document.getElementById('about-modal').classList.add('show');
 
     if (e.target.closest('.modal-close') || e.target.classList.contains('modal-overlay')) {
+        // Если кликнули мимо окна подтверждения - это приравнивается к отмене
+        if (activeConfirmResolve && (e.target.id === 'confirm-modal' || e.target.closest('#confirm-modal'))) {
+            activeConfirmResolve(false);
+            activeConfirmResolve = null;
+        }
         document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('show'));
     }
 

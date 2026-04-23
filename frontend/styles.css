@@ -704,3 +704,107 @@ body.is-dragging-card .column-header {
     -webkit-font-smoothing: antialiased !important;
     -moz-osx-font-smoothing: grayscale !important;
 }
+
+/* ==========================================
+   АНИМАЦИЯ УДАЛЕНИЯ (GPU Clone + Spacer)
+   ========================================== */
+
+/* 1. Клон для идеального визуального растворения (GPU) */
+.column-deleting-clone {
+    position: fixed !important;
+    z-index: 9999;
+    margin: 0 !important;
+    pointer-events: none !important;
+    transform-origin: center center;
+    will-change: transform, opacity;
+    /* Блокируем любые другие транзиции, оставляем только GPU */
+    transition: opacity 0.20s ease, transform 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+.column-deleting-clone.is-animating {
+    opacity: 0 !important;
+    transform: scale(0.92) translateY(12px) !important;
+}
+
+/* 2. Пустая распорка для идеального скольжения соседних элементов (CPU) */
+.column-spacer {
+    height: 10px;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    background: transparent !important;
+    pointer-events: none !important;
+    flex-shrink: 0 !important;
+    will-change: width, min-width, margin-right;
+    transition:
+        width 0.35s cubic-bezier(0.25, 1, 0.5, 1) 0.05s,
+        min-width 0.35s cubic-bezier(0.25, 1, 0.5, 1) 0.05s,
+        margin-right 0.35s cubic-bezier(0.25, 1, 0.5, 1) 0.05s !important;
+}
+.column-spacer.is-shrinking {
+    width: 0 !important;
+    min-width: 0 !important;
+    margin-right: -24px !important; /* Компенсируем gap: 24px родителя */
+}
+
+/* ==========================================
+   КАСТОМНЫЙ ALERT (МИНИМАЛИЗМ)
+   ========================================== */
+.confirm-card {
+    width: 280px; 
+    padding: 0;
+}
+.confirm-body {
+    padding: 24px 20px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 4px;
+}
+.confirm-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
+    margin: 0;
+}
+.confirm-text {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+    margin: 0;
+}
+.confirm-actions {
+    display: flex;
+    gap: 8px;
+    padding: 8px 16px 16px;
+}
+.confirm-btn {
+    flex: 1;
+    padding: 9px;
+    border-radius: 8px;
+    font-family: var(--font-main);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.1s ease;
+    border: none;
+    outline: none;
+}
+.confirm-btn:active { transform: scale(0.96); }
+
+.confirm-btn.cancel-btn {
+    background: rgba(0, 0, 0, 0.05);
+    color: var(--text-primary);
+}
+.confirm-btn.cancel-btn:hover { background: rgba(0, 0, 0, 0.08); }
+
+.confirm-btn.danger-btn {
+    background: #D35446;
+    color: #FFF;
+}
+.confirm-btn.danger-btn:hover { background: #C04335; }
+
+[data-theme="dark"] .confirm-btn.danger-btn { background: #D65A4B; }
+[data-theme="dark"] .confirm-btn.cancel-btn { background: rgba(255, 255, 255, 0.06); }
+[data-theme="dark"] .confirm-btn.cancel-btn:hover { background: rgba(255, 255, 255, 0.1); }

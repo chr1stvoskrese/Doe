@@ -112,6 +112,20 @@
     </div>
 </div>
 
+<!-- 🚨 МОДАЛКА ПОДТВЕРЖДЕНИЯ УДАЛЕНИЯ -->
+<div class="modal-overlay" id="confirm-modal">
+    <div class="modal-card confirm-card">
+        <div class="confirm-body">
+            <h3 class="confirm-title">Удалить?</h3>
+            <p class="confirm-text">Все данные будут потеряны.</p>
+        </div>
+        <div class="confirm-actions">
+            <button class="confirm-btn cancel-btn" data-action="confirm-cancel">Отмена</button>
+            <button class="confirm-btn danger-btn" data-action="confirm-delete">Удалить</button>
+        </div>
+    </div>
+</div>
+
 <!-- Подключаем наш объединённый скрипт -->
 <script src="/static/app.js?v=2104250555"></script>
 </body>
