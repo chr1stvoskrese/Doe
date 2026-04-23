@@ -1,142 +1,268 @@
 /* ---------- ПАЛИТРА И ПЕРЕМЕННЫЕ (UI Kit) ---------- */
+/* Определяем глобальные переменные для светлой темы оформления */
 :root {
-    --bg-canvas: #F4F3EF;
-    --bg-board: #EBEAE3;
-    --surface-card: #FFFFFF;
-    --text-primary: #2A3029;
-    --text-secondary: #828A80;
-    --border-light: rgba(0,0,0,0.06);
+    --bg-canvas: #F4F3EF;               /* Цвет самого нижнего слоя (фон за доской) */
+    --bg-board: #EBEAE3;                /* Цвет фона контейнера доски и колонок */
+    --surface-card: #FFFFFF;            /* Цвет поверхности карточек (белый для контраста) */
+    --text-primary: #2A3029;            /* Основной цвет текста (глубокий темно-зеленый) */
+    --text-secondary: #828A80;          /* Вторичный цвет текста (для подписей и иконок) */
+    --border-light: rgba(0, 0, 0, 0.06); /* Цвет тонких границ (едва заметный черный) */
 
-    --brand-pine: #4A5A48;
-    --brand-pale: rgba(74, 90, 72, 0.08);
+    --brand-pine: #4A5A48;              /* Фирменный хвойный цвет (основной акцент) */
+    --brand-pale: rgba(74, 90, 72, 0.08); /* Бледный оттенок фирменного цвета для выделения */
 
-    --timer-text: #C27A62;
-    --timer-bg: rgba(194, 122, 98, 0.1);
-    --success-done: #89A085;
+    --timer-text: #C27A62;              /* Цвет текста таймера (терракотовый) */
+    --timer-bg: rgba(194, 122, 98, 0.1); /* Фон подложки таймера */
+    --success-done: #89A085;            /* Цвет для выполненных задач (приглушенный зеленый) */
 
-    --font-main: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    --font-mono: 'SF Mono', 'JetBrains Mono', monospace;
+    --font-main: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; /* Основной системный шрифт */
+    --font-mono: 'SF Mono', 'JetBrains Mono', monospace; /* Моноширинный шрифт для таймеров */
 
-    --shadow-card: 0 2px 6px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
-    --shadow-menu: 0 20px 40px rgba(0, 0, 0, 0.1), 0 4px 12px rgba(0,0,0,0.05);
-    --shadow-drag: 0 30px 60px rgba(0, 0, 0, 0.12), 0 12px 24px rgba(0,0,0,0.08);
+    --shadow-card: 0 2px 6px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04); /* Легкая тень карточки */
+    --shadow-menu: 0 20px 40px rgba(0, 0, 0, 0.1), 0 4px 12px rgba(0, 0, 0, 0.05); /* Глубокая тень выпадающих меню */
+    --shadow-drag: 0 30px 60px rgba(0, 0, 0, 0.12), 0 12px 24px rgba(0, 0, 0, 0.08); /* Тень при перетаскивании */
 
-    --radius-board: 16px;
-    --radius-card: 16px;
-    --transition-apple: 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    --radius-board: 16px;               /* Радиус скругления колонок */
+    --radius-card: 16px;                /* Радиус скругления карточек */
+    --transition-apple: 0.3s cubic-bezier(0.16, 1, 0.3, 1); /* Плавная кривая анимации в стиле Apple */
 }
 
+/* Переопределяем переменные для темной темы */
 [data-theme="dark"] {
-    --bg-canvas: #161815;
-    --bg-board: #1C1E1B;
-    --surface-card: #232521;
-    --text-primary: #E6E8E5;
-    --text-secondary: #8B9088;
-    --border-light: rgba(255, 255, 255, 0.06);
+    --bg-canvas: #161815;               /* Темный фон за доской */
+    --bg-board: #1C1E1B;                /* Темный фон колонок */
+    --surface-card: #232521;            /* Темная поверхность карточки */
+    --text-primary: #E6E8E5;            /* Светло-серый текст для чтения в темноте */
+    --text-secondary: #8B9088;          /* Приглушенный серый текст */
+    --border-light: rgba(255, 255, 255, 0.06); /* Белые границы с низкой прозрачностью */
 
-    --brand-pine: #89A085;
-    --brand-pale: rgba(137, 160, 133, 0.15);
+    --brand-pine: #89A085;              /* Более светлый хвойный для темной темы */
+    --brand-pale: rgba(137, 160, 133, 0.15); /* Подсветка в темной теме */
 
-    --timer-text: #D69780;
-    --timer-bg: rgba(214, 151, 128, 0.12);
-    --success-done: #738A70;
+    --timer-text: #D69780;              /* Текст таймера в темной теме */
+    --timer-bg: rgba(214, 151, 128, 0.12); /* Фон таймера в темной теме */
+    --success-done: #738A70;            /* Цвет выполненных задач */
 
-    --shadow-card: 0 2px 6px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
-    --shadow-menu: 0 20px 40px rgba(0, 0, 0, 0.6), 0 4px 12px rgba(0,0,0,0.4);
-    --shadow-drag: 0 30px 60px rgba(0, 0, 0, 0.7), 0 12px 24px rgba(0,0,0,0.5);
+    --shadow-card: 0 2px 6px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3); /* Жесткие тени для глубины */
+    --shadow-menu: 0 20px 40px rgba(0, 0, 0, 0.6), 0 4px 12px rgba(0, 0, 0, 0.4); /* Контрастные тени меню */
+    --shadow-drag: 0 30px 60px rgba(0, 0, 0, 0.7), 0 12px 24px rgba(0, 0, 0, 0.5); /* Мощная тень драга */
 }
 
-[data-theme="dark"] .icon-btn:hover,[data-theme="dark"] .icon-btn.active,
-[data-theme="dark"] .workspace-btn:hover,[data-theme="dark"] .menu-btn:hover,[data-theme="dark"] .menu-btn.active,[data-theme="dark"] .menu-item:hover,
+/* Настройки прозрачного фона для интерактивных элементов в темной теме */
+[data-theme="dark"] .icon-btn:hover,
+[data-theme="dark"] .icon-btn.active,
+[data-theme="dark"] .workspace-btn:hover,
+[data-theme="dark"] .menu-btn:hover,
+[data-theme="dark"] .menu-btn.active,
+[data-theme="dark"] .menu-item:hover,
 [data-theme="dark"] .meta-pill,
-[data-theme="dark"] .lang-item:hover,[data-theme="dark"] .lang-item.active {
-    background: rgba(255, 255, 255, 0.06);
+[data-theme="dark"] .lang-item:hover,
+[data-theme="dark"] .lang-item.active {
+    background: rgba(255, 255, 255, 0.06); /* Легкий отсвет при наведении */
 }
-[data-theme="dark"] .dropdown-menu, [data-theme="dark"] .modal-card {
-    background: rgba(35, 37, 33, 0.85);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+
+/* Стекломорфизм для меню и модалок в темной теме */
+[data-theme="dark"] .dropdown-menu,
+[data-theme="dark"] .modal-card {
+    background: rgba(35, 37, 33, 0.85); /* Полупрозрачный фон */
+    border: 1px solid rgba(255, 255, 255, 0.08); /* Тонкая рамка */
 }
-[data-theme="dark"] .card.is-completed { background: #1A1C19; }
+
+/* Уникальный фон для завершенных карточек в темной теме */
+[data-theme="dark"] .card.is-completed {
+    background: #1A1C19;
+}
+
+/* Цвет границ кнопки создания колонки в темной теме */
 [data-theme="dark"] .new-column-btn {
     border-color: rgba(137, 160, 133, 0.25);
-    will-change: transform;
+    will-change: transform; /* Оптимизация производительности анимации */
 }
-[data-theme="dark"] .modal-overlay { background: rgba(0, 0, 0, 0.5); }
 
-::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
-::view-transition-old(root) { z-index: 1; }
-::view-transition-new(root) { z-index: 2; animation: theme-wipe 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
-@keyframes theme-wipe { 0% { clip-path: circle(0% at 0% 0%); } 100% { clip-path: circle(150% at 0% 0%); } }
+/* Фон затемнения модального окна в темной теме */
+[data-theme="dark"] .modal-overlay {
+    background: rgba(0, 0, 0, 0.5);
+}
 
-* { margin: 0; padding: 0; box-sizing: border-box; }
+/* Настройка браузерного API View Transitions для плавной смены тем */
+::view-transition-old(root),
+::view-transition-new(root) {
+    animation: none;            /* Отключаем стандартное затухание */
+    mix-blend-mode: normal;     /* Режим смешивания слоев */
+}
+
+/* Слой старой темы (под новой) */
+::view-transition-old(root) {
+    z-index: 1;
+}
+
+/* Анимация "расширяющегося круга" при смене темы */
+::view-transition-new(root) {
+    z-index: 2;
+    animation: theme-wipe 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+/* Определение анимации круга для смены темы */
+@keyframes theme-wipe {
+    0% { clip-path: circle(0% at 0% 0%); }   /* Начинаем из левого верхнего угла */
+    100% { clip-path: circle(150% at 0% 0%); } /* Расширяем круг на весь экран */
+}
+
+/* Сброс стандартных браузерных отступов */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box; /* Размеры элементов включают границы и отступы */
+}
+
+/* Настройки основного контейнера страницы */
 body {
-    background-color: var(--bg-canvas); font-family: var(--font-main);
-    color: var(--text-primary); height: 100vh; display: flex;
-    flex-direction: column; overflow: hidden;
-    -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
-    isolation: isolate;
+    background-color: var(--bg-canvas);
+    font-family: var(--font-main);
+    color: var(--text-primary);
+    height: 100vh;              /* Высота на весь экран */
+    display: flex;
+    flex-direction: column;     /* Элементы (шапка и доска) идут друг под другом */
+    overflow: hidden;           /* Запрещаем прокрутку всей страницы */
+    -webkit-font-smoothing: antialiased; /* Сглаживание шрифтов для macOS */
+    -moz-osx-font-smoothing: grayscale;   /* Сглаживание шрифтов для Firefox */
+    isolation: isolate;         /* Создаем новый контекст наложения */
 }
 
+/* Стилизация верхней панели (шапки) */
 .app-header {
-    padding: 24px 48px; display: flex; align-items: center; gap: 24px;
-    flex-shrink: 0; position: relative; z-index: 50; transform: translateZ(0); will-change: transform;
-}
-.settings-wrapper { position: relative; }
-.icon-btn {
-    background: transparent; border: none; width: 36px; height: 36px;
-    border-radius: 10px; display: flex; align-items: center; justify-content: center;
-    color: var(--text-secondary); cursor: pointer; transition: all 0.2s ease;
-}
-.icon-btn:hover, .icon-btn.active { background: rgba(0,0,0,0.05); color: var(--text-primary); }
-
-.workspace-btn {
-    background: transparent; border: none; font-family: var(--font-main);
-    font-size: 16px; font-weight: 600; color: var(--text-primary);
-    cursor: pointer; display: flex; align-items: center; gap: 8px;
-    padding: 8px 4px 8px 8px; border-radius: 10px; transition: background 0.2s; letter-spacing: -0.01em;
-}
-.workspace-btn:hover { background: rgba(0,0,0,0.04); }
-.workspace-btn svg { opacity: 0.5; width: 16px; height: 16px; }
-
-.board-container {
-    flex: 1;
-    padding: 0 0 48px 48px;
-    overflow-x: auto;
-    overflow-y: hidden;
-    transform: translateZ(0);
+    padding: 24px 48px;         /* Просторные отступы */
+    display: flex;
+    align-items: center;        /* Центрирование элементов по вертикали */
+    gap: 24px;                  /* Расстояние между элементами */
+    flex-shrink: 0;             /* Шапка не сжимается по высоте */
+    position: relative;
+    z-index: 50;                /* Поверх доски */
+    transform: translateZ(0);   /* Форсируем аппаратное ускорение */
     will-change: transform;
 }
-.board {
+
+/* Обертка для кнопок настроек */
+.settings-wrapper {
+    position: relative;
+}
+
+/* Кнопки-иконки в шапке */
+.icon-btn {
+    background: transparent;
+    border: none;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
     display: flex;
-    gap: 24px;
-    height: 100%;
-    width: max-content;
-    padding-right: 48px;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s ease;
 }
 
+/* Эффект наведения на кнопку-иконку */
+.icon-btn:hover,
+.icon-btn.active {
+    background: rgba(0, 0, 0, 0.05);
+    color: var(--text-primary);
+}
+
+/* Кнопка выбора воркспейса (Doe Board) */
+.workspace-btn {
+    background: transparent;
+    border: none;
+    font-family: var(--font-main);
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 4px 8px 8px;
+    border-radius: 10px;
+    transition: background 0.2s;
+    letter-spacing: -0.01em;    /* Чуть более плотный текст */
+}
+
+/* Наведение на кнопку воркспейса */
+.workspace-btn:hover {
+    background: rgba(0, 0, 0, 0.04);
+}
+
+/* Полупрозрачная стрелочка воркспейса */
+.workspace-btn svg {
+    opacity: 0.5;
+    width: 16px;
+    height: 16px;
+}
+
+/* Основной контейнер, где живут колонки */
+.board-container {
+    flex: 1;                    /* Занимает всё оставшееся место */
+    padding: 0 0 48px 48px;
+    overflow-x: auto;           /* Горизонтальная прокрутка, если колонки не влезают */
+    overflow-y: hidden;         /* Вертикальная прокрутка внутри колонок, не здесь */
+    transform: translateZ(0);   /* Ускорение отрисовки */
+    will-change: transform;
+}
+
+/* Внутренний контейнер доски */
+.board {
+    display: flex;              /* Колонки в ряд */
+    gap: 24px;                  /* Расстояние между колонками */
+    height: 100%;               /* На всю высоту родителя */
+    width: max-content;         /* Ширина по количеству колонок */
+    padding-right: 48px;        /* Отступ в конце для красоты */
+}
+
+/* Основной стиль колонки */
 .column {
-    background: var(--bg-board); width: 320px; max-height: 100%;
-    flex-shrink: 0; border-radius: var(--radius-board); display: flex;
-    flex-direction: column; border: 1px solid var(--border-light);
-    position: relative; transition: width var(--transition-apple), background var(--transition-apple);
-    cursor: grab;
+    background: var(--bg-board);
+    width: 320px;               /* Фиксированная ширина */
+    max-height: 100%;
+    flex-shrink: 0;             /* Не разрешаем колонке сжиматься */
+    border-radius: var(--radius-board);
+    display: flex;
+    flex-direction: column;     /* Содержимое колонки вертикальное */
+    border: 1px solid var(--border-light);
+    position: relative;
+    transition: width var(--transition-apple), background var(--transition-apple);
+    cursor: grab;               /* Указатель "рука" для перетаскивания */
 }
-.column:active { cursor: grabbing; }
 
+/* Состояние при зажатии колонки мышкой */
+.column:active {
+    cursor: grabbing;
+}
+
+/* Свернутая колонка */
 .column.collapsed {
     width: auto;
     min-width: 60px;
-    max-width: 160px;
+    max-width: 160px;           /* Ограничение ширины для длинных названий */
     cursor: pointer;
     background: var(--bg-board);
     border: 1px solid var(--border-light);
     transition: border-color 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-    padding: 12px 0;  /* отступы сверху/снизу для длинного текста */
+    padding: 12px 0;            /* Отступы сверху/снизу */
 }
+
+/* Ховер на свернутую колонку */
 .column.collapsed:hover {
     border-color: rgba(0, 0, 0, 0.14);
 }
-.column.collapsed .card-list, .column.collapsed .btn-add-card, .column.collapsed .column-actions { display: none; }
+
+/* Скрываем содержимое в свернутой колонке */
+.column.collapsed .card-list,
+.column.collapsed .btn-add-card,
+.column.collapsed .column-actions {
+    display: none;
+}
+
+/* Центрируем шапку в свернутой колонке */
 .column.collapsed .column-header {
     padding: 0;
     justify-content: center;
@@ -145,142 +271,385 @@ body {
     align-items: center;
     min-height: 0;
 }
+
+/* Текст заголовка в свернутой колонке (вертикальный) */
 .column.collapsed .column-title {
-    writing-mode: vertical-rl;
-    transform: rotate(180deg);
+    writing-mode: vertical-rl;  /* Текст пишется сверху вниз */
+    transform: rotate(180deg);  /* Переворачиваем для удобства чтения */
     color: var(--text-primary);
     font-size: 15px;
     letter-spacing: 0.02em;
-    word-break: break-all;
-    overflow: hidden;
-    flex: 1; 
+    word-break: break-all;      /* Перенос букв, если слово слишком длинное */
+    overflow: hidden;           /* Прячем лишнее */
+    flex: 1;                    /* Занимает всю высоту */
     min-height: 0;
-    max-height: 100%; 
+    max-height: 100%;
     min-width: auto;
     line-height: 1.4;
     padding: 8px 0;
-    white-space: normal;
-    
-    /* ДОБАВЛЕНО: Идеальное центрирование текста */
+    white-space: normal;        /* Разрешаем перенос строк */
     display: flex;
-    align-items: center;
-    justify-content: center;
+    align-items: center;        /* Центрируем текст по вертикали */
+    justify-content: center;    /* Центрируем текст по горизонтали */
     text-align: center;
 }
 
+/* Шапка колонки (заголовок и кнопки) */
 .column-header {
-    padding: 20px 20px 12px; display: flex; align-items: center; justify-content: space-between;
-    user-select: none; -webkit-user-select: none;
-    gap: 8px;                 /* добавлено */
-    min-width: 0;             /* добавлено — позволяет flex-children сжиматься */
-    flex-shrink: 0;
+    padding: 20px 20px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    user-select: none;          /* Запрещаем выделение текста мышкой */
+    -webkit-user-select: none;
+    gap: 8px;
+    min-width: 0;               /* Позволяет flex-элементу сжиматься меньше содержимого */
+    flex-shrink: 0;             /* Заголовок не ужимается по высоте */
 }
 
-
+/* Текст заголовка в развернутой колонке */
 .column-title {
     font-weight: 600;
     font-size: 15px;
     letter-spacing: -0.01em;
     color: var(--text-primary);
-    line-height: 1.45;
-    word-break: break-word;
-    display: -webkit-box;
-    -webkit-line-clamp: unset;
+    line-height: 1.45;          /* Хорошее расстояние между строк */
+    word-break: break-word;     /* Перенос слов */
+    display: -webkit-box;       /* Старая спецификация для многострочного обрезания */
+    -webkit-line-clamp: unset;  /* Не ограничиваем количество строк */
     line-clamp: unset;
     -webkit-box-orient: vertical;
     overflow: hidden;
-    flex: 1;
+    flex: 1;                    /* Занимает всё доступное место слева */
     min-width: 0;
-    /* Макс-высота = 20vh, при превышении — ellipsis через JS */
 }
-.column-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 
+/* Правая часть шапки с иконками и счетчиком */
+.column-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;             /* Иконки не сжимаются */
+}
+
+/* Пилюля с режимом колонки и счетчиком карточек */
 .meta-pill {
-    display: flex; align-items: center; gap: 6px; font-size: 13px;
-    font-weight: 600; padding: 4px 10px; border-radius: 20px; pointer-events: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 20px;
+    pointer-events: none;       /* Пропускает клики сквозь себя */
 }
-.meta-pill.default { background: rgba(0,0,0,0.04); color: var(--text-secondary); }
-.meta-pill.track-time { background: rgba(0,0,0,0.04); color: var(--text-secondary); }
-.meta-pill.completion { background: rgba(0,0,0,0.04); color: var(--text-secondary); }
-.meta-pill svg { width: 14px; height: 14px; opacity: 0.9; }
 
+/* Разные цвета пилюль (сейчас одинаковые, задел на будущее) */
+.meta-pill.default { background: rgba(0, 0, 0, 0.04); color: var(--text-secondary); }
+.meta-pill.track-time { background: rgba(0, 0, 0, 0.04); color: var(--text-secondary); }
+.meta-pill.completion { background: rgba(0, 0, 0, 0.04); color: var(--text-secondary); }
+
+/* Иконки внутри пилюли */
+.meta-pill svg {
+    width: 14px;
+    height: 14px;
+    opacity: 0.9;
+}
+
+/* Кнопка "три точки" в колонке */
 .menu-btn {
-    background: none; border: none; width: 28px; height: 28px; border-radius: 8px;
-    display: flex; align-items: center; justify-content: center; color: var(--text-secondary);
-    cursor: pointer; transition: all 0.15s ease; pointer-events: auto;
+    background: none;
+    border: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    pointer-events: auto;       /* Реагирует на клики */
 }
-.menu-btn:hover, .menu-btn.active { background: rgba(0,0,0,0.06); color: var(--text-primary); }
 
+/* Эффект наведения на кнопку меню */
+.menu-btn:hover,
+.menu-btn.active {
+    background: rgba(0, 0, 0, 0.06);
+    color: var(--text-primary);
+}
+
+/* Выпадающее контекстное меню */
 .dropdown-menu {
-    position: absolute; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px); border-radius: 14px; box-shadow: var(--shadow-menu);
-    padding: 8px; min-width: 220px; z-index: 100; border: 1px solid rgba(255,255,255,0.5);
-    opacity: 0; visibility: hidden; transform: translateY(-8px) scale(0.96); transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    position: absolute;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(24px); /* Эффект размытия заднего плана */
+    -webkit-backdrop-filter: blur(24px);
+    border-radius: 14px;
+    box-shadow: var(--shadow-menu);
+    padding: 8px;
+    min-width: 220px;
+    z-index: 100;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    opacity: 0;                 /* Изначально невидимо */
+    visibility: hidden;         /* Изначально недоступно для кликов */
+    transform: translateY(-8px) scale(0.96); /* Сдвиг вверх и уменьшение для анимации появления */
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.column .dropdown-menu { top: 56px; right: 16px; transform-origin: top right; }
-.settings-wrapper .dropdown-menu { top: 44px; left: 0; transform-origin: top left; }
-.dropdown-menu.show { opacity: 1; visibility: visible; transform: translateY(0) scale(1); }
 
-.menu-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-secondary); padding: 8px 12px 6px; }
-.menu-item { padding: 8px 12px; border-radius: 8px; font-size: 13px; font-weight: 500; color: var(--text-primary); cursor: pointer; display: flex; align-items: center; gap: 10px; transition: background 0.1s; }
-.menu-item:hover { background: rgba(0,0,0,0.04); }
-.menu-item.danger { color: #D35446; }
-.menu-item.danger:hover { background: rgba(211, 84, 70, 0.08); }
-.menu-item.selected { background: rgba(0,0,0,0.02); font-weight: 600; }
-.menu-item svg.check-icon { opacity: 0; width: 14px; height: 14px; margin-left: auto; transform: scale(0.8); transition: all 0.2s ease; color: var(--text-primary); }
-.menu-item.selected svg.check-icon { opacity: 1; transform: scale(1); }
-.menu-icon { width: 16px; height: 16px; opacity: 0.6; }
-.menu-divider { height: 1px; background: var(--border-light); margin: 6px 0; }
+/* Позиционирование меню для колонок */
+.column .dropdown-menu {
+    top: 56px;
+    right: 16px;
+    transform-origin: top right; /* Анимация идет из правого верхнего угла */
+}
 
+/* Позиционирование меню настроек в шапке */
+.settings-wrapper .dropdown-menu {
+    top: 44px;
+    left: 0;
+    transform-origin: top left;
+}
+
+/* Класс для отображения меню через JS */
+.dropdown-menu.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1); /* Возврат в нормальное положение */
+}
+
+/* Подзаголовки внутри меню */
+.menu-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;  /* Капсом */
+    letter-spacing: 0.04em;
+    color: var(--text-secondary);
+    padding: 8px 12px 6px;
+}
+
+/* Пункт меню */
+.menu-item {
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: background 0.1s;
+}
+
+/* Наведение на пункт меню */
+.menu-item:hover {
+    background: rgba(0, 0, 0, 0.04);
+}
+
+/* Опасные пункты (Удалить) */
+.menu-item.danger {
+    color: #D35446;
+}
+
+/* Наведение на опасный пункт */
+.menu-item.danger:hover {
+    background: rgba(211, 84, 70, 0.08);
+}
+
+/* Выбранный пункт (например, текущий режим) */
+.menu-item.selected {
+    background: rgba(0, 0, 0, 0.02);
+    font-weight: 600;
+}
+
+/* Иконка галочки в меню */
+.menu-item svg.check-icon {
+    opacity: 0;
+    width: 14px;
+    height: 14px;
+    margin-left: auto;          /* Прижимаем галочку вправо */
+    transform: scale(0.8);      /* Уменьшена для анимации */
+    transition: all 0.2s ease;
+    color: var(--text-primary);
+}
+
+/* Показываем галочку у выбранного элемента */
+.menu-item.selected svg.check-icon {
+    opacity: 1;
+    transform: scale(1);
+}
+
+/* Стандартные иконки в меню */
+.menu-icon {
+    width: 16px;
+    height: 16px;
+    opacity: 0.6;
+}
+
+/* Разделительная линия в меню */
+.menu-divider {
+    height: 1px;
+    background: var(--border-light);
+    margin: 6px 0;
+}
+
+/* Список карточек внутри колонки */
 .card-list {
-    padding: 4px 16px 16px; display: flex; flex-direction: column; gap: 12px;
-    overflow-y: auto; flex: 1; scrollbar-width: none; pointer-events: auto;
-    min-height: 0;
-}
-.card-list::-webkit-scrollbar { display: none; }
-
-.card {
-    background: var(--surface-card); border-radius: var(--radius-card); padding: 16px 16px;
-    box-shadow: var(--shadow-card); border: 1px solid var(--border-light); cursor: grab;
-    transition: transform var(--transition-apple), box-shadow var(--transition-apple), background-color var(--transition-apple);
-    display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px 12px;
-    user-select: none; will-change: transform, box-shadow; pointer-events: auto;
-}
-.card:active { cursor: grabbing; }
-.card:hover { transform: translate3d(0, -2px, 0); box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04); }
-
-.card.is-completed { background: #F7F6F3; }
-.card.is-completed:hover { transform: translate3d(0, -2px, 0); box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04); }
-.card-title-wrapper { width: 100%; display: flex; align-items: flex-start; gap: 8px; margin-bottom: 4px; pointer-events: none; }
-.completed-icon { color: var(--success-done); flex-shrink: 0; margin-top: 2px; display: none; }
-.card.is-completed .completed-icon { display: block; }
-.card-title { font-size: 14px; font-weight: 500; line-height: 1.4; color: var(--text-primary); transition: color 0.2s; pointer-events: none; }
-.card.is-completed .card-title { text-decoration: line-through; color: var(--text-secondary); }
-
-.card-timer {
-    font-family: var(--font-mono); font-size: 12px; color: var(--timer-text); background: var(--timer-bg);
-    display: inline-flex; padding: 4px 10px; border-radius: 8px; font-weight: 600; letter-spacing: 0.02em;
-    margin-top: 0; order: 3; pointer-events: none;
-}
-.subtask-meta {
-    font-size: 12px; color: var(--text-secondary); display: flex; align-items: center; gap: 6px;
-    margin-top: 0; order: 2; pointer-events: none;
-}
-
-.btn-add-card {
-    margin: 0 16px 16px; padding: 12px; background: transparent; border: none; color: var(--text-secondary);
-    font-size: 14px; font-weight: 500; text-align: left; cursor: pointer; border-radius: 10px; transition: all 0.15s ease;
+    padding: 4px 16px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;                  /* Расстояние между карточками */
+    overflow-y: auto;           /* Прокрутка списка, если карточек много */
+    flex: 1;                    /* Список занимает всё свободное место в колонке */
+    scrollbar-width: none;      /* Скрываем скроллбар в Firefox */
     pointer-events: auto;
-    flex-shrink: 0;
+    min-height: 0;              /* Важно для корректного скролла внутри flex */
 }
-.btn-add-card:hover { background: rgba(0,0,0,0.03); color: var(--text-primary); }
 
+/* Скрываем скроллбар в Chrome/Safari/Edge */
+.card-list::-webkit-scrollbar {
+    display: none;
+}
+
+/* Стиль отдельной карточки задачи */
+.card {
+    background: var(--surface-card);
+    border-radius: var(--radius-card);
+    padding: 16px 16px;
+    box-shadow: var(--shadow-card);
+    border: 1px solid var(--border-light);
+    cursor: grab;               /* Рука для захвата */
+    transition: transform var(--transition-apple), box-shadow var(--transition-apple), background-color var(--transition-apple);
+    display: flex;
+    flex-wrap: wrap;            /* Содержимое может переноситься */
+    align-items: center;
+    justify-content: flex-end;  /* Элементы типа таймера прижимаются вправо */
+    gap: 8px 12px;
+    user-select: none;
+    will-change: transform, box-shadow;
+    pointer-events: auto;
+}
+
+/* При зажатии карточки */
+.card:active {
+    cursor: grabbing;
+}
+
+/* Анимация приподнимания при наведении */
+.card:hover {
+    transform: translate3d(0, -2px, 0);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
+}
+
+/* Стиль для завершенных карточек */
+.card.is-completed {
+    background: #F7F6F3;        /* Более серый фон */
+}
+
+/* Ховер на завершенную карточку */
+.card.is-completed:hover {
+    transform: translate3d(0, -2px, 0);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
+}
+
+/* Обертка заголовка карточки (иконка + текст) */
+.card-title-wrapper {
+    width: 100%;                /* Занимает всю ширину карточки */
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 4px;
+    pointer-events: none;       /* Клик проходит сквозь заголовок на карточку */
+}
+
+/* Иконка галочки у завершенной задачи */
+.completed-icon {
+    color: var(--success-done);
+    flex-shrink: 0;             /* Иконка не сжимается */
+    margin-top: 2px;            /* Выравнивание по первой строке текста */
+    display: none;              /* По умолчанию скрыта */
+}
+
+/* Показываем галочку только если задача завершена */
+.card.is-completed .completed-icon {
+    display: block;
+}
+
+/* Текст заголовка карточки */
+.card-title {
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.4;
+    color: var(--text-primary);
+    transition: color 0.2s;
+    pointer-events: none;
+}
+
+/* Зачеркнутый текст у завершенной задачи */
+.card.is-completed .card-title {
+    text-decoration: line-through;
+    color: var(--text-secondary);
+}
+
+/* Текст таймера на карточке */
+.card-timer {
+    font-family: var(--font-mono); /* Цифры не "прыгают" при смене секунд */
+    font-size: 12px;
+    color: var(--timer-text);
+    background: var(--timer-bg);
+    display: inline-flex;
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    margin-top: 0;
+    order: 3;                   /* Порядок отображения (в конце) */
+    pointer-events: none;
+}
+
+/* Мета-информация на карточке (например, потраченное время) */
+.subtask-meta {
+    font-size: 12px;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 0;
+    order: 2;                   /* Идет перед таймером */
+    pointer-events: none;
+}
+
+/* Кнопка создания новой карточки внизу колонки */
+.btn-add-card {
+    margin: 0 16px 16px;
+    padding: 12px;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 500;
+    text-align: left;           /* Текст слева */
+    cursor: pointer;
+    border-radius: 10px;
+    transition: all 0.15s ease;
+    pointer-events: auto;
+    flex-shrink: 0;             /* Кнопка не сжимается */
+}
+
+/* Наведение на кнопку создания карточки */
+.btn-add-card:hover {
+    background: rgba(0, 0, 0, 0.03);
+    color: var(--text-primary);
+}
+
+/* Большая кнопка создания новой колонки справа доски */
 .new-column-btn {
     width: 320px;
     min-width: 320px;
     height: 60px;
     background: transparent;
-    border: 2px dashed rgba(74, 90, 72, 0.15);
+    border: 2px dashed rgba(74, 90, 72, 0.15); /* Пунктирная рамка */
     border-radius: var(--radius-board);
     display: flex;
     align-items: center;
@@ -292,48 +661,64 @@ body {
     transition: all 0.2s ease;
     will-change: transform;
 }
+
+/* Ховер на кнопку новой колонки */
 .new-column-btn:hover {
     background: rgba(74, 90, 72, 0.03);
     border-color: rgba(74, 90, 72, 0.3);
 }
 
-
-/* --- DRAG & DROP ДВИЖОК --- */
-
-/* Клон карточки */
+/* Клон карточки, который летает за мышкой при Drag & Drop */
 .card-drag-clone {
-    position: fixed !important; top: 0 !important; left: 0 !important;
-    transform-origin: top left; z-index: 9999; 
-    pointer-events: none !important;
-    margin: 0 !important; width: 288px; box-shadow: var(--shadow-drag) !important;
+    position: fixed !important; /* Отрываем от верстки */
+    top: 0 !important;
+    left: 0 !important;
+    transform-origin: top left; /* Точка трансформации - курсор */
+    z-index: 9999;              /* Поверх всего */
+    pointer-events: none !important; /* Клон не должен мешать событиям мыши под ним */
+    margin: 0 !important;
+    width: 288px;               /* Чуть уже оригинала для эффекта "взятия" */
+    box-shadow: var(--shadow-drag) !important;
     will-change: transform;
 }
+
+/* Запрещаем взаимодействие со всеми вложенными элементами клона */
 .card-drag-clone * {
     pointer-events: none !important;
 }
 
-/* Клон колонки (летит за мышкой) */
+/* Клон колонки при Drag & Drop */
 .column-drag-clone {
-    position: fixed !important; top: 0 !important; left: 0 !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
     transform-origin: top left !important;
-    z-index: 9999; pointer-events: none !important; 
-    margin: 0 !important; box-shadow: var(--shadow-drag) !important; 
-    will-change: transform; opacity: 1 !important;
-    display: flex !important; flex-direction: column !important;
+    z-index: 9999;
+    pointer-events: none !important;
+    margin: 0 !important;
+    box-shadow: var(--shadow-drag) !important;
+    will-change: transform;
+    opacity: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
     background: var(--bg-board) !important;
     border-radius: var(--radius-board) !important;
 }
+
+/* Запрет взаимодействия внутри клона колонки */
 .column-drag-clone * {
     pointer-events: none !important;
 }
 
-/* Призрак карточки (пустое место на доске) */
+/* Стиль для оригинала карточки, которая сейчас тащится (полупрозрачный призрак) */
 .card.is-ghost {
-    opacity: 0.3 !important; background: var(--border-light) !important;
-    box-shadow: none !important; transform: none !important;
+    opacity: 0.3 !important;
+    background: var(--border-light) !important;
+    box-shadow: none !important;
+    transform: none !important;
 }
 
-/* Призрак колонки (пустой слот) */
+/* Стиль для оригинала колонки, которая тащится */
 .column.is-ghost {
     background: var(--bg-canvas) !important;
     border: 2px dashed var(--border-light) !important;
@@ -341,95 +726,231 @@ body {
     opacity: 0.6 !important;
     transition: none !important;
 }
-.column.is-ghost > * { visibility: hidden !important; }
 
-/* --- МОДАЛЬНЫЕ ОКНА --- */
+/* Скрываем содержимое внутри призрака колонки */
+.column.is-ghost>* {
+    visibility: hidden !important;
+}
+
+/* Слой затемнения модального окна */
 .modal-overlay {
-    position: fixed; inset: 0; background: rgba(0, 0, 0, 0.15);
-    backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
-    display: flex; align-items: center; justify-content: center;
-    opacity: 0; visibility: hidden; z-index: 1000; transition: opacity 0.2s ease, visibility 0.2s; will-change: opacity;
+    position: fixed;
+    inset: 0;                   /* На весь экран */
+    background: rgba(0, 0, 0, 0.15);
+    backdrop-filter: blur(4px); /* Размытие доски сзади */
+    -webkit-backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;        /* Центровка по вертикали */
+    justify-content: center;    /* Центровка по горизонтали */
+    opacity: 0;                 /* Скрыта */
+    visibility: hidden;         /* Недоступна */
+    z-index: 1000;
+    transition: opacity 0.2s ease, visibility 0.2s;
+    will-change: opacity;
 }
-.modal-overlay.show { opacity: 1; visibility: visible; }
 
+/* Показываем модалку через JS */
+.modal-overlay.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Тело модального окна */
 .modal-card {
-    background: var(--surface-card); width: 320px; border-radius: var(--radius-card);
-    box-shadow: var(--shadow-menu); overflow: hidden; display: flex; flex-direction: column;
-    border: 1px solid var(--border-light); opacity: 0; transform: translateY(15px);
-    transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1); -webkit-font-smoothing: antialiased;
+    background: var(--surface-card);
+    width: 320px;
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-menu);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--border-light);
+    opacity: 0;
+    transform: translateY(15px); /* Анимация "вылета" снизу */
+    transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+    -webkit-font-smoothing: antialiased;
 }
-.modal-overlay.show .modal-card { opacity: 1; transform: translateY(0); }
 
-.modal-header { padding: 16px 20px; border-bottom: 1px solid var(--border-light); display: flex; align-items: center; justify-content: space-between; }
-.modal-title { font-weight: 600; font-size: 15px; color: var(--text-primary); }
+/* Показываем карточку модалки */
+.modal-overlay.show .modal-card {
+    opacity: 1;
+    transform: translateY(0);   /* Возврат в центр */
+}
+
+/* Шапка модального окна */
+.modal-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-light);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+/* Заголовок в модалке */
+.modal-title {
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--text-primary);
+}
+
+/* Кнопка закрытия модалки */
 .modal-close {
-    background: none; border: none; cursor: pointer; color: var(--text-secondary); display: flex; align-items: center;
-    justify-content: center; padding: 6px; margin: -6px; border-radius: 8px; transition: background 0.15s, color 0.15s;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px;
+    margin: -6px;               /* Увеличение области клика */
+    border-radius: 8px;
+    transition: background 0.15s, color 0.15s;
 }
-.modal-close:hover { background: rgba(0,0,0,0.05); color: var(--text-primary); }
-.modal-body { padding: 12px; display: flex; flex-direction: column; gap: 4px; }
 
+/* Наведение на кнопку закрытия */
+.modal-close:hover {
+    background: rgba(0, 0, 0, 0.05);
+    color: var(--text-primary);
+}
+
+/* Основное содержимое модалки */
+.modal-body {
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+/* Пункты списка в модалке (выбор языка/темы) */
 .lang-item {
-    padding: 12px 14px; border-radius: 10px; cursor: pointer; display: flex; align-items: center;
-    justify-content: space-between; font-size: 14px; font-weight: 500; color: var(--text-primary); transition: background 0.15s;
+    padding: 12px 14px;
+    border-radius: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+    transition: background 0.15s;
 }
-.lang-item:hover { background: rgba(0,0,0,0.03); }
-.lang-item.active { background: rgba(0,0,0,0.04); font-weight: 600; }
-.lang-item .check-icon { opacity: 0; width: 18px; height: 18px; transform: scale(0.8); transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1); color: var(--text-primary); }
-.lang-item.active .check-icon { opacity: 1; transform: scale(1); }
 
-.about-content { padding: 32px 24px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 180px; }
-.about-logo { font-size: 24px; font-weight: 700; color: var(--brand-pine); letter-spacing: -0.03em; margin-bottom: 8px; }
-.about-desc { font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 22px; display: flex; flex-direction: column; align-items: center; text-align: center; transform: translateZ(0); backface-visibility: hidden; }
-.about-version { margin-top: 24px; font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary); opacity: 0.6; letter-spacing: 0.05em; }
+/* Ховер на пункт списка модалки */
+.lang-item:hover {
+    background: rgba(0, 0, 0, 0.03);
+}
 
-/* ============================================
-   INLINE-ФОРМА СОЗДАНИЯ КОЛОНКИ (заменяет кнопку на месте)
-   ============================================ */
+/* Активный пункт списка модалки */
+.lang-item.active {
+    background: rgba(0, 0, 0, 0.04);
+    font-weight: 600;
+}
 
-/* Форма появляется на месте кнопки: тот же размер, пунктирный border */
+/* Иконка галочки в списке модалки */
+.lang-item .check-icon {
+    opacity: 0;
+    width: 18px;
+    height: 18px;
+    transform: scale(0.8);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    color: var(--text-primary);
+}
+
+/* Показываем галочку у активного языка */
+.lang-item.active .check-icon {
+    opacity: 1;
+    transform: scale(1);
+}
+
+/* Окно "О программе" */
+.about-content {
+    padding: 32px 24px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 180px;
+}
+
+/* Логотип Doe в "О программе" */
+.about-logo {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--brand-pine);
+    letter-spacing: -0.03em;
+    margin-bottom: 8px;
+}
+
+/* Текст описания в "О программе" */
+.about-desc {
+    font-size: 14px;
+    color: var(--text-secondary);
+    font-weight: 500;
+    line-height: 22px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    transform: translateZ(0);   /* Устранение дрожания текста */
+    backface-visibility: hidden;
+}
+
+/* Версия программы */
+.about-version {
+    margin-top: 24px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-secondary);
+    opacity: 0.6;
+    letter-spacing: 0.05em;
+}
+
+/* Форма появления/создания новой колонки */
 .column.column-entering {
     width: 320px;
     flex-shrink: 0;
     background: transparent;
     border: 2px dashed rgba(74, 90, 72, 0.15);
     border-radius: var(--radius-board);
-    opacity: 0;
-    transform: scale(0.96);
+    opacity: 0;                 /* Стартуем с невидимости */
+    transform: scale(0.96);     /* Стартуем чуть уменьшенными */
     will-change: opacity, transform;
     transition:
         opacity 0.30s cubic-bezier(0.16, 1, 0.3, 1),
         transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* Состояние, когда форма полностью появилась */
 .column.column-entering.entered {
     opacity: 1;
     transform: scale(1);
 }
 
-/* Исчезновение при отмене */
+/* Анимация исчезновения формы при отмене */
 .column.column-entering.is-exiting {
     opacity: 0;
     transform: scale(0.96);
-    pointer-events: none;
+    pointer-events: none;       /* Блокируем клики при исчезновении */
     transition:
         opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1),
         transform 0.30s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Отправка — лёгкое притухание */
+/* Полупрозрачность при отправке на сервер */
 .column.column-entering.is-submitting {
     opacity: 0.4;
     pointer-events: none;
     transition-duration: 0.15s;
 }
 
-/* Внутренний контейнер формы */
+/* Внутренний контейнер формы создания */
 .column-form-inner {
     padding: 20px 20px 12px;
 }
 
-/* Поле ввода — пунктирная рамка, без теней, монотонные цвета */
+/* Поле ввода в форме создания колонки (используем textarea) */
 .column-input {
     width: 100%;
     background: transparent;
@@ -444,34 +965,36 @@ body {
     letter-spacing: -0.01em;
     cursor: text;
     transition: border-color 0.25s ease, background-color 0.25s ease;
-    /* ДОБАВЛЕНО ДЛЯ TEXTAREA: */
-    resize: none;
-    overflow: hidden;
+    resize: none;               /* Запрещаем ручное изменение размера */
+    overflow: hidden;           /* Прячем скролл, высота растет авто через JS */
     display: block;
     line-height: 1.45;
     min-height: 38px;
 }
 
+/* Цвет плейсхолдера */
 .column-input::placeholder {
     color: var(--text-secondary);
     font-weight: 500;
     opacity: 0.55;
 }
 
+/* Аккуратный фокус на поле ввода */
 .column-input:focus {
     border-color: rgba(74, 90, 72, 0.45);
     background: var(--surface-card);
     box-shadow: none;
 }
 
-/* --- Рождение сохранённой колонки (fade + slide-up) --- */
+/* Состояние колонки в момент ее "рождения" (после API) */
 .column.column-birth {
     opacity: 0;
-    transform: translateY(16px);
+    transform: translateY(16px); /* Появление снизу вверх */
     pointer-events: none;
     will-change: opacity, transform;
 }
 
+/* Окончательное появление новой колонки */
 .column.column-birth.born {
     opacity: 1;
     transform: translateY(0);
@@ -481,7 +1004,7 @@ body {
         transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* --- Микро-шейк при ошибке --- */
+/* Тряска формы, если произошла ошибка ввода */
 @keyframes column-shake {
     0%, 100% { transform: translateX(0); }
     20% { transform: translateX(-6px); }
@@ -490,50 +1013,50 @@ body {
     80% { transform: translateX(3px); }
 }
 
+/* Применяем анимацию тряски через JS */
 .column-entering.is-error {
     animation: column-shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
 }
 
-/* --- Dark mode --- */
+/* Цвета формы создания в темной теме */
 [data-theme="dark"] .column.column-entering {
     border-color: rgba(137, 160, 133, 0.25);
 }
 
+/* Поле ввода в темной теме */
 [data-theme="dark"] .column-input {
     background: transparent;
     border-color: rgba(137, 160, 133, 0.25);
     color: var(--text-primary);
 }
 
+/* Плейсхолдер в темной теме */
 [data-theme="dark"] .column-input::placeholder {
     color: var(--text-secondary);
     opacity: 0.5;
 }
 
+/* Фокус на поле ввода в темной теме */
 [data-theme="dark"] .column-input:focus {
     border-color: rgba(137, 160, 133, 0.45);
     background: var(--surface-card);
     box-shadow: none;
 }
 
-/* --- Свернутая колонка — соответствие несвернутой, мягкий hover --- */
+/* Цвета свернутой колонки в темной теме */
 [data-theme="dark"] .column.collapsed {
     background: var(--bg-board);
     border: 1px solid var(--border-light);
 }
 
+/* Ховер на свернутую колонку в темной теме */
 [data-theme="dark"] .column.collapsed:hover {
     border-color: rgba(255, 255, 255, 0.14);
 }
 
-/* ============================================================
-   PATCH 2 — styles.css
-   Paste this block anywhere after the existing column styles,
-   e.g. right after the ".column.collapsed" rules.
-   ============================================================ */
-
+/* Инпут для переименования заголовка существующей колонки */
 .column-title-input {
-    background: var(--brand-pale);
+    background: var(--brand-pale); /* Мягкое выделение области редактирования */
     border: none;
     border-radius: 6px;
     outline: none;
@@ -542,60 +1065,62 @@ body {
     font-weight: 600;
     letter-spacing: -0.01em;
     color: var(--text-primary);
-    padding: 3px 8px;
-    margin: -3px -8px;
-    width: 172px;
+    padding: 3px 8px;           /* Отступы для комфортного ввода */
+    margin: -3px -8px;          /* Компенсация падингов для сохранения позиции текста */
+    width: 172px;               /* Фикс ширина, чтобы не прыгали кнопки действий */
     cursor: text;
-    user-select: text;
+    user-select: text;          /* Разрешаем выделение текста внутри */
     -webkit-user-select: text;
     transition: background 0.2s ease;
     resize: none;
-    overflow: hidden;
+    overflow: hidden;           /* Авто-высота через JS */
     display: block;
-    
-    /* ИЗМЕНЕНО: Отдаем контроль над высотой строк самому шрифту */
-    line-height: normal; 
-    
+    line-height: normal;
     min-height: 26px;
 }
 
+/* Цвет выделения текста в инпуте */
 .column-title-input::selection {
-    background: #C3C6BC; /* Строго HEX без прозрачности! */
+    background: #C3C6BC;
     color: var(--text-primary);
 }
 
-/* While renaming: kill grab cursor on the whole column */
+/* Класс-обертка на колонке в режиме переименования */
 .column.is-renaming {
-    cursor: default !important;
+    cursor: default !important; /* Убираем курсор перетаскивания */
 }
+
+/* Явно разрешаем курсор текста в режиме переименования */
 .column.is-renaming .column-title-input {
     cursor: text !important;
 }
 
-/* Dark-mode tint */
+/* Цвет инпута переименования в темной теме */
 [data-theme="dark"] .column-title-input {
     background: rgba(137, 160, 133, 0.12);
 }
+
+/* Цвет выделения в темной теме */
 [data-theme="dark"] .column-title-input::selection {
-    background: #41493E; /* Строго HEX без прозрачности! */
+    background: #41493E;
     color: var(--text-primary);
 }
 
-
-/* --- FIX: Блокировка ховеров внутри колонки при Drag & Drop --- */
+/* Глобальная блокировка ховеров и кликов во время драга колонки */
 body.is-dragging-column .card,
 body.is-dragging-column .btn-add-card,
 body.is-dragging-column .menu-btn {
     pointer-events: none !important;
 }
 
+/* Блокировка шапки колонки во время драга карточки */
 body.is-dragging-card .column-header {
     pointer-events: none !important;
 }
 
-/* --- Кастомный Tooltip --- */
+/* Кастомный тултип (подсказка при наведении на обрезаный текст) */
 .custom-tooltip {
-    position: fixed;
+    position: fixed;            /* Позиция относительно экрана */
     background: rgba(255, 255, 255, 0.96);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
@@ -607,109 +1132,102 @@ body.is-dragging-card .column-header {
     line-height: 1.5;
     box-shadow: var(--shadow-menu);
     border: 1px solid var(--border-light);
-    z-index: 10000;
-    pointer-events: none;
-    opacity: 0;
+    z-index: 10000;             /* Выше всех элементов */
+    pointer-events: none;       /* Тултип не мешает мышке */
+    opacity: 0;                 /* Скрыт */
     visibility: hidden;
     transition: opacity 0.18s ease, visibility 0.18s, transform 0.18s ease;
-    max-width: 280px;
-    word-break: break-word;
+    max-width: 280px;           /* Ограничение ширины тултипа */
+    word-break: break-word;     /* Перенос слов */
     -webkit-font-smoothing: antialiased;
-    transform: translateY(4px);
+    transform: translateY(4px); /* Смещение для анимации всплытия */
 }
 
+/* Тултип в темной теме */
 [data-theme="dark"] .custom-tooltip {
     background: rgba(35, 37, 33, 0.96);
     border-color: rgba(255, 255, 255, 0.12);
     color: var(--text-primary);
 }
 
+/* Класс отображения тултипа */
 .custom-tooltip.visible {
     opacity: 1;
     visibility: visible;
-    transform: translateY(0);
+    transform: translateY(0);   /* Всплытие в рабочее положение */
 }
 
-/* Внутренний контейнер для обрезки без протечек в padding */
+/* Внутренняя обертка тултипа */
 .tooltip-inner {
     display: -webkit-box;
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
 
-/* ==========================================
-   КАСТОМНЫЙ СКРОЛЛБАР ДЛЯ ПОЛЕЙ ВВОДА
-   ========================================== */
-
-/* 1. Стандарт для Firefox */
+/* Стилизация скроллбаров для полей ввода (textarea) */
 .column-input,
 .column-title-input {
-    scrollbar-width: thin;
+    scrollbar-width: thin;      /* Тонкий скролл в Firefox */
     scrollbar-color: rgba(74, 90, 72, 0.25) transparent;
-}[data-theme="dark"] .column-input,
+}
+
+/* Цвет скролла в темной теме */
+[data-theme="dark"] .column-input,
 [data-theme="dark"] .column-title-input {
     scrollbar-color: rgba(137, 160, 133, 0.35) transparent;
 }
 
-/* 2. Для Chrome / Edge / Safari / pywebview */
+/* Размеры скроллбара в Webkit-браузерах */
 .column-input::-webkit-scrollbar,
 .column-title-input::-webkit-scrollbar {
     width: 6px;
     height: 6px;
 }
 
+/* Путь скроллбара */
 .column-input::-webkit-scrollbar-track,
 .column-title-input::-webkit-scrollbar-track {
     background: transparent;
     border-radius: 4px;
 }
 
-/* Цвет ползунка (светлая тема) */
+/* Ползунок скроллбара */
 .column-input::-webkit-scrollbar-thumb,
 .column-title-input::-webkit-scrollbar-thumb {
     background: rgba(74, 90, 72, 0.25);
     border-radius: 4px;
 }
 
+/* Наведение на ползунок */
 .column-input::-webkit-scrollbar-thumb:hover,
 .column-title-input::-webkit-scrollbar-thumb:hover {
     background: rgba(74, 90, 72, 0.45);
 }
 
-/* Цвет ползунка (темная тема) */
+/* Ползунок в темной теме */
 [data-theme="dark"] .column-input::-webkit-scrollbar-thumb,
 [data-theme="dark"] .column-title-input::-webkit-scrollbar-thumb {
     background: rgba(137, 160, 133, 0.35);
 }
 
+/* Ползунок ховер в темной теме */
 [data-theme="dark"] .column-input::-webkit-scrollbar-thumb:hover,
 [data-theme="dark"] .column-title-input::-webkit-scrollbar-thumb:hover {
     background: rgba(137, 160, 133, 0.55);
 }
 
-
-/* ==========================================
-   ФИКС "ТАНЦУЮЩИХ" БУКВ ПРИ ПЕРЕТАСКИВАНИИ
-   ========================================== */
+/* Трюк для супер-плавной отрисовки шрифтов при трансформациях клонов (Drag & Drop) */
 .column-drag-clone,
 .card-drag-clone,
 .column-drag-clone *,
 .card-drag-clone * {
-    /* Заставляем браузер отрендерить элемент как битмап (картинку), 
-       а не пересчитывать векторы шрифта на каждом кадре */
-    backface-visibility: hidden !important;
-    transform-style: preserve-3d !important;
-    
-    /* Фиксируем сглаживание шрифта на время полета */
+    backface-visibility: hidden !important; /* Убирает микро-мерцание */
+    transform-style: preserve-3d !important; /* Плавность в 3D пространстве */
     -webkit-font-smoothing: antialiased !important;
     -moz-osx-font-smoothing: grayscale !important;
 }
 
-/* ==========================================
-   АНИМАЦИЯ УДАЛЕНИЯ (GPU Clone + Spacer)
-   ========================================== */
-
-/* 1. Клон для идеального визуального растворения (GPU) */
+/* Клон колонки, который остается для анимации удаления */
 .column-deleting-clone {
     position: fixed !important;
     z-index: 9999;
@@ -717,17 +1235,18 @@ body.is-dragging-card .column-header {
     pointer-events: none !important;
     transform-origin: center center;
     will-change: transform, opacity;
-    /* Блокируем любые другие транзиции, оставляем только GPU */
     transition: opacity 0.20s ease, transform 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
+
+/* Класс запуска анимации "сжатия" при удалении */
 .column-deleting-clone.is-animating {
-    opacity: 0 !important;
-    transform: scale(0.92) translateY(12px) !important;
+    opacity: 0 !important;      /* Исчезновение */
+    transform: scale(0.92) translateY(12px) !important; /* Уменьшение и падение вниз */
 }
 
-/* 2. Пустая распорка для идеального скольжения соседних элементов (CPU) */
+/* Распорка (спейсер), которая занимает место удаленной колонки и плавно сжимается */
 .column-spacer {
-    height: 10px;
+    height: 10px;               /* Высота не важна */
     padding: 0 !important;
     margin: 0 !important;
     border: none !important;
@@ -735,24 +1254,27 @@ body.is-dragging-card .column-header {
     pointer-events: none !important;
     flex-shrink: 0 !important;
     will-change: width, min-width, margin-right;
+    /* Сложный транзишн для схлопывания пространства */
     transition:
         width 0.35s cubic-bezier(0.25, 1, 0.5, 1) 0.05s,
         min-width 0.35s cubic-bezier(0.25, 1, 0.5, 1) 0.05s,
         margin-right 0.35s cubic-bezier(0.25, 1, 0.5, 1) 0.05s !important;
 }
+
+/* Класс схлопывания спейсера */
 .column-spacer.is-shrinking {
-    width: 0 !important;
+    width: 0 !important;        /* Убираем ширину */
     min-width: 0 !important;
-    margin-right: -24px !important; /* Компенсируем gap: 24px родителя */
+    margin-right: -24px !important; /* Компенсируем gap родительской доски (24px) */
 }
 
-/* ==========================================
-   КАСТОМНЫЙ ALERT (МИНИМАЛИЗМ)
-   ========================================== */
+/* Модальное окно подтверждения (Confirm) */
 .confirm-card {
-    width: 280px; 
+    width: 280px;               /* Узкое окно */
     padding: 0;
 }
+
+/* Центрированный контент подтверждения */
 .confirm-body {
     padding: 24px 20px 16px;
     display: flex;
@@ -761,6 +1283,8 @@ body.is-dragging-card .column-header {
     text-align: center;
     gap: 4px;
 }
+
+/* Заголовок подтверждения (например, "Удалить колонку?") */
 .confirm-title {
     font-size: 16px;
     font-weight: 600;
@@ -768,19 +1292,25 @@ body.is-dragging-card .column-header {
     letter-spacing: -0.01em;
     margin: 0;
 }
+
+/* Пояснительный текст подтверждения */
 .confirm-text {
     font-size: 13px;
     color: var(--text-secondary);
     line-height: 1.4;
     margin: 0;
 }
+
+/* Контейнер для кнопок Отмена/Удалить */
 .confirm-actions {
     display: flex;
     gap: 8px;
     padding: 8px 16px 16px;
 }
+
+/* Кнопка внутри конфирма */
 .confirm-btn {
-    flex: 1;
+    flex: 1;                    /* Кнопки одинаковой ширины */
     padding: 9px;
     border-radius: 8px;
     font-family: var(--font-main);
@@ -791,20 +1321,45 @@ body.is-dragging-card .column-header {
     border: none;
     outline: none;
 }
-.confirm-btn:active { transform: scale(0.96); }
 
+/* Эффект нажатия на кнопку */
+.confirm-btn:active {
+    transform: scale(0.96);     /* Легкое сжатие при клике */
+}
+
+/* Кнопка "Отмена" */
 .confirm-btn.cancel-btn {
     background: rgba(0, 0, 0, 0.05);
     color: var(--text-primary);
 }
-.confirm-btn.cancel-btn:hover { background: rgba(0, 0, 0, 0.08); }
 
+/* Ховер на отмену */
+.confirm-btn.cancel-btn:hover {
+    background: rgba(0, 0, 0, 0.08);
+}
+
+/* Кнопка "Удалить" (опасная) */
 .confirm-btn.danger-btn {
     background: #D35446;
     color: #FFF;
 }
-.confirm-btn.danger-btn:hover { background: #C04335; }
 
-[data-theme="dark"] .confirm-btn.danger-btn { background: #D65A4B; }
-[data-theme="dark"] .confirm-btn.cancel-btn { background: rgba(255, 255, 255, 0.06); }
-[data-theme="dark"] .confirm-btn.cancel-btn:hover { background: rgba(255, 255, 255, 0.1); }
+/* Ховер на опасную кнопку */
+.confirm-btn.danger-btn:hover {
+    background: #C04335;
+}
+
+/* Опасная кнопка в темной теме */
+[data-theme="dark"] .confirm-btn.danger-btn {
+    background: #D65A4B;
+}
+
+/* Кнопка отмены в темной теме */
+[data-theme="dark"] .confirm-btn.cancel-btn {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+/* Ховер на отмену в темной теме */
+[data-theme="dark"] .confirm-btn.cancel-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
