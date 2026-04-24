@@ -598,6 +598,13 @@ body {
     color: var(--text-primary);
     transition: color 0.2s;
     pointer-events: none;
+    
+    /* Перенос длинных слов и строк */
+    word-break: break-word;
+    overflow-wrap: break-word;
+    white-space: pre-wrap;
+    flex: 1;
+    min-width: 0;
 }
 
 /* Зачеркнутый текст у завершенной задачи */
