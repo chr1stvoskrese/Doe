@@ -309,8 +309,15 @@ async function onAddTask(columnId) {
     const columnEl = document.querySelector(`.column[data-column-id="${columnId}"]`);
     if (!columnEl) return;
 
-    // Если в этой колонке уже открыта форма ввода — просто фокусируемся на ней
-    const existingForm = columnEl.querySelector('.card-entering');
+    // Игнорируем вызов, если только что закрыли пустую форму кликом по этой же кнопке
+    if (columnEl.dataset.ignoreNextAdd === 'true') return;
+
+    // Сначала удаляем форму, если она в процессе исчезновения (чтобы не было перескока курсора)
+    const exitingForm = columnEl.querySelector('.card-entering.is-exiting');
+    if (exitingForm) exitingForm.remove();
+
+    // Если в этой колонке уже открыта (и не исчезает) форма ввода — просто фокусируемся на ней
+    const existingForm = columnEl.querySelector('.card-entering:not(.is-exiting)');
     if (existingForm) {
         existingForm.querySelector('textarea')?.focus();
         return;
@@ -361,6 +368,9 @@ async function onAddTask(columnId) {
         isResolved = true;
 
         columnEl.setAttribute('draggable', 'true');
+        
+        // Снимаем фокус с поля, чтобы мгновенно скрыть текстовый курсор перед анимацией
+        input.blur();
 
         if (!animate) {
             formCard.remove();
@@ -462,8 +472,11 @@ async function onAddTask(columnId) {
             if (isResolved) return;
 
             const active = document.activeElement;
-            // Если мы кликнули на другую кнопку "Добавить", закрываем без анимации
-            if (active && active.closest('.btn-add-card')) {
+            const thisAddBtn = columnEl.querySelector('.btn-add-card');
+            const isThisAddBtn = active === thisAddBtn;
+
+            // Если кликнули на ДРУГУЮ кнопку "Добавить", закрываем без анимации
+            if (active && active.closest('.btn-add-card') && !isThisAddBtn) {
                 cancel(false);
                 return;
             }
@@ -471,6 +484,12 @@ async function onAddTask(columnId) {
             if (input.value.trim()) {
                 submit();
             } else {
+                // Если пустая и кликнули на СВОЮ ЖЕ кнопку "Добавить" - закрываем с анимацией
+                // и блокируем повторное открытие по событию click на 100мс
+                if (isThisAddBtn) {
+                    columnEl.dataset.ignoreNextAdd = 'true';
+                    setTimeout(() => delete columnEl.dataset.ignoreNextAdd, 100);
+                }
                 cancel(true);
             }
         });
@@ -516,10 +535,17 @@ function restoreAddButton() {
 }
 
 async function onCreateColumn() {
-    // Если форма уже открыта — просто фокусируем
-    const existingForm = document.querySelector('.column-entering');
-    if (existingForm) {
-        existingForm.querySelector('input')?.focus();
+    // Сначала удаляем форму, если она в процессе исчезновения
+    const exitingForm = document.querySelector('.column-entering.is-exiting');
+    if (exitingForm) {
+        exitingForm.remove();
+        restoreAddButton();
+    }
+
+    // Если форма уже открыта (и не исчезает) — просто фокусируем
+    const existingFormActive = document.querySelector('.column-entering:not(.is-exiting)');
+    if (existingFormActive) {
+        existingFormActive.querySelector('.column-input')?.focus();
         return;
     }
 
@@ -568,6 +594,9 @@ async function onCreateColumn() {
     const cancel = (animate = true) => {
         if (isResolved) return;
         isResolved = true;
+        
+        // Снимаем фокус с поля, чтобы мгновенно скрыть текстовый курсор перед анимацией
+        input.blur();
 
         if (!animate) {
             formCol.remove();
