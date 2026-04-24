@@ -324,6 +324,11 @@ body {
     min-width: 0;
 }
 
+/* --- ДОБАВЛЕНО: Курсор при наведении --- */
+.column:not(.collapsed) .column-title {
+    cursor: pointer;
+}
+
 /* Правая часть шапки с иконками и счетчиком */
 .column-actions {
     display: flex;

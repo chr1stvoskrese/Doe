@@ -961,6 +961,21 @@ document.addEventListener('dragend', async () => {
 // ---------- ГЛОБАЛЬНЫЕ КЛИКИ (меню, модалки) ----------
 document.addEventListener('click', (e) => {
 
+    // --- ДОБАВЛЕНО: Быстрое переименование по клику на заголовок ---
+    const titleEl = e.target.closest('.column:not(.collapsed) .column-title');
+    if (titleEl) {
+        const columnEl = titleEl.closest('.column');
+        // Проверяем, что колонка еще не в процессе переименования
+        if (columnEl && !columnEl.classList.contains('is-renaming')) {
+            const columnId = parseInt(columnEl.dataset.columnId);
+            const column = state.columns.find(c => c.id === columnId);
+            if (column) {
+                startColumnRename(columnEl, column);
+                return; // Прерываем обработку других кликов
+            }
+        }
+    }
+
     // --- ОБРАБОТКА КНОПОК АЛЕРТА ---
     if (e.target.closest('[data-action="confirm-cancel"]')) {
         if (activeConfirmResolve) { activeConfirmResolve(false); activeConfirmResolve = null; }
