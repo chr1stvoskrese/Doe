@@ -292,6 +292,9 @@ body {
     align-items: center;        /* Центрируем текст по вертикали */
     justify-content: center;    /* Центрируем текст по горизонтали */
     text-align: center;
+    
+    /* --- ИСПРАВЛЕНО: Убираем отступ, который сломал центрирование --- */
+    margin: 0;
 }
 
 /* Шапка колонки (заголовок и кнопки) */
@@ -313,15 +316,21 @@ body {
     font-size: 15px;
     letter-spacing: -0.01em;
     color: var(--text-primary);
-    line-height: 1.45;          /* Хорошее расстояние между строк */
-    word-break: break-word;     /* Перенос слов */
-    display: -webkit-box;       /* Старая спецификация для многострочного обрезания */
-    -webkit-line-clamp: unset;  /* Не ограничиваем количество строк */
+    line-height: 1.45;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    white-space: pre-wrap;
+    
+    display: -webkit-box;
+    -webkit-line-clamp: unset;
     line-clamp: unset;
     -webkit-box-orient: vertical;
     overflow: hidden;
-    flex: 1;                    /* Занимает всё доступное место слева */
+    flex: 1;
     min-width: 0;
+
+    /* --- ДОБАВЛЕНО: Отступ справа, чтобы текст не прилипал к счетчику --- */
+    margin-right: 12px;
 }
 
 /* --- ДОБАВЛЕНО: Курсор при наведении --- */
@@ -1061,7 +1070,7 @@ body {
 
 /* Инпут для переименования заголовка существующей колонки */
 .column-title-input {
-    background: var(--brand-pale); /* Мягкое выделение области редактирования */
+    background: var(--brand-pale); 
     border: none;
     border-radius: 6px;
     outline: none;
@@ -1070,17 +1079,30 @@ body {
     font-weight: 600;
     letter-spacing: -0.01em;
     color: var(--text-primary);
-    padding: 3px 8px;           /* Отступы для комфортного ввода */
-    margin: -3px -8px;          /* Компенсация падингов для сохранения позиции текста */
-    width: 172px;               /* Фикс ширина, чтобы не прыгали кнопки действий */
+    
+    flex: 1;                    
+    min-width: 0;               
+    line-height: 1.45;          
+    word-break: break-word;
+    overflow-wrap: break-word;
+    white-space: pre-wrap;
+    
+    padding: 4px;               
+    
+    /* --- ИСПРАВЛЕНО: Математика отступов --- 
+       Слева: -4px (компенсирует padding, выравнивает по карточкам)
+       Справа: 8px (в сумме с padding 4px дает ровно те же 12px отступа, что и у span) 
+    */
+    margin: -4px 8px -4px -4px; 
+    /* -------------------------------------- */
+
     cursor: text;
-    user-select: text;          /* Разрешаем выделение текста внутри */
+    user-select: text;          
     -webkit-user-select: text;
     transition: background 0.2s ease;
     resize: none;
-    overflow: hidden;           /* Авто-высота через JS */
+    overflow: hidden;           
     display: block;
-    line-height: normal;
     min-height: 26px;
 }
 

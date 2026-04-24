@@ -138,3 +138,19 @@ async def update_column_with_tasks(db: AsyncSession, column_id: int, update_data
     await db.commit()
     await db.refresh(column)
     return column
+
+async def clear_column_tasks(db: AsyncSession, column_id: int) -> None:
+    # Проверяем, существует ли колонка
+    result = await db.execute(select(ColumnModel).where(ColumnModel.id == column_id))
+    column = result.scalar_one_or_none()
+    if not column:
+        raise ValueError("Колонка не найдена")
+
+    # Получаем все задачи колонки и удаляем их (ORM сама каскадно удалит таймеры)
+    tasks_result = await db.execute(select(TaskModel).where(TaskModel.column_id == column_id))
+    tasks = tasks_result.scalars().all()
+    
+    for task in tasks:
+        await db.delete(task)
+        
+    await db.commit()

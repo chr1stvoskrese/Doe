@@ -93,3 +93,11 @@ async def delete_column(column_id: int, db: AsyncSession = Depends(get_session))
     await db.delete(db_column)
     await db.commit()
     return
+
+@router.delete("/{column_id}/tasks", status_code=status.HTTP_204_NO_CONTENT)
+async def clear_column(column_id: int, db: AsyncSession = Depends(get_session)):
+    try:
+        await column_service.clear_column_tasks(db, column_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    return

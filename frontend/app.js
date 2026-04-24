@@ -8,13 +8,15 @@ const translations = {
         settings: 'Настройки', theme: 'Тема', language: 'Язык', about: 'О приложении', workspace: 'Doe Board', cancel: 'Отмена',
         newColumn: '+ Создать колонку', newTask: '+ Новая задача',
         columnModes: { default: 'Стандартный', track_time: 'Учёт времени', completion: 'Результирующий' },
-        menu: { mode: 'Режим колонки', collapse: 'Свернуть колонку', rename: 'Переименовать', delete: 'Удалить' },
+        menu: { mode: 'Режим колонки', collapse: 'Свернуть колонку', rename: 'Переименовать', delete: 'Удалить', clear: 'Очистить' },
         modals: { themeTitle: 'Тема оформления', light: 'Светлая', dark: 'Тёмная', langTitle: 'Выберите язык', aboutTitle: 'О приложении', aboutDesc: 'эстетика, грация локального<br>Kanban-хранилища' },
         card: { timeSpent: 'Времени потрачено:' },
         prompts: { 
             taskTitle: 'Название задачи:', columnTitle: 'Название колонки:', renameColumn: 'Новое название:', 
             deleteConfirmTitle: 'Удалить колонку?',
-            deleteConfirmDesc: 'Все задачи внутри будут потеряны.' 
+            deleteConfirmDesc: 'Все задачи внутри будут потеряны.',
+            clearConfirmTitle: 'Очистить колонку?',
+            clearConfirmDesc: 'Все задачи внутри будут удалены безвозвратно.'
         },
         alerts: { loadError: 'Не удалось загрузить доску', error: 'Ошибка' }
     },
@@ -22,13 +24,15 @@ const translations = {
         settings: 'Settings', theme: 'Theme', language: 'Language', about: 'About', workspace: 'Doe Board', cancel: 'Cancel',
         newColumn: '+ Create column', newTask: '+ New task',
         columnModes: { default: 'Standard', track_time: 'Track time', completion: 'Completed' },
-        menu: { mode: 'Column mode', collapse: 'Collapse column', rename: 'Rename', delete: 'Delete' },
+        menu: { mode: 'Column mode', collapse: 'Collapse column', rename: 'Rename', delete: 'Delete', clear: 'Clear' },
         modals: { themeTitle: 'Theme', light: 'Light', dark: 'Dark', langTitle: 'Select language', aboutTitle: 'About', aboutDesc: 'aesthetic local-first<br>kanban sanctuary' },
         card: { timeSpent: 'Time spent:' },
         prompts: { 
             taskTitle: 'Task title:', columnTitle: 'Column title:', renameColumn: 'New name:', 
             deleteConfirmTitle: 'Delete column?',
-            deleteConfirmDesc: 'All tasks inside will be lost.' 
+            deleteConfirmDesc: 'All tasks inside will be lost.',
+            clearConfirmTitle: 'Clear column?',
+            clearConfirmDesc: 'All tasks inside will be permanently deleted.'
         },
         alerts: { loadError: 'Failed to load board', error: 'Error' }
     }
@@ -101,6 +105,10 @@ function formatTotalTime(seconds) {
     return `${h}:${m}:${s}`;
 }
 async function deleteColumn(id) { const res = await fetch(`${API_BASE}/columns/${id}`, { method: 'DELETE' }); if (!res.ok) throw new Error('Error'); }
+async function clearColumn(id) { 
+    const res = await fetch(`${API_BASE}/columns/${id}/tasks`, { method: 'DELETE' }); 
+    if (!res.ok) throw new Error('Error'); 
+}
 async function createTask(title, columnId) {
     const res = await fetch(`${API_BASE}/tasks/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title, column_id: columnId }) });
     if (!res.ok) throw new Error('Error'); return res.json();
@@ -247,6 +255,7 @@ function createColumnElement(column) {
             <div class="menu-divider"></div>
             <div class="menu-item" data-action="collapse-column"><svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 14h6v6"/><path d="M20 10h-6V4"/><path d="M14 10l7-7"/><path d="M3 21l7-7"/></svg><span>${t('menu.collapse')}</span></div>
             <div class="menu-item" data-action="rename-column"><svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg><span>${t('menu.rename')}</span></div>
+            <div class="menu-item danger" data-action="clear-column"><svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 12H3"/><path d="M16 6H3"/><path d="M16 18H3"/><path d="M19 10l-4 4"/><path d="M15 10l4 4"/></svg><span>${t('menu.clear')}</span></div>
             <div class="menu-item danger" data-action="delete-column"><svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg><span>${t('menu.delete')}</span></div>
         </div>
         <div class="card-list">${tasksHtml}</div>
@@ -510,7 +519,7 @@ function toggleColumnMenu(e, columnEl) {
 }
 
 // --- ФУНКЦИЯ КАСТОМНОГО ПОДТВЕРЖДЕНИЯ (Идеальная плавность) ---
-function showConfirmModal(title, message) {
+function showConfirmModal(title, message, confirmBtnText = t('menu.delete')) {
     return new Promise((resolve) => {
         const modal = document.getElementById('confirm-modal');
         modal.querySelector('.confirm-title').textContent = title;
@@ -518,7 +527,7 @@ function showConfirmModal(title, message) {
         
         // Переводим кнопки на текущий язык
         modal.querySelector('.cancel-btn').textContent = t('cancel');
-        modal.querySelector('.danger-btn').textContent = t('menu.delete');
+        modal.querySelector('.danger-btn').textContent = confirmBtnText;
         
         activeConfirmResolve = resolve; // Запоминаем функцию завершения
         modal.classList.add('show');    // Мгновенный показ
@@ -539,6 +548,46 @@ async function handleColumnMenu(action, columnEl, menuItem) {
         setTimeout(() => startColumnRename(columnEl, column), 50);
     } else if (action === 'collapse-column') {
         column.collapsed = !column.collapsed; renderBoard();
+        
+    } else if (action === 'clear-column') {
+        closeAllDropdowns();
+        
+        // 1. Показываем окно с текстом об очистке
+        const isConfirmed = await showConfirmModal(
+            t('prompts.clearConfirmTitle'), 
+            t('prompts.clearConfirmDesc'),
+            t('menu.clear')
+        );
+        if (!isConfirmed) return;
+
+        const cardList = columnEl.querySelector('.card-list');
+        const cards = cardList.querySelectorAll('.card');
+        
+        // 2. Локальное удаление с плавной анимацией
+        cards.forEach(card => {
+            card.style.transition = 'opacity 0.25s ease, transform 0.25s ease';
+            card.style.opacity = '0';
+            card.style.transform = 'scale(0.95)';
+        });
+
+        // Обновляем локальный стейт (очищаем массив задач)
+        column.tasks = [];
+        
+        // Обновляем счетчик задач в шапке колонки (ставим 0)
+        updateColumnCount(columnEl, 0);
+
+        // 3. Отправляем запрос на сервер асинхронно
+        clearColumn(columnId).catch(async e => {
+            console.error("Очистка колонки не удалась:", e);
+            await refreshBoard(); // Если ошибка - откатываем UI
+            alert(t('alerts.error'));
+        });
+
+        // 4. Удаляем карточки из DOM после завершения анимации растворения
+        setTimeout(() => {
+            if (cardList) cardList.innerHTML = '';
+        }, 250);
+
     } else if (action === 'delete-column') {
         
         closeAllDropdowns(); // Обязательно закрываем меню до клонирования
@@ -629,9 +678,11 @@ function startColumnRename(columnEl, column) {
     };
     input.addEventListener('input', autoResize);
 
+    // --- ИСПРАВЛЕНО: Считаем высоту моментально до отрисовки кадра ---
+    autoResize(); 
+    
     input.focus();
     input.setSelectionRange(input.value.length, input.value.length);
-    requestAnimationFrame(autoResize); // первичный расчёт высоты
 
     let committed = false;
 
