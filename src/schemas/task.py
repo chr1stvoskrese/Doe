@@ -8,7 +8,7 @@ from typing import Optional, List
 
 class TaskBase(BaseModel):
     """Общие поля задачи."""
-    title: str = Field(..., min_length=1, max_length=200, description="Текст задачи")
+    title: str = Field(..., min_length=1, max_length=1000, description="Текст задачи")
 
 
 class TaskCreate(TaskBase):

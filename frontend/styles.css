@@ -1390,3 +1390,128 @@ body.is-dragging-card .column-header {
 [data-theme="dark"] .confirm-btn.cancel-btn:hover {
     background: rgba(255, 255, 255, 0.1);
 }
+
+/* ==========================================
+   АНИМАЦИЯ СОЗДАНИЯ КАРТОЧКИ
+   ========================================== */
+
+/* Форма создания новой карточки */
+.card.card-entering {
+    background: transparent;
+    border: 1.5px dashed rgba(74, 90, 72, 0.25);
+    box-shadow: none;
+    opacity: 0;
+    transform: scale(0.96);
+    will-change: opacity, transform;
+    transition:
+        opacity 0.30s cubic-bezier(0.16, 1, 0.3, 1),
+        transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    padding: 10px 14px;
+    display: flex;
+    cursor: default;
+    pointer-events: auto; /* Позволяем кликать в инпут */
+}
+
+.card.card-entering:active {
+    cursor: default;
+}
+
+.card.card-entering.entered {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.card.card-entering.is-exiting {
+    opacity: 0;
+    transform: scale(0.96);
+    pointer-events: none;
+    transition:
+        opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+        transform 0.30s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.card.card-entering.is-submitting {
+    opacity: 0.4;
+    pointer-events: none;
+    transition-duration: 0.15s;
+}
+
+.card-input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    padding: 0;
+    margin: 0;
+    font-family: var(--font-main);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+    outline: none;
+    resize: none;
+    overflow: hidden;
+    line-height: 1.4;
+    min-height: 19.6px;
+    display: block;
+    cursor: text;
+}
+
+.card-input::placeholder {
+    color: var(--text-secondary);
+    opacity: 0.55;
+}
+
+[data-theme="dark"] .card.card-entering {
+    border-color: rgba(137, 160, 133, 0.25);
+}
+
+[data-theme="dark"] .card-input {
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .card-input::placeholder {
+    color: var(--text-secondary);
+    opacity: 0.5;
+}
+
+/* Окончательное появление карточки (превращение формы в карточку) */
+.card.card-birth {
+    opacity: 0;
+    transform: translateY(16px);
+    pointer-events: none;
+    will-change: opacity, transform;
+}
+
+.card.card-birth.born {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+    transition:
+        opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1) 0.05s,
+        transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Анимация тряски при ошибке API */
+.card-entering.is-error {
+    animation: column-shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+/* Скроллбар для инпута карточки */
+.card-input::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+.card-input::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 4px;
+}
+.card-input::-webkit-scrollbar-thumb {
+    background: rgba(74, 90, 72, 0.25);
+    border-radius: 4px;
+}
+.card-input::-webkit-scrollbar-thumb:hover {
+    background: rgba(74, 90, 72, 0.45);
+}[data-theme="dark"] .card-input::-webkit-scrollbar-thumb {
+    background: rgba(137, 160, 133, 0.35);
+}[data-theme="dark"] .card-input::-webkit-scrollbar-thumb:hover {
+    background: rgba(137, 160, 133, 0.55);
+}

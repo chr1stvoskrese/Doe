@@ -186,6 +186,25 @@ function updateCardAppearance(cardElement, task, columnMode) {
     }
 }
 
+// --- НАЧАЛО ВСТАВКИ 1 ---
+function generateCardHtml(task, columnMode) {
+    let timeHtml = '';
+    if (task.active_timer) {
+        timeHtml = `<div class="card-timer" data-task-id="${task.id}">${formatTime(task.active_timer.start_time)}</div>`;
+    } else if (columnMode === 'completion' && task.total_time_spent !== undefined && task.total_time_spent !== null) {
+        timeHtml = `<div class="subtask-meta">${t('card.timeSpent')} ${formatTotalTime(task.total_time_spent)}</div>`;
+    }
+    return `
+        <div class="card ${task.completed_at ? 'is-completed' : ''}" data-card-id="${task.id}" draggable="true">
+            <div class="card-title-wrapper">
+                <svg class="completed-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+                <div class="card-title">${escapeHtml(task.title)}</div>
+            </div>
+            ${timeHtml}
+        </div>
+    `;
+}
+
 function createColumnElement(column) {
     const colDiv = document.createElement('div');
     colDiv.className = 'column';
@@ -206,23 +225,8 @@ function createColumnElement(column) {
 
     const sortedTasks = [...column.tasks].sort((a, b) => a.position - b.position);
     
-    const tasksHtml = sortedTasks.map(task => {
-        let timeHtml = '';
-        if (task.active_timer) {
-            timeHtml = `<div class="card-timer" data-task-id="${task.id}">${formatTime(task.active_timer.start_time)}</div>`;
-        } else if (column.mode === 'completion' && task.total_time_spent !== undefined && task.total_time_spent !== null) {
-            timeHtml = `<div class="subtask-meta">${t('card.timeSpent')} ${formatTotalTime(task.total_time_spent)}</div>`;
-        }
-        return `
-            <div class="card ${task.completed_at ? 'is-completed' : ''}" data-card-id="${task.id}" draggable="true">
-                <div class="card-title-wrapper">
-                    <svg class="completed-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
-                    <div class="card-title">${escapeHtml(task.title)}</div>
-                </div>
-                ${timeHtml}
-            </div>
-        `;
-    }).join('');
+    // Используем новую функцию генерации HTML для карточек
+    const tasksHtml = sortedTasks.map(task => generateCardHtml(task, column.mode)).join('');
 
     colDiv.innerHTML = `
         <div class="column-header">
@@ -272,6 +276,7 @@ function createColumnElement(column) {
 
     return colDiv;
 }
+// --- КОНЕЦ ВСТАВКИ 1 ---
 
 async function refreshBoard() {
     try {
@@ -281,7 +286,197 @@ async function refreshBoard() {
     } catch (e) { console.error(e); alert(t('alerts.loadError')); }
 }
 
-async function onAddTask(columnId) { const title = prompt(t('prompts.taskTitle')); if (!title) return; try { await createTask(title, columnId); await refreshBoard(); } catch (e) { alert(t('alerts.error')); } }
+// --- НАЧАЛО ВСТАВКИ 2 ---
+// Создание элемента формы задачи
+function createCardFormElement() {
+    const card = document.createElement('div');
+    card.className = 'card card-entering';
+    const placeholder = t('prompts.taskTitle').replace(/:$/, '');
+    card.innerHTML = `
+        <textarea 
+            class="card-input" 
+            placeholder="${placeholder}" 
+            autocomplete="off"
+            spellcheck="false"
+            rows="1"
+        ></textarea>
+    `;
+    return card;
+}
+
+// Новая анимированная функция добавления задачи
+async function onAddTask(columnId) {
+    const columnEl = document.querySelector(`.column[data-column-id="${columnId}"]`);
+    if (!columnEl) return;
+
+    // Если в этой колонке уже открыта форма ввода — просто фокусируемся на ней
+    const existingForm = columnEl.querySelector('.card-entering');
+    if (existingForm) {
+        existingForm.querySelector('textarea')?.focus();
+        return;
+    }
+
+    columnEl.setAttribute('draggable', 'false');
+
+    const cardList = columnEl.querySelector('.card-list');
+    const formCard = createCardFormElement();
+    
+    // Добавляем форму в конец списка
+    cardList.appendChild(formCard);
+    
+    // Запускаем анимацию появления
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            formCard.classList.add('entered');
+            // Прокручиваем список в самый низ, чтобы форма была видна
+            cardList.scrollTop = cardList.scrollHeight;
+        });
+    });
+
+    const input = formCard.querySelector('.card-input');
+    
+    // Автоматическое изменение высоты textarea
+    const autoResize = () => {
+        input.style.height = 'auto';
+        const sh = input.scrollHeight;
+        const maxHeight = 120; // Лимит высоты ввода
+        if (sh > maxHeight) {
+            input.style.height = maxHeight + 'px';
+            input.style.overflowY = 'auto';
+        } else {
+            input.style.height = sh + 'px';
+            input.style.overflowY = 'hidden';
+        }
+    };
+    
+    input.addEventListener('input', autoResize);
+    autoResize();
+    input.focus();
+
+    let isResolved = false;
+
+    // Функция отмены (скрытие с анимацией или без)
+    const cancel = (animate = true) => {
+        if (isResolved) return;
+        isResolved = true;
+
+        columnEl.setAttribute('draggable', 'true');
+
+        if (!animate) {
+            formCard.remove();
+            return;
+        }
+
+        formCard.classList.remove('entered');
+        formCard.classList.add('is-exiting');
+
+        const onTransitionEnd = (e) => {
+            if (e.propertyName === 'opacity') {
+                formCard.remove();
+                formCard.removeEventListener('transitionend', onTransitionEnd);
+            }
+        };
+        formCard.addEventListener('transitionend', onTransitionEnd);
+        
+        setTimeout(() => { if (formCard.parentNode) formCard.remove(); }, 400);
+    };
+
+    // Функция сохранения на сервер
+    const submit = async () => {
+        const title = input.value.trim();
+        if (!title) {
+            cancel(true);
+            return;
+        }
+        if (isResolved) return;
+        isResolved = true;
+
+        columnEl.setAttribute('draggable', 'true');
+
+        input.disabled = true;
+        formCard.classList.add('is-submitting');
+
+        try {
+            const newTask = await createTask(title, columnId);
+            
+            // Добавляем в стейт
+            const columnState = state.columns.find(c => c.id === columnId);
+            if (columnState) {
+                columnState.tasks.push(newTask);
+            }
+
+            // Создаем настоящую карточку
+            const realCardStr = generateCardHtml(newTask, columnState ? columnState.mode : 'default');
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = realCardStr.trim();
+            const realCard = tempDiv.firstChild;
+            
+            realCard.classList.add('card-birth');
+
+            // Заменяем форму на готовую карточку
+            formCard.replaceWith(realCard);
+            updateColumnCount(columnEl);
+
+            // Анимация окончательного проявления карточки
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    realCard.classList.add('born');
+                });
+            });
+
+            const cleanup = (e) => {
+                if (e.propertyName === 'transform') {
+                    realCard.classList.remove('card-birth', 'born');
+                    realCard.removeEventListener('transitionend', cleanup);
+                }
+            };
+            realCard.addEventListener('transitionend', cleanup);
+            setTimeout(() => realCard.classList.remove('card-birth', 'born'), 500);
+
+        } catch (err) {
+            console.error('Task creation failed:', err);
+            isResolved = false;
+            columnEl.setAttribute('draggable', 'false');
+            input.disabled = false;
+            formCard.classList.remove('is-submitting');
+            formCard.classList.add('is-error'); // Тряска при ошибке
+            setTimeout(() => formCard.classList.remove('is-error'), 400);
+            input.focus();
+        }
+    };
+
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); submit(); }
+        if (e.key === 'Escape') { e.preventDefault(); cancel(true); }
+    });
+
+    // --- ДОБАВЛЕНО: Изолируем клики мыши, чтобы карточка не "захватывалась" ---
+    input.addEventListener('mousedown', (e) => e.stopPropagation());
+    input.addEventListener('mousemove', (e) => e.stopPropagation());
+    input.addEventListener('touchstart', (e) => e.stopPropagation());
+
+    input.addEventListener('blur', () => {
+        if (isResolved) return;
+
+        requestAnimationFrame(() => {
+            if (isResolved) return;
+
+            const active = document.activeElement;
+            // Если мы кликнули на другую кнопку "Добавить", закрываем без анимации
+            if (active && active.closest('.btn-add-card')) {
+                cancel(false);
+                return;
+            }
+
+            if (input.value.trim()) {
+                submit();
+            } else {
+                cancel(true);
+            }
+        });
+    });
+}
+// --- КОНЕЦ ВСТАВКИ 2 ---
 
 // ==========================================
 // АНИМАЦИЯ СОЗДАНИЯ КОЛОНКИ (Column Birth)
@@ -798,7 +993,15 @@ const emptyImg = new Image();
 emptyImg.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
 
 document.addEventListener('dragstart', (e) => {
-    if (e.target.closest('.column.is-renaming')) { e.preventDefault(); return; }
+    // ЖЁСТКАЯ БЛОКИРОВКА: запрещаем перетаскивать формы ввода и элементы в режиме редактирования
+    if (e.target.closest('.column.is-renaming') || 
+        e.target.closest('.card-entering') || 
+        e.target.closest('textarea') || 
+        e.target.closest('input')) { 
+        e.preventDefault(); 
+        return; 
+    }
+
     if (e.target.closest('.menu-btn') || e.target.closest('.btn-add-card')) {
         e.preventDefault(); return;
     }
