@@ -75,6 +75,25 @@ function t(key, ...args) {
 
 // ---------- API-КЛИЕНТ ----------
 
+async function fetchVault() {
+    const res = await fetch(`${API_BASE}/system/vault`);
+    if (!res.ok) throw new Error('Error fetch vault');
+    return res.json();
+}
+
+async function switchVault() {
+    const res = await fetch(`${API_BASE}/system/vault/switch`, { method: 'POST' });
+    if (!res.ok) throw new Error('Canceled or error');
+    return res.json();
+}
+
+function updateVaultName(name) {
+    const workspaceSpan = document.querySelector('.workspace-btn span');
+    if (workspaceSpan) {
+        workspaceSpan.textContent = name;
+        workspaceSpan.removeAttribute('data-i18n'); // Отключаем локализацию, чтобы оно не сбрасывалось на "Doe Board"
+    }
+}
 
 async function saveTasksOrder(orderedIds) {
     const res = await fetch(`${API_BASE}/tasks/reorder`, {
@@ -1294,6 +1313,34 @@ document.addEventListener('click', (e) => {
     }
 
     const action = e.target.closest('[data-action]')?.dataset.action;
+    if (action === 'switch-workspace') {
+        const btn = e.target.closest('.workspace-btn');
+        btn.style.pointerEvents = 'none';
+        btn.style.opacity = '0.5'; 
+        
+        // ТРЮК: Даем браузеру 150мс, чтобы он 100% успел перерисовать кнопку.
+        // Иначе macOS моментально заблокирует вкладку модальным окном, и UI покажется зависшим.
+        setTimeout(() => {
+            switchVault().then(async vault => {
+                if (vault.canceled) {
+                    btn.style.pointerEvents = 'auto';
+                    btn.style.opacity = '1';
+                    return;
+                }
+                
+                updateVaultName(vault.name);
+                await refreshBoard();
+                btn.style.pointerEvents = 'auto';
+                btn.style.opacity = '1';
+            }).catch(err => {
+                console.error('Ошибка смены хранилища:', err);
+                btn.style.pointerEvents = 'auto';
+                btn.style.opacity = '1';
+            });
+        }, 150);
+        
+        return;
+    }
     if (action === 'theme') {
         const currentTheme = document.documentElement.hasAttribute('data-theme') ? 'dark' : 'light';
         document.querySelectorAll('#theme-list .lang-item').forEach(el => {
@@ -1534,6 +1581,19 @@ function initTooltip() {
     initTooltip();
     initLanguage();
     initTheme();
+
+    // Загружаем текущее название хранилища с бэкенда при старте
+    try {
+        const vault = await fetchVault();
+        updateVaultName(vault.name);
+    } catch (e) {
+        console.error("Ошибка загрузки хранилища", e);
+    }
+    
+    await refreshBoard();
+    setInterval(updateTimers, 1000);
+
+
     await refreshBoard();
     setInterval(updateTimers, 1000);
     

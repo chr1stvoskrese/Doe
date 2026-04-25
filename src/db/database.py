@@ -4,7 +4,9 @@ from sqlalchemy.orm import declarative_base
 from .models import Base
 from pathlib import Path
 from sqlalchemy import select
+from typing import AsyncGenerator
 
+from src.core.config import get_active_vault, set_active_vault
 
 _engine = None
 _session_factory = None
@@ -22,13 +24,11 @@ async def init_database(vault_path: str):
     async with _engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     
-    # Если база только что создана — добавляем стартовые колонки
     from .models import ColumnModel, ColumnMode
     async with _session_factory() as session:
         result = await session.execute(select(ColumnModel).limit(1))
         if result.first() is None:
-            # Колонок нет — создаём три стартовые
-            default_columns = [
+            default_columns =[
                 ColumnModel(title="Входящие", mode=ColumnMode.DEFAULT, position=1.0),
                 ColumnModel(title="В работе", mode=ColumnMode.TRACK_TIME, position=2.0),
                 ColumnModel(title="Готово", mode=ColumnMode.COMPLETION, position=3.0),
@@ -36,8 +36,7 @@ async def init_database(vault_path: str):
             session.add_all(default_columns)
             await session.commit()
 
-
-async def get_session() -> AsyncSession:
+async def get_session() -> AsyncGenerator[AsyncSession, None]:
     if _session_factory is None:
         raise RuntimeError("База данных не инициализирована.")
     async with _session_factory() as session:
@@ -56,11 +55,22 @@ async def close_database():
 
 async def init_dev_database():
     """
-    Инициализирует базу данных для разработки во временной папке.
-    Создаёт папку ~/DoeDevVault, если её нет.
+    Инициализирует БД в активном хранилище.
     """
-    dev_vault = Path.home() / "DoeDevVault"
-    dev_vault.mkdir(exist_ok=True)
+    vault_path = get_active_vault()
+    dev_vault = Path(vault_path)
+    dev_vault.mkdir(parents=True, exist_ok=True)
     await init_database(str(dev_vault))
     return dev_vault
 
+async def switch_vault(new_vault_path: str):
+    """
+    Переключает активное хранилище "на лету".
+    """
+    global _engine
+    if _engine:
+        await close_database()
+    
+    Path(new_vault_path).mkdir(parents=True, exist_ok=True)
+    await init_database(new_vault_path)
+    set_active_vault(new_vault_path)
