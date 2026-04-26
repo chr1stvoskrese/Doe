@@ -790,15 +790,28 @@ async function handleColumnMenu(action, columnEl, menuItem) {
         closeAllDropdowns();
         setTimeout(() => startColumnRename(columnEl, column), 50);
     } else if (action === 'collapse-column') {
-        // Оптимистично переключаем и перерисовываем
-        const newCollapsed = !column.collapsed;
-        column.collapsed = newCollapsed;
-        renderBoard();
+        closeAllDropdowns();
+        
+        // 🚀 МГНОВЕННО прячем меню, чтобы оно не "улетало" за сужающейся колонкой
+        const menu = columnEl.querySelector('.dropdown-menu');
+        if (menu) menu.style.display = 'none';
+        
+        column.collapsed = true;
+        columnEl.classList.add('collapsed');
 
-        // Отправляем на сервер (фоном, без блокировки UI)
-        updateColumn(columnId, { collapsed: newCollapsed }).catch(err => {
+        // Очищаем инлайновые стили от развернутого состояния
+        const titleEl = columnEl.querySelector('.column-title');
+        if (titleEl) {
+            titleEl.style.display = '';
+            titleEl.style.webkitLineClamp = '';
+        }
+        
+        setTimeout(() => {
+            adjustCollapsedColumnWidths();
+        }, 50);
+
+        updateColumn(columnId, { collapsed: true }).catch(err => {
             console.error('Failed to save collapsed state', err);
-            // При ошибке можно откатить, но для простоты оставим как есть
         });
     } else if (action === 'clear-column') {
         closeAllDropdowns();
@@ -1396,12 +1409,42 @@ document.addEventListener('click', (e) => {
     }
 
     const collapsed = e.target.closest('.column.collapsed');
-    if (collapsed) {
+    
+    if (collapsed && !e.target.closest('.dropdown-menu')) {
         const columnId = parseInt(collapsed.dataset.columnId);
         const column = state.columns.find(c => c.id === columnId);
         if (column) {
             column.collapsed = false;
-            renderBoard();
+            
+            collapsed.classList.remove('collapsed');
+            collapsed.style.width = '';
+            collapsed.style.minWidth = '';
+            
+            // 🚀 Возвращаем меню способность открываться
+            const menu = collapsed.querySelector('.dropdown-menu');
+            if (menu) menu.style.display = '';
+            
+            const titleEl = collapsed.querySelector('.column-title');
+            if (titleEl) {
+                // Восстанавливаем текст
+                if (titleEl.dataset.fullTitle) {
+                    titleEl.textContent = titleEl.dataset.fullTitle;
+                }
+                // Полностью счищаем весь инлайновый мусор
+                titleEl.style.maxHeight = '';
+                titleEl.style.display = '';
+                titleEl.style.webkitLineClamp = '';
+                titleEl.dataset.clamped = 'false';
+            }
+            
+            // Пересчитываем обрезку текста для развернутого вида
+            requestAnimationFrame(() => {
+                clampExpandedTitles();
+            });
+            
+            updateColumn(columnId, { collapsed: false }).catch(err => {
+                console.error('Failed to save collapsed state', err);
+            });
         }
     }
 
