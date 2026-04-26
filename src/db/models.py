@@ -22,6 +22,7 @@ class ColumnModel(Base):
     title = Column(String, nullable=False)
     mode = Column(Enum(ColumnMode), default=ColumnMode.DEFAULT)
     position = Column(Float, default=0.0)
+    collapsed = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

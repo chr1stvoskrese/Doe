@@ -29,11 +29,13 @@ class ColumnUpdate(BaseModel):
     title: Optional[str] = Field(None, min_length=1)
     mode: Optional[ColumnMode] = None
     position: Optional[float] = None
+    collapsed: Optional[bool] = None
 
 
 class ColumnResponse(ColumnBase):
     id: int
     position: float
+    collapsed: bool
     created_at: datetime
     updated_at: datetime
     tasks: List[TaskResponse] = []   # список задач в колонке

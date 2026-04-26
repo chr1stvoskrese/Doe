@@ -69,6 +69,7 @@ async def get_columns_with_tasks(db: AsyncSession):
             title=col.title,
             mode=col.mode.value,
             position=col.position,
+            collapsed=col.collapsed,
             created_at=col.created_at,
             updated_at=col.updated_at,
             tasks=task_responses,

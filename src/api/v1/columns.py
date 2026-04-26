@@ -50,6 +50,7 @@ async def create_column(column_in: ColumnCreate, db: AsyncSession = Depends(get_
         title=db_column.title,
         mode=db_column.mode.value,
         position=db_column.position,
+        collapsed=False,
         created_at=db_column.created_at,
         updated_at=db_column.updated_at,
         tasks=[],
@@ -78,6 +79,7 @@ async def update_column(column_id: int, column_in: ColumnUpdate, db: AsyncSessio
         title=db_column.title,
         mode=db_column.mode.value,
         position=db_column.position,
+        collapsed=db_column.collapsed,
         created_at=db_column.created_at,
         updated_at=db_column.updated_at,
         tasks=[],  # фронтенд сам перезапросит данные через refreshBoard

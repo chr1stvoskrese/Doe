@@ -790,8 +790,16 @@ async function handleColumnMenu(action, columnEl, menuItem) {
         closeAllDropdowns();
         setTimeout(() => startColumnRename(columnEl, column), 50);
     } else if (action === 'collapse-column') {
-        column.collapsed = !column.collapsed; renderBoard();
-        
+        // Оптимистично переключаем и перерисовываем
+        const newCollapsed = !column.collapsed;
+        column.collapsed = newCollapsed;
+        renderBoard();
+
+        // Отправляем на сервер (фоном, без блокировки UI)
+        updateColumn(columnId, { collapsed: newCollapsed }).catch(err => {
+            console.error('Failed to save collapsed state', err);
+            // При ошибке можно откатить, но для простоты оставим как есть
+        });
     } else if (action === 'clear-column') {
         closeAllDropdowns();
         
