@@ -843,9 +843,10 @@ async function handleColumnMenu(action, columnEl, menuItem) {
             titleEl.style.webkitLineClamp = '';
         }
         
-        setTimeout(() => {
-            adjustCollapsedColumnWidths();
-        }, 50);
+        // УБРАН setTimeout.
+        // Вызываем расчет мгновенно! Браузер зафиксирует размеры и обрежет 
+        // текст ДО того, как отрисует следующий кадр на экране.
+        adjustCollapsedColumnWidths();
 
         updateColumn(columnId, { collapsed: true }).catch(err => {
             console.error('Failed to save collapsed state', err);
