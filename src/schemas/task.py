@@ -1,7 +1,7 @@
 """
 Pydantic-схемы для задач (карточек).
 """
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_serializer
 from datetime import datetime
 from typing import Optional, List
 
@@ -36,11 +36,13 @@ class TimerSessionResponse(BaseModel):
     start_time: datetime
     is_active: bool
 
+    @field_serializer('start_time')
+    def serialize_start_time(self, start_time: datetime, _info):
+        # Гарантируем 'Z' на конце, если дата наивная, чтобы JS железно парсил её как UTC
+        return start_time.isoformat() + ('Z' if start_time.tzinfo is None else '')
+
     class Config:
         from_attributes = True
-        json_encoders = {
-            datetime: lambda v: v.isoformat() + 'Z'  # явно добавляем Z (UTC)
-        }
 
 
 class TaskCreateResponse(TaskBase):

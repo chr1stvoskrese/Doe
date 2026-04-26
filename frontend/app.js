@@ -171,11 +171,20 @@ async function updateSettings(data) {
 }
 
 function escapeHtml(text) { const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
+
 function formatTime(startTime) {
-    const start = new Date(startTime); const diff = Math.floor((Date.now() - start) / 1000);
+    // Подстраховка: если сервер всё же прислал без Z, добавляем, чтобы браузер не применял локальный пояс
+    if (typeof startTime === 'string' && !startTime.endsWith('Z')) {
+        startTime += 'Z'; 
+    }
+    const start = new Date(startTime); 
+    
+    // Math.max(0, ...) гарантирует, что при микрорассинхроне таймер не покажет 00:00:-1
+    const diff = Math.max(0, Math.floor((Date.now() - start) / 1000));
+    
     const h = Math.floor(diff / 3600).toString().padStart(2, '0');
     const m = Math.floor((diff % 3600) / 60).toString().padStart(2, '0');
-    const s = (diff % 60).toString().padStart(2, '0');
+    const s = Math.floor(diff % 60).toString().padStart(2, '0');
     return `${h}:${m}:${s}`;
 }
 
@@ -1265,11 +1274,9 @@ document.addEventListener('dragend', async () => {
                 const sourceColumnId = parseInt(draggedElement.dataset.sourceColumnId);
                 const taskId = parseInt(draggedElement.dataset.cardId);
                 
-                // Читаем физический порядок DOM
                 const currentCards = Array.from(newColumnEl.querySelectorAll('.card:not(.card-drag-clone)'));
                 const orderedIds = currentCards.map(c => parseInt(c.dataset.cardId));
 
-                // Визуально обновляем счетчики
                 const sourceColumnEl = document.querySelector(`.column[data-column-id="${sourceColumnId}"]`);
                 if (sourceColumnEl) updateColumnCount(sourceColumnEl);
                 updateColumnCount(newColumnEl);
@@ -1278,37 +1285,67 @@ document.addEventListener('dragend', async () => {
                     const targetCol = state.columns.find(c => c.id === newColumnId);
                     const sourceCol = state.columns.find(c => c.id === sourceColumnId);
 
-                    // 1. Если колонка изменилась - дергаем API перемещения (там таймеры и статусы)
                     if (newColumnId !== sourceColumnId) {
+                        
+                        // --- РАСШИРЕННЫЙ ОПТИМИСТИЧНЫЙ UI (мгновенная смена визуала) ---
+                        if (targetCol.mode === 'track_time') {
+                            draggedElement.classList.remove('is-completed');
+                            let timerEl = draggedElement.querySelector('.card-timer');
+                            if (!timerEl) {
+                                timerEl = document.createElement('div');
+                                timerEl.className = 'card-timer';
+                                timerEl.dataset.taskId = taskId;
+                                draggedElement.appendChild(timerEl);
+                            }
+                            timerEl.textContent = '00:00:00';
+                            const metaEl = draggedElement.querySelector('.subtask-meta');
+                            if (metaEl) metaEl.remove();
+                        } else if (targetCol.mode === 'completion') {
+                            draggedElement.classList.add('is-completed');
+                            const timerEl = draggedElement.querySelector('.card-timer');
+                            if (timerEl) timerEl.remove();
+                        } else {
+                            draggedElement.classList.remove('is-completed');
+                            const timerEl = draggedElement.querySelector('.card-timer');
+                            if (timerEl) timerEl.remove();
+                        }
+                        // ---------------------------------------------------------------
+
                         const updatedTask = await moveTask(taskId, newColumnId);
                         
-                        // Обновляем локальный стейт (перекладываем объект задачи в другую колонку)
-                        const taskIndex = sourceCol.tasks.findIndex(t => t.id == taskId);
-                        if (taskIndex !== -1) {
-                            const [movedTask] = sourceCol.tasks.splice(taskIndex, 1);
-                            movedTask.column_id = newColumnId; 
-                            movedTask.completed_at = updatedTask.completed_at;
-                            movedTask.active_timer = updatedTask.active_timer; 
-                            movedTask.total_time_spent = updatedTask.total_time_spent;
-                            targetCol.tasks.push(movedTask);
+                        // Обновляем локальный стейт
+                        if (sourceCol && targetCol) {
+                            const taskIndex = sourceCol.tasks.findIndex(t => t.id == taskId);
+                            if (taskIndex !== -1) {
+                                const [movedTask] = sourceCol.tasks.splice(taskIndex, 1);
+                                movedTask.column_id = newColumnId; 
+                                movedTask.completed_at = updatedTask.completed_at;
+                                movedTask.active_timer = updatedTask.active_timer; 
+                                movedTask.total_time_spent = updatedTask.total_time_spent;
+                                targetCol.tasks.push(movedTask);
+                            }
                         }
-                        // Обновляем UI карточки (таймеры, чекбокс завершения)
+                        
+                        // Финальное обновление UI по реальным данным с бэкенда
                         updateCardAppearance(draggedElement, updatedTask, targetCol.mode);
+                        
+                        // ВАЖНО: Запоминаем новую колонку, чтобы последующие драги не ломали стейт!
+                        draggedElement.dataset.sourceColumnId = newColumnId;
                     }
 
-                    // 2. ВСЕГДА отправляем новый порядок карточек для целевой колонки
                     await saveTasksOrder(orderedIds);
                     
-                    // Обновляем position в стейте, чтобы при ререндере ничего не прыгало
-                    targetCol.tasks.forEach(t => {
-                        t.position = orderedIds.indexOf(t.id);
-                    });
+                    if (targetCol) {
+                        targetCol.tasks.forEach(t => {
+                            t.position = orderedIds.indexOf(t.id);
+                        });
+                    }
                     
                     updateTimers();
 
                 } catch (error) {
                     console.error("Ошибка при перемещении карточки", error);
-                    await refreshBoard(); // Откат при ошибке
+                    await refreshBoard(); 
                 }
             }
         }
@@ -1666,7 +1703,7 @@ function initTooltip() {
     }
     
     await refreshBoard();
-    setInterval(updateTimers, 1000);
+    setInterval(updateTimers, 250);
     
     let isResizing = false;
     window.addEventListener('resize', () => {

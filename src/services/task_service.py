@@ -108,7 +108,6 @@ async def delete_task(db: AsyncSession, task_id: int) -> None:
     await db.delete(task)
     await db.commit()
 
-
 async def move_task(db: AsyncSession, task_id: int, target_column_id: int) -> TaskModel:
     result = await db.execute(
         select(TaskModel)
@@ -134,7 +133,7 @@ async def move_task(db: AsyncSession, task_id: int, target_column_id: int) -> Ta
 
     task.column_id = target_column_id
 
-    # 1. Если уходим из режима таймера - СТАВИМ НА ПАУЗУ (сохраняем время закрытия)
+    # 1. Если уходим из режима таймера - СТАВИМ НА ПАУЗУ
     if source_column.mode == ColumnMode.TRACK_TIME:
         for session in task.timer_sessions:
             if session.is_active:
@@ -156,6 +155,9 @@ async def move_task(db: AsyncSession, task_id: int, target_column_id: int) -> Ta
             is_active=True,
         )
         db.add(new_session)
+        # ВАЖНО: Добавляем в локальный список вручную, 
+        # чтобы _calculate_task_time сразу увидел сессию до новой загрузки из БД
+        task.timer_sessions.append(new_session)
 
     await db.commit()
     await db.refresh(task)

@@ -2,7 +2,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
+from src.core.config import get_ui_settings
 from pathlib import Path
 import uvicorn
 
@@ -36,9 +37,35 @@ app.include_router(system.router, prefix="/api/v1") # <-- Подключили �
 frontend_path = Path(__file__).parent / "frontend"
 app.mount("/static", StaticFiles(directory=frontend_path), name="static")
 
-@app.get("/app")
+@app.get("/app", response_class=HTMLResponse)
 async def serve_index():
-    return FileResponse(frontend_path / "index.html")
+    # 1. Забираем настройки прямо из ядра (JSON-файла) на стороне бэкенда
+    settings = get_ui_settings()
+    theme = settings.get("theme", "light")
+    lang = settings.get("language", "ru")
+
+    # 2. Читаем наш чистый HTML
+    index_file = frontend_path / "index.html"
+    with open(index_file, "r", encoding="utf-8") as f:
+        html_content = f.read()
+
+    # 3. Создаем микро-скрипт, который выполнится ДО загрузки стилей и DOM
+    # Он сразу проставит нужный атрибут и заполнит localStorage
+    inject_script = f"""
+    <script>
+        if ('{theme}' === 'dark') {{
+            document.documentElement.setAttribute('data-theme', 'dark');
+        }}
+        localStorage.setItem('doe-theme', '{theme}');
+        localStorage.setItem('doe-lang', '{lang}');
+    </script>
+    </head>
+    """
+    
+    # 4. Вставляем скрипт прямо перед закрывающим тегом </head>
+    html_content = html_content.replace("</head>", inject_script)
+
+    return HTMLResponse(content=html_content)
 
 @app.get("/")
 async def root():
