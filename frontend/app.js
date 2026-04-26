@@ -820,9 +820,18 @@ async function handleColumnMenu(action, columnEl, menuItem) {
     } else if (action === 'collapse-column') {
         closeAllDropdowns();
         
-        // 🚀 МГНОВЕННО прячем меню, чтобы оно не "улетало" за сужающейся колонкой
+        // МГНОВЕННО прячем меню, чтобы оно не "улетало" за сужающейся колонкой
         const menu = columnEl.querySelector('.dropdown-menu');
         if (menu) menu.style.display = 'none';
+
+        // 🛑 ОТКЛЮЧАЕМ МЫШКУ И ХОВЕР НА 0.35 СЕК
+        columnEl.style.pointerEvents = 'none';
+        columnEl.classList.add('is-collapsing'); // <--- ДОБАВИЛИ КЛАСС
+        
+        setTimeout(() => {
+            columnEl.style.pointerEvents = '';
+            columnEl.classList.remove('is-collapsing'); // <--- УБРАЛИ КЛАСС
+        }, 350);
         
         column.collapsed = true;
         columnEl.classList.add('collapsed');

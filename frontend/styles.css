@@ -229,7 +229,8 @@ body {
     flex-direction: column;     /* Содержимое колонки вертикальное */
     border: 1px solid var(--border-light);
     position: relative;
-    transition: width var(--transition-apple), background var(--transition-apple);
+    /* 🚀 ДОБАВЛЕН BORDER-COLOR СЮДА: теперь ширина и цвет анимируются вместе */
+    transition: width var(--transition-apple), background var(--transition-apple), border-color var(--transition-apple);
     cursor: grab;               /* Указатель "рука" для перетаскивания */
 }
 
@@ -246,12 +247,11 @@ body {
     cursor: pointer;
     background: var(--bg-board);
     border: 1px solid var(--border-light);
-    transition: border-color 0.4s cubic-bezier(0.16, 1, 0.3, 1);
     padding: 12px 0;            /* Отступы сверху/снизу */
 }
 
 /* Ховер на свернутую колонку */
-.column.collapsed:hover {
+.column.collapsed:not(.is-collapsing):hover {
     border-color: rgba(0, 0, 0, 0.14);
 }
 
@@ -1071,7 +1071,7 @@ body {
 }
 
 /* Ховер на свернутую колонку в темной теме */
-[data-theme="dark"] .column.collapsed:hover {
+[data-theme="dark"] .column.collapsed:not(.is-collapsing):hover {
     border-color: rgba(255, 255, 255, 0.14);
 }
 
