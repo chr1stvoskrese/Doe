@@ -1628,7 +1628,26 @@ function initTooltip() {
         if (typeof isDragging !== 'undefined' && isDragging) return;
 
         const titleEl = e.target.closest('.column-title');
-        if (!titleEl || titleEl.dataset.clamped !== 'true') return;
+        if (!titleEl) return;
+
+        // --- 🛠 ИСПРАВЛЕННАЯ ЛОГИКА ПРОВЕРКИ ОБРЕЗКИ ТЕКСТА ---
+        let isActuallyClamped = false;
+        
+        if (titleEl.closest('.column.collapsed')) {
+            // В свернутой колонке мы вручную режем строку и ставим '…' через JS, 
+            // поэтому здесь флаг работает безупречно.
+            isActuallyClamped = titleEl.dataset.clamped === 'true';
+        } else {
+            // В развернутой колонке обрезку делает CSS (-webkit-line-clamp).
+            // Единственный 100% точный способ узнать, появилось ли троеточие:
+            // сравнить полную высоту контента с видимой. Если текст обрезался,
+            // scrollHeight будет больше. (Добавляем запас в 2px от субпиксельных погрешностей).
+            isActuallyClamped = titleEl.scrollHeight > (titleEl.clientHeight + 2);
+        }
+
+        // Если текст физически полностью помещается — отменяем тултип!
+        if (!isActuallyClamped) return;
+        // -----------------------------------------------------
 
         activeTitle = titleEl;
         
