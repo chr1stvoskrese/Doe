@@ -1,11 +1,12 @@
-import asyncio
-from pathlib import Path
-from typing import Optional
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
+from typing import Optional
+import asyncio
+from pathlib import Path
 
 from src.db.database import switch_vault
-from src.core.config import get_active_vault
+from src.core.config import get_active_vault, get_ui_settings, set_ui_settings # Добавили настройки UI
+
 
 router = APIRouter(prefix="/system", tags=["system"])
 
@@ -53,3 +54,20 @@ async def switch_vault_endpoint():
     await switch_vault(new_path)
     name = Path(new_path).resolve().name
     return VaultResponse(name=name, path=new_path, canceled=False)
+
+class SettingsUpdate(BaseModel):
+    theme: Optional[str] = None
+    language: Optional[str] = None
+
+class SettingsResponse(BaseModel):
+    theme: str
+    language: str
+
+@router.get("/settings", response_model=SettingsResponse)
+async def get_settings_endpoint():
+    return SettingsResponse(**get_ui_settings())
+
+@router.put("/settings", response_model=SettingsResponse)
+async def update_settings_endpoint(settings: SettingsUpdate):
+    set_ui_settings(theme=settings.theme, language=settings.language)
+    return SettingsResponse(**get_ui_settings())

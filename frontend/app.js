@@ -41,9 +41,23 @@ const translations = {
 let currentLang = 'ru';
 let activeConfirmResolve = null; // Добавили эту строку
 
-function applyLanguage(lang) {
+// --- НОВЫЕ ФУНКЦИИ ПРИМЕНЕНИЯ ТЕМЫ И ЯЗЫКА ---
+function applyTheme(theme, saveToBackend = false) {
+    if (theme === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+    else document.documentElement.removeAttribute('data-theme');
+
+    document.querySelectorAll('#theme-list .lang-item').forEach(el => {
+        el.classList.toggle('active', el.dataset.themeValue === theme);
+    });
+
+    localStorage.setItem('doe-theme', theme);
+    if (saveToBackend) updateSettings({ theme }).catch(console.error);
+}
+
+function applyLanguage(lang, saveToBackend = false) {
     currentLang = lang;
     localStorage.setItem('doe-lang', lang);
+    if (saveToBackend) updateSettings({ language: lang }).catch(console.error);
 
     document.querySelectorAll('[data-i18n]').forEach(el => {
         const key = el.dataset.i18n;
@@ -58,7 +72,6 @@ function applyLanguage(lang) {
     const langSpan = document.querySelector('[data-action="change-lang"] span');
     if (langSpan) langSpan.textContent = translations[lang].language;
 
-    // Вот это ставит правильную галочку в меню выбора языка:
     document.querySelectorAll('#lang-list .lang-item').forEach(el => {
         el.classList.toggle('active', el.dataset.value === lang);
     });
@@ -140,6 +153,21 @@ async function deleteTask(id) { const res = await fetch(`${API_BASE}/tasks/${id}
 async function moveTask(taskId, targetColumnId) {
     const res = await fetch(`${API_BASE}/tasks/${taskId}/move`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ target_column_id: targetColumnId }) });
     if (!res.ok) throw new Error('Error'); return res.json();
+}
+
+async function fetchSettings() {
+    const res = await fetch(`${API_BASE}/system/settings`);
+    if (!res.ok) throw new Error('Error fetch settings');
+    return res.json();
+}
+
+async function updateSettings(data) {
+    const res = await fetch(`${API_BASE}/system/settings`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    });
+    if (!res.ok) throw new Error('Error saving settings');
 }
 
 function escapeHtml(text) { const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
@@ -1386,16 +1414,12 @@ document.addEventListener('click', (e) => {
         document.querySelectorAll('#theme-list .lang-item').forEach(el => el.classList.remove('active'));
         themeItem.classList.add('active');
         const theme = themeItem.dataset.themeValue;
+        
         if (document.startViewTransition) {
-            document.startViewTransition(() => {
-                if (theme === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
-                else document.documentElement.removeAttribute('data-theme');
-            });
+            document.startViewTransition(() => applyTheme(theme, true));
         } else {
-            if (theme === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
-            else document.documentElement.removeAttribute('data-theme');
+            applyTheme(theme, true);
         }
-        localStorage.setItem('doe-theme', theme);
         document.getElementById('theme-modal').classList.remove('show');
     }
 
@@ -1404,7 +1428,7 @@ document.addEventListener('click', (e) => {
         document.querySelectorAll('#lang-list .lang-item').forEach(el => el.classList.remove('active'));
         langItem.classList.add('active');
         const lang = langItem.dataset.value;
-        applyLanguage(lang);
+        applyLanguage(lang, true); // true — значит сохраняем на бэкенд
         document.getElementById('lang-modal').classList.remove('show');
     }
 
@@ -1473,26 +1497,6 @@ function updateColumnCount(columnEl, count = null) {
         const tasks = columnEl.querySelectorAll('.card').length;
         pill.textContent = count !== null ? count : tasks;
     }
-}
-
-function initLanguage() {
-    const savedLang = localStorage.getItem('doe-lang') || 'ru';
-    applyLanguage(savedLang);
-}
-
-function initTheme() {
-    const savedTheme = localStorage.getItem('doe-theme') || 'light';
-    
-    if (savedTheme === 'dark') {
-        document.documentElement.setAttribute('data-theme', 'dark');
-    } else {
-        document.documentElement.removeAttribute('data-theme');
-    }
-
-    // Вот это ставит правильную галочку в меню выбора темы:
-    document.querySelectorAll('#theme-list .lang-item').forEach(el => {
-        el.classList.toggle('active', el.dataset.themeValue === savedTheme);
-    });
 }
 
 
@@ -1630,10 +1634,20 @@ function initTooltip() {
 
 (async () => {
     initTooltip();
-    initLanguage();
-    initTheme();
 
-    // Загружаем текущее название хранилища с бэкенда при старте
+    // 1. Быстро применяем локальные данные, чтобы не было "моргания" белого цвета
+    applyLanguage(localStorage.getItem('doe-lang') || 'ru', false);
+    applyTheme(localStorage.getItem('doe-theme') || 'light', false);
+
+    // 2. Получаем настройки с сервера (если чистили кэш - они восстановятся из .doe_config.json)
+    try {
+        const settings = await fetchSettings();
+        if (settings.language) applyLanguage(settings.language, false);
+        if (settings.theme) applyTheme(settings.theme, false);
+    } catch (e) {
+        console.error("Ошибка загрузки настроек UI", e);
+    }
+
     try {
         const vault = await fetchVault();
         updateVaultName(vault.name);
@@ -1643,12 +1657,7 @@ function initTooltip() {
     
     await refreshBoard();
     setInterval(updateTimers, 1000);
-
-
-    await refreshBoard();
-    setInterval(updateTimers, 1000);
     
-    // Пересчитываем clamping при ресайзе
     let isResizing = false;
     window.addEventListener('resize', () => {
         if (!isResizing) {

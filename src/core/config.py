@@ -7,28 +7,43 @@ from pathlib import Path
 CONFIG_FILE = Path.home() / ".doe_config.json"
 DEFAULT_VAULT = Path.home() / "DoeDevVault"
 
-def get_active_vault() -> str:
-    """Возвращает путь к активному хранилищу."""
+def _load_config() -> dict:
     if CONFIG_FILE.exists():
         try:
             with open(CONFIG_FILE, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                return data.get("active_vault", str(DEFAULT_VAULT))
+                return json.load(f)
         except Exception:
             pass
-    return str(DEFAULT_VAULT)
+    return {}
+
+def _save_config(data: dict) -> None:
+    with open(CONFIG_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+def get_active_vault() -> str:
+    """Возвращает путь к активному хранилищу."""
+    data = _load_config()
+    return data.get("active_vault", str(DEFAULT_VAULT))
 
 def set_active_vault(vault_path: str) -> None:
     """Сохраняет путь к активному хранилищу."""
-    data = {}
-    if CONFIG_FILE.exists():
-        try:
-            with open(CONFIG_FILE, "r", encoding="utf-8") as f:
-                data = json.load(f)
-        except Exception:
-            pass
-    
+    data = _load_config()
     data["active_vault"] = vault_path
-    
-    with open(CONFIG_FILE, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+    _save_config(data)
+
+def get_ui_settings() -> dict:
+    """Возвращает настройки интерфейса (тема, язык)."""
+    data = _load_config()
+    return {
+        "theme": data.get("theme", "light"),
+        "language": data.get("language", "ru")
+    }
+
+def set_ui_settings(theme: str = None, language: str = None) -> None:
+    """Обновляет настройки интерфейса."""
+    data = _load_config()
+    if theme is not None:
+        data["theme"] = theme
+    if language is not None:
+        data["language"] = language
+    _save_config(data)
