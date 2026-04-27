@@ -663,7 +663,7 @@ body {
     min-width: 320px;
     height: 60px;
     background: transparent;
-    border: 2px dashed rgba(74, 90, 72, 0.15); /* Пунктирная рамка */
+    border: 2px dashed rgba(74, 90, 72, 0.15); /* Возвращаем оригинальные 15% */
     border-radius: var(--radius-board);
     display: flex;
     align-items: center;
@@ -781,11 +781,11 @@ body {
 /* Стиль для оригинала колонки, которая тащится */
 .column.is-ghost {
     background: var(--bg-canvas) !important;
-    border: 2px dashed var(--border-light) !important;
+    border: 2px dashed var(--border-light) !important; /* Возвращаем оригинальный легкий бордер */
     box-shadow: none !important;
     opacity: 0.6 !important;
     transition: none !important;
-    pointer-events: none !important; /* <--- ДОБАВИТЬ ЭТО */
+    pointer-events: none !important; /* ВАЖНО: Оставляем, чтобы физика перетаскивания не ломалась! */
 }
 
 /* Скрываем содержимое внутри призрака колонки */
@@ -973,10 +973,10 @@ body {
     width: 320px;
     flex-shrink: 0;
     background: transparent;
-    border: 2px dashed rgba(74, 90, 72, 0.15);
+    border: 2px dashed rgba(74, 90, 72, 0.15); /* Возвращаем оригинальные 15% */
     border-radius: var(--radius-board);
-    opacity: 0;                 /* Стартуем с невидимости */
-    transform: scale(0.96);     /* Стартуем чуть уменьшенными */
+    opacity: 0;                 
+    transform: scale(0.96);     
     will-change: opacity, transform;
     transition:
         opacity 0.30s cubic-bezier(0.16, 1, 0.3, 1),
@@ -1293,14 +1293,10 @@ body.is-dragging-card .column-header {
 .column-drag-clone,
 .card-drag-clone,
 .tab-drag-clone {
-    /* Оставляем только нужные оптимизации. 
-       JS сам задаст translate3d, что включит аппаратное ускорение */
+    /* Удаляем строку transform: translateZ(0) !important; */
     backface-visibility: hidden !important; 
     will-change: transform !important;
-    
-    /* Железобетонно отключаем события мыши, чтобы клон 
-       не перехватывал dragover под собой и не вызывал дерганий */
-    pointer-events: none !important; 
+    pointer-events: none !important; /* <--- и на всякий случай добавляем это */
 }
 
 /* Сглаживание шрифтов применяем ко всем, это не нагружает GPU, но убирает мыло */
@@ -1641,7 +1637,12 @@ body.is-dragging-card .column-header {
 }
 
 .tab-name {
-    pointer-events: none;
+    max-width: 160px;           /* Ограничение длины вкладки */
+    overflow: hidden;           /* Скрываем всё, что не влезло */
+    text-overflow: ellipsis;    /* Добавляем ... в конце */
+    white-space: nowrap;        /* Запрещаем перенос на новую строку */
+    display: block;
+    pointer-events: auto;       /* Включаем события мыши, чтобы тултип мог их поймать */
 }
 
 .board-tab:hover {
@@ -1760,20 +1761,19 @@ body.is-dragging-card .column-header {
 
 /* Призрак-оригинал вкладки в шапке (остается полупрозрачным на месте) */
 .board-tab.is-ghost {
-    opacity: 0.4 !important;
+    opacity: 0.6 !important;
     background: transparent !important;
-    
-    /* 🔥 ВОЗВРАЩАЕМ ТОТ САМЫЙ КРАСИВЫЙ АУТЛАЙН */
-    outline: 1.5px dashed var(--text-secondary) !important;
-    outline-offset: -1.5px !important;
-    border: none !important;
-    margin: 0 !important; /* убиваем костыльный margin из прошлого фикса */
-    
     color: transparent !important;
     box-shadow: none !important;
     pointer-events: none !important;
     
-    /* 🚀 Оставляем только аппаратное ускорение (это спасет Safari от бага со шлейфом) */
+    /* Убираем border, чтобы не ломать геометрию вкладки! */
+    border: none !important;
+    
+    /* Рисуем пунктир ПОВЕРХ вкладки, чтобы ничего не сдвигалось */
+    outline: 2px dashed var(--border-light) !important;
+    outline-offset: -2px !important;
+    
     transform: translateZ(0) !important;
     will-change: transform !important;
     backface-visibility: hidden !important;
@@ -1796,13 +1796,11 @@ body.is-dragging-tab .add-tab-btn:hover {
     color: var(--text-secondary) !important;
 }
 
-/* Сохраняем фон активной вкладки ВО ВРЕМЯ драга */
-body.is-dragging-tab .board-tab.active:hover {
+/* Сохраняем фон активной вкладки ВО ВРЕМЯ драга (но ИГНОРИРУЕМ призрака) */
+body.is-dragging-tab .board-tab.active:not(.is-ghost):hover {
     background: var(--surface-card) !important;
     color: var(--text-primary) !important;
-}
-
-[data-theme="dark"] body.is-dragging-tab .board-tab.active:hover {
+}[data-theme="dark"] body.is-dragging-tab .board-tab.active:not(.is-ghost):hover {
     background: rgba(255, 255, 255, 0.08) !important;
     color: var(--text-primary) !important;
 }
@@ -1865,4 +1863,92 @@ body.is-locked-tabs .add-tab-btn {
 .board-tab.active + .board-tab::before,
 .board-tab.active + .add-tab-btn::before {
     opacity: 0 !important;
+}
+
+/* ==========================================
+   АНИМАЦИЯ СОЗДАНИЯ НОВОЙ ВКЛАДКИ
+   ========================================== */
+
+/* Форма создания */
+.board-tab.tab-entering {
+    background: transparent;
+    border: 1.5px dashed rgba(74, 90, 72, 0.25);
+    opacity: 0;
+    transform: scale(0.96) translateX(-10px); /* Слегка выезжает слева */
+    will-change: opacity, transform;
+    transition:
+        opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+        transform 0.30s cubic-bezier(0.16, 1, 0.3, 1);
+    padding: 6px 14px;
+    cursor: text;
+}
+
+.board-tab.tab-entering.entered {
+    opacity: 1;
+    transform: scale(1) translateX(0);
+}
+
+.board-tab.tab-entering.is-exiting {
+    opacity: 0;
+    transform: scale(0.96) translateX(-10px);
+    pointer-events: none;
+}
+
+.board-tab.tab-entering.is-submitting {
+    opacity: 0.4;
+    pointer-events: none;
+    transition-duration: 0.15s;
+}
+
+/* Поле ввода названия вкладки */
+.tab-input {
+    background: transparent;
+    border: none;
+    padding: 0;
+    margin: 0;
+    font-family: var(--font-main);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+    outline: none;
+    min-width: 100px;
+}
+
+.tab-input::placeholder {
+    color: var(--text-secondary);
+    opacity: 0.55;
+}
+
+/* Отключаем серый фон при наведении на форму ввода вкладки */
+.board-tab.tab-entering:hover {
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+/* Делаем появление готовой вкладки моментальным и резким (как было раньше) */
+.board-tab.tab-birth,
+.board-tab.tab-birth.born {
+    opacity: 1 !important;
+    transform: none !important;
+    pointer-events: auto !important;
+    transition: none !important;
+}
+
+/* Тряска формы при ошибке сети (используем уже существующий кейфрейм) */
+.tab-entering.is-error {
+    animation: column-shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+/* Темная тема */
+[data-theme="dark"] .board-tab.tab-entering {
+    border-color: rgba(137, 160, 133, 0.25);
+}
+
+[data-theme="dark"] .tab-input {
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .tab-input::placeholder {
+    color: var(--text-secondary);
+    opacity: 0.5;
 }

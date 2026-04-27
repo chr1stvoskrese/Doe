@@ -368,7 +368,7 @@ function createColumnElement(column) {
 }
 // --- КОНЕЦ ВСТАВКИ 1 ---
 
-async function refreshBoard(scrollToActive = false) {
+async function refreshBoard(scrollToActive = false, newTabId = null) { // <--- ДОБАВИЛ newTabId = null
     try {
         // 1. Запрашиваем вкладки
         state.workspaces = await fetchWorkspaces();
@@ -384,7 +384,7 @@ async function refreshBoard(scrollToActive = false) {
             state.activeWorkspaceId = state.workspaces[0].id;
         }
 
-        renderTabs(scrollToActive);
+        renderTabs(scrollToActive, newTabId);
 
         // 2. Запрашиваем колонки только для активной вкладки
         const columns = await fetchColumns(state.activeWorkspaceId);
@@ -393,7 +393,6 @@ async function refreshBoard(scrollToActive = false) {
         
     } catch (e) { 
         console.error(e); 
-        // Если ошибка — не ломаем UI полностью
     }
 }
 
@@ -833,9 +832,9 @@ async function onCreateColumn() {
 }
 
 // ---------- РЕНДЕРИНГ ВКЛАДОК ----------
-function renderTabs(scrollToActive = false) {
+function renderTabs(scrollToActive = false, newTabId = null) {
     const container = document.getElementById('tabs-container');
-    const savedScroll = container.scrollLeft; // 🚀 СОХРАНЯЕМ СКРОЛЛ
+    const savedScroll = container.scrollLeft; 
     container.innerHTML = '';
 
     state.workspaces.sort((a, b) => a.position - b.position);
@@ -843,12 +842,18 @@ function renderTabs(scrollToActive = false) {
     state.workspaces.forEach(ws => {
         const tab = document.createElement('div');
         tab.className = `board-tab ${ws.id === state.activeWorkspaceId ? 'active' : ''}`;
+        
+        // Добавляем класс анимации, если это свежесозданная вкладка
+        if (ws.id === newTabId) {
+            tab.classList.add('tab-birth');
+        }
+        
         tab.dataset.workspaceId = ws.id; 
         tab.setAttribute('draggable', 'true'); 
         
         const canDelete = state.workspaces.length > 1;
         tab.innerHTML = `
-            <span class="tab-name">${escapeHtml(ws.name)}</span>
+            <span class="tab-name" data-full-title="${escapeHtml(ws.name)}">${escapeHtml(ws.name)}</span>
             <button class="tab-close-btn ${!canDelete ? 'hidden' : ''}">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
             </button>
@@ -874,7 +879,6 @@ function renderTabs(scrollToActive = false) {
                     state.workspaces = state.workspaces.filter(w => w.id !== ws.id);
                     if (ws.id === state.activeWorkspaceId) {
                         state.activeWorkspaceId = state.workspaces[0].id;
-                        // 🚀 Сообщаем бэкенду, что мы переключились на другую (соседнюю) вкладку
                         updateSettings({ active_workspace_id: state.activeWorkspaceId }).catch(console.error);
                     }
                     refreshBoard();
@@ -888,40 +892,12 @@ function renderTabs(scrollToActive = false) {
     addBtn.className = 'add-tab-btn';
     addBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>';
     
-    addBtn.addEventListener('click', async (e) => {
-            e.currentTarget.blur(); 
-            const name = prompt(t('prompts.newTabTitle'))?.trim();
-            if (!name) return;
-            
-            // 🚀 БЛОКИРУЕМ HOVER ДО ПЕРЕРИСОВКИ DOM, чтобы кнопка не "захватила" мышь
-            document.body.classList.add('is-locked-tabs');
-
-            try {
-                const newWs = await createWorkspaceAPI(name);
-                state.workspaces.push(newWs);
-                state.activeWorkspaceId = newWs.id;
-                updateSettings({ active_workspace_id: newWs.id }).catch(console.error);
-                
-                await refreshBoard(); // Здесь кнопка создается, но она уже "слепая" к мыши
-                
-                const container = document.getElementById('tabs-container');
-                container.scrollTo({ left: container.scrollWidth, behavior: 'smooth' });
-
-                // 🚀 Снимаем блокировку только когда прокрутка полностью завершилась
-                setTimeout(() => { 
-                    document.body.classList.remove('is-locked-tabs'); 
-                }, 450);
-
-            } catch (err) {
-                document.body.classList.remove('is-locked-tabs');
-                alert(t('alerts.error'));
-            }
-    });
+    // ПРИВЯЗЫВАЕМ НОВУЮ КРАСИВУЮ ФУНКЦИЮ
+    addBtn.addEventListener('click', onAddTabClick);
     
     container.appendChild(addBtn);
 
     if (scrollToActive) {
-        // 🚀 МОМЕНТАЛЬНО прокручиваем к активной вкладке без анимации
         requestAnimationFrame(() => {
             const activeTab = container.querySelector('.board-tab.active');
             if (activeTab) {
@@ -929,8 +905,153 @@ function renderTabs(scrollToActive = false) {
             }
         });
     } else {
-        container.scrollLeft = savedScroll; // 🚀 Иначе восстанавливаем позицию пользователя
+        container.scrollLeft = savedScroll; 
     }
+
+    // Если была создана новая вкладка — триггерим анимацию её появления
+    if (newTabId) {
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                const newTabEl = container.querySelector('.tab-birth');
+                if (newTabEl) {
+                    newTabEl.classList.add('born');
+                    setTimeout(() => newTabEl.classList.remove('tab-birth', 'born'), 500);
+                }
+            });
+        });
+    }
+}
+
+// Анимированная функция создания новой вкладки
+function onAddTabClick(e) {
+    e.currentTarget.blur();
+    
+    const container = document.getElementById('tabs-container');
+    const addBtn = container.querySelector('.add-tab-btn');
+    if (!addBtn) return;
+
+    // Игнорируем, если форма уже открыта
+    if (container.querySelector('.tab-entering:not(.is-exiting)')) return;
+
+    const formTab = document.createElement('div');
+    formTab.className = 'board-tab tab-entering';
+    const placeholder = t('prompts.newTabTitle').replace(/:$/, '');
+    formTab.innerHTML = `<input type="text" class="tab-input" placeholder="${placeholder}" autocomplete="off" spellcheck="false" />`;
+
+    // Заменяем кнопку "+" на форму
+    addBtn.replaceWith(formTab);
+
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            formTab.classList.add('entered');
+        });
+    });
+
+    const input = formTab.querySelector('.tab-input');
+    
+    // Трюк для авто-расширения инпута при вводе текста
+    const autoResize = () => {
+        const span = document.createElement('span');
+        span.style.font = window.getComputedStyle(input).font;
+        span.style.visibility = 'hidden';
+        span.style.position = 'absolute';
+        span.style.whiteSpace = 'pre';
+        span.textContent = input.value || input.placeholder;
+        document.body.appendChild(span);
+        // Вычисляем ширину и прибавляем немного запаса
+        input.style.width = Math.max(100, span.getBoundingClientRect().width + 4) + 'px';
+        document.body.removeChild(span);
+    };
+    
+    input.addEventListener('input', autoResize);
+    autoResize();
+    input.focus();
+
+    let isResolved = false;
+
+    // Отмена создания
+    const cancel = (animate = true) => {
+        if (isResolved) return;
+        isResolved = true;
+        input.blur();
+
+        const restoreBtn = () => {
+            if (!container.querySelector('.add-tab-btn')) {
+                container.appendChild(addBtn);
+            }
+        };
+
+        if (!animate) {
+            formTab.remove();
+            restoreBtn();
+            return;
+        }
+
+        formTab.classList.remove('entered');
+        formTab.classList.add('is-exiting');
+
+        const onTransitionEnd = (ev) => {
+            if (ev.propertyName === 'opacity') {
+                formTab.remove();
+                formTab.removeEventListener('transitionend', onTransitionEnd);
+                restoreBtn();
+            }
+        };
+        formTab.addEventListener('transitionend', onTransitionEnd);
+        setTimeout(() => { if (formTab.parentNode) { formTab.remove(); restoreBtn(); } }, 400);
+    };
+
+    // Подтверждение и отправка на сервер
+    const submit = async () => {
+        const name = input.value.trim();
+        if (!name) { cancel(true); return; }
+        if (isResolved) return;
+        isResolved = true;
+
+        input.disabled = true;
+        formTab.classList.add('is-submitting');
+        document.body.classList.add('is-locked-tabs');
+
+        try {
+            const newWs = await createWorkspaceAPI(name);
+            state.workspaces.push(newWs);
+            state.activeWorkspaceId = newWs.id;
+            updateSettings({ active_workspace_id: newWs.id }).catch(console.error);
+
+            // Перезагружаем интерфейс доски (передаем newWs.id для анимации 'рождения' вкладки)
+            await refreshBoard(true, newWs.id);
+
+            const tabsCont = document.getElementById('tabs-container');
+            tabsCont.scrollTo({ left: tabsCont.scrollWidth, behavior: 'smooth' });
+            setTimeout(() => document.body.classList.remove('is-locked-tabs'), 450);
+
+        } catch (err) {
+            console.error(err);
+            isResolved = false;
+            input.disabled = false;
+            formTab.classList.remove('is-submitting');
+            formTab.classList.add('is-error');
+            setTimeout(() => formTab.classList.remove('is-error'), 400);
+            input.focus();
+            document.body.classList.remove('is-locked-tabs');
+        }
+    };
+
+    input.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Enter') { ev.preventDefault(); submit(); }
+        if (ev.key === 'Escape') { ev.preventDefault(); cancel(true); }
+    });
+
+    input.addEventListener('blur', () => {
+        if (isResolved) return;
+        requestAnimationFrame(() => {
+            if (isResolved) return;
+            const active = document.activeElement;
+            // Если кликнули на другую кнопку +, закрываем без анимации
+            if (active && active.closest('.add-tab-btn')) { cancel(false); return; }
+            if (input.value.trim()) submit(); else cancel(true);
+        });
+    });
 }
 
 // ---------- МЕНЮ КОЛОНКИ ----------
@@ -1845,25 +1966,22 @@ function initTooltip() {
     document.addEventListener('mouseover', (e) => {
         if (typeof isDragging !== 'undefined' && isDragging) return;
 
-        const titleEl = e.target.closest('.column-title');
+        // Теперь ловим и заголовки колонок, и имена вкладок
+        const titleEl = e.target.closest('.column-title, .tab-name');
         if (!titleEl) return;
 
-        // --- 🛠 ИСПРАВЛЕННАЯ ЛОГИКА ПРОВЕРКИ ОБРЕЗКИ ТЕКСТА ---
         let isActuallyClamped = false;
         
-        if (titleEl.closest('.column.collapsed')) {
-            // В свернутой колонке мы вручную режем строку и ставим '…' через JS, 
-            // поэтому здесь флаг работает безупречно.
+        if (titleEl.classList.contains('tab-name')) {
+            // Для вкладок обрезка идет через CSS (ellipsis)
+            // Текст обрезан, если его физическая ширина (scrollWidth) больше видимой
+            isActuallyClamped = titleEl.scrollWidth > titleEl.clientWidth;
+        } else if (titleEl.closest('.column.collapsed')) {
             isActuallyClamped = titleEl.dataset.clamped === 'true';
         } else {
-            // В развернутой колонке обрезку делает CSS (-webkit-line-clamp).
-            // Единственный 100% точный способ узнать, появилось ли троеточие:
-            // сравнить полную высоту контента с видимой. Если текст обрезался,
-            // scrollHeight будет больше. (Добавляем запас в 2px от субпиксельных погрешностей).
             isActuallyClamped = titleEl.scrollHeight > (titleEl.clientHeight + 2);
         }
 
-        // Если текст физически полностью помещается — отменяем тултип!
         if (!isActuallyClamped) return;
         // -----------------------------------------------------
 
@@ -1901,7 +2019,7 @@ function initTooltip() {
     });
 
     document.addEventListener('mouseout', (e) => {
-        const titleEl = e.target.closest('.column-title');
+        const titleEl = e.target.closest('.column-title, .tab-name');
         if (titleEl && titleEl === activeTitle) {
             activeTitle = null;
             tooltip.classList.remove('visible');
