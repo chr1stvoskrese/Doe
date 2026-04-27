@@ -6,6 +6,7 @@ from fastapi.responses import FileResponse, HTMLResponse
 from src.core.config import get_ui_settings
 from pathlib import Path
 import uvicorn
+import sys
 
 from src.api.v1 import columns, tasks, system # <-- Подключили system
 from src.db.database import init_dev_database, close_database
@@ -39,7 +40,14 @@ app.include_router(tasks.router, prefix="/api/v1")
 app.include_router(system.router, prefix="/api/v1")
 app.include_router(workspaces.router, prefix="/api/v1")
 
-frontend_path = Path(__file__).parent / "frontend"
+# Магия для PyInstaller: когда приложение скомпилировано в .app, 
+# файлы распаковываются во временную папку sys._MEIPASS
+if getattr(sys, 'frozen', False):
+    base_dir = Path(sys._MEIPASS)
+else:
+    base_dir = Path(__file__).parent
+
+frontend_path = base_dir / "frontend"
 app.mount("/static", StaticFiles(directory=frontend_path), name="static")
 
 @app.get("/app", response_class=HTMLResponse)

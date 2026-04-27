@@ -7,3 +7,5 @@ alembic==1.14.0
 python-multipart==0.0.20
 greenlet==3.1.1
 pyperclip==1.9.0
+pywebview==4.4.1
+pyinstaller==6.11.1

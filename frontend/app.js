@@ -2037,40 +2037,65 @@ function initTooltip() {
 (async () => {
     initTooltip();
 
-    // === ИСПРАВЛЕНО: ЛОГИКА ТУМАНА ДЛЯ ВКЛАДОК ===
     const tabsContainer = document.getElementById('tabs-container');
     tabsContainer.addEventListener('scroll', () => {
-        // Если проскроллили вправо больше чем на 2 пикселя - включаем туман
         if (tabsContainer.scrollLeft > 2) {
             tabsContainer.classList.add('is-scrolled');
         } else {
             tabsContainer.classList.remove('is-scrolled');
         }
     });
-    // =============================================
 
-    // 1. Быстро применяем локальные данные, чтобы не было "моргания" белого цвета
     applyLanguage(localStorage.getItem('doe-lang') || 'ru', false);
     applyTheme(localStorage.getItem('doe-theme') || 'light', false);
 
-    // 2. Получаем настройки с сервера (если чистили кэш - они восстановятся из .doe_config.json)
     try {
-        const settings = await fetchSettings();
+        const [settings, vault, workspaces] = await Promise.all([
+            fetchSettings().catch(() => ({})),
+            fetchVault().catch(() => ({name: "Doe Board"})),
+            fetchWorkspaces().catch(() => [])
+        ]);
+
         if (settings.language) applyLanguage(settings.language, false);
         if (settings.theme) applyTheme(settings.theme, false);
         if (settings.active_workspace_id) state.activeWorkspaceId = settings.active_workspace_id;
-    } catch (e) {
-        console.error("Ошибка загрузки настроек UI", e);
-    }
 
-    try {
-        const vault = await fetchVault();
         updateVaultName(vault.name);
+
+        state.workspaces = workspaces;
+        if (state.workspaces.length === 0) {
+            const ws = await createWorkspaceAPI("Main");
+            state.workspaces.push(ws);
+        }
+        if (!state.activeWorkspaceId || !state.workspaces.find(w => w.id === state.activeWorkspaceId)) {
+            state.activeWorkspaceId = state.workspaces[0].id;
+        }
+
+        renderTabs(true);
+
+        const columns = await fetchColumns(state.activeWorkspaceId);
+        state.columns = columns.map(col => ({ ...col, collapsed: col.collapsed || false }));
+        renderBoard();
+
     } catch (e) {
-        console.error("Ошибка загрузки хранилища", e);
+        console.error("Ошибка загрузки данных", e);
     }
     
-    await refreshBoard(true); // 🚀 Вызываем с true при первом запуске
+    // 🚀 МАГИЯ: Даем команду ОС macOS показать окно.
+    // Функция вызывается ТОЛЬКО когда DOM уже полностью построен.
+    const revealNativeWindow = () => {
+        if (window.pywebview && window.pywebview.api) {
+            window.pywebview.api.reveal_window();
+        }
+    };
+
+    // pywebview инжектится асинхронно, поэтому ждем его готовности
+    if (window.pywebview) {
+        revealNativeWindow();
+    } else {
+        window.addEventListener('pywebviewready', revealNativeWindow);
+    }
+    
     setInterval(updateTimers, 250);
     
     let isResizing = false;

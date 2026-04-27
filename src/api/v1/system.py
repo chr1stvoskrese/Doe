@@ -3,9 +3,10 @@ from pydantic import BaseModel
 from typing import Optional
 import asyncio
 from pathlib import Path
+import sys
 
 from src.db.database import switch_vault
-from src.core.config import get_active_vault, get_ui_settings, set_ui_settings # Добавили настройки UI
+from src.core.config import get_active_vault, get_ui_settings, set_ui_settings
 
 
 router = APIRouter(prefix="/system", tags=["system"])
@@ -23,30 +24,44 @@ async def get_vault():
 
 @router.post("/vault/switch", response_model=VaultResponse)
 async def switch_vault_endpoint():
-    # Возвращаем привязку окна к активному приложению (браузеру)
-    script = """
-    try
-        tell application (path to frontmost application as text)
-            set myFolder to choose folder with prompt "Выберите хранилище (Doe Vault)"
-            return POSIX path of myFolder
-        end tell
-    on error number -128
-        return ""
-    end try
-    """
-    
-    process = await asyncio.create_subprocess_exec(
-        'osascript', '-e', script,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE
-    )
-    stdout, stderr = await process.communicate()
-    
-    if process.returncode != 0:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Ошибка вызова диалога macOS")
+    new_path = ""
+
+    # Если мы на macOS
+    if sys.platform == 'darwin':
+        script = """
+        try
+            tell application (path to frontmost application as text)
+                set myFolder to choose folder with prompt "Выберите хранилище (Doe Vault)"
+                return POSIX path of myFolder
+            end tell
+        on error number -128
+            return ""
+        end try
+        """
+        process = await asyncio.create_subprocess_exec(
+            'osascript', '-e', script,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+        stdout, _ = await process.communicate()
+        if process.returncode != 0:
+            raise HTTPException(status_code=500, detail="Ошибка вызова диалога macOS")
+        new_path = stdout.decode('utf-8').strip()
+
+    # Если мы на Windows / Linux
+    else:
+        import tkinter as tk
+        from tkinter import filedialog
         
-    new_path = stdout.decode('utf-8').strip()
-    
+        # Создаем скрытое окно
+        root = tk.Tk()
+        root.withdraw()
+        # Выводим поверх всех окон
+        root.attributes('-topmost', True)
+        
+        new_path = filedialog.askdirectory(title="Выберите хранилище (Doe Vault)")
+        root.destroy()
+
     # Если нажали "Отмена"
     if not new_path:
         return VaultResponse(canceled=True)
@@ -54,6 +69,7 @@ async def switch_vault_endpoint():
     await switch_vault(new_path)
     name = Path(new_path).resolve().name
     return VaultResponse(name=name, path=new_path, canceled=False)
+
 
 class SettingsUpdate(BaseModel):
     theme: Optional[str] = None
