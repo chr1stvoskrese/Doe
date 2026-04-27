@@ -10,6 +10,10 @@ import uvicorn
 from src.api.v1 import columns, tasks, system # <-- Подключили system
 from src.db.database import init_dev_database, close_database
 
+# 1. ДОБАВЛЯЕМ workspaces В ИМПОРТ
+from src.api.v1 import columns, tasks, system, workspaces 
+from src.db.database import init_dev_database, close_database
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     vault_path = await init_dev_database()
@@ -32,7 +36,8 @@ app.add_middleware(
 
 app.include_router(columns.router, prefix="/api/v1")
 app.include_router(tasks.router, prefix="/api/v1")
-app.include_router(system.router, prefix="/api/v1") # <-- Подключили роутер
+app.include_router(system.router, prefix="/api/v1")
+app.include_router(workspaces.router, prefix="/api/v1")
 
 frontend_path = Path(__file__).parent / "frontend"
 app.mount("/static", StaticFiles(directory=frontend_path), name="static")

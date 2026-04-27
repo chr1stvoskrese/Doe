@@ -15,6 +15,7 @@ def get_database_url(vault_path: str) -> str:
     db_file = os.path.join(vault_path, "board.db")
     return f"sqlite+aiosqlite:///{db_file}"
 
+# --- ИЗМЕНИТЬ ФУНКЦИЮ init_database В src/db/database.py ---
 async def init_database(vault_path: str):
     global _engine, _session_factory
     database_url = get_database_url(vault_path)
@@ -24,17 +25,26 @@ async def init_database(vault_path: str):
     async with _engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     
-    from .models import ColumnModel, ColumnMode
+    from .models import WorkspaceModel, ColumnModel, ColumnMode
     async with _session_factory() as session:
-        result = await session.execute(select(ColumnModel).limit(1))
+        # Проверяем наличие вкладок
+        result = await session.execute(select(WorkspaceModel).limit(1))
         if result.first() is None:
+            # Создаем дефолтную вкладку
+            default_ws = WorkspaceModel(name="Начальная вкладка", position=1.0) # Как на скрине
+            session.add(default_ws)
+            await session.commit()
+            await session.refresh(default_ws)
+
+            # Создаем колонки и привязываем к вкладке
             default_columns =[
-                ColumnModel(title="Входящие", mode=ColumnMode.DEFAULT, position=1.0),
-                ColumnModel(title="В работе", mode=ColumnMode.TRACK_TIME, position=2.0),
-                ColumnModel(title="Готово", mode=ColumnMode.COMPLETION, position=3.0),
+                ColumnModel(title="Входящие", mode=ColumnMode.DEFAULT, position=1.0, workspace_id=default_ws.id),
+                ColumnModel(title="В работе", mode=ColumnMode.TRACK_TIME, position=2.0, workspace_id=default_ws.id),
+                ColumnModel(title="Готово", mode=ColumnMode.COMPLETION, position=3.0, workspace_id=default_ws.id),
             ]
             session.add_all(default_columns)
             await session.commit()
+
 
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
     if _session_factory is None:

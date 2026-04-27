@@ -1,5 +1,5 @@
 // ---------- ГЛОБАЛЬНОЕ СОСТОЯНИЕ ----------
-let state = { columns: [] };
+let state = { columns: [], workspaces: [], activeWorkspaceId: null };
 const API_BASE = '/api/v1';
 
 // ---------- ЛОКАЛИЗАЦИЯ ----------
@@ -16,7 +16,10 @@ const translations = {
             deleteConfirmTitle: 'Удалить колонку?',
             deleteConfirmDesc: 'Все задачи внутри будут потеряны.',
             clearConfirmTitle: 'Очистить колонку?',
-            clearConfirmDesc: 'Все задачи внутри будут удалены безвозвратно.'
+            clearConfirmDesc: 'Все задачи внутри будут удалены безвозвратно.',
+            newTabTitle: 'Название новой вкладки:',
+            deleteTabConfirm: 'Удалить вкладку?',
+            deleteTabDesc: 'Вкладка и все колонки в ней будут удалены навсегда.'
         },
         alerts: { loadError: 'Не удалось загрузить доску', error: 'Ошибка' }
     },
@@ -32,7 +35,10 @@ const translations = {
             deleteConfirmTitle: 'Delete column?',
             deleteConfirmDesc: 'All tasks inside will be lost.',
             clearConfirmTitle: 'Clear column?',
-            clearConfirmDesc: 'All tasks inside will be permanently deleted.'
+            clearConfirmDesc: 'All tasks inside will be permanently deleted.',
+            newTabTitle: 'New tab name:',
+            deleteTabConfirm: 'Delete tab?',
+            deleteTabDesc: 'The tab and all its columns will be deleted permanently.'
         },
         alerts: { loadError: 'Failed to load board', error: 'Error' }
     }
@@ -88,6 +94,26 @@ function t(key, ...args) {
 
 // ---------- API-КЛИЕНТ ----------
 
+async function saveWorkspacesOrder(orderedIds) {
+    const res = await fetch(`${API_BASE}/workspaces/reorder`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ordered_ids: orderedIds })
+    });
+    if (!res.ok) throw new Error('Error');
+}
+
+async function fetchWorkspaces() { 
+    const res = await fetch(`${API_BASE}/workspaces/`); 
+    if (!res.ok) throw new Error('Error'); return res.json(); 
+}
+async function createWorkspaceAPI(name) { 
+    const res = await fetch(`${API_BASE}/workspaces/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) });
+    if (!res.ok) throw new Error('Error'); return res.json();
+}
+async function deleteWorkspaceAPI(id) { 
+    const res = await fetch(`${API_BASE}/workspaces/${id}`, { method: 'DELETE' }); 
+    if (!res.ok) throw new Error('Error'); 
+}
+
 async function fetchVault() {
     const res = await fetch(`${API_BASE}/system/vault`);
     if (!res.ok) throw new Error('Error fetch vault');
@@ -115,15 +141,23 @@ async function saveTasksOrder(orderedIds) {
     if (!res.ok) throw new Error('Error');
 }
 
-async function fetchColumns() { const res = await fetch(`${API_BASE}/columns/`); if (!res.ok) throw new Error('Error'); return res.json(); }
+async function fetchColumns(workspaceId) { 
+    const res = await fetch(`${API_BASE}/columns/?workspace_id=${workspaceId}`); 
+    if (!res.ok) throw new Error('Error'); return res.json(); 
+}
+
 async function saveColumnsOrder(orderedIds) {
     const res = await fetch(`${API_BASE}/columns/reorder`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ordered_ids: orderedIds })
     });
     if (!res.ok) throw new Error('Error');
 }
-async function createColumn(title, mode = 'default') {
-    const res = await fetch(`${API_BASE}/columns/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title, mode }) });
+async function createColumn(title, mode = 'default', workspaceId) {
+    const res = await fetch(`${API_BASE}/columns/`, { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ title, mode, workspace_id: workspaceId }) 
+    });
     if (!res.ok) throw new Error('Error'); return res.json();
 }
 async function updateColumn(id, data) {
@@ -334,12 +368,33 @@ function createColumnElement(column) {
 }
 // --- КОНЕЦ ВСТАВКИ 1 ---
 
-async function refreshBoard() {
+async function refreshBoard(scrollToActive = false) {
     try {
-        const columns = await fetchColumns();
+        // 1. Запрашиваем вкладки
+        state.workspaces = await fetchWorkspaces();
+        
+        // Предохранитель (если БД пустая)
+        if (state.workspaces.length === 0) {
+            const ws = await createWorkspaceAPI("Main");
+            state.workspaces.push(ws);
+        }
+
+        // Если активная вкладка не выбрана или была удалена с другого устройства - берем первую
+        if (!state.activeWorkspaceId || !state.workspaces.find(w => w.id === state.activeWorkspaceId)) {
+            state.activeWorkspaceId = state.workspaces[0].id;
+        }
+
+        renderTabs(scrollToActive);
+
+        // 2. Запрашиваем колонки только для активной вкладки
+        const columns = await fetchColumns(state.activeWorkspaceId);
         state.columns = columns.map(col => ({ ...col, collapsed: col.collapsed || false }));
         renderBoard();
-    } catch (e) { console.error(e); alert(t('alerts.loadError')); }
+        
+    } catch (e) { 
+        console.error(e); 
+        // Если ошибка — не ломаем UI полностью
+    }
 }
 
 // --- НАЧАЛО ВСТАВКИ 2 ---
@@ -693,7 +748,7 @@ async function onCreateColumn() {
         formCol.classList.add('is-submitting');
 
         try {
-            const newColumn = await createColumn(title, 'default');
+            const newColumn = await createColumn(title, 'default', state.activeWorkspaceId);
 
             state.columns.push({
                 ...newColumn,
@@ -775,6 +830,107 @@ async function onCreateColumn() {
             }
         });
     });
+}
+
+// ---------- РЕНДЕРИНГ ВКЛАДОК ----------
+function renderTabs(scrollToActive = false) {
+    const container = document.getElementById('tabs-container');
+    const savedScroll = container.scrollLeft; // 🚀 СОХРАНЯЕМ СКРОЛЛ
+    container.innerHTML = '';
+
+    state.workspaces.sort((a, b) => a.position - b.position);
+
+    state.workspaces.forEach(ws => {
+        const tab = document.createElement('div');
+        tab.className = `board-tab ${ws.id === state.activeWorkspaceId ? 'active' : ''}`;
+        tab.dataset.workspaceId = ws.id; 
+        tab.setAttribute('draggable', 'true'); 
+        
+        const canDelete = state.workspaces.length > 1;
+        tab.innerHTML = `
+            <span class="tab-name">${escapeHtml(ws.name)}</span>
+            <button class="tab-close-btn ${!canDelete ? 'hidden' : ''}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+        `;
+
+        tab.addEventListener('click', (e) => {
+            if (e.target.closest('.tab-close-btn')) return;
+            if (ws.id !== state.activeWorkspaceId) {
+                state.activeWorkspaceId = ws.id;
+                updateSettings({ active_workspace_id: ws.id }).catch(console.error);
+                refreshBoard();
+            }
+        });
+
+        if (canDelete) {
+            tab.querySelector('.tab-close-btn').addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const isConfirmed = await showConfirmModal(t('prompts.deleteTabConfirm'), t('prompts.deleteTabDesc'));
+                if (!isConfirmed) return;
+
+                try {
+                    await deleteWorkspaceAPI(ws.id);
+                    state.workspaces = state.workspaces.filter(w => w.id !== ws.id);
+                    if (ws.id === state.activeWorkspaceId) {
+                        state.activeWorkspaceId = state.workspaces[0].id;
+                        // 🚀 Сообщаем бэкенду, что мы переключились на другую (соседнюю) вкладку
+                        updateSettings({ active_workspace_id: state.activeWorkspaceId }).catch(console.error);
+                    }
+                    refreshBoard();
+                } catch (err) { alert(t('alerts.error')); }
+            });
+        }
+        container.appendChild(tab);
+    });
+
+    const addBtn = document.createElement('button');
+    addBtn.className = 'add-tab-btn';
+    addBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>';
+    
+    addBtn.addEventListener('click', async (e) => {
+            e.currentTarget.blur(); 
+            const name = prompt(t('prompts.newTabTitle'))?.trim();
+            if (!name) return;
+            
+            // 🚀 БЛОКИРУЕМ HOVER ДО ПЕРЕРИСОВКИ DOM, чтобы кнопка не "захватила" мышь
+            document.body.classList.add('is-locked-tabs');
+
+            try {
+                const newWs = await createWorkspaceAPI(name);
+                state.workspaces.push(newWs);
+                state.activeWorkspaceId = newWs.id;
+                updateSettings({ active_workspace_id: newWs.id }).catch(console.error);
+                
+                await refreshBoard(); // Здесь кнопка создается, но она уже "слепая" к мыши
+                
+                const container = document.getElementById('tabs-container');
+                container.scrollTo({ left: container.scrollWidth, behavior: 'smooth' });
+
+                // 🚀 Снимаем блокировку только когда прокрутка полностью завершилась
+                setTimeout(() => { 
+                    document.body.classList.remove('is-locked-tabs'); 
+                }, 450);
+
+            } catch (err) {
+                document.body.classList.remove('is-locked-tabs');
+                alert(t('alerts.error'));
+            }
+    });
+    
+    container.appendChild(addBtn);
+
+    if (scrollToActive) {
+        // 🚀 МОМЕНТАЛЬНО прокручиваем к активной вкладке без анимации
+        requestAnimationFrame(() => {
+            const activeTab = container.querySelector('.board-tab.active');
+            if (activeTab) {
+                activeTab.scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'center' });
+            }
+        });
+    } else {
+        container.scrollLeft = savedScroll; // 🚀 Иначе восстанавливаем позицию пользователя
+    }
 }
 
 // ---------- МЕНЮ КОЛОНКИ ----------
@@ -1109,7 +1265,7 @@ const emptyImg = new Image();
 emptyImg.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
 
 document.addEventListener('dragstart', (e) => {
-    // ЖЁСТКАЯ БЛОКИРОВКА: запрещаем перетаскивать формы ввода и элементы в режиме редактирования
+    // Блокируем старт драга на инпутах и кнопках меню
     if (e.target.closest('.column.is-renaming') || 
         e.target.closest('.card-entering') || 
         e.target.closest('textarea') || 
@@ -1118,25 +1274,30 @@ document.addEventListener('dragstart', (e) => {
         return; 
     }
 
-    if (e.target.closest('.menu-btn') || e.target.closest('.btn-add-card')) {
+    if (e.target.closest('.menu-btn') || e.target.closest('.btn-add-card') || e.target.closest('.tab-close-btn')) {
         e.preventDefault(); return;
     }
 
+    // Определяем, что именно мы схватили
     const card = e.target.closest('.card');
     const column = e.target.closest('.column');
+    const tab = e.target.closest('.board-tab');
 
     if (card) {
         dragType = 'card';
         draggedElement = card;
-        e.dataTransfer.setData('text/plain', card.dataset.cardId);
-        // Запоминаем из какой колонки мы достали карточку
+        e.dataTransfer.setData('text/plain', card.dataset.cardId); // text/plain
         draggedElement.dataset.sourceColumnId = column.dataset.columnId;
     } else if (column) {
         dragType = 'column';
         draggedElement = column;
-        e.dataTransfer.setData('text/column', column.dataset.columnId); 
+        e.dataTransfer.setData('text/plain', column.dataset.columnId); // text/plain вместо text/column
+    } else if (tab) {
+        dragType = 'tab';
+        draggedElement = tab;
+        e.dataTransfer.setData('text/plain', tab.dataset.workspaceId); // text/plain вместо text/tab
     } else {
-        return;
+        return; 
     }
 
     e.dataTransfer.setDragImage(emptyImg, 0, 0);
@@ -1155,6 +1316,7 @@ document.addEventListener('dragstart', (e) => {
 
     if (dragType === 'card') dragClone.classList.add('card-drag-clone');
     if (dragType === 'column') dragClone.classList.add('column-drag-clone');
+    if (dragType === 'tab') dragClone.classList.add('tab-drag-clone');
 
     document.body.appendChild(dragClone);
     document.body.classList.add(`is-dragging-${dragType}`);
@@ -1178,6 +1340,22 @@ document.addEventListener('dragover', (e) => {
     mouseX = e.clientX;
     mouseY = e.clientY;
 
+    // Сортировка ВКЛАДОК
+    if (dragType === 'tab') {
+        const hoverTab = e.target.closest('.board-tab');
+        if (hoverTab && hoverTab !== draggedElement && !hoverTab.classList.contains('is-ghost') && hoverTab.closest('#tabs-container')) {
+            const rect = hoverTab.getBoundingClientRect();
+            const midX = rect.left + rect.width / 2;
+            
+            if (mouseX > midX) {
+                if (hoverTab.nextElementSibling !== draggedElement) hoverTab.after(draggedElement);
+            } else {
+                if (hoverTab.previousElementSibling !== draggedElement) hoverTab.before(draggedElement);
+            }
+        }
+    }
+
+    // Сортировка КОЛОНОК
     if (dragType === 'column') {
         const hoverColumn = e.target.closest('.column');
         if (hoverColumn && hoverColumn !== draggedElement && !hoverColumn.classList.contains('is-ghost') && hoverColumn.closest('#board')) {
@@ -1192,6 +1370,7 @@ document.addEventListener('dragover', (e) => {
         }
     }
 
+    // Сортировка КАРТОЧЕК
     if (dragType === 'card') {
         const hoverColumn = e.target.closest('.column');
         if (!hoverColumn || hoverColumn.classList.contains('is-ghost')) return;
@@ -1201,7 +1380,6 @@ document.addEventListener('dragover', (e) => {
 
         const hoverCard = e.target.closest('.card:not(.is-ghost):not(.card-drag-clone)');
 
-        // Логика сортировки по Y-оси внутри колонки
         if (hoverCard && hoverCard !== draggedElement) {
             const rect = hoverCard.getBoundingClientRect();
             const midY = rect.top + rect.height / 2;
@@ -1212,7 +1390,6 @@ document.addEventListener('dragover', (e) => {
                 if (hoverCard.previousElementSibling !== draggedElement) hoverCard.before(draggedElement);
             }
         } else if (!hoverCard) {
-            // Если мышка над пустой областью списка карточек или пустой колонкой
             if (!cardList.contains(draggedElement)) {
                 cardList.appendChild(draggedElement);
             }
@@ -1225,7 +1402,8 @@ function renderPhysics() {
     const deltaX = mouseX - lastMouseX;
     lastMouseX = mouseX;
     
-    const maxRotation = dragType === 'column' ? 3 : 12; 
+    // Вкладки наклоняем слабее (3 градуса), карточки сильнее (12 градусов)
+    const maxRotation = dragType === 'tab' ? 3 : (dragType === 'column' ? 3 : 12); 
     targetRotation = Math.max(-maxRotation, Math.min(maxRotation, deltaX * 0.4));
     currentRotation += (targetRotation - currentRotation) * 0.15;
     targetRotation *= 0.8;
@@ -1239,12 +1417,39 @@ function renderPhysics() {
     rafId = requestAnimationFrame(renderPhysics);
 }
 
-document.addEventListener('dragend', async () => {
+document.addEventListener('dragend', async (e) => {
     if (!isDragging) return;
     isDragging = false;
     cancelAnimationFrame(rafId);
     
-    document.body.classList.remove('is-dragging-column', 'is-dragging-card');
+    // Снимаем классы перетаскивания
+    document.body.classList.remove('is-dragging-column', 'is-dragging-card', 'is-dragging-tab');
+    
+    // 🔥 ЖЕЛЕЗОБЕТОННЫЙ ФИКС САМОПРОИЗВОЛЬНОГО ЗАГОРАНИЯ 🔥
+    // Блокируем hover для всех вкладок в момент броска
+    document.body.classList.add('is-dropping-tab');
+    
+    // Берём глобальные mouseX/mouseY (так как e.clientX в dragend на macOS часто отдаёт 0)
+    const dropX = mouseX;
+    const dropY = mouseY;
+    
+    const unlockHover = (ev) => {
+        // Снимаем блокировку, только когда ты реально сдвинул мышь на 3 пикселя
+        if (Math.abs(ev.clientX - dropX) > 3 || Math.abs(ev.clientY - dropY) > 3) {
+            document.body.classList.remove('is-dropping-tab');
+            document.removeEventListener('mousemove', unlockHover);
+        }
+    };
+    
+    // Даём 50мс, чтобы браузер не словил фантомное микро-движение от самого отпускания клика
+    setTimeout(() => { document.addEventListener('mousemove', unlockHover); }, 50);
+    
+    // Предохранитель: через 500мс разблокируем в любом случае, даже если мышь замерла
+    setTimeout(() => {
+        document.body.classList.remove('is-dropping-tab');
+        document.removeEventListener('mousemove', unlockHover);
+    }, 500);
+    // ==========================================
     
     if (dragClone) {
         dragClone.remove();
@@ -1254,6 +1459,18 @@ document.addEventListener('dragend', async () => {
     if (draggedElement) {
         draggedElement.classList.remove('is-ghost');
         
+        // --- ЗАВЕРШЕНИЕ ПЕРЕТАСКИВАНИЯ ВКЛАДКИ ---
+        if (dragType === 'tab') {
+            const currentTabs = Array.from(document.querySelectorAll('#tabs-container .board-tab'));
+            const orderedIds = currentTabs.map(tab => parseInt(tab.dataset.workspaceId));
+            
+            state.workspaces.forEach(ws => { ws.position = orderedIds.indexOf(ws.id); });
+            renderTabs(); 
+            
+            try { await saveWorkspacesOrder(orderedIds); } 
+            catch (error) { console.error("Ошибка сохранения порядка вкладок", error); }
+        }
+
         // --- ЗАВЕРШЕНИЕ ПЕРЕТАСКИВАНИЯ КОЛОНКИ ---
         if (dragType === 'column') {
             const currentColumns = Array.from(document.querySelectorAll('#board .column'));
@@ -1287,7 +1504,6 @@ document.addEventListener('dragend', async () => {
 
                     if (newColumnId !== sourceColumnId) {
                         
-                        // --- РАСШИРЕННЫЙ ОПТИМИСТИЧНЫЙ UI (мгновенная смена визуала) ---
                         if (targetCol.mode === 'track_time') {
                             draggedElement.classList.remove('is-completed');
                             let timerEl = draggedElement.querySelector('.card-timer');
@@ -1309,15 +1525,13 @@ document.addEventListener('dragend', async () => {
                             const timerEl = draggedElement.querySelector('.card-timer');
                             if (timerEl) timerEl.remove();
                         }
-                        // ---------------------------------------------------------------
 
                         const updatedTask = await moveTask(taskId, newColumnId);
                         
-                        // Обновляем локальный стейт
                         if (sourceCol && targetCol) {
                             const taskIndex = sourceCol.tasks.findIndex(t => t.id == taskId);
                             if (taskIndex !== -1) {
-                                const [movedTask] = sourceCol.tasks.splice(taskIndex, 1);
+                                const[movedTask] = sourceCol.tasks.splice(taskIndex, 1);
                                 movedTask.column_id = newColumnId; 
                                 movedTask.completed_at = updatedTask.completed_at;
                                 movedTask.active_timer = updatedTask.active_timer; 
@@ -1326,10 +1540,7 @@ document.addEventListener('dragend', async () => {
                             }
                         }
                         
-                        // Финальное обновление UI по реальным данным с бэкенда
                         updateCardAppearance(draggedElement, updatedTask, targetCol.mode);
-                        
-                        // ВАЖНО: Запоминаем новую колонку, чтобы последующие драги не ломали стейт!
                         draggedElement.dataset.sourceColumnId = newColumnId;
                     }
 
@@ -1425,7 +1636,14 @@ document.addEventListener('click', (e) => {
                 }
                 
                 updateVaultName(vault.name);
-                await refreshBoard();
+                
+                // 🚀 Запрашиваем настройки заново для нового хранилища
+                try {
+                    const settings = await fetchSettings();
+                    state.activeWorkspaceId = settings.active_workspace_id || null;
+                } catch (e) { console.error("Ошибка загрузки настроек нового хранилища", e); }
+                
+                await refreshBoard(true); // 🚀 Вызываем с true при смене хранилища
                 btn.style.pointerEvents = 'auto';
                 btn.style.opacity = '1';
             }).catch(err => {
@@ -1701,6 +1919,18 @@ function initTooltip() {
 (async () => {
     initTooltip();
 
+    // === ИСПРАВЛЕНО: ЛОГИКА ТУМАНА ДЛЯ ВКЛАДОК ===
+    const tabsContainer = document.getElementById('tabs-container');
+    tabsContainer.addEventListener('scroll', () => {
+        // Если проскроллили вправо больше чем на 2 пикселя - включаем туман
+        if (tabsContainer.scrollLeft > 2) {
+            tabsContainer.classList.add('is-scrolled');
+        } else {
+            tabsContainer.classList.remove('is-scrolled');
+        }
+    });
+    // =============================================
+
     // 1. Быстро применяем локальные данные, чтобы не было "моргания" белого цвета
     applyLanguage(localStorage.getItem('doe-lang') || 'ru', false);
     applyTheme(localStorage.getItem('doe-theme') || 'light', false);
@@ -1710,6 +1940,7 @@ function initTooltip() {
         const settings = await fetchSettings();
         if (settings.language) applyLanguage(settings.language, false);
         if (settings.theme) applyTheme(settings.theme, false);
+        if (settings.active_workspace_id) state.activeWorkspaceId = settings.active_workspace_id;
     } catch (e) {
         console.error("Ошибка загрузки настроек UI", e);
     }
@@ -1721,7 +1952,7 @@ function initTooltip() {
         console.error("Ошибка загрузки хранилища", e);
     }
     
-    await refreshBoard();
+    await refreshBoard(true); // 🚀 Вызываем с true при первом запуске
     setInterval(updateTimers, 250);
     
     let isResizing = false;

@@ -32,18 +32,28 @@ def set_active_vault(vault_path: str) -> None:
     _save_config(data)
 
 def get_ui_settings() -> dict:
-    """Возвращает настройки интерфейса (тема, язык)."""
+    """Возвращает настройки интерфейса (тема, язык, активная вкладка)."""
     data = _load_config()
+    vault_path = get_active_vault()
+    active_workspaces = data.get("active_workspaces", {})
     return {
         "theme": data.get("theme", "light"),
-        "language": data.get("language", "ru")
+        "language": data.get("language", "ru"),
+        "active_workspace_id": active_workspaces.get(vault_path)
     }
 
-def set_ui_settings(theme: str = None, language: str = None) -> None:
+def set_ui_settings(theme: str = None, language: str = None, active_workspace_id: int = None) -> None:
     """Обновляет настройки интерфейса."""
     data = _load_config()
     if theme is not None:
         data["theme"] = theme
     if language is not None:
         data["language"] = language
+        
+    if active_workspace_id is not None:
+        vault_path = get_active_vault()
+        if "active_workspaces" not in data:
+            data["active_workspaces"] = {}
+        data["active_workspaces"][vault_path] = active_workspace_id
+        
     _save_config(data)

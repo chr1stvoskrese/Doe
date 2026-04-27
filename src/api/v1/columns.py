@@ -21,15 +21,19 @@ def schema_mode_to_db(mode: SchemaColumnMode) -> DBColumnMode:
 
 
 @router.get("/", response_model=List[ColumnResponse])
-async def get_columns(db: AsyncSession = Depends(get_session)):
-    # Теперь сервис возвращает готовые Pydantic-схемы
-    return await column_service.get_columns_with_tasks(db)
+async def get_columns(workspace_id: int, db: AsyncSession = Depends(get_session)): # Добавлен параметр
+    return await column_service.get_columns_with_tasks(db, workspace_id)
 
 
 @router.post("/", response_model=ColumnResponse, status_code=status.HTTP_201_CREATED)
 async def create_column(column_in: ColumnCreate, db: AsyncSession = Depends(get_session)):
     if column_in.position is None:
-        result = await db.execute(select(ColumnModel).order_by(ColumnModel.position.desc()).limit(1))
+        result = await db.execute(
+            select(ColumnModel)
+            .where(ColumnModel.workspace_id == column_in.workspace_id) # Фильтр по вкладке
+            .order_by(ColumnModel.position.desc())
+            .limit(1)
+        )
         last_col = result.scalar()
         new_position = (last_col.position + 1.0) if last_col else 1.0
     else:
@@ -39,6 +43,7 @@ async def create_column(column_in: ColumnCreate, db: AsyncSession = Depends(get_
         title=column_in.title,
         mode=schema_mode_to_db(column_in.mode),
         position=new_position,
+        workspace_id=column_in.workspace_id # Привязка к вкладке
     )
     db.add(db_column)
     await db.commit()

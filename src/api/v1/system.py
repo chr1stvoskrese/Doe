@@ -58,10 +58,12 @@ async def switch_vault_endpoint():
 class SettingsUpdate(BaseModel):
     theme: Optional[str] = None
     language: Optional[str] = None
+    active_workspace_id: Optional[int] = None
 
 class SettingsResponse(BaseModel):
     theme: str
     language: str
+    active_workspace_id: Optional[int] = None
 
 @router.get("/settings", response_model=SettingsResponse)
 async def get_settings_endpoint():
@@ -69,5 +71,9 @@ async def get_settings_endpoint():
 
 @router.put("/settings", response_model=SettingsResponse)
 async def update_settings_endpoint(settings: SettingsUpdate):
-    set_ui_settings(theme=settings.theme, language=settings.language)
+    set_ui_settings(
+        theme=settings.theme, 
+        language=settings.language,
+        active_workspace_id=settings.active_workspace_id
+    )
     return SettingsResponse(**get_ui_settings())

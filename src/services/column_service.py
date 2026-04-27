@@ -11,9 +11,10 @@ from src.schemas.column import ColumnResponse
 from src.schemas.task import TaskResponse, TimerSessionResponse
 
 
-async def get_columns_with_tasks(db: AsyncSession):
+async def get_columns_with_tasks(db: AsyncSession, workspace_id: int): # <--- ДОБАВИТЬ workspace_id: int
     stmt = (
         select(ColumnModel)
+        .where(ColumnModel.workspace_id == workspace_id) # <--- ФИЛЬТР ПО ВКЛАДКЕ
         .options(
             selectinload(ColumnModel.tasks).selectinload(TaskModel.subtasks)
         )

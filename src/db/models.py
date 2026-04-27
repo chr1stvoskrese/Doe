@@ -14,6 +14,15 @@ class ColumnMode(str, enum.Enum):
     TRACK_TIME = "track_time"
     COMPLETION = "completion"
 
+class WorkspaceModel(Base):
+    __tablename__ = "workspaces"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    position = Column(Float, default=0.0) # <--- ДОБАВЛЕНО ПОЛЕ
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    columns = relationship("ColumnModel", back_populates="workspace", cascade="all, delete-orphan", order_by="ColumnModel.position")
 
 class ColumnModel(Base):
     __tablename__ = "columns"
@@ -23,11 +32,12 @@ class ColumnModel(Base):
     mode = Column(Enum(ColumnMode), default=ColumnMode.DEFAULT)
     position = Column(Float, default=0.0)
     collapsed = Column(Boolean, default=False)
+    workspace_id = Column(Integer, ForeignKey("workspaces.id"), nullable=False) # СВЯЗЬ С ВКЛАДКОЙ
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+    workspace = relationship("WorkspaceModel", back_populates="columns")
     tasks = relationship("TaskModel", back_populates="column", cascade="all, delete-orphan", order_by="TaskModel.position")
-
 
 class TaskModel(Base):
     __tablename__ = "tasks"

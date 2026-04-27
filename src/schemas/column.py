@@ -23,6 +23,7 @@ class ColumnBase(BaseModel):
 
 class ColumnCreate(ColumnBase):
     position: Optional[float] = Field(None)
+    workspace_id: int # <--- ДОБАВИТЬ ЭТУ СТРОКУ
 
 
 class ColumnUpdate(BaseModel):

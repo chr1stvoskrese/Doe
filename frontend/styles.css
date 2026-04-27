@@ -129,17 +129,12 @@ body {
     isolation: isolate;         /* Создаем новый контекст наложения */
 }
 
-/* Стилизация верхней панели (шапки) */
 .app-header {
-    padding: 24px 48px;         /* Просторные отступы */
     display: flex;
-    align-items: center;        /* Центрирование элементов по вертикали */
-    gap: 24px;                  /* Расстояние между элементами */
-    flex-shrink: 0;             /* Шапка не сжимается по высоте */
-    position: relative;
-    z-index: 50;                /* Поверх доски */
-    transform: translateZ(0);   /* Форсируем аппаратное ускорение */
-    will-change: transform;
+    align-items: center;
+    /* ИСПРАВЛЕНО: Убрали правый отступ, чтобы контейнер вкладок тянулся до края окна */
+    padding: 16px 0 16px 24px; 
+    gap: 32px;
 }
 
 /* Обертка для кнопок настроек */
@@ -201,12 +196,10 @@ body {
 
 /* Основной контейнер, где живут колонки */
 .board-container {
-    flex: 1;                    /* Занимает всё оставшееся место */
+    flex: 1;                    
     padding: 0 0 48px 48px;
-    overflow-x: auto;           /* Горизонтальная прокрутка, если колонки не влезают */
-    overflow-y: hidden;         /* Вертикальная прокрутка внутри колонок, не здесь */
-    transform: translateZ(0);   /* Ускорение отрисовки */
-    will-change: transform;
+    overflow-x: auto;           
+    overflow-y: hidden;         
 }
 
 /* Внутренний контейнер доски */
@@ -718,26 +711,72 @@ body {
     pointer-events: none !important;
     margin: 0 !important;
     box-shadow: var(--shadow-drag) !important;
-    will-change: transform;
+    will-change: transform !important;
     opacity: 1 !important;
     display: flex !important;
     flex-direction: column !important;
     background: var(--bg-board) !important;
     border-radius: var(--radius-board) !important;
+    border: 1px solid var(--border-light) !important;
+
+    /* 🩹 FIX: Отключаем transition, чтобы наследованные от .column анимации 
+       не вызывали фризы при каждом кадре движения */
+    transition: none !important;
+
+    /* 🩹 FIX: Изолируем рендеринг клона — браузер не лезет пересчитывать 
+       layout всей страницы при движении */
+    contain: layout style paint !important;
+
+    /* 🩹 FIX: Обрезаем всё, что вылезает — убираем лишние repaint */
+    overflow: hidden !important;
+
+    /* 🩹 FIX: Явный курсор на время драга */
+    cursor: grabbing !important;
 }
 
 /* Запрет взаимодействия внутри клона колонки */
 .column-drag-clone * {
     pointer-events: none !important;
+
+    /* 🩹 FIX: Сбрасываем will-change у внутренностей, чтобы весь клон 
+       рендерился как ЕДИНЫЙ GPU-слой, а не как сотня мелких слоёв */
+    will-change: auto !important;
+
+    /* 🩹 FIX: Отключаем transition у всего содержимого */
+    transition: none !important;
 }
 
-/* Стиль для оригинала карточки, которая сейчас тащится (полупрозрачный призрак) */
+/* 🩹 FIX: Скрываем тяжелые/интерактивные элементы, которые не нужны в "полёте" 
+   и вызывают просадку FPS (backdrop-filter в меню, кнопки, скролл) */
+.column-drag-clone .dropdown-menu,
+.column-drag-clone .menu-btn,
+.column-drag-clone .btn-add-card {
+    display: none !important;
+}
+
+/* 🩹 FIX: Упрощаем карточки внутри летящей колонки — убираем hover-трансформации */
+.column-drag-clone .card {
+    transform: none !important;
+    box-shadow: var(--shadow-card) !important;
+}
+
+/* 🩹 FIX: Убираем overflow у списка, чтобы не было паразитного скролла 
+   и пересчёта размеров во время драга */
+.column-drag-clone .card-list {
+    overflow: visible !important;
+    scrollbar-width: none !important;
+}
+.column-drag-clone .card-list::-webkit-scrollbar {
+    display: none !important;
+}
+
 .card.is-ghost {
     opacity: 0.3 !important;
     background: var(--border-light) !important;
     box-shadow: none !important;
-    transform: none !important;
+    /* Убрали translateZ и will-change */
 }
+
 
 /* Стиль для оригинала колонки, которая тащится */
 .column.is-ghost {
@@ -746,10 +785,11 @@ body {
     box-shadow: none !important;
     opacity: 0.6 !important;
     transition: none !important;
+    pointer-events: none !important; /* <--- ДОБАВИТЬ ЭТО */
 }
 
 /* Скрываем содержимое внутри призрака колонки */
-.column.is-ghost>* {
+.column.is-ghost > * {
     visibility: hidden !important;
 }
 
@@ -1250,16 +1290,27 @@ body.is-dragging-card .column-header {
     background: rgba(137, 160, 133, 0.55);
 }
 
-/* Трюк для супер-плавной отрисовки шрифтов при трансформациях клонов (Drag & Drop) */
 .column-drag-clone,
 .card-drag-clone,
+.tab-drag-clone {
+    /* Оставляем только нужные оптимизации. 
+       JS сам задаст translate3d, что включит аппаратное ускорение */
+    backface-visibility: hidden !important; 
+    will-change: transform !important;
+    
+    /* Железобетонно отключаем события мыши, чтобы клон 
+       не перехватывал dragover под собой и не вызывал дерганий */
+    pointer-events: none !important; 
+}
+
+/* Сглаживание шрифтов применяем ко всем, это не нагружает GPU, но убирает мыло */
 .column-drag-clone *,
-.card-drag-clone * {
-    backface-visibility: hidden !important; /* Убирает микро-мерцание */
-    transform-style: preserve-3d !important; /* Плавность в 3D пространстве */
+.card-drag-clone *,
+.tab-drag-clone * {
     -webkit-font-smoothing: antialiased !important;
     -moz-osx-font-smoothing: grayscale !important;
 }
+
 
 /* Клон колонки, который остается для анимации удаления */
 .column-deleting-clone {
@@ -1521,4 +1572,297 @@ body.is-dragging-card .column-header {
     background: rgba(137, 160, 133, 0.35);
 }[data-theme="dark"] .card-input::-webkit-scrollbar-thumb:hover {
     background: rgba(137, 160, 133, 0.55);
+}
+
+/* ==========================================
+   СТИЛИ ВКЛАДОК (TABS)
+   ========================================== */
+
+.app-header {
+    display: flex;
+    align-items: center;
+    /* Убрали 24px справа, чтобы контейнер вкладок тянулся вплотную до правого края окна */
+    padding: 16px 0 16px 24px; 
+    gap: 32px;
+}
+
+.header-left-controls {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.tabs-container {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-mask-image: none;
+    mask-image: none;
+    transition: mask-image 0.2s ease, -webkit-mask-image 0.2s ease;
+}
+
+.tabs-container::after {
+    content: '';
+    min-width: 6px; /* В сумме с gap (6px) это даст ровно 24px идеального отступа от края экрана */
+    flex-shrink: 0;
+}
+
+.tabs-container.is-scrolled {
+    /* Делаем туман короче (основной срез на 16px) и более мягким через промежуточный шаг */
+    -webkit-mask-image: linear-gradient(to right, transparent 0px, rgba(0,0,0,0.7) 8px, black 16px, black 100%);
+    mask-image: linear-gradient(to right, transparent 0px, rgba(0,0,0,0.7) 8px, black 16px, black 100%);
+}
+
+.tabs-container::-webkit-scrollbar { display: none; }
+
+.board-tab {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    background: transparent;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: grab;
+    white-space: nowrap;
+    
+    /* 🚀 УБРАЛИ transition: background 0.2s, color 0.2s; — теперь ховер резкий */
+    
+    /* Для Drag & Drop и разделителей */
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-user-drag: element;
+    position: relative; 
+}
+
+.tab-name {
+    pointer-events: none;
+}
+
+.board-tab:hover {
+    background: rgba(0, 0, 0, 0.04);
+    color: var(--text-primary);
+}
+
+.board-tab.active {
+    background: var(--surface-card);
+    color: var(--text-primary);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.tab-close-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 6px;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    opacity: 0; /* Скрыт по умолчанию */
+    
+    /* 🚀 Прижимаем крестик ближе к правому краю вкладки */
+    margin-right: -8px; 
+    
+    /* 🚀 Убрали opacity из transition: теперь крестик появляется мгновенно, 
+       анимация осталась только для смены фона/цвета при наведении на сам крестик */
+    transition: background 0.15s, color 0.15s;
+}
+
+/* Показываем крестик только на активной или при наведении (если вкладок > 1) */
+.board-tab:hover .tab-close-btn:not(.hidden),
+.board-tab.active .tab-close-btn:not(.hidden) {
+    opacity: 1;
+}
+
+.tab-close-btn:hover {
+    background: rgba(0, 0, 0, 0.08);
+    color: var(--text-primary);
+}
+
+.tab-close-btn svg {
+    width: 14px;
+    height: 14px;
+}
+
+.tab-close-btn.hidden {
+    display: none !important;
+}
+
+.add-tab-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    flex-shrink: 0;
+    position: relative;
+    
+    /* 🚀 Здесь тоже убрали transition для консистентности интерфейса */
+}
+
+.add-tab-btn:hover {
+    background: rgba(0, 0, 0, 0.04);
+    color: var(--text-primary);
+}
+
+/* Стили вкладок для тёмной темы */
+[data-theme="dark"] .board-tab:hover { background: rgba(255, 255, 255, 0.06); }
+[data-theme="dark"] .board-tab.active { 
+    background: rgba(255, 255, 255, 0.08); 
+    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+[data-theme="dark"] .tab-close-btn:hover { background: rgba(255, 255, 255, 0.1); }
+[data-theme="dark"] .add-tab-btn:hover { background: rgba(255, 255, 255, 0.06); }
+
+/* Состояние вкладки, когда ее зажали */
+.board-tab:active {
+    cursor: grabbing;
+}
+
+/* Клон вкладки, летающий за курсором */
+.tab-drag-clone {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    transform-origin: top left !important;
+    z-index: 9999;
+    pointer-events: none !important;
+    margin: 0 !important;
+    box-shadow: var(--shadow-drag) !important;
+    will-change: transform;
+    opacity: 1 !important;
+    
+    /* Делаем её визуально активной, чтобы выглядела как плотная карточка */
+    background: var(--surface-card) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--border-light) !important;
+    padding: 6px 10px 6px 14px !important;
+    border-radius: 10px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+}
+
+/* Призрак-оригинал вкладки в шапке (остается полупрозрачным на месте) */
+.board-tab.is-ghost {
+    opacity: 0.4 !important;
+    background: transparent !important;
+    
+    /* 🔥 ВОЗВРАЩАЕМ ТОТ САМЫЙ КРАСИВЫЙ АУТЛАЙН */
+    outline: 1.5px dashed var(--text-secondary) !important;
+    outline-offset: -1.5px !important;
+    border: none !important;
+    margin: 0 !important; /* убиваем костыльный margin из прошлого фикса */
+    
+    color: transparent !important;
+    box-shadow: none !important;
+    pointer-events: none !important;
+    
+    /* 🚀 Оставляем только аппаратное ускорение (это спасет Safari от бага со шлейфом) */
+    transform: translateZ(0) !important;
+    will-change: transform !important;
+    backface-visibility: hidden !important;
+}
+
+/* Обязательно удали .board-tab.is-ghost::after, если он вдруг остался в коде! */
+.board-tab.is-ghost::after {
+    display: none !important;
+}
+
+/* Прячем текст и иконки внутри призрака */
+.board-tab.is-ghost * {
+    visibility: hidden !important;
+}
+
+/* Отключаем ховер на неактивных вкладках и плюсе ВО ВРЕМЯ драга */
+body.is-dragging-tab .board-tab:not(.active):hover,
+body.is-dragging-tab .add-tab-btn:hover {
+    background: transparent !important;
+    color: var(--text-secondary) !important;
+}
+
+/* Сохраняем фон активной вкладки ВО ВРЕМЯ драга */
+body.is-dragging-tab .board-tab.active:hover {
+    background: var(--surface-card) !important;
+    color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] body.is-dragging-tab .board-tab.active:hover {
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: var(--text-primary) !important;
+}
+
+/* Разрешаем hover на самих вкладках для dragover, но блокируем всё внутри */
+body.is-dragging-tab .tab-name,
+body.is-dragging-tab .add-tab-btn,
+body.is-dragging-tab .tab-close-btn {
+    pointer-events: none !important;
+}
+
+/* Жестко прячем крестики во время перетаскивания */
+body.is-dragging-tab .tab-close-btn,
+.tab-drag-clone .tab-close-btn {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    transition: none !important;
+}
+
+/* 🔥 ВОТ ФИКС ЗАГОРАНИЯ СЛУЧАЙНЫХ ВКЛАДОК ПОСЛЕ БРОСКА И ПРОКРУТКИ 🔥 */
+/* Пока скрипт не отследит движение мыши или не закончится скролл, вкладки мертвы для ховеров */
+body.is-dropping-tab .board-tab,
+body.is-dropping-tab .add-tab-btn,
+body.is-locked-tabs .board-tab,
+body.is-locked-tabs .add-tab-btn {
+    pointer-events: none !important;
+}
+
+/* ==========================================
+   УМНЫЕ МИКРО-РАЗДЕЛИТЕЛИ ДЛЯ ВКЛАДОК
+   ========================================== */
+
+/* 1. Добавляем контекст позиционирования */
+.board-tab, 
+.add-tab-btn {
+    position: relative;
+}
+
+/* 2. Создаем сам разделитель (мягкий штрих) */
+.board-tab + .board-tab::before,
+.board-tab + .add-tab-btn::before {
+    content: '';
+    position: absolute;
+    left: -3.5px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 1px;
+    height: 14px;
+    background: var(--text-secondary);
+    opacity: 0.25;
+    border-radius: 1px;
+    transition: opacity 0.2s ease;
+    pointer-events: none;
+}
+
+/* 3. UX-Магия: Прячем разделители вокруг АКТИВНОЙ вкладки */
+.board-tab.active::before {
+    opacity: 0 !important;
+}
+.board-tab.active + .board-tab::before,
+.board-tab.active + .add-tab-btn::before {
+    opacity: 0 !important;
 }
