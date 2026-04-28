@@ -5,6 +5,7 @@ import urllib.request
 import webview
 import uvicorn
 import sys
+import os
 
 # Фикс для корректной работы multiprocessing в скомпилированном .app
 if sys.platform == 'darwin':
@@ -23,8 +24,18 @@ class WindowAPI:
         if webview.windows:
             webview.windows[0].show()
 
-def run_server():
-    uvicorn.run(app, host="127.0.0.1", port=PORT, log_level="warning")
+# Создаем класс-обертку для Uvicorn
+class APIServerThread(threading.Thread):
+    def __init__(self):
+        super().__init__(daemon=True)
+        config = uvicorn.Config(app, host="127.0.0.1", port=PORT, log_level="warning")
+        self.server = uvicorn.Server(config)
+
+    def run(self):
+        self.server.run()
+
+    def stop(self):
+        self.server.should_exit = True
 
 if __name__ == '__main__':
     multiprocessing.freeze_support()
@@ -33,7 +44,8 @@ if __name__ == '__main__':
     theme = settings.get("theme", "light")
     bg_color = '#161815' if theme == 'dark' else '#F4F3EF'
 
-    server_thread = threading.Thread(target=run_server, daemon=True)
+    # Запускаем наш контролируемый сервер
+    server_thread = APIServerThread()
     server_thread.start()
 
     timeout = 5.0
@@ -45,7 +57,7 @@ if __name__ == '__main__':
         except Exception:
             time.sleep(0.05)
 
-    # 🚀 СОЗДАЕМ ОКНО НЕВИДИМЫМ (hidden=True) И ПРОКИДЫВАЕМ API
+    # 🚀 СОЗДАЕМ ОКНО НЕВИДИМЫМ
     webview.create_window(
         title='Doe',
         url=URL,
@@ -54,8 +66,20 @@ if __name__ == '__main__':
         min_size=(800, 500),
         background_color=bg_color,
         text_select=False,
-        hidden=True,            # Окно скрыто при старте!
-        js_api=WindowAPI()      # Прокидываем Python-класс в Javascript
+        hidden=True,            
+        js_api=WindowAPI()      
     )
     
-    webview.start(gui='cocoa', debug=False)
+    # Запускаем GUI. Код заблокируется на этой строке, пока окно открыто.
+    # Мы убрали gui='cocoa', чтобы pywebview сам выбрал лучший движок (Edge на Win, Cocoa на Mac)
+    webview.start(debug=False)
+    
+    # === СЮДА ПРОГРАММА ДОЙДЕТ ТОЛЬКО ПОСЛЕ ЗАКРЫТИЯ ОКНА НА КРЕСТИК ===
+    print("🛑 Окно закрыто. Завершаем работу сервера...")
+    
+    # Мягко просим FastAPI и базу данных завершить работу
+    server_thread.stop()
+    server_thread.join(timeout=1.0)
+    
+    # Теперь, когда окно чисто удалено из памяти ОС, жестко гасим фоновые процессы Python
+    os._exit(0)
