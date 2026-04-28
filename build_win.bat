@@ -1,9 +1,13 @@
 @echo off
-echo 🚀 Начинаем сборку Doe.exe...
+echo [*] Cleaning up old Doe processes...
+taskkill /F /IM Doe.exe /T >nul 2>&1
+
+echo [>] Starting Doe.exe RELEASE build process...
 
 rmdir /S /Q build dist
 del /Q Doe.spec
 
+:: Добавлен флаг --windowed для создания настоящего GUI-приложения без черного терминала
 pyinstaller --noconfirm ^
     --windowed ^
     --name "Doe" ^
@@ -27,5 +31,5 @@ pyinstaller --noconfirm ^
     --hidden-import "aiosqlite" ^
     wrapper.py
 
-echo ✅ Сборка завершена! Ищи Doe.exe в папке dist\Doe
+echo [V] Build completed!
 pause
