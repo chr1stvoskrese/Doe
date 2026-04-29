@@ -4,10 +4,7 @@ import traceback
 import time
 from datetime import datetime
 
-# =====================================================================
-# 1. GLOBAL LOGGER (WRITES EVERYTHING TO A FILE NEXT TO THE EXE)
-# =====================================================================
-# Determine where our .exe (or script) is located
+
 if getattr(sys, 'frozen', False):
     base_dir = os.path.dirname(sys.executable)
 else:
@@ -17,7 +14,6 @@ log_file_path = os.path.join(base_dir, "Doe_Log.txt")
 
 class LoggerWriter:
     def __init__(self, filename):
-        # Open the file in append mode to see the launch history
         self.file = open(filename, 'a', encoding='utf-8')
         self.file.write(f"\n{'='*50}\n")
         self.file.write(f"🚀 DOE APP Started: {datetime.now()}\n")
@@ -26,7 +22,7 @@ class LoggerWriter:
 
     def write(self, message):
         self.file.write(message)
-        self.file.flush() # Instantly save to disk
+        self.file.flush()
 
     def flush(self):
         self.file.flush()
@@ -35,10 +31,8 @@ class LoggerWriter:
         return False
 
     def __getattr__(self, name):
-        # Delegate other methods (e.g., fileno) to the real file
         return getattr(self.file, name)
 
-# Strictly intercept all Windows output streams
 if sys.platform == 'win32':
     logger = LoggerWriter(log_file_path)
     sys.stdout = logger
@@ -50,16 +44,13 @@ if sys.platform == 'win32':
         def isatty(self): return False
     sys.stdin = NullReader()
 
-# Global fatal error interceptor
+
 def global_exception_handler(exc_type, exc_value, exc_tb):
     print("\n!!! FATAL APPLICATION ERROR OCCURRED !!!")
     traceback.print_exception(exc_type, exc_value, exc_tb, file=sys.stderr)
 
 sys.excepthook = global_exception_handler
 
-# =====================================================================
-# 2. MAIN APPLICATION CODE
-# =====================================================================
 print("[System] Importing libraries...")
 import multiprocessing
 import threading
@@ -67,7 +58,7 @@ import urllib.request
 import webview
 import uvicorn
 
-# Fix for correct multiprocessing operation in compiled .app on macOS
+
 if sys.platform == 'darwin':
     multiprocessing.set_start_method('fork')
 
@@ -83,7 +74,7 @@ settings = get_ui_settings()
 theme = settings.get("theme", "light")
 bg_color = '#161815' if theme == 'dark' else '#F4F3EF'
 
-# 🚀 CREATE A BRIDGE BETWEEN JS AND PYTHON
+
 class WindowAPI:
     def reveal_window(self):
         print("[WebView] Signal received from JS: Interface is ready, showing window.")
@@ -141,12 +132,10 @@ class WindowAPI:
         else:
             window.show()
 
-# Create a wrapper class for Uvicorn
 class APIServerThread(threading.Thread):
     def __init__(self):
         super().__init__(daemon=True)
         print(f"[Uvicorn] Initializing web server on port {PORT}...")
-        # LOGS ARE BACK ON! Now they will be written to our text file
         config = uvicorn.Config(
             app, 
             host="127.0.0.1", 

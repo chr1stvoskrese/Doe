@@ -7,11 +7,8 @@ from src.core.config import get_ui_settings
 from pathlib import Path
 import uvicorn
 import sys
-
-from src.api.v1 import columns, tasks, system # <-- Подключили system
+from src.api.v1 import columns, tasks, system
 from src.db.database import init_dev_database, close_database
-
-# 1. ДОБАВЛЯЕМ workspaces В ИМПОРТ
 from src.api.v1 import columns, tasks, system, workspaces 
 from src.db.database import init_dev_database, close_database
 
@@ -22,7 +19,7 @@ async def lifespan(app: FastAPI):
     
     yield
     
-    await close_database() # <-- Закрываем коннект корректно
+    await close_database()
     print("🛑 Сервер останавливается...")
 
 app = FastAPI(title="Doe API", version="0.1.0", lifespan=lifespan)
@@ -40,8 +37,6 @@ app.include_router(tasks.router, prefix="/api/v1")
 app.include_router(system.router, prefix="/api/v1")
 app.include_router(workspaces.router, prefix="/api/v1")
 
-# Магия для PyInstaller: когда приложение скомпилировано в .app, 
-# файлы распаковываются во временную папку sys._MEIPASS
 if getattr(sys, 'frozen', False):
     base_dir = Path(sys._MEIPASS)
 else:
@@ -52,18 +47,12 @@ app.mount("/static", StaticFiles(directory=frontend_path), name="static")
 
 @app.get("/app", response_class=HTMLResponse)
 async def serve_index():
-    # 1. Забираем настройки прямо из ядра (JSON-файла) на стороне бэкенда
     settings = get_ui_settings()
     theme = settings.get("theme", "light")
     lang = settings.get("language", "ru")
-
-    # 2. Читаем наш чистый HTML
     index_file = frontend_path / "index.html"
     with open(index_file, "r", encoding="utf-8") as f:
         html_content = f.read()
-
-    # 3. Создаем микро-скрипт, который выполнится ДО загрузки стилей и DOM
-    # Он сразу проставит нужный атрибут и заполнит localStorage
     inject_script = f"""
     <script>
         if ('{theme}' === 'dark') {{
@@ -75,7 +64,6 @@ async def serve_index():
     </head>
     """
     
-    # 4. Вставляем скрипт прямо перед закрывающим тегом </head>
     html_content = html_content.replace("</head>", inject_script)
 
     return HTMLResponse(content=html_content)

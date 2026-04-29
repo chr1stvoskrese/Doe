@@ -1,13 +1,12 @@
 @echo off
-echo [*] Cleaning up old Doe processes...
+echo "Cleaning up old Doe processes..."
 taskkill /F /IM Doe.exe /T >nul 2>&1
 
-echo [>] Starting Doe.exe RELEASE build process...
+echo "Starting Doe.exe RELEASE build process..."
 
 rmdir /S /Q build dist
 del /Q Doe.spec
 
-:: Добавлен флаг --windowed для создания настоящего GUI-приложения без черного терминала
 pyinstaller --noconfirm ^
     --windowed ^
     --name "Doe" ^
@@ -31,5 +30,5 @@ pyinstaller --noconfirm ^
     --hidden-import "aiosqlite" ^
     wrapper.py
 
-echo [V] Build completed!
+echo "Build completed!"
 pause

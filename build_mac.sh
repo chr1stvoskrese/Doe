@@ -1,11 +1,9 @@
 #!/bin/bash
 
-echo "🚀 Начинаем сборку Doe.app..."
+echo "Начинаем сборку Doe.app..."
 
-# Удаляем старые сборки
 rm -rf build dist Doe.spec
 
-# Запускаем упаковщик с полным набором зависимостей
 pyinstaller --noconfirm \
     --windowed \
     --name "Doe" \
@@ -30,10 +28,10 @@ pyinstaller --noconfirm \
     --hidden-import "aiosqlite" \
     wrapper.py
 
-echo "🍏 Выполняем локальную подпись (Ad-Hoc)..."
+echo "Выполняем локальную подпись (Ad-Hoc)..."
 codesign --force --deep --sign - dist/Doe.app
 
-echo "🛡 Снимаем атрибут карантина macOS..."
+echo "Снимаем атрибут карантина macOS..."
 xattr -cr dist/Doe.app
 
-echo "✅ Сборка завершена!"
+echo "Сборка завершена!"
