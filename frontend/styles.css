@@ -142,7 +142,6 @@ body {
 .app-header {
     display: flex;
     align-items: center;
-    /* ИСПРАВЛЕНО: Убрали правый отступ, чтобы контейнер вкладок тянулся до края окна */
     padding: 16px 0 16px 24px; 
     gap: 32px;
 }
@@ -1598,11 +1597,21 @@ body.is-dragging-card .column-header {
     gap: 16px;
 }
 
+/* ОБЕРТКА (WRAPPER) */
+.tabs-wrapper {
+    flex: 1;
+    position: relative;
+    display: flex;
+    min-width: 0;
+    padding-bottom: 8px; /* Место под кастомный скроллбар */
+    margin-bottom: -8px; /* Компенсируем высоту шапки */
+}
+
 .tabs-container {
+    flex: 1;
     display: flex;
     align-items: center;
     gap: 6px;
-    flex: 1;
     overflow-x: auto;
     scrollbar-width: none;
     -webkit-mask-image: none;
@@ -1617,12 +1626,56 @@ body.is-dragging-card .column-header {
 }
 
 .tabs-container.is-scrolled {
-    /* Делаем туман короче (основной срез на 16px) и более мягким через промежуточный шаг */
     -webkit-mask-image: linear-gradient(to right, transparent 0px, rgba(0,0,0,0.7) 8px, black 16px, black 100%);
     mask-image: linear-gradient(to right, transparent 0px, rgba(0,0,0,0.7) 8px, black 16px, black 100%);
 }
 
+.tabs-scrollbar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: transparent;
+    border-radius: 4px;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.4s ease, visibility 0.4s ease; /* Плавное затухание */
+    pointer-events: none;
+    z-index: 10;
+}
+
+.tabs-scrollbar.visible {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto; /* Разрешаем клики по ползунку, когда он виден */
+}
+
 .tabs-container::-webkit-scrollbar { display: none; }
+
+.tabs-scrollbar-thumb {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    background: rgba(74, 90, 72, 0.25);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    will-change: transform;
+}
+
+.tabs-scrollbar-thumb:hover,
+.tabs-scrollbar-thumb.is-dragging {
+    background: rgba(74, 90, 72, 0.45);
+}
+
+[data-theme="dark"] .tabs-scrollbar-thumb {
+    background: rgba(137, 160, 133, 0.35);
+}[data-theme="dark"] .tabs-scrollbar-thumb:hover,
+[data-theme="dark"] .tabs-scrollbar-thumb.is-dragging {
+    background: rgba(137, 160, 133, 0.55);
+}
 
 .board-tab {
     display: flex;

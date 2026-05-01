@@ -903,9 +903,13 @@ function renderTabs(scrollToActive = false, newTabId = null) {
             if (activeTab) {
                 activeTab.scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'center' });
             }
+            if (window.updateTabsScrollbar) window.updateTabsScrollbar();
         });
     } else {
         container.scrollLeft = savedScroll; 
+        requestAnimationFrame(() => {
+            if (window.updateTabsScrollbar) window.updateTabsScrollbar();
+        });
     }
 
     // Если была создана новая вкладка — триггерим анимацию её появления
@@ -941,12 +945,6 @@ function onAddTabClick(e) {
     // Заменяем кнопку "+" на форму
     addBtn.replaceWith(formTab);
 
-    requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-            formTab.classList.add('entered');
-        });
-    });
-
     const input = formTab.querySelector('.tab-input');
     
     // Трюк для авто-расширения инпута при вводе текста
@@ -961,11 +959,27 @@ function onAddTabClick(e) {
         // Вычисляем ширину и прибавляем немного запаса
         input.style.width = Math.max(100, span.getBoundingClientRect().width + 4) + 'px';
         document.body.removeChild(span);
+        
+        // Бонус: перерисовываем скроллбар во время набора текста, т.к. ширина инпута растет
+        if (window.updateTabsScrollbar) window.updateTabsScrollbar();
     };
     
     input.addEventListener('input', autoResize);
     autoResize();
-    input.focus();
+    
+    // 1. Делаем фокус ДО анимации, но запрещаем браузеру резко дёргать экран
+    input.focus({ preventScroll: true });
+
+    requestAnimationFrame(() => {
+        // 2. Включаем наш красивый плавный скролл
+        formTab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        
+        if (window.updateTabsScrollbar) window.updateTabsScrollbar();
+        
+        requestAnimationFrame(() => {
+            formTab.classList.add('entered');
+        });
+    });
 
     let isResolved = false;
 
@@ -1923,6 +1937,120 @@ function clampExpandedTitles() {
     document.querySelectorAll('.column:not(.collapsed) .column-title').forEach(clampSingleTitle);
 }
 
+
+function initTabsScrollbar() {
+    const wrapper = document.getElementById('tabs-wrapper');
+    const container = document.getElementById('tabs-container');
+    const scrollbar = document.getElementById('tabs-scrollbar');
+    const thumb = document.getElementById('tabs-thumb');
+    
+    if (!wrapper || !container || !scrollbar || !thumb) return;
+
+    let hideTimeout;
+    let isDraggingThumb = false;
+    let startX = 0;
+    let startScrollLeft = 0;
+
+    function updateThumb() {
+        const scrollRatio = container.clientWidth / container.scrollWidth;
+        if (scrollRatio >= 1) {
+            scrollbar.classList.remove('visible');
+            return;
+        }
+        
+        // Вычисляем ширину ползунка
+        const thumbWidth = Math.max(container.clientWidth * scrollRatio, 40); // минимум 40px
+        thumb.style.width = `${thumbWidth}px`;
+        
+        // Вычисляем позицию
+        const maxScrollLeft = container.scrollWidth - container.clientWidth;
+        const scrollPercent = container.scrollLeft / maxScrollLeft;
+        const maxThumbLeft = container.clientWidth - thumbWidth;
+        
+        thumb.style.transform = `translateX(${scrollPercent * maxThumbLeft}px)`;
+    }
+
+    function showScrollbar() {
+        const scrollRatio = container.clientWidth / container.scrollWidth;
+        if (scrollRatio < 1) {
+            scrollbar.classList.add('visible');
+        }
+        
+        clearTimeout(hideTimeout);
+        if (!wrapper.matches(':hover') && !isDraggingThumb) {
+            hideTimeout = setTimeout(() => {
+                scrollbar.classList.remove('visible');
+            }, 1200); // Скроллбар исчезает через 1.2с покоя
+        }
+    }
+
+    container.addEventListener('scroll', () => {
+        updateThumb();
+        showScrollbar();
+        
+        // Логика затемнения края (маски)
+        if (container.scrollLeft > 2) {
+            container.classList.add('is-scrolled');
+        } else {
+            container.classList.remove('is-scrolled');
+        }
+    });
+
+    wrapper.addEventListener('mouseenter', showScrollbar);
+    wrapper.addEventListener('mouseleave', () => {
+        if (!isDraggingThumb) {
+            clearTimeout(hideTimeout);
+            hideTimeout = setTimeout(() => {
+                scrollbar.classList.remove('visible');
+            }, 400); // Ускоренное затухание, если мышь ушла с шапки
+        }
+    });
+
+    window.addEventListener('resize', updateThumb);
+    window.updateTabsScrollbar = updateThumb; // Экспортируем для ручного вызова
+
+    // --- Логика перетаскивания (Drag) самого ползунка мышкой ---
+    thumb.addEventListener('mousedown', (e) => {
+        isDraggingThumb = true;
+        startX = e.clientX;
+        startScrollLeft = container.scrollLeft;
+        thumb.classList.add('is-dragging');
+        document.body.style.userSelect = 'none'; // Блокируем выделение текста
+        e.preventDefault();
+        e.stopPropagation();
+    });
+
+    window.addEventListener('mousemove', (e) => {
+        if (!isDraggingThumb) return;
+        const deltaX = e.clientX - startX;
+        
+        const scrollRatio = container.clientWidth / container.scrollWidth;
+        const thumbWidth = Math.max(container.clientWidth * scrollRatio, 40);
+        const maxThumbLeft = container.clientWidth - thumbWidth;
+        const maxScrollLeft = container.scrollWidth - container.clientWidth;
+        
+        if (maxThumbLeft > 0) {
+            const scrollPerPixel = maxScrollLeft / maxThumbLeft;
+            container.scrollLeft = startScrollLeft + deltaX * scrollPerPixel;
+        }
+    });
+
+    window.addEventListener('mouseup', () => {
+        if (isDraggingThumb) {
+            isDraggingThumb = false;
+            thumb.classList.remove('is-dragging');
+            document.body.style.userSelect = '';
+            
+            if (!wrapper.matches(':hover')) {
+                hideTimeout = setTimeout(() => {
+                    scrollbar.classList.remove('visible');
+                }, 1200);
+            }
+        }
+    });
+}
+
+
 function initTooltip() {
     const tooltip = document.createElement('div');
     tooltip.id = 'tooltip';
@@ -2036,15 +2164,7 @@ function initTooltip() {
 
 (async () => {
     initTooltip();
-
-    const tabsContainer = document.getElementById('tabs-container');
-    tabsContainer.addEventListener('scroll', () => {
-        if (tabsContainer.scrollLeft > 2) {
-            tabsContainer.classList.add('is-scrolled');
-        } else {
-            tabsContainer.classList.remove('is-scrolled');
-        }
-    });
+    initTabsScrollbar();
 
     // 🚀 ПУЛЕНЕПРОБИВАЕМЫЙ ПОКАЗ ОКНА (ДВОЙНАЯ СТРАХОВКА)
     const revealApp = () => {
