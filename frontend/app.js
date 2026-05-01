@@ -2046,6 +2046,40 @@ function initTooltip() {
         }
     });
 
+    // 🚀 ПУЛЕНЕПРОБИВАЕМЫЙ ПОКАЗ ОКНА (ДВОЙНАЯ СТРАХОВКА)
+    const revealApp = () => {
+        document.body.classList.remove('preload');
+        let isRevealed = false;
+
+        const triggerReveal = () => {
+            if (isRevealed) return;
+            if (window.pywebview && window.pywebview.api) {
+                isRevealed = true;
+                try {
+                    const call = window.pywebview.api.reveal_window();
+                    if (call && call.catch) call.catch(() => {});
+                } catch (e) {}
+            }
+        };
+
+        // 1. Ловим официальное событие от Python
+        window.addEventListener('pywebviewready', triggerReveal);
+
+        // 2. Страховка: если событие проскочило раньше времени, проверяем вручную каждые 50мс
+        const checkApi = () => {
+            if (isRevealed) return;
+            if (window.pywebview && window.pywebview.api) {
+                triggerReveal();
+            } else {
+                setTimeout(checkApi, 50);
+            }
+        };
+        
+        requestAnimationFrame(() => {
+            requestAnimationFrame(checkApi);
+        });
+    };
+
     applyLanguage(localStorage.getItem('doe-lang') || 'ru', false);
     applyTheme(localStorage.getItem('doe-theme') || 'light', false);
 
@@ -2081,21 +2115,6 @@ function initTooltip() {
         console.error("Ошибка загрузки данных", e);
     }
     
-    // 🚀 МАГИЯ: Даем команду ОС macOS показать окно.
-    // Функция вызывается ТОЛЬКО когда DOM уже полностью построен.
-    const revealNativeWindow = () => {
-        if (window.pywebview && window.pywebview.api) {
-            window.pywebview.api.reveal_window();
-        }
-    };
-
-    // pywebview инжектится асинхронно, поэтому ждем его готовности
-    if (window.pywebview) {
-        revealNativeWindow();
-    } else {
-        window.addEventListener('pywebviewready', revealNativeWindow);
-    }
-    
     setInterval(updateTimers, 250);
     
     let isResizing = false;
@@ -2109,4 +2128,7 @@ function initTooltip() {
             });
         }
     });
+
+    // ЗАПУСКАЕМ НАШУ ФУНКЦИЮ В САМОМ КОНЦЕ
+    revealApp();
 })();

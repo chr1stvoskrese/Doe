@@ -27,6 +27,16 @@
     --transition-apple: 0.3s cubic-bezier(0.16, 1, 0.3, 1); /* Плавная кривая анимации в стиле Apple */
 }
 
+/* Блокируем ВСЕ анимации и переходы на момент начальной загрузки приложения */
+.preload * {
+    -webkit-transition: none !important;
+    -moz-transition: none !important;
+    -ms-transition: none !important;
+    -o-transition: none !important;
+    transition: none !important;
+    animation: none !important;
+}
+
 /* Переопределяем переменные для темной темы */
 [data-theme="dark"] {
     --bg-canvas: #161815;               /* Темный фон за доской */

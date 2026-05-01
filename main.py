@@ -11,6 +11,7 @@ from src.api.v1 import columns, tasks, system
 from src.db.database import init_dev_database, close_database
 from src.api.v1 import columns, tasks, system, workspaces 
 from src.db.database import init_dev_database, close_database
+from fastapi import Response
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -31,6 +32,18 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    favicon_path = base_dir / "favicon.ico"
+    if favicon_path.exists():
+        return FileResponse(favicon_path)
+    
+    alt_favicon_path = frontend_path / "favicon.ico"
+    if alt_favicon_path.exists():
+        return FileResponse(alt_favicon_path)
+    
+    return Response(status_code=204)
 
 app.include_router(columns.router, prefix="/api/v1")
 app.include_router(tasks.router, prefix="/api/v1")
@@ -63,7 +76,7 @@ async def serve_index():
     </script>
     </head>
     """
-    
+
     html_content = html_content.replace("</head>", inject_script)
 
     return HTMLResponse(content=html_content)
@@ -74,3 +87,4 @@ async def root():
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
+
