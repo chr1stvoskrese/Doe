@@ -1196,6 +1196,13 @@ body.is-dragging-column .menu-btn {
     pointer-events: none !important;
 }
 
+/* Принудительный курсор-кулак во время ЛЮБОГО перетаскивания для всех элементов */
+body.is-dragging-tab, body.is-dragging-tab *,
+body.is-dragging-column, body.is-dragging-column *,
+body.is-dragging-card, body.is-dragging-card * {
+    cursor: grabbing !important;
+}
+
 /* Блокировка шапки колонки во время драга карточки */
 body.is-dragging-card .column-header {
     pointer-events: none !important;
@@ -1706,9 +1713,11 @@ body.is-dragging-card .column-header {
     white-space: nowrap;        /* Запрещаем перенос на новую строку */
     display: block;
     pointer-events: auto;       /* Включаем события мыши, чтобы тултип мог их поймать */
+    cursor: pointer;            /* Курсор пальцем при наведении на название */
 }
 
-.board-tab:hover {
+/* Ховер только для НЕАКТИВНЫХ вкладок */
+body:not(.is-dragging-tab) .board-tab:not(.active):hover {
     background: rgba(0, 0, 0, 0.04);
     color: var(--text-primary);
 }
@@ -1741,7 +1750,8 @@ body.is-dragging-card .column-header {
 }
 
 /* Показываем крестик только на активной или при наведении (если вкладок > 1) */
-.board-tab:hover .tab-close-btn:not(.hidden),
+/* FIX: Исключаем срабатывание :hover во время перетаскивания */
+body:not([class*="is-dragging-"]) .board-tab:hover .tab-close-btn:not(.hidden),
 .board-tab.active .tab-close-btn:not(.hidden) {
     opacity: 1;
 }
@@ -1777,19 +1787,17 @@ body.is-dragging-card .column-header {
     /* 🚀 Здесь тоже убрали transition для консистентности интерфейса */
 }
 
-.add-tab-btn:hover {
+body:not(.is-dragging-tab) .add-tab-btn:hover {
     background: rgba(0, 0, 0, 0.04);
     color: var(--text-primary);
 }
 
-/* Стили вкладок для тёмной темы */
-[data-theme="dark"] .board-tab:hover { background: rgba(255, 255, 255, 0.06); }
+/* Стили вкладок для тёмной темы */[data-theme="dark"] body:not(.is-dragging-tab) .board-tab:not(.active):hover { background: rgba(255, 255, 255, 0.06); }
 [data-theme="dark"] .board-tab.active { 
     background: rgba(255, 255, 255, 0.08); 
     box-shadow: 0 1px 2px rgba(0,0,0,0.2);
 }
-[data-theme="dark"] .tab-close-btn:hover { background: rgba(255, 255, 255, 0.1); }
-[data-theme="dark"] .add-tab-btn:hover { background: rgba(255, 255, 255, 0.06); }
+[data-theme="dark"] .tab-close-btn:hover { background: rgba(255, 255, 255, 0.1); }[data-theme="dark"] body:not(.is-dragging-tab) .add-tab-btn:hover { background: rgba(255, 255, 255, 0.06); }
 
 /* Состояние вкладки, когда ее зажали */
 .board-tab:active {
@@ -1809,10 +1817,6 @@ body.is-dragging-card .column-header {
     will-change: transform;
     opacity: 1 !important;
     
-    /* Делаем её визуально активной, чтобы выглядела как плотная карточка */
-    background: var(--surface-card) !important;
-    color: var(--text-primary) !important;
-    border: 1px solid var(--border-light) !important;
     padding: 6px 10px 6px 14px !important;
     border-radius: 10px !important;
     display: flex !important;
@@ -1820,6 +1824,25 @@ body.is-dragging-card .column-header {
     gap: 8px !important;
     font-size: 14px !important;
     font-weight: 500 !important;
+
+    /* Внешний вид НЕАКТИВНОЙ вкладки при перетаскивании (эффект hover) */
+    background: rgba(0, 0, 0, 0.04) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid transparent !important;
+}
+
+/* АКТИВНАЯ вкладка при перетаскивании */
+.tab-drag-clone.active {
+    background: var(--surface-card) !important;
+    border: 1px solid var(--border-light) !important;
+}
+
+/* Поддержка тёмной темы для перетаскиваемых вкладок */
+[data-theme="dark"] .tab-drag-clone {
+    background: rgba(255, 255, 255, 0.06) !important;
+}
+[data-theme="dark"] .tab-drag-clone.active {
+    background: rgba(255, 255, 255, 0.08) !important;
 }
 
 /* Призрак-оригинал вкладки в шапке (остается полупрозрачным на месте) */
@@ -1852,43 +1875,9 @@ body.is-dragging-card .column-header {
     visibility: hidden !important;
 }
 
-/* Отключаем ховер на неактивных вкладках и плюсе ВО ВРЕМЯ драга */
-body.is-dragging-tab .board-tab:not(.active):hover,
-body.is-dragging-tab .add-tab-btn:hover {
-    background: transparent !important;
-    color: var(--text-secondary) !important;
-}
-
-/* Сохраняем фон активной вкладки ВО ВРЕМЯ драга (но ИГНОРИРУЕМ призрака) */
-body.is-dragging-tab .board-tab.active:not(.is-ghost):hover {
-    background: var(--surface-card) !important;
-    color: var(--text-primary) !important;
-}[data-theme="dark"] body.is-dragging-tab .board-tab.active:not(.is-ghost):hover {
-    background: rgba(255, 255, 255, 0.08) !important;
-    color: var(--text-primary) !important;
-}
-
-/* Разрешаем hover на самих вкладках для dragover, но блокируем всё внутри */
+/* Во время драга отключаем события мыши у внутренних элементов вкладок */
 body.is-dragging-tab .tab-name,
-body.is-dragging-tab .add-tab-btn,
 body.is-dragging-tab .tab-close-btn {
-    pointer-events: none !important;
-}
-
-/* Жестко прячем крестики во время перетаскивания */
-body.is-dragging-tab .tab-close-btn,
-.tab-drag-clone .tab-close-btn {
-    opacity: 0 !important;
-    visibility: hidden !important;
-    transition: none !important;
-}
-
-/* 🔥 ВОТ ФИКС ЗАГОРАНИЯ СЛУЧАЙНЫХ ВКЛАДОК ПОСЛЕ БРОСКА И ПРОКРУТКИ 🔥 */
-/* Пока скрипт не отследит движение мыши или не закончится скролл, вкладки мертвы для ховеров */
-body.is-dropping-tab .board-tab,
-body.is-dropping-tab .add-tab-btn,
-body.is-locked-tabs .board-tab,
-body.is-locked-tabs .add-tab-btn {
     pointer-events: none !important;
 }
 
@@ -1926,6 +1915,14 @@ body.is-locked-tabs .add-tab-btn {
 .board-tab.active + .board-tab::before,
 .board-tab.active + .add-tab-btn::before {
     opacity: 0 !important;
+}
+
+/* 4. Во время перетаскивания полностью отключаем разделители, 
+   чтобы они не мерцали при смещении элементов в DOM (выглядит как ошибочный hover) */
+body.is-dragging-tab .board-tab::before,
+body.is-dragging-tab .add-tab-btn::before {
+    opacity: 0 !important;
+    transition: none !important;
 }
 
 /* ==========================================
@@ -2016,3 +2013,86 @@ body.is-locked-tabs .add-tab-btn {
     opacity: 0.5;
 }
 
+/* Инпут для переименования вкладки */
+.tab-name-input {
+    background: var(--brand-pale);
+    border: none;
+    border-radius: 6px;
+    outline: none;
+    font-family: var(--font-main);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+    padding: 2px 4px;
+    margin: -2px -4px; /* компенсируем padding, чтобы ширина/позиция не скакали */
+    min-width: 20px;
+    max-width: 160px; /* ограничение как у .tab-name */
+    cursor: text;
+    user-select: text;
+    -webkit-user-select: text;
+}
+
+.tab-name-input::selection {
+    background: #C3C6BC;
+    color: var(--text-primary);
+}
+
+/* Обертка вкладки при переименовании */
+.board-tab.is-renaming {
+    cursor: default !important;
+}
+
+.board-tab.is-renaming .tab-name-input {
+    cursor: text !important;
+}
+
+/* Инпут вкладки в темной теме */
+[data-theme="dark"] .tab-name-input {
+    background: rgba(137, 160, 133, 0.15);
+}[data-theme="dark"] .tab-name-input::selection {
+    background: #41493E;
+    color: var(--text-primary);
+}
+
+/* ==========================================
+   АБСОЛЮТНЫЙ ФИКС HOVER ПРИ ПЕРЕТАСКИВАНИИ (WebKit/Blink BugFix)
+   ========================================== */
+/* Исключаем псевдокласс :hover из селектора. Мы жестко фиксируем стили 
+   элементов на время всего драга (!important). Даже если браузер 
+   из-за сдвига DOM решит, что мышь попала на элемент, он физически 
+   не сможет его перекрасить или сдвинуть. */
+
+/* Железобетонно скрываем крестики у неактивных вкладок и отключаем им анимацию на время драга */
+body[class*="is-dragging-"] .board-tab:not(.active) .tab-close-btn {
+    opacity: 0 !important;
+    transition: none !important;
+}
+
+body[class*="is-dragging-"] .board-tab.active:not(.is-ghost):not(.tab-drag-clone) {
+    background: var(--surface-card) !important;
+    color: var(--text-primary) !important;
+}
+
+/* Тёмная тема для вкладок */
+[data-theme="dark"] body[class*="is-dragging-"] .board-tab:not(.active):not(.tab-drag-clone),
+[data-theme="dark"] body[class*="is-dragging-"] .add-tab-btn {
+    background: transparent !important;
+    color: var(--text-secondary) !important;
+}
+
+[data-theme="dark"] body[class*="is-dragging-"] .board-tab.active:not(.is-ghost):not(.tab-drag-clone) {
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: var(--text-primary) !important;
+}
+
+/* 2. Блокировка карточек (Cards) */
+/* Исключаем прыжки карточек, если одна пролетает над другой */
+body.is-dragging-card .card:not(.card-drag-clone) {
+    transform: none !important;
+    box-shadow: var(--shadow-card) !important;
+}
+
+/* 3. Блокировка свёрнутых колонок (Collapsed Columns) */
+body.is-dragging-column .column.collapsed:not(.column-drag-clone) {
+    border-color: var(--border-light) !important;
+}

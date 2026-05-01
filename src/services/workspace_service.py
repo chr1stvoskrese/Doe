@@ -1,7 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from src.db.models import WorkspaceModel
-from src.schemas.workspace import WorkspaceCreate
+from src.schemas.workspace import WorkspaceCreate, WorkspaceUpdate
 
 async def get_all_workspaces(db: AsyncSession):
     # Сортируем выдачу по position
@@ -16,6 +16,17 @@ async def create_workspace(db: AsyncSession, ws_in: WorkspaceCreate):
 
     ws = WorkspaceModel(name=ws_in.name, position=new_position)
     db.add(ws)
+    await db.commit()
+    await db.refresh(ws)
+    return ws
+
+async def update_workspace(db: AsyncSession, ws_id: int, ws_in: WorkspaceUpdate):
+    result = await db.execute(select(WorkspaceModel).where(WorkspaceModel.id == ws_id))
+    ws = result.scalar_one_or_none()
+    if not ws:
+        raise ValueError("Воркспейс не найден")
+    
+    ws.name = ws_in.name
     await db.commit()
     await db.refresh(ws)
     return ws

@@ -8,6 +8,9 @@ class WorkspaceBase(BaseModel):
 class WorkspaceCreate(WorkspaceBase):
     pass
 
+class WorkspaceUpdate(BaseModel):
+    name: str
+
 class WorkspaceResponse(WorkspaceBase):
     id: int
     position: float

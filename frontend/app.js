@@ -109,6 +109,15 @@ async function createWorkspaceAPI(name) {
     const res = await fetch(`${API_BASE}/workspaces/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) });
     if (!res.ok) throw new Error('Error'); return res.json();
 }
+async function updateWorkspaceAPI(id, name) {
+    const res = await fetch(`${API_BASE}/workspaces/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name })
+    });
+    if (!res.ok) throw new Error('Error');
+    return res.json();
+}
 async function deleteWorkspaceAPI(id) { 
     const res = await fetch(`${API_BASE}/workspaces/${id}`, { method: 'DELETE' }); 
     if (!res.ok) throw new Error('Error'); 
@@ -859,12 +868,32 @@ function renderTabs(scrollToActive = false, newTabId = null) {
             </button>
         `;
 
-        tab.addEventListener('click', (e) => {
+        tab.addEventListener('click', async (e) => {
             if (e.target.closest('.tab-close-btn')) return;
+            
+            // Если вкладка не активна - переключаемся на неё
             if (ws.id !== state.activeWorkspaceId) {
+                e.stopPropagation();
+                closeAllDropdowns();
+                
+                // 1. Оптимистичное обновление UI (мгновенно, без перерисовки всего DOM)
+                document.querySelectorAll('.board-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                
+                // 2. Обновляем стейт
                 state.activeWorkspaceId = ws.id;
                 updateSettings({ active_workspace_id: ws.id }).catch(console.error);
-                refreshBoard();
+                
+                // 3. Загружаем и рендерим ТОЛЬКО колонки для новой вкладки
+                try {
+                    const columns = await fetchColumns(state.activeWorkspaceId);
+                    state.columns = columns.map(col => ({ ...col, collapsed: col.collapsed || false }));
+                    renderBoard();
+                } catch (err) {
+                    console.error('Ошибка загрузки колонок:', err);
+                    // Фолбэк: если что-то пошло не так, перезагружаем всё полностью
+                    refreshBoard(); 
+                }
             }
         });
 
@@ -1402,6 +1431,7 @@ emptyImg.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAA
 document.addEventListener('dragstart', (e) => {
     // Блокируем старт драга на инпутах и кнопках меню
     if (e.target.closest('.column.is-renaming') || 
+        e.target.closest('.board-tab.is-renaming') ||
         e.target.closest('.card-entering') || 
         e.target.closest('textarea') || 
         e.target.closest('input')) { 
@@ -1472,6 +1502,10 @@ document.addEventListener('dragstart', (e) => {
 document.addEventListener('dragover', (e) => {
     e.preventDefault();
     if (!isDragging) return;
+    
+    // Указываем браузеру, что это операция перемещения (включает нужный курсор)
+    e.dataTransfer.dropEffect = 'move';
+    
     mouseX = e.clientX;
     mouseY = e.clientY;
 
@@ -1531,6 +1565,95 @@ document.addEventListener('dragover', (e) => {
         }
     }
 });
+
+function startTabRename(tabEl, ws) {
+    const nameSpan = tabEl.querySelector('.tab-name');
+    if (!nameSpan || tabEl.classList.contains('is-renaming')) return;
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'tab-name-input';
+    input.value = ws.name;
+    input.spellcheck = false;
+
+    nameSpan.replaceWith(input);
+    tabEl.setAttribute('draggable', 'false');
+    tabEl.classList.add('is-renaming');
+
+    // Авто-расширение ширины инпута
+    const autoResize = () => {
+        const span = document.createElement('span');
+        span.style.font = window.getComputedStyle(input).font;
+        span.style.visibility = 'hidden';
+        span.style.position = 'absolute';
+        span.style.whiteSpace = 'pre';
+        span.textContent = input.value || ' ';
+        document.body.appendChild(span);
+        input.style.width = Math.max(20, span.getBoundingClientRect().width + 2) + 'px';
+        document.body.removeChild(span);
+        if (window.updateTabsScrollbar) window.updateTabsScrollbar();
+    };
+    input.addEventListener('input', autoResize);
+    autoResize();
+
+    input.focus();
+    input.setSelectionRange(input.value.length, input.value.length);
+
+    let committed = false;
+
+    const restore = (name) => {
+        const span = document.createElement('span');
+        span.className = 'tab-name';
+        span.textContent = name;
+        span.dataset.fullTitle = name;
+        if (input.parentNode) input.replaceWith(span);
+        tabEl.setAttribute('draggable', 'true');
+        tabEl.classList.remove('is-renaming');
+    };
+
+    const commit = async () => {
+        if (committed) return;
+        committed = true;
+        const newName = input.value.trim();
+        const finalName = newName || ws.name;
+        restore(finalName);
+        
+        if (newName && newName !== ws.name) {
+            try {
+                await updateWorkspaceAPI(ws.id, newName);
+                ws.name = newName;
+            } catch (_) {
+                // В случае ошибки возвращаем старое имя
+                const span = tabEl.querySelector('.tab-name');
+                if (span) {
+                    span.textContent = ws.name;
+                    span.dataset.fullTitle = ws.name;
+                }
+            }
+        }
+    };
+
+    const cancel = () => {
+        if (committed) return;
+        committed = true;
+        restore(ws.name);
+    };
+
+    // Блокируем всплытие, чтобы не срабатывал Drag&Drop или переключение вкладки
+    input.addEventListener('mousedown', (e) => e.stopPropagation());
+    input.addEventListener('click', (e) => e.stopPropagation());
+
+    input.addEventListener('keydown', (e) => {
+        e.stopPropagation();
+        if (e.key === 'Enter') { e.preventDefault(); commit(); }
+        if (e.key === 'Escape') { e.preventDefault(); cancel(); }
+    });
+
+    input.addEventListener('blur', () => {
+        // Задержка позволяет отработать кликам по кнопкам перед blur'ом
+        setTimeout(() => { if (!committed) commit(); }, 120);
+    });
+}
 
 function renderPhysics() {
     if (!isDragging || !dragClone) return;
@@ -1599,8 +1722,12 @@ document.addEventListener('dragend', async (e) => {
             const currentTabs = Array.from(document.querySelectorAll('#tabs-container .board-tab'));
             const orderedIds = currentTabs.map(tab => parseInt(tab.dataset.workspaceId));
             
+            // Просто обновляем позиции в стейте и сортируем массив, НЕ ПЕРЕРИСОВЫВАЯ DOM!
             state.workspaces.forEach(ws => { ws.position = orderedIds.indexOf(ws.id); });
-            renderTabs(); 
+            state.workspaces.sort((a, b) => a.position - b.position);
+            
+            // Обновляем кастомный ползунок, так как вкладки могли поменять ширину/места
+            if (window.updateTabsScrollbar) window.updateTabsScrollbar();
             
             try { await saveWorkspacesOrder(orderedIds); } 
             catch (error) { console.error("Ошибка сохранения порядка вкладок", error); }
@@ -1611,8 +1738,9 @@ document.addEventListener('dragend', async (e) => {
             const currentColumns = Array.from(document.querySelectorAll('#board .column'));
             const orderedIds = currentColumns.map(col => parseInt(col.dataset.columnId));
             
+            // Обновляем позиции колонок в стейте, НЕ ПЕРЕРИСОВЫВАЯ ДОСКУ!
             state.columns.forEach(col => { col.position = orderedIds.indexOf(col.id); });
-            renderBoard();
+            state.columns.sort((a, b) => a.position - b.position);
             
             try { await saveColumnsOrder(orderedIds); } 
             catch (error) { console.error("Ошибка сохранения порядка колонок", error); }
@@ -1716,6 +1844,24 @@ document.addEventListener('click', (e) => {
             if (column) {
                 startColumnRename(columnEl, column);
                 return; // Прерываем обработку других кликов
+            }
+        }
+    }
+
+    // --- ИСПРАВЛЕНО: Переименование вкладки ТОЛЬКО если она уже активна ---
+    const tabNameEl = e.target.closest('.board-tab .tab-name');
+    if (tabNameEl) {
+        const tabEl = tabNameEl.closest('.board-tab');
+        if (tabEl && !tabEl.classList.contains('is-renaming')) {
+            const wsId = parseInt(tabEl.dataset.workspaceId);
+            
+            // Запускаем переименование ТОЛЬКО если кликнули по АКТИВНОЙ вкладке
+            if (wsId === state.activeWorkspaceId) {
+                const ws = state.workspaces.find(w => w.id === wsId);
+                if (ws) {
+                    startTabRename(tabEl, ws);
+                    return; // Прерываем обработку других кликов
+                }
             }
         }
     }
