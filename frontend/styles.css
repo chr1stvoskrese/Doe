@@ -703,6 +703,12 @@ body {
     cursor: pointer;
     transition: all 0.2s ease;
     will-change: transform;
+    animation: fadeInBtn 0.2s ease-out;
+}
+
+@keyframes fadeInBtn {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
 /* Ховер на кнопку новой колонки */
@@ -761,6 +767,25 @@ body {
 
     /* 🩹 FIX: Явный курсор на время драга */
     cursor: grabbing !important;
+}
+
+/* Контейнер-распорка для бесшовной подмены кнопки */
+.tab-spacer-wrapper {
+    display: flex;
+    align-items: center;
+    overflow: hidden; /* Чтобы кнопка внутри не вылезала за границы при схлопывании */
+    transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    flex-shrink: 0;
+}
+
+/* Сама кнопка внутри распорки должна стоять жестко */
+.tab-spacer-wrapper .add-tab-btn {
+    margin: 0 !important;
+}
+
+@keyframes tab-btn-reveal {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
 /* Запрет взаимодействия внутри клона колонки */
@@ -997,19 +1022,19 @@ body {
     letter-spacing: 0.05em;
 }
 
-/* Форма появления/создания новой колонки */
 .column.column-entering {
     width: 320px;
+    min-width: 320px;
     flex-shrink: 0;
     background: transparent;
-    border: 2px dashed rgba(74, 90, 72, 0.15); /* Возвращаем оригинальные 15% */
+    border: 2px dashed rgba(74, 90, 72, 0.15); /* Тот самый пунктир */
     border-radius: var(--radius-board);
-    opacity: 0;                 
-    transform: scale(0.96);     
-    will-change: opacity, transform;
-    transition:
-        opacity 0.30s cubic-bezier(0.16, 1, 0.3, 1),
-        transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    opacity: 0;
+    transform: scale(0.98);
+    /* Мягкая и плавная анимация */
+    transition: 
+        opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+        transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Состояние, когда форма полностью появилась */
@@ -1018,14 +1043,19 @@ body {
     transform: scale(1);
 }
 
-/* Анимация исчезновения формы при отмене */
+/* Состояние мгновенного схлопывания при отмене */
 .column.column-entering.is-exiting {
     opacity: 0;
-    transform: scale(0.96);
-    pointer-events: none;       /* Блокируем клики при исчезновении */
-    transition:
-        opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1),
-        transform 0.30s cubic-bezier(0.16, 1, 0.3, 1);
+    transform: scale(0.98);
+    pointer-events: none;
+    /* Ускоряем выход, чтобы кнопка быстрее стала интерактивной */
+    transition: opacity 0.2s ease-in, transform 0.2s ease-in;
+}
+
+/* Плавное появление самой кнопки, чтобы она не «стреляла» в глаза */
+@keyframes button-fade-in {
+    from { opacity: 0; transform: scale(0.98); }
+    to { opacity: 1; transform: scale(1); }
 }
 
 /* Полупрозрачность при отправке на сервер */
@@ -1804,8 +1834,12 @@ body:not([class*="is-dragging-"]) .board-tab:hover .tab-close-btn:not(.hidden),
     flex-shrink: 0;
     position: relative;
     
-    /* 🚀 Здесь тоже убрали transition для консистентности интерфейса */
+    /* Добавляем переходы для всех состояний */
+    transition: opacity 0.2s ease, background 0.2s ease, transform 0.2s ease;
+    will-change: opacity, transform;
 }
+
+.add-tab-btn.is-hidden { display: none; }
 
 body:not(.is-dragging-tab) .add-tab-btn:hover {
     background: rgba(0, 0, 0, 0.04);
@@ -2024,6 +2058,20 @@ body.is-dragging-tab .add-tab-btn::before {
     transform: none !important;
     pointer-events: auto !important;
     transition: none !important;
+}
+
+/* Убираем лишние анимации у призраков вкладок, чтобы не было дребезга */
+.board-tab.tab-birth {
+    transition: none !important; 
+}
+
+@keyframes tab-button-fade-in {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.add-tab-btn.tab-btn-birth {
+    animation: tab-button-fade-in 0.1s ease-out forwards;
 }
 
 /* Тряска формы при ошибке сети (используем уже существующий кейфрейм) */

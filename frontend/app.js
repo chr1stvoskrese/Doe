@@ -648,30 +648,17 @@ function restoreAddButton() {
     btn.textContent = t('newColumn');
     btn.addEventListener('click', onCreateColumn);
     board.appendChild(btn);
+    return btn;
 }
 
 async function onCreateColumn() {
-    // Сначала удаляем форму, если она в процессе исчезновения
-    const exitingForm = document.querySelector('.column-entering.is-exiting');
-    if (exitingForm) {
-        exitingForm.remove();
-        restoreAddButton();
-    }
-
-    // Если форма уже открыта (и не исчезает) — просто фокусируем
-    const existingFormActive = document.querySelector('.column-entering:not(.is-exiting)');
-    if (existingFormActive) {
-        existingFormActive.querySelector('.column-input')?.focus();
-        return;
-    }
-
     const board = document.getElementById('board');
     const addBtn = board.querySelector('.new-column-btn');
     if (!addBtn) return;
 
     const formCol = createColumnFormElement();
     
-    // Заменяем кнопку на форму 1-к-1. Никакого сдвига соседей.
+    // Мгновенная замена кнопки на форму — ширина доски не меняется ни на пиксель
     addBtn.replaceWith(formCol);
 
     requestAnimationFrame(() => {
@@ -681,28 +668,6 @@ async function onCreateColumn() {
     });
 
     const input = formCol.querySelector('.column-input');
-    
-    // Авто-resize со скроллом при превышении высоты экрана
-    const autoResize = () => {
-        input.style.height = 'auto';
-        const sh = input.scrollHeight;
-        const boardHeight = document.getElementById('board').clientHeight;
-        
-        // Здесь только форма, вычитаем 60px
-        const maxAllowedHeight = Math.max(60, boardHeight - 60);
-        
-        if (sh > maxAllowedHeight) {
-            input.style.height = maxAllowedHeight + 'px';
-            input.style.overflowY = 'auto';
-        } else {
-            input.style.height = sh + 'px';
-            input.style.overflowY = 'hidden';
-        }
-    };
-    
-    input.addEventListener('input', autoResize);
-    autoResize();
-
     input.focus();
 
     let isResolved = false;
@@ -711,7 +676,6 @@ async function onCreateColumn() {
         if (isResolved) return;
         isResolved = true;
         
-        // Снимаем фокус с поля, чтобы мгновенно скрыть текстовый курсор перед анимацией
         input.blur();
 
         if (!animate) {
@@ -720,25 +684,31 @@ async function onCreateColumn() {
             return;
         }
 
+        // --- ИДЕАЛЬНО ПЛАВНЫЙ КРОСС-ФЕЙД ---
+
+        // 1. Сначала запускаем анимацию исчезновения формы
         formCol.classList.remove('entered');
         formCol.classList.add('is-exiting');
 
-        const onTransitionEnd = (e) => {
-            if (e.propertyName === 'opacity') {
-                formCol.remove();
-                formCol.removeEventListener('transitionend', onTransitionEnd);
-                restoreAddButton();
-            }
-        };
-        formCol.addEventListener('transitionend', onTransitionEnd);
-        
+        // 2. Ждем короткое время (половину анимации), чтобы глаз привык к пустоте,
+        // и подменяем форму на кнопку. 
+        // Так как ширина элементов одинакова, доска не дернется.
         setTimeout(() => {
             if (formCol.parentNode) {
-                formCol.remove();
-                restoreAddButton();
+                const btn = restoreAddButton();
+                // Если кнопка создалась в конце, а мы хотим на место формы:
+                if (btn && formCol.parentNode) {
+                    formCol.replaceWith(btn);
+                }
             }
-        }, 400);
+        }, 120); // 120ms — "золотое сечение" для подмены элементов
     };
+
+    // Слушатель для автоматического ресайза текстового поля (предыдущий вид)
+    input.addEventListener('input', () => {
+        input.style.height = 'auto';
+        input.style.height = input.scrollHeight + 'px';
+    });
 
     const submit = async () => {
         const title = input.value.trim();
@@ -981,28 +951,42 @@ function renderTabs(scrollToActive = false, newTabId = null) {
     }
 }
 
-// Анимированная функция создания новой вкладки
-function onAddTabClick(e) {
-    e.currentTarget.blur();
+// Вспомогательная функция для мгновенного и плавного восстановления кнопки "+" во вкладках
+function restoreTabAddButton(container, replaceElement = null) {
+    if (container.querySelector('.add-tab-btn')) return;
+
+    const addBtn = document.createElement('button');
+    addBtn.className = 'add-tab-btn';
+    addBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>';
+    addBtn.addEventListener('click', onAddTabClick);
+
+    if (replaceElement && replaceElement.parentNode === container) {
+        replaceElement.replaceWith(addBtn);
+    } else {
+        container.appendChild(addBtn);
+    }
     
+    if (window.updateTabsScrollbar) window.updateTabsScrollbar();
+    return addBtn;
+}
+
+function onAddTabClick(e) {
     const container = document.getElementById('tabs-container');
     const addBtn = container.querySelector('.add-tab-btn');
     if (!addBtn) return;
 
-    // Игнорируем, если форма уже открыта
     if (container.querySelector('.tab-entering:not(.is-exiting)')) return;
 
+    // 1. Создаем форму
     const formTab = document.createElement('div');
     formTab.className = 'board-tab tab-entering';
     const placeholder = t('prompts.newTabTitle').replace(/:$/, '');
     formTab.innerHTML = `<input type="text" class="tab-input" placeholder="${placeholder}" autocomplete="off" spellcheck="false" />`;
 
-    // Заменяем кнопку "+" на форму
+    // ЗАМЕНА: Кнопка уходит, форма встает на её место.
     addBtn.replaceWith(formTab);
 
     const input = formTab.querySelector('.tab-input');
-    
-    // Трюк для авто-расширения инпута при вводе текста
     const autoResize = () => {
         const span = document.createElement('span');
         span.style.font = window.getComputedStyle(input).font;
@@ -1011,88 +995,83 @@ function onAddTabClick(e) {
         span.style.whiteSpace = 'pre';
         span.textContent = input.value || input.placeholder;
         document.body.appendChild(span);
-        // Вычисляем ширину и прибавляем немного запаса
-        input.style.width = Math.max(100, span.getBoundingClientRect().width + 4) + 'px';
+        input.style.width = Math.max(100, span.getBoundingClientRect().width + 8) + 'px';
         document.body.removeChild(span);
-        
-        // Бонус: перерисовываем скроллбар во время набора текста, т.к. ширина инпута растет
-        if (window.updateTabsScrollbar) window.updateTabsScrollbar();
     };
     
     input.addEventListener('input', autoResize);
     autoResize();
-    
-    // 1. Делаем фокус ДО анимации, но запрещаем браузеру резко дёргать экран
     input.focus({ preventScroll: true });
 
     requestAnimationFrame(() => {
-        // 2. Включаем наш красивый плавный скролл
         formTab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-        
-        if (window.updateTabsScrollbar) window.updateTabsScrollbar();
-        
-        requestAnimationFrame(() => {
-            formTab.classList.add('entered');
-        });
+        requestAnimationFrame(() => formTab.classList.add('entered'));
     });
 
     let isResolved = false;
 
-    // Отмена создания
     const cancel = (animate = true) => {
         if (isResolved) return;
         isResolved = true;
         input.blur();
 
-        const restoreBtn = () => {
-            if (!container.querySelector('.add-tab-btn')) {
-                container.appendChild(addBtn);
-            }
-        };
-
         if (!animate) {
             formTab.remove();
-            restoreBtn();
+            if (!container.querySelector('.add-tab-btn')) container.appendChild(addBtn);
             return;
         }
 
-        formTab.classList.remove('entered');
-        formTab.classList.add('is-exiting');
+        // --- ТЕХНИКА "WIDTH LOCK" ---
+        
+        // 1. Замеряем текущую ширину формы (широкая)
+        const currentWidth = formTab.offsetWidth;
+        
+        // 2. Создаем обертку-распорку с той же шириной
+        const wrapper = document.createElement('div');
+        wrapper.className = 'tab-spacer-wrapper';
+        wrapper.style.width = `${currentWidth}px`;
 
-        const onTransitionEnd = (ev) => {
-            if (ev.propertyName === 'opacity') {
-                formTab.remove();
-                formTab.removeEventListener('transitionend', onTransitionEnd);
-                restoreBtn();
+        // 3. Создаем новую кнопку плюса
+        const newBtn = document.createElement('button');
+        newBtn.className = 'add-tab-btn tab-btn-fade-in';
+        newBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>';
+        newBtn.addEventListener('click', onAddTabClick);
+
+        // 4. Кладем кнопку в распорку и подменяем форму распоркой
+        wrapper.appendChild(newBtn);
+        formTab.replaceWith(wrapper);
+
+        // 5. На следующем кадре "схлопываем" ширину распорки до размера кнопки (32px)
+        requestAnimationFrame(() => {
+            wrapper.style.width = '32px';
+        });
+
+        // 6. Когда анимация закончилась, вынимаем кнопку и удаляем распорку
+        const onEnd = (e) => {
+            if (e.propertyName === 'width') {
+                newBtn.classList.remove('tab-btn-fade-in');
+                wrapper.replaceWith(newBtn);
+                wrapper.removeEventListener('transitionend', onEnd);
+                if (window.updateTabsScrollbar) window.updateTabsScrollbar();
             }
         };
-        formTab.addEventListener('transitionend', onTransitionEnd);
-        setTimeout(() => { if (formTab.parentNode) { formTab.remove(); restoreBtn(); } }, 400);
+        wrapper.addEventListener('transitionend', onEnd);
     };
 
-    // Подтверждение и отправка на сервер
     const submit = async () => {
         const name = input.value.trim();
         if (!name) { cancel(true); return; }
         if (isResolved) return;
         isResolved = true;
-
         input.disabled = true;
         formTab.classList.add('is-submitting');
-        document.body.classList.add('is-locked-tabs');
 
         try {
             const newWs = await createWorkspaceAPI(name);
             state.workspaces.push(newWs);
             state.activeWorkspaceId = newWs.id;
             updateSettings({ active_workspace_id: newWs.id }).catch(console.error);
-
-            // Перезагружаем интерфейс доски (передаем newWs.id для анимации 'рождения' вкладки)
             await refreshBoard(true, newWs.id);
-
-            // Удаляем старый ручной scrollTo, renderTabs теперь делает это умнее
-            setTimeout(() => document.body.classList.remove('is-locked-tabs'), 450);
-
         } catch (err) {
             console.error(err);
             isResolved = false;
@@ -1101,7 +1080,6 @@ function onAddTabClick(e) {
             formTab.classList.add('is-error');
             setTimeout(() => formTab.classList.remove('is-error'), 400);
             input.focus();
-            document.body.classList.remove('is-locked-tabs');
         }
     };
 
@@ -1115,7 +1093,6 @@ function onAddTabClick(e) {
         requestAnimationFrame(() => {
             if (isResolved) return;
             const active = document.activeElement;
-            // Если кликнули на другую кнопку +, закрываем без анимации
             if (active && active.closest('.add-tab-btn')) { cancel(false); return; }
             if (input.value.trim()) submit(); else cancel(true);
         });
