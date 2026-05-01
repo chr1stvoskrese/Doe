@@ -896,18 +896,44 @@ function renderTabs(scrollToActive = false, newTabId = null) {
         if (canDelete) {
             tab.querySelector('.tab-close-btn').addEventListener('click', async (e) => {
                 e.stopPropagation();
+                
+                // Подтверждение оставляем, но само удаление после него будет мгновенным
                 const isConfirmed = await showConfirmModal(t('prompts.deleteTabConfirm'), t('prompts.deleteTabDesc'));
                 if (!isConfirmed) return;
 
-                try {
-                    await deleteWorkspaceAPI(ws.id);
-                    state.workspaces = state.workspaces.filter(w => w.id !== ws.id);
-                    if (ws.id === state.activeWorkspaceId) {
-                        state.activeWorkspaceId = state.workspaces[0].id;
-                        updateSettings({ active_workspace_id: state.activeWorkspaceId }).catch(console.error);
-                    }
-                    refreshBoard();
-                } catch (err) { alert(t('alerts.error')); }
+                const currentIndex = state.workspaces.findIndex(w => w.id === ws.id);
+                const isActive = (ws.id === state.activeWorkspaceId);
+
+                // --- OPTIMISTIC UI: Мгновенное обновление стейта ---
+                state.workspaces.splice(currentIndex, 1);
+
+                if (isActive) {
+                    // Умный фокус: берем следующую (на то же место), если удалили последнюю — берем предыдущую
+                    const nextIndex = Math.min(currentIndex, state.workspaces.length - 1);
+                    state.activeWorkspaceId = state.workspaces[nextIndex].id;
+                    
+                    // Синхронно перерисовываем только вкладки, чтобы UI не моргал
+                    renderTabs(true); 
+                    
+                    // Сразу запрашиваем и рисуем новую доску (без ожидания удаления старой)
+                    try {
+                        const columns = await fetchColumns(state.activeWorkspaceId);
+                        state.columns = columns.map(col => ({ ...col, collapsed: col.collapsed || false }));
+                        renderBoard();
+                        // Фоновое сохранение настроек
+                        updateSettings({ active_workspace_id: state.activeWorkspaceId }).catch(() => {});
+                    } catch (err) { console.error(err); }
+                } else {
+                    // Если удалили неактивную — просто перерисовываем ряд вкладок
+                    renderTabs(false);
+                }
+
+                // --- ФОНОВЫЙ ЗАПРОС: Удаляем в базе без блокировки UI ---
+                deleteWorkspaceAPI(ws.id).catch(err => {
+                    console.error("API Error:", err);
+                    // В случае жесткой ошибки API можно вызвать refreshBoard() для синхронизации, 
+                    // но для пользователя всё уже произошло.
+                });
             });
         }
         container.appendChild(tab);
@@ -926,7 +952,11 @@ function renderTabs(scrollToActive = false, newTabId = null) {
         requestAnimationFrame(() => {
             const activeTab = container.querySelector('.board-tab.active');
             if (activeTab) {
-                activeTab.scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'center' });
+                activeTab.scrollIntoView({ 
+                    behavior: newTabId ? 'smooth' : 'auto', 
+                    block: 'nearest', 
+                    inline: 'center' 
+                });
             }
             if (window.updateTabsScrollbar) window.updateTabsScrollbar();
         });
@@ -1060,8 +1090,7 @@ function onAddTabClick(e) {
             // Перезагружаем интерфейс доски (передаем newWs.id для анимации 'рождения' вкладки)
             await refreshBoard(true, newWs.id);
 
-            const tabsCont = document.getElementById('tabs-container');
-            tabsCont.scrollTo({ left: tabsCont.scrollWidth, behavior: 'smooth' });
+            // Удаляем старый ручной scrollTo, renderTabs теперь делает это умнее
             setTimeout(() => document.body.classList.remove('is-locked-tabs'), 450);
 
         } catch (err) {
@@ -1269,6 +1298,129 @@ async function handleColumnMenu(action, columnEl, menuItem) {
             if (spacer.parentNode) spacer.remove();
         }, 450);
     }
+}
+
+// ==========================================
+// ПЕРЕИМЕНОВАНИЕ ВКЛАДКИ
+// ==========================================
+function startTabRename(tabEl, ws) {
+    const titleSpan = tabEl.querySelector('.tab-name');
+    if (!titleSpan || tabEl.classList.contains('is-renaming')) return;
+
+    // 1. ЗАПОМИНАЕМ ТОЧНУЮ ШИРИНУ ИСХОДНОГО ТЕКСТА ДО МИКРОПИКСЕЛЯ
+    const initialTextWidth = titleSpan.getBoundingClientRect().width;
+
+    // Создаем инпут для переименования
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'tab-name-input';
+    input.value = ws.name;
+    input.spellcheck = false;
+    input.autocomplete = "off";
+
+    // Меняем текст на поле ввода
+    titleSpan.replaceWith(input);
+    tabEl.setAttribute('draggable', 'false'); // Запрещаем драг во время ввода
+    tabEl.classList.add('is-renaming');
+
+    // Функция авто-подстройки ширины инпута под текст
+    const autoResize = () => {
+        // 2. ИДЕАЛЬНАЯ ГЛАДКОСТЬ ПРИ ОТКРЫТИИ: 
+        // Если текст еще не меняли, жестко задаем исходную ширину + 8px (компенсация padding: 0 4px)
+        // Это гарантирует, что крестик не сдвинется ни на долю пикселя.
+        if (input.value === ws.name) {
+            input.style.width = `${initialTextWidth + 8}px`;
+            return;
+        }
+
+        const span = document.createElement('span');
+        span.style.font = window.getComputedStyle(input).font;
+        span.style.visibility = 'hidden';
+        span.style.position = 'absolute';
+        span.style.whiteSpace = 'pre';
+        span.textContent = input.value || ' ';
+        document.body.appendChild(span);
+        
+        // 3. ПРАВИЛЬНАЯ МАТЕМАТИКА ПРИ ВВОДЕ:
+        // ширина текста + 8px (padding слева и справа) + 1px запаса для каретки (курсора)
+        input.style.width = Math.max(20, span.getBoundingClientRect().width + 9) + 'px';
+        document.body.removeChild(span);
+        
+        if (window.updateTabsScrollbar) window.updateTabsScrollbar();
+    };
+
+    input.addEventListener('input', autoResize);
+    autoResize(); // Подгоняем размер сразу при открытии
+    
+    input.focus();
+    input.setSelectionRange(input.value.length, input.value.length); // Курсор в конец
+
+    let committed = false;
+
+    // Восстановление нормального вида вкладки
+    const restore = (title) => {
+        const span = document.createElement('span');
+        span.className = 'tab-name';
+        span.textContent = title;
+        span.dataset.fullTitle = title;
+        
+        if (input.parentNode) input.replaceWith(span);
+        
+        tabEl.setAttribute('draggable', 'true');
+        tabEl.classList.remove('is-renaming');
+        
+        if (window.updateTabsScrollbar) window.updateTabsScrollbar();
+    };
+
+    // Сохранение изменений
+    const commit = async () => {
+        if (committed) return;
+        committed = true;
+        
+        const newName = input.value.trim();
+        const finalName = newName || ws.name; // Если пусто, возвращаем старое имя
+        
+        restore(finalName);
+
+        if (newName && newName !== ws.name) {
+            try {
+                // Отправляем на бэкенд
+                await updateWorkspaceAPI(ws.id, newName);
+                ws.name = newName; // Обновляем локальный стейт
+            } catch (err) {
+                console.error("Ошибка при переименовании вкладки:", err);
+                // Откат UI при ошибке сервера
+                const span = tabEl.querySelector('.tab-name');
+                if (span) {
+                    span.textContent = ws.name;
+                    span.dataset.fullTitle = ws.name;
+                }
+            }
+        }
+    };
+
+    // Отмена переименования (Escape)
+    const cancel = () => {
+        if (committed) return;
+        committed = true;
+        restore(ws.name);
+    };
+
+    // Защита от перехвата драг-н-дропом и кликом
+    input.addEventListener('mousedown', (e) => e.stopPropagation());
+    input.addEventListener('click', (e) => e.stopPropagation());
+
+    // Обработка клавиш
+    input.addEventListener('keydown', (e) => {
+        e.stopPropagation();
+        if (e.key === 'Enter')  { e.preventDefault(); commit(); }
+        if (e.key === 'Escape') { e.preventDefault(); cancel(); }
+    });
+
+    // Сохранение при клике мимо
+    input.addEventListener('blur', () => {
+        setTimeout(() => { if (!committed) commit(); }, 120);
+    });
 }
 
 function startColumnRename(columnEl, column) {
@@ -1503,37 +1655,58 @@ function startDrag(element, type, e) {
     isDragging = true;
     dragType = type;
     draggedElement = element;
+    
+    // Сразу фиксируем текущие координаты мыши для корректного старта физики
     mouseX = e.clientX;
     mouseY = e.clientY;
     lastMouseX = mouseX;
 
+    // Если тащим карточку, запоминаем ID исходной колонки (нужно для API при дропе)
     if (dragType === 'card') {
         draggedElement.dataset.sourceColumnId = draggedElement.closest('.column').dataset.columnId;
     }
 
-    // Глобально отключаем выделение текста
+    // Глобально отключаем выделение текста и вешаем класс на body для стилизации курсоров
     document.body.style.userSelect = 'none';
     document.body.classList.add(`is-dragging-${dragType}`);
 
     const rect = draggedElement.getBoundingClientRect();
     dragClone = draggedElement.cloneNode(true);
 
-    // Жестко фиксируем размеры клона
+    // Жестко фиксируем размеры клона, чтобы его верстка не поплыла после position: fixed
     dragClone.style.width = `${rect.width}px`;
     dragClone.style.height = `${rect.height}px`;
     dragClone.style.margin = '0';
     dragClone.classList.remove('is-ghost');
     dragClone.classList.add(`${dragType}-drag-clone`);
 
-    // Смещение мыши относительно верхнего левого угла элемента
-    dragClone.dataset.offsetX = e.clientX - rect.left;
-    dragClone.dataset.offsetY = e.clientY - rect.top;
+    // Вычисляем смещение курсора относительно верхнего левого угла элемента
+    const offsetX = e.clientX - rect.left;
+    const offsetY = e.clientY - rect.top;
+    
+    // Сохраняем офсеты в dataset, чтобы renderPhysics мог их использовать
+    dragClone.dataset.offsetX = offsetX;
+    dragClone.dataset.offsetY = offsetY;
+
+    // --- ФИКС ПРЫЖКА ИЗ КООРДИНАТЫ 0,0 ---
+    // Мгновенно вычисляем начальную позицию для отрисовки
+    const initialX = e.clientX - offsetX;
+    const initialY = e.clientY - offsetY;
+    
+    // Коэффициент увеличения (колонки увеличиваем чуть меньше, чем карточки)
+    const scale = dragType === 'column' ? 1.02 : 1.04;
+    
+    // Применяем transform СРАЗУ. Теперь при appendChild элемент появится 
+    // ровно в том месте, где находится мышь, не дожидаясь следующего кадра.
+    dragClone.style.transform = `translate3d(${initialX}px, ${initialY}px, 0) scale(${scale})`;
+    // -------------------------------------
 
     document.body.appendChild(dragClone);
     
-    // Оригинал становится "призраком" (остается в DOM как спейсер)
+    // Оригинал становится полупрозрачным "призраком" на своем месте
     draggedElement.classList.add('is-ghost');
 
+    // Запускаем цикл анимации инерции и наклона
     renderPhysics();
 }
 
@@ -1604,22 +1777,87 @@ function performHitTest() {
     }
 }
 
+function handleEdgePanning() {
+    if (!isDragging) return false;
+
+    let container = null;
+    // Зона активации (в пикселях от края). На маленьких экранах 100px — оптимально.
+    let scrollZone = 100;  
+    // Максимальная скорость (пикселей за один кадр при 60fps)
+    let maxSpeed = 22;    
+    let speedX = 0;
+
+    // Определяем целевой контейнер
+    if (dragType === 'tab') {
+        container = document.getElementById('tabs-container');
+        scrollZone = 60; // Для вкладок зона чуть меньше
+    } else {
+        container = document.querySelector('.board-container');
+    }
+
+    if (!container) return false;
+
+    const rect = container.getBoundingClientRect();
+
+    // ПРАВЫЙ КРАЙ
+    if (mouseX > rect.right - scrollZone) {
+        // Рассчитываем интенсивность: 0 у границы зоны, 1 у самого края экрана
+        const intensity = (mouseX - (rect.right - scrollZone)) / scrollZone;
+        const safeIntensity = Math.max(0, Math.min(intensity, 1));
+        
+        // Квадратичное ускорение: дает очень мягкий старт и быстрый полет в конце
+        speedX = Math.pow(safeIntensity, 2) * maxSpeed;
+    } 
+    // ЛЕВЫЙ КРАЙ
+    else if (mouseX < rect.left + scrollZone) {
+        const intensity = (rect.left + scrollZone - mouseX) / scrollZone;
+        const safeIntensity = Math.max(0, Math.min(intensity, 1));
+        
+        speedX = -(Math.pow(safeIntensity, 2) * maxSpeed);
+    }
+
+    if (speedX !== 0) {
+        const prevScroll = container.scrollLeft;
+        container.scrollLeft += speedX;
+
+        // Если скролл реально изменился (не уперлись в край)
+        if (container.scrollLeft !== prevScroll) {
+            // Синхронизируем кастомный скроллбар вкладок, если нужно
+            if (dragType === 'tab' && window.updateTabsScrollbar) {
+                window.updateTabsScrollbar();
+            }
+            return true;
+        }
+    }
+    
+    return false;
+}
+
 function renderPhysics() {
     if (!isDragging || !dragClone) return;
+
+    // 1. Сначала двигаем экран
+    const didScroll = handleEdgePanning();
+    
+    // 2. Рассчитываем инерцию и наклон (твой существующий код)
     const deltaX = mouseX - lastMouseX;
     lastMouseX = mouseX;
     
-    // Твоя кастомная физика
     const maxRotation = dragType === 'tab' ? 3 : (dragType === 'column' ? 3 : 12); 
     targetRotation = Math.max(-maxRotation, Math.min(maxRotation, deltaX * 0.4));
     currentRotation += (targetRotation - currentRotation) * 0.15;
-    targetRotation *= 0.8;
 
+    // 3. Обновляем позицию клона
     const x = mouseX - parseFloat(dragClone.dataset.offsetX);
     const y = mouseY - parseFloat(dragClone.dataset.offsetY);
     const scale = dragType === 'column' ? 1.02 : 1.04;
     
     dragClone.style.transform = `translate3d(${x}px, ${y}px, 0) rotate(${currentRotation}deg) scale(${scale})`;
+    
+    // 4. Если экран едет, пересчитываем, куда должна упасть карточка прямо сейчас
+    if (didScroll) {
+        performHitTest();
+    }
     
     rafId = requestAnimationFrame(renderPhysics);
 }

@@ -1727,7 +1727,7 @@ body.is-dragging-card .column-header {
 }
 
 .tab-name {
-    max-width: 160px;           /* Ограничение длины вкладки */
+    max-width: 200px;           /* Ограничение длины вкладки */
     overflow: hidden;           /* Скрываем всё, что не влезло */
     text-overflow: ellipsis;    /* Добавляем ... в конце */
     white-space: nowrap;        /* Запрещаем перенос на новую строку */
@@ -1939,6 +1939,15 @@ body.is-dragging-tab .tab-close-btn {
     opacity: 0 !important;
 }
 
+/* 🔥 НОВОЕ: Прячем разделители вокруг ФОРМЫ СОЗДАНИЯ новой вкладки */
+.board-tab.tab-entering::before {
+    opacity: 0 !important;
+}
+.board-tab.tab-entering + .board-tab::before,
+.board-tab.tab-entering + .add-tab-btn::before {
+    opacity: 0 !important;
+}
+
 /* 4. Во время перетаскивания полностью отключаем разделители, 
    чтобы они не мерцали при смещении элементов в DOM (выглядит как ошибочный hover) */
 body.is-dragging-tab .board-tab::before,
@@ -1993,7 +2002,8 @@ body.is-dragging-tab .add-tab-btn::before {
     font-weight: 500;
     color: var(--text-primary);
     outline: none;
-    min-width: 100px;
+    min-width: 120px;
+    max-width: 200px;
 }
 
 .tab-input::placeholder {
@@ -2048,7 +2058,7 @@ body.is-dragging-tab .add-tab-btn::before {
     padding: 2px 4px;
     margin: -2px -4px; /* компенсируем padding, чтобы ширина/позиция не скакали */
     min-width: 20px;
-    max-width: 160px; /* ограничение как у .tab-name */
+    max-width: 200px; /* ограничение как у .tab-name */
     cursor: text;
     user-select: text;
     -webkit-user-select: text;
