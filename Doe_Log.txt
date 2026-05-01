@@ -647,3 +647,149 @@
 [32mINFO[0m:     Application shutdown complete.
 [32mINFO[0m:     Finished server process [[36m18884[0m]
 [System] Server stopped. Exiting.
+
+==================================================
+🚀 DOE APP Started: 2026-05-01 12:33:04.103248
+==================================================
+[System] Importing libraries...
+[System] Loading FastAPI core...
+[Settings] Reading configuration...
+[System] Starting main thread...
+[Uvicorn] Initializing web server on port 8000...
+[Uvicorn] Server thread started.[Main] Waiting for server readiness (5 seconds timeout)...
+
+[32mINFO[0m:     Started server process [[36m6332[0m]
+[32mINFO[0m:     Waiting for application startup.
+✅ База данных инициализирована в: C:\Users\i7589\DoeDevVault
+[32mINFO[0m:     Application startup complete.
+[32mINFO[0m:     Uvicorn running on [1mhttp://127.0.0.1:8000[0m (Press CTRL+C to quit)
+[32mINFO[0m:     127.0.0.1:49959 - "[1mGET / HTTP/1.1[0m" [32m200 OK[0m
+[Main] ✅ Server successfully responded on port 8000!
+[WebView] Creating invisible browser window...
+[WebView] Starting GUI engine...
+[32mINFO[0m:     127.0.0.1:54000 - "[1mGET /app HTTP/1.1[0m" [32m200 OK[0m
+[32mINFO[0m:     127.0.0.1:54000 - "[1mGET /static/styles.css HTTP/1.1[0m" [32m200 OK[0m
+[32mINFO[0m:     127.0.0.1:56396 - "[1mGET /static/app.js HTTP/1.1[0m" [32m200 OK[0m
+[32mINFO[0m:     127.0.0.1:56396 - "[1mGET /api/v1/system/settings HTTP/1.1[0m" [32m200 OK[0m
+[32mINFO[0m:     127.0.0.1:54000 - "[1mGET /api/v1/system/vault HTTP/1.1[0m" [32m200 OK[0m
+[32mINFO[0m:     127.0.0.1:53372 - "[1mGET /api/v1/workspaces/ HTTP/1.1[0m" [32m200 OK[0m
+[32mINFO[0m:     127.0.0.1:53372 - "[1mGET /api/v1/columns/?workspace_id=1 HTTP/1.1[0m" [32m200 OK[0m
+[32mINFO[0m:     127.0.0.1:50060 - "[1mGET /favicon.ico HTTP/1.1[0m" [32m200 OK[0m
+[WebView] Signal received from JS: Interface is ready, showing window.
+[WebView] Window successfully shown (transparency hack applied).
+[System] Window closed. Shutting down.
+[Uvicorn] Stop command received for the server...
+[32mINFO[0m:     Shutting down
+[32mINFO[0m:     Waiting for application shutdown.
+🛑 Сервер останавливается...
+[32mINFO[0m:     Application shutdown complete.
+[32mINFO[0m:     Finished server process [[36m6332[0m]
+[System] Server stopped. Exiting.
+
+==================================================
+🚀 DOE APP Started: 2026-05-01 12:34:40.304567
+==================================================
+[System] Importing libraries...
+[System] Loading FastAPI core...
+[Settings] Reading configuration...
+[System] Starting main thread...
+[Uvicorn] Initializing web server on port 8000...
+[Uvicorn] Server thread started.[Main] Waiting for server readiness (5 seconds timeout)...
+
+[32mINFO[0m:     Started server process [[36m18980[0m]
+[32mINFO[0m:     Waiting for application startup.
+✅ База данных инициализирована в: C:\Users\i7589\DoeDevVault
+[32mINFO[0m:     Application startup complete.
+[32mINFO[0m:     Uvicorn running on [1mhttp://127.0.0.1:8000[0m (Press CTRL+C to quit)
+[32mINFO[0m:     127.0.0.1:52745 - "[1mGET / HTTP/1.1[0m" [32m200 OK[0m
+[Main] ✅ Server successfully responded on port 8000!
+[WebView] Creating invisible browser window...
+[WebView] Starting GUI engine...
+[System] Window closed. Shutting down.
+[Uvicorn] Stop command received for the server...
+[32mINFO[0m:     Shutting down
+[32mINFO[0m:     Waiting for application shutdown.
+🛑 Сервер останавливается...
+[32mINFO[0m:     Application shutdown complete.
+[32mINFO[0m:     Finished server process [[36m18980[0m]
+[System] Server stopped. Exiting.
+
+==================================================
+🚀 DOE APP Started: 2026-05-01 12:36:40.651251
+==================================================
+[System] Importing libraries...
+[System] Loading FastAPI core...
+[Settings] Reading configuration...
+[System] Starting main thread...
+[System] AppUserModelID set successfully.
+[Uvicorn] Initializing web server on port 8000...
+[Uvicorn] Server thread started.[Main] Waiting for server readiness (5 seconds timeout)...
+
+[32mINFO[0m:     Started server process [[36m10684[0m]
+[32mINFO[0m:     Waiting for application startup.
+✅ База данных инициализирована в: C:\Users\i7589\DoeDevVault
+[32mINFO[0m:     Application startup complete.
+[32mINFO[0m:     Uvicorn running on [1mhttp://127.0.0.1:8000[0m (Press CTRL+C to quit)
+[32mINFO[0m:     127.0.0.1:56701 - "[1mGET / HTTP/1.1[0m" [32m200 OK[0m
+[Main] ✅ Server successfully responded on port 8000!
+[WebView] Creating invisible browser window...
+[WebView] Starting GUI engine...
+[32mINFO[0m:     127.0.0.1:53610 - "[1mGET /app HTTP/1.1[0m" [32m200 OK[0m
+[32mINFO[0m:     127.0.0.1:53610 - "[1mGET /static/styles.css HTTP/1.1[0m" [32m200 OK[0m
+[32mINFO[0m:     127.0.0.1:65413 - "[1mGET /static/app.js HTTP/1.1[0m" [32m200 OK[0m
+[32mINFO[0m:     127.0.0.1:53610 - "[1mGET /api/v1/system/settings HTTP/1.1[0m" [32m200 OK[0m
+[32mINFO[0m:     127.0.0.1:65413 - "[1mGET /api/v1/system/vault HTTP/1.1[0m" [32m200 OK[0m
+[32mINFO[0m:     127.0.0.1:61406 - "[1mGET /api/v1/workspaces/ HTTP/1.1[0m" [32m200 OK[0m
+[32mINFO[0m:     127.0.0.1:61406 - "[1mGET /api/v1/columns/?workspace_id=1 HTTP/1.1[0m" [32m200 OK[0m
+[32mINFO[0m:     127.0.0.1:61406 - "[1mGET /favicon.ico HTTP/1.1[0m" [32m200 OK[0m
+[WebView] Signal received from JS: Interface is ready, showing window.
+[WebView] Custom icon applied via WinAPI.
+[WebView] Window successfully shown (transparency hack applied).
+[System] Window closed. Shutting down.
+[Uvicorn] Stop command received for the server...
+[32mINFO[0m:     Shutting down
+[32mINFO[0m:     Waiting for application shutdown.
+🛑 Сервер останавливается...
+[32mINFO[0m:     Application shutdown complete.
+[32mINFO[0m:     Finished server process [[36m10684[0m]
+[System] Server stopped. Exiting.
+
+==================================================
+🚀 DOE APP Started: 2026-05-01 12:36:56.417501
+==================================================
+[System] Importing libraries...
+[System] Loading FastAPI core...
+[Settings] Reading configuration...
+[System] Starting main thread...
+[System] AppUserModelID set successfully.
+[Uvicorn] Initializing web server on port 8000...
+[Uvicorn] Server thread started.[Main] Waiting for server readiness (5 seconds timeout)...
+
+[32mINFO[0m:     Started server process [[36m20004[0m]
+[32mINFO[0m:     Waiting for application startup.
+✅ База данных инициализирована в: C:\Users\i7589\DoeDevVault
+[32mINFO[0m:     Application startup complete.
+[32mINFO[0m:     Uvicorn running on [1mhttp://127.0.0.1:8000[0m (Press CTRL+C to quit)
+[32mINFO[0m:     127.0.0.1:49335 - "[1mGET / HTTP/1.1[0m" [32m200 OK[0m
+[Main] ✅ Server successfully responded on port 8000!
+[WebView] Creating invisible browser window...
+[WebView] Starting GUI engine...
+[32mINFO[0m:     127.0.0.1:61890 - "[1mGET /app HTTP/1.1[0m" [32m200 OK[0m
+[32mINFO[0m:     127.0.0.1:61890 - "[1mGET /static/styles.css HTTP/1.1[0m" [32m200 OK[0m
+[32mINFO[0m:     127.0.0.1:64269 - "[1mGET /static/app.js HTTP/1.1[0m" [32m200 OK[0m
+[32mINFO[0m:     127.0.0.1:61890 - "[1mGET /api/v1/system/settings HTTP/1.1[0m" [32m200 OK[0m
+[32mINFO[0m:     127.0.0.1:64269 - "[1mGET /api/v1/system/vault HTTP/1.1[0m" [32m200 OK[0m
+[32mINFO[0m:     127.0.0.1:55041 - "[1mGET /api/v1/workspaces/ HTTP/1.1[0m" [32m200 OK[0m
+[32mINFO[0m:     127.0.0.1:55041 - "[1mGET /api/v1/columns/?workspace_id=1 HTTP/1.1[0m" [32m200 OK[0m
+[32mINFO[0m:     127.0.0.1:55427 - "[1mGET /favicon.ico HTTP/1.1[0m" [32m200 OK[0m
+[WebView] Signal received from JS: Interface is ready, showing window.
+[WebView] Custom icon applied via WinAPI.
+[WebView] Window successfully shown (transparency hack applied).
+[System] Window closed. Shutting down.
+[Uvicorn] Stop command received for the server...
+[32mINFO[0m:     Shutting down
+[32mINFO[0m:     Waiting for application shutdown.
+🛑 Сервер останавливается...
+[32mINFO[0m:     Application shutdown complete.
+[32mINFO[0m:     Finished server process [[36m20004[0m]
+[System] Server stopped. Exiting.

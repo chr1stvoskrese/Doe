@@ -4,10 +4,13 @@ import traceback
 import time
 from datetime import datetime
 
+# ОПРЕДЕЛЯЕМ ПАПКУ С РЕСУРСАМИ
 if getattr(sys, 'frozen', False):
     base_dir = os.path.dirname(sys.executable)
+    bundle_dir = sys._MEIPASS  # Папка, куда PyInstaller распаковывает --add-data
 else:
     base_dir = os.path.dirname(os.path.abspath(__file__))
+    bundle_dir = base_dir
 
 log_file_path = os.path.join(base_dir, "Doe_Log.txt")
 
@@ -24,7 +27,6 @@ class LoggerWriter:
     def write(self, message):
         self.file.write(message)
         self.file.flush()
-        
         if self.terminal:
             try:
                 self.terminal.write(message)
@@ -53,7 +55,6 @@ class LoggerWriter:
             return getattr(self.terminal, name)
         return getattr(self.file, name)
 
-
 if sys.platform == 'win32':
     sys.stdout = LoggerWriter(log_file_path, sys.__stdout__, is_main=True)
     sys.stderr = LoggerWriter(log_file_path, sys.__stderr__, is_main=False)
@@ -77,7 +78,6 @@ import urllib.request
 import webview
 import uvicorn
 
-
 if sys.platform == 'darwin':
     multiprocessing.set_start_method('fork')
 
@@ -92,7 +92,6 @@ print("[Settings] Reading configuration...")
 settings = get_ui_settings()
 theme = settings.get("theme", "light")
 bg_color = '#161815' if theme == 'dark' else '#F4F3EF'
-
 
 class WindowAPI:
     def reveal_window(self):
@@ -109,6 +108,24 @@ class WindowAPI:
             hwnd = ctypes.windll.user32.FindWindowW(None, "Doe")
             
             if hwnd:
+                # ==========================================
+                # УСТАНОВКА ИКОНКИ ЧЕРЕЗ WIN API (WINDOWS)
+                # ==========================================
+                try:
+                    icon_path = os.path.join(bundle_dir, "favicon.ico")
+                    if os.path.exists(icon_path):
+                        IMAGE_ICON = 1
+                        LR_LOADFROMFILE = 0x00000010
+                        WM_SETICON = 0x0080
+                        hicon = ctypes.windll.user32.LoadImageW(0, icon_path, IMAGE_ICON, 0, 0, LR_LOADFROMFILE)
+                        if hicon:
+                            ctypes.windll.user32.SendMessageW(hwnd, WM_SETICON, 0, hicon)
+                            ctypes.windll.user32.SendMessageW(hwnd, WM_SETICON, 1, hicon)
+                            print("[WebView] Custom icon applied via WinAPI.")
+                except Exception as e:
+                    print(f"[WebView] Error applying window icon: {e}")
+                # ==========================================
+
                 try:
                     registry = winreg.ConnectRegistry(None, winreg.HKEY_CURRENT_USER)
                     key = winreg.OpenKey(registry, r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize")
@@ -154,6 +171,28 @@ class WindowAPI:
                     window.show()
                 except:
                     pass
+
+        elif sys.platform == 'darwin':
+            # ==========================================
+            # УСТАНОВКА ИКОНКИ ЧЕРЕЗ APPKIT (MACOS)
+            # ==========================================
+            try:
+                import AppKit
+                icon_path = os.path.join(bundle_dir, "doe.png")
+                if os.path.exists(icon_path):
+                    app_inst = AppKit.NSApplication.sharedApplication()
+                    img = AppKit.NSImage.alloc().initByReferencingFile_(icon_path)
+                    app_inst.setApplicationIconImage_(img)
+                    print("[WebView] Custom icon applied via AppKit (macOS).")
+            except Exception as e:
+                print(f"[WebView] Error applying Mac dock icon: {e}")
+            # ==========================================
+            
+            try:
+                window.show()
+            except:
+                pass
+
         else:
             try:
                 window.show()
@@ -189,26 +228,33 @@ if __name__ == '__main__':
     multiprocessing.freeze_support()
     print("[System] Starting main thread...")
     
-    # Делаем переменную глобальной до старта, чтобы перехватчик мог до неё дотянуться
+    # ==========================================
+    # 🔥 ФИКС ИКОНКИ (ОТВЯЗКА ОТ PYTHON.EXE)
+    # ==========================================
+    if sys.platform == 'win32':
+        import ctypes
+        try:
+            # Уникальный ID заставляет Windows воспринимать скрипт как самостоятельное приложение
+            app_id = 'doe.aesthetic.kanban.app.1'
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(app_id)
+            print("[System] AppUserModelID set successfully.")
+        except Exception as e:
+            print(f"[System] Failed to set AppUserModelID: {e}")
+    # ==========================================
+
     server_thread = None
 
-    # ==========================================
-    # 🔥 ФИКС: ОБРАБОТКА CTRL+C В ТЕРМИНАЛЕ
-    # ==========================================
     import signal
     import threading
     
     def force_quit():
         print("\n[System] 🛑 Завершение работы по CTRL+C...")
-        
-        # 1. Сначала мягко уничтожаем окно WebView (чтобы предотвратить Error 1411 в Chromium)
         if webview.windows:
             try:
                 webview.windows[0].destroy()
             except Exception:
                 pass
 
-        # 2. Останавливаем сервер FastAPI
         global server_thread
         if server_thread is not None:
             try:
@@ -217,11 +263,9 @@ if __name__ == '__main__':
             except Exception:
                 pass
                 
-        # 3. Даем ОС 0.2 секунды на очистку хэндлов C++ перед жестким выходом
         time.sleep(0.2)
         os._exit(0)
 
-    # 1. Перехват для macOS / Linux
     def sigint_handler(signum, frame):
         if webview.windows:
             try:
@@ -233,7 +277,6 @@ if __name__ == '__main__':
     signal.signal(signal.SIGINT, sigint_handler)
     signal.signal(signal.SIGTERM, sigint_handler)
 
-    # 2. Перехват для Windows (пробиваем зависание через WinAPI)
     if sys.platform == 'win32':
         import ctypes
         from ctypes import wintypes
@@ -241,14 +284,12 @@ if __name__ == '__main__':
         HandlerRoutine = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.DWORD)
         
         def console_ctrl_handler(ctrl_type):
-            # 0 = CTRL_C_EVENT, 2 = CTRL_CLOSE_EVENT
             if ctrl_type in (0, 2):
                 force_quit()
             return True
             
         _ctrl_handler = HandlerRoutine(console_ctrl_handler)
         ctypes.windll.kernel32.SetConsoleCtrlHandler(_ctrl_handler, True)
-    # ==========================================
 
     try:
         server_thread = APIServerThread()
@@ -289,6 +330,9 @@ if __name__ == '__main__':
             webview.start(debug=False)
         except KeyboardInterrupt:
             pass
+        except Exception as e:
+            print("[Main] WebView crashed:")
+            traceback.print_exc()
         finally:
             print("[System] Window closed. Shutting down.")
             if server_thread:

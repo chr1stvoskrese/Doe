@@ -10,6 +10,9 @@ del /Q Doe.spec
 pyinstaller --noconfirm ^
     --windowed ^
     --name "Doe" ^
+    --icon="favicon.ico" ^
+    --add-data "favicon.ico;." ^
+    --add-data "doe.png;." ^
     --add-data "frontend;frontend" ^
     --add-data "src;src" ^
     --hidden-import "src.api.v1.columns" ^
