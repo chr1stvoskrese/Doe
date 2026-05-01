@@ -37,6 +37,26 @@
     animation: none !important;
 }
 
+/* Глобальная защита от браузерного выделения и перетаскивания */
+html, body {
+    -webkit-user-drag: none; /* Полностью убивает браузерный drag */
+    -khtml-user-drag: none;
+    -moz-user-drag: none;
+    -o-user-drag: none;
+}
+
+/* Защищаем SVG-иконки, чтобы браузер не пытался утащить их как картинки */
+svg, img {
+    pointer-events: none; /* Клики проходят сквозь иконки к кнопкам */
+    -webkit-user-drag: none;
+    user-select: none;
+}
+
+/* Явно разрешаем клики по иконкам, которые лежат в интерактивных элементах (например, в меню) */
+.menu-item svg, .lang-item svg {
+    pointer-events: auto;
+}
+
 /* Переопределяем переменные для темной темы */
 [data-theme="dark"] {
     --bg-canvas: #161815;               /* Темный фон за доской */
@@ -1842,7 +1862,9 @@ body:not(.is-dragging-tab) .add-tab-btn:hover {
     background: rgba(255, 255, 255, 0.06) !important;
 }
 [data-theme="dark"] .tab-drag-clone.active {
-    background: rgba(255, 255, 255, 0.08) !important;
+    /* Делаем летящую активную вкладку полностью непрозрачной (цвет карточки), как в светлой теме */
+    background: var(--surface-card) !important;
+    border: 1px solid var(--border-light) !important;
 }
 
 /* Призрак-оригинал вкладки в шапке (остается полупрозрачным на месте) */
@@ -2095,4 +2117,43 @@ body.is-dragging-card .card:not(.card-drag-clone) {
 /* 3. Блокировка свёрнутых колонок (Collapsed Columns) */
 body.is-dragging-column .column.collapsed:not(.column-drag-clone) {
     border-color: var(--border-light) !important;
+}
+
+/* Отключаем случайные клики по всем крестикам во время любого драга */
+body[class*="is-dragging-"] .tab-close-btn {
+    pointer-events: none !important;
+}
+
+/* Прячем крестик активной вкладки ТОЛЬКО при перетаскивании самих вкладок */
+body.is-dragging-tab .board-tab.active .tab-close-btn {
+    opacity: 0 !important;
+}
+
+/* Блокируем смену фона у неактивных вкладок */
+body[class*="is-dragging-"] .board-tab:not(.active) {
+    background: transparent !important;
+    color: var(--text-secondary) !important;
+}
+
+/* Делаем ВСЕХ призраков прозрачными для мыши, чтобы лазерный hit-test проходил сквозь них */
+.is-ghost {
+    pointer-events: none !important;
+}
+
+/* ==========================================
+   ФИКС МОРГАНИЯ HOVER ПРИ БРОСКЕ ЭЛЕМЕНТА
+   ========================================== */
+.board-tab.is-dropped-hover:not(.active) {
+    background: rgba(0, 0, 0, 0.04) !important;
+    color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .board-tab.is-dropped-hover:not(.active) {
+    background: rgba(255, 255, 255, 0.06) !important;
+}
+
+/* 🔥 НОВОЕ: Мгновенно показываем крестик вместе с фоном */
+.board-tab.is-dropped-hover .tab-close-btn:not(.hidden) {
+    opacity: 1 !important;
+    transition: none !important; /* Убиваем любую микро-анимацию на этот момент */
 }

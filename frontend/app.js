@@ -294,7 +294,7 @@ function generateCardHtml(task, columnMode) {
         timeHtml = `<div class="subtask-meta">${t('card.timeSpent')} ${formatTotalTime(task.total_time_spent)}</div>`;
     }
     return `
-        <div class="card ${task.completed_at ? 'is-completed' : ''}" data-card-id="${task.id}" draggable="true">
+        <div class="card ${task.completed_at ? 'is-completed' : ''}" data-card-id="${task.id}">
             <div class="card-title-wrapper">
                 <svg class="completed-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
                 <div class="card-title">${escapeHtml(task.title)}</div>
@@ -308,7 +308,6 @@ function createColumnElement(column) {
     const colDiv = document.createElement('div');
     colDiv.className = 'column';
     colDiv.dataset.columnId = column.id;
-    colDiv.setAttribute('draggable', 'true');
     
     if (column.collapsed) colDiv.classList.add('collapsed');
 
@@ -370,8 +369,6 @@ function createColumnElement(column) {
 
     const menuBtn = colDiv.querySelector('.menu-btn');
     menuBtn.addEventListener('click', (e) => toggleColumnMenu(e, colDiv));
-
-    colDiv.addEventListener('dragover', e => e.preventDefault());
 
     return colDiv;
 }
@@ -857,8 +854,7 @@ function renderTabs(scrollToActive = false, newTabId = null) {
             tab.classList.add('tab-birth');
         }
         
-        tab.dataset.workspaceId = ws.id; 
-        tab.setAttribute('draggable', 'true'); 
+        tab.dataset.workspaceId = ws.id;
         
         const canDelete = state.workspaces.length > 1;
         tab.innerHTML = `
@@ -1417,242 +1413,195 @@ function adjustCollapsedColumnWidths() {
     });
 }
 
-// ---------- ФИЗИЧЕСКИЙ DRAG & DROP ----------
-let dragClone = null;
+// ---------- ПРОДВИНУТЫЙ DRAG & DROP (Pointer Events) ----------
 let isDragging = false;
 let dragType = null;
 let draggedElement = null;
+let dragClone = null;
 let mouseX = 0, mouseY = 0, lastMouseX = 0;
 let currentRotation = 0, targetRotation = 0;
 let rafId = null;
-const emptyImg = new Image();
-emptyImg.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
 
+let startX = 0, startY = 0;
+let isPointerDown = false;
+let potentialDragTarget = null;
+let potentialDragType = null;
+
+// ==========================================
+// ГЛОБАЛЬНАЯ БЛОКИРОВКА БРАУЗЕРНОГО DND
+// ==========================================
+// Запрещаем браузеру перехватывать элементы как "картинки" или "текст"
 document.addEventListener('dragstart', (e) => {
-    // Блокируем старт драга на инпутах и кнопках меню
-    if (e.target.closest('.column.is-renaming') || 
-        e.target.closest('.board-tab.is-renaming') ||
-        e.target.closest('.card-entering') || 
-        e.target.closest('textarea') || 
-        e.target.closest('input')) { 
-        e.preventDefault(); 
-        return; 
+    // Разрешаем нативный drag только внутри инпутов (хотя они обычно и так не перетаскиваются)
+    if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+        e.preventDefault();
     }
+});
 
-    if (e.target.closest('.menu-btn') || e.target.closest('.btn-add-card') || e.target.closest('.tab-close-btn')) {
-        e.preventDefault(); return;
-    }
+document.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0) return; // Только левый клик мыши
 
-    // Определяем, что именно мы схватили
+    // 1. Игнорируем клики по интерактивным элементам (чтобы кнопки и инпуты работали штатно)
+    if (e.target.closest('button, input, textarea, .menu-btn, .tab-close-btn, .column.is-renaming, .board-tab.is-renaming, .card-entering')) return;
+
+    // 2. Ищем, на чем именно кликнули
     const card = e.target.closest('.card');
-    const column = e.target.closest('.column');
+    const column = e.target.closest('.column:not(.collapsed)');
     const tab = e.target.closest('.board-tab');
 
+    // 3. ЖЕСТКАЯ ИЕРАРХИЯ ЗАХВАТА (Решает Баги 1 и 2)
     if (card) {
-        dragType = 'card';
-        draggedElement = card;
-        e.dataTransfer.setData('text/plain', card.dataset.cardId); // text/plain
-        draggedElement.dataset.sourceColumnId = column.dataset.columnId;
+        // Кликнули в карточку -> тащим карточку
+        potentialDragType = 'card';
+        potentialDragTarget = card;
     } else if (column) {
-        dragType = 'column';
-        draggedElement = column;
-        e.dataTransfer.setData('text/plain', column.dataset.columnId); // text/plain вместо text/column
+        // Кликнули НЕ в карточку, но в пределы колонки (пустое место, шапка и т.д.) -> тащим колонку
+        potentialDragType = 'column';
+        potentialDragTarget = column;
     } else if (tab) {
-        dragType = 'tab';
-        draggedElement = tab;
-        e.dataTransfer.setData('text/plain', tab.dataset.workspaceId); // text/plain вместо text/tab
+        // Кликнули во вкладку -> тащим вкладку
+        potentialDragType = 'tab';
+        potentialDragTarget = tab;
     } else {
-        return; 
+        return; // Клик в "молоко" (фон доски)
     }
 
-    e.dataTransfer.setDragImage(emptyImg, 0, 0);
-    e.dataTransfer.effectAllowed = 'move';
+    isPointerDown = true;
+    startX = e.clientX;
+    startY = e.clientY;
+});
 
-    const rect = draggedElement.getBoundingClientRect();
-    dragClone = draggedElement.cloneNode(true);
+document.addEventListener('pointermove', (e) => {
+    if (!isPointerDown) return;
+
+    // Мертвая зона 5px (отличаем случайное дрожание мыши от реального намерения тащить)
+    if (!isDragging) {
+        if (Math.abs(e.clientX - startX) > 5 || Math.abs(e.clientY - startY) > 5) {
+            startDrag(potentialDragTarget, potentialDragType, e);
+        } else {
+            return;
+        }
+    }
+
+    e.preventDefault(); // Защита от системного выделения текста
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+
+    performHitTest();
+});
+
+document.addEventListener('pointerup', async () => {
+    isPointerDown = false;
+    potentialDragTarget = null;
     
-    dragClone.style.width = `${rect.width}px`;
-    dragClone.style.height = `${rect.height}px`;
-    dragClone.style.minWidth = `${rect.width}px`;
-    dragClone.style.minHeight = `${rect.height}px`;
-    dragClone.style.margin = '0';
-    
-    dragClone.classList.remove('is-ghost');
+    if (isDragging) {
+        await endDrag();
+    }
+});
 
-    if (dragType === 'card') dragClone.classList.add('card-drag-clone');
-    if (dragType === 'column') dragClone.classList.add('column-drag-clone');
-    if (dragType === 'tab') dragClone.classList.add('tab-drag-clone');
-
-    document.body.appendChild(dragClone);
-    document.body.classList.add(`is-dragging-${dragType}`);
-    
-    dragClone.dataset.offsetX = e.clientX - rect.left;
-    dragClone.dataset.offsetY = e.clientY - rect.top;
-
-    setTimeout(() => draggedElement.classList.add('is-ghost'), 0);
-
+function startDrag(element, type, e) {
     isDragging = true;
+    dragType = type;
+    draggedElement = element;
     mouseX = e.clientX;
     mouseY = e.clientY;
     lastMouseX = mouseX;
 
+    if (dragType === 'card') {
+        draggedElement.dataset.sourceColumnId = draggedElement.closest('.column').dataset.columnId;
+    }
+
+    // Глобально отключаем выделение текста
+    document.body.style.userSelect = 'none';
+    document.body.classList.add(`is-dragging-${dragType}`);
+
+    const rect = draggedElement.getBoundingClientRect();
+    dragClone = draggedElement.cloneNode(true);
+
+    // Жестко фиксируем размеры клона
+    dragClone.style.width = `${rect.width}px`;
+    dragClone.style.height = `${rect.height}px`;
+    dragClone.style.margin = '0';
+    dragClone.classList.remove('is-ghost');
+    dragClone.classList.add(`${dragType}-drag-clone`);
+
+    // Смещение мыши относительно верхнего левого угла элемента
+    dragClone.dataset.offsetX = e.clientX - rect.left;
+    dragClone.dataset.offsetY = e.clientY - rect.top;
+
+    document.body.appendChild(dragClone);
+    
+    // Оригинал становится "призраком" (остается в DOM как спейсер)
+    draggedElement.classList.add('is-ghost');
+
     renderPhysics();
-});
+}
 
-document.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    if (!isDragging) return;
-    
-    // Указываем браузеру, что это операция перемещения (включает нужный курсор)
-    e.dataTransfer.dropEffect = 'move';
-    
-    mouseX = e.clientX;
-    mouseY = e.clientY;
+function performHitTest() {
+    // Стреляем "лазером" от курсора вглубь экрана
+    // (Летающие клоны игнорируются, так как у них в CSS прописан pointer-events: none)
+    const elemUnderMouse = document.elementFromPoint(mouseX, mouseY);
+    if (!elemUnderMouse) return;
 
-    // Сортировка ВКЛАДОК
+    // 1. ВКЛАДКИ
     if (dragType === 'tab') {
-        const hoverTab = e.target.closest('.board-tab');
-        if (hoverTab && hoverTab !== draggedElement && !hoverTab.classList.contains('is-ghost') && hoverTab.closest('#tabs-container')) {
+        // Ищем настоящую вкладку под курсором (игнорируем оригинал-призрак)
+        const hoverTab = elemUnderMouse.closest('.board-tab:not(.is-ghost)');
+        
+        if (hoverTab && hoverTab !== draggedElement && hoverTab.closest('#tabs-container')) {
             const rect = hoverTab.getBoundingClientRect();
-            const midX = rect.left + rect.width / 2;
-            
-            if (mouseX > midX) {
+            // Строгая проверка левой/правой половины с предохранителем от дребезга
+            if (mouseX > rect.left + rect.width / 2) {
                 if (hoverTab.nextElementSibling !== draggedElement) hoverTab.after(draggedElement);
             } else {
                 if (hoverTab.previousElementSibling !== draggedElement) hoverTab.before(draggedElement);
             }
         }
     }
-
-    // Сортировка КОЛОНОК
-    if (dragType === 'column') {
-        const hoverColumn = e.target.closest('.column');
-        if (hoverColumn && hoverColumn !== draggedElement && !hoverColumn.classList.contains('is-ghost') && hoverColumn.closest('#board')) {
-            const rect = hoverColumn.getBoundingClientRect();
-            const midX = rect.left + rect.width / 2;
-            
-            if (mouseX > midX) {
-                if (hoverColumn.nextElementSibling !== draggedElement) hoverColumn.after(draggedElement);
+    // 2. КОЛОНКИ
+    else if (dragType === 'column') {
+        const hoverCol = elemUnderMouse.closest('.column:not(.is-ghost)');
+        
+        if (hoverCol && hoverCol !== draggedElement && hoverCol.closest('#board')) {
+            const rect = hoverCol.getBoundingClientRect();
+            if (mouseX > rect.left + rect.width / 2) {
+                if (hoverCol.nextElementSibling !== draggedElement) hoverCol.after(draggedElement);
             } else {
-                if (hoverColumn.previousElementSibling !== draggedElement) hoverColumn.before(draggedElement);
+                if (hoverCol.previousElementSibling !== draggedElement) hoverCol.before(draggedElement);
             }
         }
     }
-
-    // Сортировка КАРТОЧЕК
-    if (dragType === 'card') {
-        const hoverColumn = e.target.closest('.column');
-        if (!hoverColumn || hoverColumn.classList.contains('is-ghost')) return;
-
-        const cardList = hoverColumn.querySelector('.card-list');
-        if (!cardList) return;
-
-        const hoverCard = e.target.closest('.card:not(.is-ghost):not(.card-drag-clone)');
-
+    // 3. КАРТОЧКИ
+    else if (dragType === 'card') {
+        const hoverCard = elemUnderMouse.closest('.card:not(.is-ghost)');
+        
+        // Сценарий А: Навели ровно на другую карточку
         if (hoverCard && hoverCard !== draggedElement) {
             const rect = hoverCard.getBoundingClientRect();
-            const midY = rect.top + rect.height / 2;
-            
-            if (mouseY > midY) {
+            if (mouseY > rect.top + rect.height / 2) {
                 if (hoverCard.nextElementSibling !== draggedElement) hoverCard.after(draggedElement);
             } else {
                 if (hoverCard.previousElementSibling !== draggedElement) hoverCard.before(draggedElement);
             }
-        } else if (!hoverCard) {
-            if (!cardList.contains(draggedElement)) {
-                cardList.appendChild(draggedElement);
-            }
-        }
-    }
-});
-
-function startTabRename(tabEl, ws) {
-    const nameSpan = tabEl.querySelector('.tab-name');
-    if (!nameSpan || tabEl.classList.contains('is-renaming')) return;
-
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.className = 'tab-name-input';
-    input.value = ws.name;
-    input.spellcheck = false;
-
-    nameSpan.replaceWith(input);
-    tabEl.setAttribute('draggable', 'false');
-    tabEl.classList.add('is-renaming');
-
-    // Авто-расширение ширины инпута
-    const autoResize = () => {
-        const span = document.createElement('span');
-        span.style.font = window.getComputedStyle(input).font;
-        span.style.visibility = 'hidden';
-        span.style.position = 'absolute';
-        span.style.whiteSpace = 'pre';
-        span.textContent = input.value || ' ';
-        document.body.appendChild(span);
-        input.style.width = Math.max(20, span.getBoundingClientRect().width + 2) + 'px';
-        document.body.removeChild(span);
-        if (window.updateTabsScrollbar) window.updateTabsScrollbar();
-    };
-    input.addEventListener('input', autoResize);
-    autoResize();
-
-    input.focus();
-    input.setSelectionRange(input.value.length, input.value.length);
-
-    let committed = false;
-
-    const restore = (name) => {
-        const span = document.createElement('span');
-        span.className = 'tab-name';
-        span.textContent = name;
-        span.dataset.fullTitle = name;
-        if (input.parentNode) input.replaceWith(span);
-        tabEl.setAttribute('draggable', 'true');
-        tabEl.classList.remove('is-renaming');
-    };
-
-    const commit = async () => {
-        if (committed) return;
-        committed = true;
-        const newName = input.value.trim();
-        const finalName = newName || ws.name;
-        restore(finalName);
-        
-        if (newName && newName !== ws.name) {
-            try {
-                await updateWorkspaceAPI(ws.id, newName);
-                ws.name = newName;
-            } catch (_) {
-                // В случае ошибки возвращаем старое имя
-                const span = tabEl.querySelector('.tab-name');
-                if (span) {
-                    span.textContent = ws.name;
-                    span.dataset.fullTitle = ws.name;
+        } 
+        // Сценарий Б: Навели на пустое место в колонке (в начало списка, в конец или в пустую колонку)
+        else {
+            const hoverCol = elemUnderMouse.closest('.column:not(.is-ghost)');
+            if (hoverCol) {
+                const cardList = hoverCol.querySelector('.card-list');
+                if (cardList && !cardList.contains(draggedElement)) {
+                    // Если мышь выше первой карточки — кидаем в самый верх
+                    const firstCard = cardList.firstElementChild;
+                    if (firstCard && mouseY < firstCard.getBoundingClientRect().top) {
+                        cardList.prepend(draggedElement);
+                    } else {
+                        // Иначе кидаем в самый низ
+                        cardList.appendChild(draggedElement);
+                    }
                 }
             }
         }
-    };
-
-    const cancel = () => {
-        if (committed) return;
-        committed = true;
-        restore(ws.name);
-    };
-
-    // Блокируем всплытие, чтобы не срабатывал Drag&Drop или переключение вкладки
-    input.addEventListener('mousedown', (e) => e.stopPropagation());
-    input.addEventListener('click', (e) => e.stopPropagation());
-
-    input.addEventListener('keydown', (e) => {
-        e.stopPropagation();
-        if (e.key === 'Enter') { e.preventDefault(); commit(); }
-        if (e.key === 'Escape') { e.preventDefault(); cancel(); }
-    });
-
-    input.addEventListener('blur', () => {
-        // Задержка позволяет отработать кликам по кнопкам перед blur'ом
-        setTimeout(() => { if (!committed) commit(); }, 120);
-    });
+    }
 }
 
 function renderPhysics() {
@@ -1660,7 +1609,7 @@ function renderPhysics() {
     const deltaX = mouseX - lastMouseX;
     lastMouseX = mouseX;
     
-    // Вкладки наклоняем слабее (3 градуса), карточки сильнее (12 градусов)
+    // Твоя кастомная физика
     const maxRotation = dragType === 'tab' ? 3 : (dragType === 'column' ? 3 : 12); 
     targetRotation = Math.max(-maxRotation, Math.min(maxRotation, deltaX * 0.4));
     currentRotation += (targetRotation - currentRotation) * 0.15;
@@ -1675,39 +1624,12 @@ function renderPhysics() {
     rafId = requestAnimationFrame(renderPhysics);
 }
 
-document.addEventListener('dragend', async (e) => {
-    if (!isDragging) return;
+async function endDrag() {
     isDragging = false;
     cancelAnimationFrame(rafId);
     
-    // Снимаем классы перетаскивания
-    document.body.classList.remove('is-dragging-column', 'is-dragging-card', 'is-dragging-tab');
-    
-    // 🔥 ЖЕЛЕЗОБЕТОННЫЙ ФИКС САМОПРОИЗВОЛЬНОГО ЗАГОРАНИЯ 🔥
-    // Блокируем hover для всех вкладок в момент броска
-    document.body.classList.add('is-dropping-tab');
-    
-    // Берём глобальные mouseX/mouseY (так как e.clientX в dragend на macOS часто отдаёт 0)
-    const dropX = mouseX;
-    const dropY = mouseY;
-    
-    const unlockHover = (ev) => {
-        // Снимаем блокировку, только когда ты реально сдвинул мышь на 3 пикселя
-        if (Math.abs(ev.clientX - dropX) > 3 || Math.abs(ev.clientY - dropY) > 3) {
-            document.body.classList.remove('is-dropping-tab');
-            document.removeEventListener('mousemove', unlockHover);
-        }
-    };
-    
-    // Даём 50мс, чтобы браузер не словил фантомное микро-движение от самого отпускания клика
-    setTimeout(() => { document.addEventListener('mousemove', unlockHover); }, 50);
-    
-    // Предохранитель: через 500мс разблокируем в любом случае, даже если мышь замерла
-    setTimeout(() => {
-        document.body.classList.remove('is-dropping-tab');
-        document.removeEventListener('mousemove', unlockHover);
-    }, 500);
-    // ==========================================
+    document.body.classList.remove(`is-dragging-${dragType}`);
+    document.body.style.userSelect = '';
     
     if (dragClone) {
         dragClone.remove();
@@ -1716,37 +1638,48 @@ document.addEventListener('dragend', async (e) => {
     
     if (draggedElement) {
         draggedElement.classList.remove('is-ghost');
+
+        const droppedEl = draggedElement;
+        const rect = droppedEl.getBoundingClientRect();
         
-        // --- ЗАВЕРШЕНИЕ ПЕРЕТАСКИВАНИЯ ВКЛАДКИ ---
+        // Проверяем: если мышь РЕАЛЬНО находится над вкладкой в момент отпускания
+        if (mouseX >= rect.left && mouseX <= rect.right && mouseY >= rect.top && mouseY <= rect.bottom) {
+            droppedEl.classList.add('is-dropped-hover'); // Вешаем фейковый ховер
+            
+            const cleanupHover = () => {
+                droppedEl.classList.remove('is-dropped-hover');
+                document.removeEventListener('pointermove', cleanupHover);
+            };
+            
+            // Даем браузеру 50мс на применение настоящего CSS :hover,
+            // а затем по первому же движению мыши снимаем наш "костыль".
+            setTimeout(() => {
+                document.addEventListener('pointermove', cleanupHover);
+            }, 50);
+        }
+        
+        // --- Логика сохранения порядка ВКЛАДОК ---
         if (dragType === 'tab') {
             const currentTabs = Array.from(document.querySelectorAll('#tabs-container .board-tab'));
             const orderedIds = currentTabs.map(tab => parseInt(tab.dataset.workspaceId));
-            
-            // Просто обновляем позиции в стейте и сортируем массив, НЕ ПЕРЕРИСОВЫВАЯ DOM!
             state.workspaces.forEach(ws => { ws.position = orderedIds.indexOf(ws.id); });
             state.workspaces.sort((a, b) => a.position - b.position);
-            
-            // Обновляем кастомный ползунок, так как вкладки могли поменять ширину/места
             if (window.updateTabsScrollbar) window.updateTabsScrollbar();
-            
             try { await saveWorkspacesOrder(orderedIds); } 
-            catch (error) { console.error("Ошибка сохранения порядка вкладок", error); }
+            catch (error) { console.error("Ошибка сохранения", error); }
         }
 
-        // --- ЗАВЕРШЕНИЕ ПЕРЕТАСКИВАНИЯ КОЛОНКИ ---
+        // --- Логика сохранения порядка КОЛОНОК ---
         if (dragType === 'column') {
             const currentColumns = Array.from(document.querySelectorAll('#board .column'));
             const orderedIds = currentColumns.map(col => parseInt(col.dataset.columnId));
-            
-            // Обновляем позиции колонок в стейте, НЕ ПЕРЕРИСОВЫВАЯ ДОСКУ!
             state.columns.forEach(col => { col.position = orderedIds.indexOf(col.id); });
             state.columns.sort((a, b) => a.position - b.position);
-            
             try { await saveColumnsOrder(orderedIds); } 
-            catch (error) { console.error("Ошибка сохранения порядка колонок", error); }
+            catch (error) { console.error("Ошибка сохранения", error); }
         }
 
-        // --- ЗАВЕРШЕНИЕ ПЕРЕТАСКИВАНИЯ КАРТОЧКИ ---
+        // --- Логика сохранения порядка КАРТОЧЕК ---
         if (dragType === 'card') {
             const newColumnEl = draggedElement.closest('.column');
             if (newColumnEl) {
@@ -1766,7 +1699,6 @@ document.addEventListener('dragend', async (e) => {
                     const sourceCol = state.columns.find(c => c.id === sourceColumnId);
 
                     if (newColumnId !== sourceColumnId) {
-                        
                         if (targetCol.mode === 'track_time') {
                             draggedElement.classList.remove('is-completed');
                             let timerEl = draggedElement.querySelector('.card-timer');
@@ -1810,15 +1742,12 @@ document.addEventListener('dragend', async (e) => {
                     await saveTasksOrder(orderedIds);
                     
                     if (targetCol) {
-                        targetCol.tasks.forEach(t => {
-                            t.position = orderedIds.indexOf(t.id);
-                        });
+                        targetCol.tasks.forEach(t => { t.position = orderedIds.indexOf(t.id); });
                     }
-                    
                     updateTimers();
 
                 } catch (error) {
-                    console.error("Ошибка при перемещении карточки", error);
+                    console.error("Ошибка при перемещении", error);
                     await refreshBoard(); 
                 }
             }
@@ -1828,7 +1757,7 @@ document.addEventListener('dragend', async (e) => {
     dragType = null;
     draggedElement = null;
     currentRotation = targetRotation = 0;
-});
+}
 
 // ---------- ГЛОБАЛЬНЫЕ КЛИКИ (меню, модалки) ----------
 document.addEventListener('click', (e) => {
