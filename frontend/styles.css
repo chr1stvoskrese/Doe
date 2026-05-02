@@ -773,7 +773,6 @@ body {
 .tab-spacer-wrapper {
     display: flex;
     align-items: center;
-    overflow: hidden; /* Чтобы кнопка внутри не вылезала за границы при схлопывании */
     transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     flex-shrink: 0;
 }
@@ -1938,21 +1937,18 @@ body.is-dragging-tab .tab-close-btn {
 }
 
 /* ==========================================
-   УМНЫЕ МИКРО-РАЗДЕЛИТЕЛИ ДЛЯ ВКЛАДОК
+   ФИНАЛЬНЫЕ СТАБИЛЬНЫЕ РАЗДЕЛИТЕЛИ (v4)
    ========================================== */
 
-/* 1. Добавляем контекст позиционирования */
-.board-tab, 
-.add-tab-btn {
+/* 1. Каждая вкладка несет разделитель на своем ПРАВОМ краю (::after) */
+.board-tab {
     position: relative;
 }
 
-/* 2. Создаем сам разделитель (мягкий штрих) */
-.board-tab + .board-tab::before,
-.board-tab + .add-tab-btn::before {
+.board-tab::after {
     content: '';
     position: absolute;
-    left: -3.5px;
+    right: -3.5px; /* Фиксируем линию относительно стабильной вкладки */
     top: 50%;
     transform: translateY(-50%);
     width: 1px;
@@ -1960,34 +1956,41 @@ body.is-dragging-tab .tab-close-btn {
     background: var(--text-secondary);
     opacity: 0.25;
     border-radius: 1px;
-    transition: opacity 0.2s ease;
     pointer-events: none;
+    z-index: 1;
+
+    /* КРИТИЧНО: Никаких переходов. Линия должна быть либо включена, либо выключена. */
+    transition: none !important; 
 }
 
-/* 3. UX-Магия: Прячем разделители вокруг АКТИВНОЙ вкладки */
-.board-tab.active::before {
-    opacity: 0 !important;
-}
-.board-tab.active + .board-tab::before,
-.board-tab.active + .add-tab-btn::before {
-    opacity: 0 !important;
+/* 2. Прячем линию САМОЙ вкладки, если она активна или является формой */
+.board-tab.active::after,
+.board-tab.tab-entering::after,
+.board-tab.is-ghost::after {
+    display: none !important;
 }
 
-/* 🔥 НОВОЕ: Прячем разделители вокруг ФОРМЫ СОЗДАНИЯ новой вкладки */
-.board-tab.tab-entering::before {
-    opacity: 0 !important;
-}
-.board-tab.tab-entering + .board-tab::before,
-.board-tab.tab-entering + .add-tab-btn::before {
-    opacity: 0 !important;
+/* 3. Прячем линию вкладки, если СЛЕДУЮЩИЙ за ней элемент — "особый".
+   Мы НЕ добавляем сюда .tab-spacer-wrapper, чтобы линия появилась СРАЗУ 
+   в момент отмены, не дожидаясь окончания анимации.
+*/
+.board-tab:has(+ .active)::after,
+.board-tab:has(+ .tab-entering)::after,
+.board-tab:has(+ .is-ghost)::after {
+    display: none !important;
 }
 
-/* 4. Во время перетаскивания полностью отключаем разделители, 
-   чтобы они не мерцали при смещении элементов в DOM (выглядит как ошибочный hover) */
-body.is-dragging-tab .board-tab::before,
-body.is-dragging-tab .add-tab-btn::before {
-    opacity: 0 !important;
-    transition: none !important;
+/* 4. Кнопка "+" и Распорка НЕ имеют своих линий (они всегда справа от вкладок) */
+.add-tab-btn::before, 
+.add-tab-btn::after,
+.tab-spacer-wrapper::before,
+.tab-spacer-wrapper::after {
+    display: none !important;
+}
+
+/* 5. Глобальное скрытие при перетаскивании для чистоты интерфейса */
+body[class*="is-dragging-"] .board-tab::after {
+    display: none !important;
 }
 
 /* ==========================================
