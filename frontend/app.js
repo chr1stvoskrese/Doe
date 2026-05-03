@@ -51,15 +51,25 @@ let activeConfirmResolve = null; // Добавили эту строку
 
 // --- НОВЫЕ ФУНКЦИИ ПРИМЕНЕНИЯ ТЕМЫ И ЯЗЫКА ---
 function applyTheme(theme, saveToBackend = false) {
-    if (theme === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
-    else document.documentElement.removeAttribute('data-theme');
+    const updateDOM = () => {
+        if (theme === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+        else document.documentElement.removeAttribute('data-theme');
 
-    document.querySelectorAll('#theme-list .lang-item').forEach(el => {
-        el.classList.toggle('active', el.dataset.themeValue === theme);
-    });
+        document.querySelectorAll('#theme-list .lang-item').forEach(el => {
+            el.classList.toggle('active', el.dataset.themeValue === theme);
+        });
 
-    localStorage.setItem('doe-theme', theme);
-    if (saveToBackend) updateSettings({ theme }).catch(console.error);
+        localStorage.setItem('doe-theme', theme);
+        if (saveToBackend) updateSettings({ theme }).catch(console.error);
+    };
+
+    // Запускаем красивую анимацию "раскрывающегося круга" только при ручном клике пользователя (saveToBackend = true). 
+    // При первоначальной загрузке приложения тема применяется мгновенно.
+    if (saveToBackend && document.startViewTransition) {
+        document.startViewTransition(updateDOM);
+    } else {
+        updateDOM();
+    }
 }
 
 function applyLanguage(lang, saveToBackend = false) {
@@ -604,6 +614,7 @@ async function onAddTask(columnId) {
 
     // --- ДОБАВЛЕНО: Изолируем клики мыши, чтобы карточка не "захватывалась" ---
     input.addEventListener('mousedown', (e) => e.stopPropagation());
+    input.addEventListener('click', (e) => e.stopPropagation());
     input.addEventListener('mousemove', (e) => e.stopPropagation());
     input.addEventListener('touchstart', (e) => e.stopPropagation());
 
@@ -1175,6 +1186,44 @@ function showConfirmModal(title, message, confirmBtnText = t('menu.delete')) {
     });
 }
 
+// Функция разворачивания колонки
+async function onExpandColumn(columnEl) {
+    const columnId = parseInt(columnEl.dataset.columnId);
+    const column = state.columns.find(c => c.id === columnId);
+    if (!column) return;
+
+    // 1. Убираем класс и обновляем состояние
+    columnEl.classList.remove('collapsed');
+    column.collapsed = false;
+
+    // 2. КРИТИЧНО: Сбрасываем инлайновые стили ширины, 
+    // чтобы колонка вернулась к своим CSS-ным 320px
+    columnEl.style.width = '';
+    columnEl.style.minWidth = '';
+
+    // 3. Восстанавливаем текст заголовка из dataset
+    const titleEl = columnEl.querySelector('.column-title');
+    if (titleEl) {
+        titleEl.textContent = titleEl.dataset.fullTitle || titleEl.textContent;
+        // Убираем флаг обрезки для свернутого состояния
+        titleEl.dataset.clamped = "false";
+        
+        // Даем браузеру обновить layout и применяем стандартный clamping для развернутого вида
+        requestAnimationFrame(() => clampSingleTitle(titleEl));
+    }
+    
+    // Показываем меню, если оно было скрыто инлайново при сворачивании
+    const menu = columnEl.querySelector('.dropdown-menu');
+    if (menu) menu.style.display = '';
+
+    // 4. Отправляем в базу
+    try {
+        await updateColumn(columnId, { collapsed: false });
+    } catch (err) {
+        console.error('Failed to save expanded state', err);
+    }
+}
+
 // --- ОБНОВЛЁННАЯ ФУНКЦИЯ МЕНЮ КОЛОНКИ ---
 async function handleColumnMenu(action, columnEl, menuItem) {
     const columnId = parseInt(columnEl.dataset.columnId);
@@ -1729,7 +1778,7 @@ document.addEventListener('pointerdown', (e) => {
 
     // 2. Ищем, на чем именно кликнули
     const card = e.target.closest('.card');
-    const column = e.target.closest('.column:not(.collapsed)');
+    const column = e.target.closest('.column'); // 🔥 ФИКС: Теперь захватывать можно любые колонки
     const tab = e.target.closest('.board-tab');
 
     // 3. ЖЕСТКАЯ ИЕРАРХИЯ ЗАХВАТА (Решает Баги 1 и 2)
@@ -1773,11 +1822,14 @@ document.addEventListener('pointermove', (e) => {
     performHitTest();
 });
 
-document.addEventListener('pointerup', async () => {
+document.addEventListener('pointerup', async (e) => {
     isPointerDown = false;
     potentialDragTarget = null;
     
     if (isDragging) {
+        // 🔥 ФИКС: Блокируем случайные клики на 50мс после броска
+        window._isAfterDrag = true;
+        setTimeout(() => window._isAfterDrag = false, 50);
         await endDrag();
     }
 });
@@ -2006,7 +2058,16 @@ async function endDrag() {
     }
     
     if (draggedElement) {
+        // 🔥 ФИКС: Мгновенное возвращение цвета без дерганий и фейдов
+        // 1. Временно убиваем все анимации на элементе
+        draggedElement.style.transition = 'none';
+        // 2. Снимаем класс призрака (цвет меняется на нормальный)
         draggedElement.classList.remove('is-ghost');
+        // 3. Запрашиваем offsetWidth. Это заставляет браузер СИНХРОННО перерисовать
+        // элемент прямо сейчас, применив новые цвета без анимации (Force Reflow)
+        void draggedElement.offsetWidth;
+        // 4. Возвращаем стили к дефолтным CSS-настройкам
+        draggedElement.style.transition = '';
 
         const droppedEl = draggedElement;
         const rect = droppedEl.getBoundingClientRect();
@@ -2128,9 +2189,32 @@ async function endDrag() {
     currentRotation = targetRotation = 0;
 }
 
+document.addEventListener('mousedown', (e) => {
+    if (e.target.closest('.card-menu-btn')) {
+        e.preventDefault(); 
+    }
+});
+
 // ---------- ГЛОБАЛЬНЫЕ КЛИКИ (меню, модалки) ----------
 document.addEventListener('click', async (e) => {
+    // 🔥 ФИКС: Игнорируем клик, если он был концом перетаскивания
+    if (window._isAfterDrag) {
+        e.stopPropagation();
+        e.preventDefault();
+        return;
+    }
+
     const target = e.target;
+
+    // --- ДОБАВИТЬ СЮДА: Разворачивание колонки ---
+    const collapsedCol = target.closest('.column.collapsed');
+    if (collapsedCol) {
+        // Если кликнули не по кнопке меню (хотя в свернутой её нет, но на будущее)
+        if (!target.closest('.menu-btn')) {
+            onExpandColumn(collapsedCol);
+            return;
+        }
+    }
 
     // 1. ПЕРЕИМЕНОВАНИЕ КОЛОНКИ (по клику в заголовок)
     const titleEl = target.closest('.column:not(.collapsed) .column-title');
@@ -2219,14 +2303,16 @@ document.addEventListener('click', async (e) => {
 
             cardMenuBtn.classList.add('active');
             cardEl.classList.add('has-open-menu');
-
-            // Опционально: запускаем переименование сразу при открытии меню
-            const taskId = parseInt(cardEl.dataset.cardId);
-            const colId = parseInt(cardEl.closest('.column').dataset.columnId);
-            const col = state.columns.find(c => c.id === colId);
-            const task = col?.tasks.find(t => t.id === taskId);
-            if (task) startCardRename(cardEl, task);
         }
+
+        // ФИКС: ВСЕГДА включаем переименование параллельно при клике на карандаш.
+        // Вынесено из блока if (!isAlreadyOpen)
+        const taskId = parseInt(cardEl.dataset.cardId);
+        const colId = parseInt(cardEl.closest('.column').dataset.columnId);
+        const col = state.columns.find(c => c.id === colId);
+        const task = col?.tasks.find(t => t.id === taskId);
+        if (task) startCardRename(cardEl, task);
+
         return;
     }
 
@@ -2349,7 +2435,12 @@ document.addEventListener('click', async (e) => {
     }
 
     // 9. ЗАКРЫТИЕ ВСЕХ МЕНЮ ПРИ КЛИКЕ ВНЕ
-    if (!target.closest('.dropdown-menu') && !target.closest('.menu-btn') && !target.closest('.card-menu-btn')) {
+    if (
+        !target.closest('.dropdown-menu') && 
+        !target.closest('.menu-btn') && 
+        !target.closest('.card-menu-btn') &&
+        !target.closest('.card.has-open-menu') // 🔥 ФИКС: Игнорируем клики внутри карточки с активным меню
+    ) {
         closeAllDropdowns();
     }
 });
@@ -2377,35 +2468,43 @@ function updateColumnCount(columnEl, count = null) {
 }
 
 
-// Выносим логику обрезки в отдельную функцию для конкретного элемента
 function clampSingleTitle(titleEl) {
     if (!titleEl) return;
-    const MAX_HEIGHT_PX = window.innerHeight * 0.2; // 20% экрана
+    
+    // Ограничиваем заголовок 25% высоты экрана
+    const MAX_ALLOWED_HEIGHT = window.innerHeight * 0.25; 
 
     const fullTitle = titleEl.dataset.fullTitle || titleEl.textContent;
 
-    // Сначала сбрасываем, чтобы измерить реальную высоту
+    // 1. Сбрасываем стили для честного замера
     titleEl.style.webkitLineClamp = 'unset';
-    titleEl.style.display = 'block';
-    const naturalHeight = titleEl.scrollHeight;
+    titleEl.style.maxHeight = 'none';
 
-    // Восстанавливаем flex-контейнер
-    titleEl.style.display = '-webkit-box';
+    // 2. Считаем реальную высоту одной строки
+    const computedStyle = window.getComputedStyle(titleEl);
+    const lineHeight = parseFloat(computedStyle.lineHeight) || 21.75;
 
-    if (naturalHeight > MAX_HEIGHT_PX) {
-        // Находим сколько строк влезает
-        const lineHeight = parseFloat(getComputedStyle(titleEl).lineHeight) || 21.75;
-        const maxLines = Math.max(2, Math.floor(MAX_HEIGHT_PX / lineHeight));
+    // 3. Если контент превышает лимит
+    if (titleEl.scrollHeight > MAX_ALLOWED_HEIGHT) {
+        // Вычисляем сколько ПОЛНЫХ строк влезет
+        // Вычитаем 2px из лимита для безопасности (запас на границы)
+        const maxLines = Math.max(2, Math.floor((MAX_ALLOWED_HEIGHT - 2) / lineHeight));
 
+        // 4. Применяем зажим строк
         titleEl.style.webkitLineClamp = String(maxLines);
+        
+        // 🔥 ГЛАВНЫЙ ФИКС: Принудительно устанавливаем высоту элемента 
+        // кратно количеству строк + наш padding из CSS.
+        // Это не даст контейнеру "обрезать" нижнюю строку на середине.
+        titleEl.style.maxHeight = (maxLines * lineHeight) + "px";
+
         titleEl.dataset.fullTitle = fullTitle;
         titleEl.dataset.clamped = 'true';
     } else {
+        // Если текст короткий - снимаем все ограничения
         titleEl.style.webkitLineClamp = 'unset';
+        titleEl.style.maxHeight = 'none';
         titleEl.dataset.clamped = 'false';
-        if (titleEl.textContent === fullTitle) {
-            delete titleEl.dataset.fullTitle;
-        }
     }
 }
 
@@ -2672,63 +2771,76 @@ const checkApi = () => {
     initTooltip();
     initTabsScrollbar();
 
-    // Заворачиваем в try-catch на случай, если WKWebView заблокирует localStorage
+    // 1. Первичная настройка темы/языка из кэша (чтобы не моргало)
     try {
         applyLanguage(localStorage.getItem('doe-lang') || 'ru', false);
         applyTheme(localStorage.getItem('doe-theme') || 'light', false);
-    } catch (e) {
-        console.warn("Storage restricted", e);
-        applyLanguage('ru', false);
-        applyTheme('light', false);
-    }
+    } catch (e) {}
 
     try {
-        const [settings, vault, workspaces] = await Promise.all([
+        // 2. Загружаем системные данные и ВКЛАДКИ в первую очередь
+        const [settingsData, vaultData, workspacesData] = await Promise.all([
             fetchSettings().catch(() => ({})),
-            fetchVault().catch(() => ({name: "Doe Board"})),
+            fetchVault().catch(() => ({ name: "Doe Board" })),
             fetchWorkspaces().catch(() => [])
         ]);
 
-        if (settings.language) applyLanguage(settings.language, false);
-        if (settings.theme) applyTheme(settings.theme, false);
-        if (settings.active_workspace_id) state.activeWorkspaceId = settings.active_workspace_id;
+        // Обновляем имя хранилища в UI
+        updateVaultName(vaultData.name);
 
-        updateVaultName(vault.name);
+        // Сохраняем воркспейсы в стейт
+        state.workspaces = workspacesData;
 
-        state.workspaces = workspaces;
-        if (state.workspaces.length === 0) {
-            const ws = await createWorkspaceAPI("Main");
-            state.workspaces.push(ws);
+        // 3. ВЫБОР АКТИВНОЙ ВКЛАДКИ (Логика-предохранитель)
+        let targetWorkspaceId = settingsData.active_workspace_id;
+
+        // Если в настройках пусто или такая вкладка была удалена, берем ID первой из списка
+        if (!targetWorkspaceId || !state.workspaces.find(w => w.id === targetWorkspaceId)) {
+            if (state.workspaces.length > 0) {
+                targetWorkspaceId = state.workspaces[0].id;
+            }
         }
-        if (!state.activeWorkspaceId || !state.workspaces.find(w => w.id === state.activeWorkspaceId)) {
-            state.activeWorkspaceId = state.workspaces[0].id;
-        }
 
+        // Фиксируем ID в глобальном стейте ПЕРЕД запросом колонок
+        state.activeWorkspaceId = targetWorkspaceId;
+
+        // Рендерим вкладки (теперь они точно есть в state.workspaces)
         renderTabs(true);
 
-        const columns = await fetchColumns(state.activeWorkspaceId);
-        state.columns = columns.map(col => ({ ...col, collapsed: col.collapsed || false }));
-        renderBoard();
+        // 4. ЗАГРУЗКА КОЛОНОК (только если ID определен)
+        if (state.activeWorkspaceId) {
+            const columnsData = await fetchColumns(state.activeWorkspaceId);
+            state.columns = columnsData.map(col => ({ ...col, collapsed: col.collapsed || false }));
+            
+            renderBoard(); // Рисуем доску
+            
+            // Выполняем замеры высот и схлопывание (фикс вспышки макета)
+            adjustCollapsedColumnWidths();
+            clampExpandedTitles();
+        } else {
+            // Если воркспейсов вообще нет (критическая ситуация)
+            console.error("No workspaces found even after initialization");
+            renderBoard(); // Отрисует пустую доску с кнопкой "+"
+        }
+
+        // 5. ПОКАЗЫВАЕМ ОКНО (убираем preload)
+        document.body.classList.remove('preload');
+        setTimeout(triggerReveal, 50);
 
     } catch (e) {
-        console.error("Ошибка загрузки данных", e);
+        console.error("Fatal initialization error:", e);
+        document.body.classList.remove('preload');
+        triggerReveal(); 
     }
     
+    // Запуск таймеров
     setInterval(updateTimers, 250);
     
-    let isResizing = false;
+    // Обработка ресайза
     window.addEventListener('resize', () => {
-        if (!isResizing) {
-            isResizing = true;
-            // Для ресайза rAF подходит, т.к. окно уже видимо
-            requestAnimationFrame(() => {
-                clampExpandedTitles();
-                adjustCollapsedColumnWidths();
-                isResizing = false;
-            });
-        }
+        requestAnimationFrame(() => {
+            clampExpandedTitles();
+            adjustCollapsedColumnWidths();
+        });
     });
-
-    // Запускаем фоновую проверку API через setTimeout (сработает 100%)
-    setTimeout(checkApi, 50);
 })();

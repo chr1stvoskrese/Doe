@@ -253,6 +253,7 @@ body {
     position: relative;
     /* 🚀 ДОБАВЛЕН BORDER-COLOR СЮДА: теперь ширина и цвет анимируются вместе */
     transition: width var(--transition-apple), background var(--transition-apple), border-color var(--transition-apple);
+    
     cursor: grab;               /* Указатель "рука" для перетаскивания */
 }
 
@@ -270,6 +271,11 @@ body {
     background: var(--bg-board);
     border: 1px solid var(--border-light);
     padding: 12px 0;            /* Отступы сверху/снизу */
+}
+
+/* Состояние при зажатии СВЕРНУТОЙ колонки мышкой */
+.column.collapsed:active {
+    cursor: grabbing !important;
 }
 
 /* Ховер на свернутую колонку */
@@ -332,7 +338,6 @@ body {
     flex-shrink: 0;             /* Заголовок не ужимается по высоте */
 }
 
-/* Текст заголовка в развернутой колонке */
 .column-title {
     font-weight: 600;
     font-size: 15px;
@@ -344,16 +349,24 @@ body {
     white-space: pre-wrap;
     
     display: -webkit-box;
-    -webkit-line-clamp: unset;
-    line-clamp: unset;
     -webkit-box-orient: vertical;
     overflow: hidden;
     flex: 1;
     min-width: 0;
-
-    /* --- ДОБАВЛЕНО: Отступ справа, чтобы текст не прилипал к счетчику --- */
     margin-right: 12px;
+
+    /* 🛡 ФИКС ГЕОМЕТРИИ: */
+    /* Добавляем микро-отступ снизу, чтобы descenders (хвостики букв) не срезались */
+    padding-bottom: 2px; 
+    /* Защита от случайных скачков высоты */
+    box-sizing: content-box; 
 }
+
+.preload .card-list {
+    opacity: 0;
+}
+
+
 
 /* --- ДОБАВЛЕНО: Курсор при наведении --- */
 .column:not(.collapsed) .column-title {
@@ -795,11 +808,9 @@ body {
     transition: none !important;
 }
 
-/* 🩹 FIX: Скрываем тяжелые/интерактивные элементы, которые не нужны в "полёте" 
-   и вызывают просадку FPS (backdrop-filter в меню, кнопки, скролл) */
-.column-drag-clone .dropdown-menu,
-.column-drag-clone .menu-btn,
-.column-drag-clone .btn-add-card {
+/* 🩹 FIX: Скрываем только само меню (оно тяжелое из-за blur), 
+   а кнопки оставляем видимыми, чтобы геометрия летящей колонки не ломалась */
+.column-drag-clone .dropdown-menu {
     display: none !important;
 }
 
@@ -2289,11 +2300,7 @@ body[class*="is-dragging-"] .board-tab:not(.active) {
     background: rgba(255, 255, 255, 0.08);
 }
 
-/* Фикс для карточки при открытом меню */
-.card.has-open-menu {
-    z-index: 1000; /* Чтобы подсветить саму карточку под меню */
-    will-change: auto !important; /* Отключаем GPU слой, чтобы не было конфликтов с fixed */
-}
+
 
 /* Меню карточки становится fixed для позиционирования идеально поверх всего */
 .card .dropdown-menu {
@@ -2346,12 +2353,6 @@ body[class*="is-dragging-"] .board-tab:not(.active) {
     color: var(--text-primary);
 }
 
-/* 🚀 Senior Fix: Убиваем Containing Block, когда меню открыто */
-.card.has-open-menu {
-    will-change: auto !important; /* Важно! Отключаем создание нового контекста */
-    transform: none !important;   /* Убираем трансформации, чтобы fixed работал честно */
-    z-index: 10000 !important;    /* Поднимаем саму карточку выше соседей */
-}
 
 /* Настройки самого выпадающего меню карточки */
 .card .dropdown-menu {
@@ -2384,30 +2385,27 @@ body[class*="is-dragging-"] .board-tab:not(.active) {
        отправлял меню под GPU-слои колонок */
     will-change: auto !important; 
     
-    /* Меняем анимацию: теперь меню выезжает сбоку, а не сверху */
-    transform: translateX(-12px) scale(0.96);
-    transition: opacity 0.15s ease, transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.15s !important;
+    /* Делаем анимацию ИДЕНТИЧНОЙ меню колонки: сдвиг по Y и плавная кривая Apple */
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-8px) scale(0.96);
+    /* transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important; */
 }
 
 /* Состояние открытого глобального меню */
 .card-context-menu.show {
-    transform: translateX(0) scale(1) !important;
     opacity: 1 !important;
     visibility: visible !important;
+    transform: translateY(0) scale(1) !important;
 }
 
-/* 🔥 Подстраховка: отключаем изоляцию слоев на самой карточке при открытом меню */
+/* 🚀 ИДЕАЛЬНОЕ СОСТОЯНИЕ КАРТОЧКИ ПРИ ОТКРЫТОМ МЕНЮ */
 .card.has-open-menu {
-    z-index: 1000;
-    transform: none !important; 
+    z-index: 10000 !important;
     will-change: auto !important;
-    /* Удерживаем тень карточки, чтобы она красиво выделялась */
+    /* Удерживаем карточку в приподнятом состоянии (как при hover), чтобы она не "падала" */
+    transform: translate3d(0, -2px, 0) !important;
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04) !important;
-}
-
-/* Убедись, что дропдауны имеют плавность */
-.dropdown-menu {
-    transition: opacity 0.15s ease, transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.15s;
 }
 
 /* Подсказка об ошибке в карточке */

@@ -1,16 +1,67 @@
 import sys
 import os
+
+# ==========================================
+# 🍎 МГНОВЕННЫЙ ФИКС ИКОНКИ ДЛЯ MACOS (SENIOR UI/UX HACK)
+# ==========================================
+# Определяем пути сразу, чтобы найти картинку до загрузки остальных модулей
+if getattr(sys, 'frozen', False):
+    bundle_dir = sys._MEIPASS
+else:
+    bundle_dir = os.path.dirname(os.path.abspath(__file__))
+
+if sys.platform == 'darwin':
+    try:
+        import AppKit
+        app = AppKit.NSApplication.sharedApplication()
+        
+        # NSApplicationActivationPolicyRegular = 0
+        # Это нужно и в разработке, и в билде, чтобы приложение появилось в Dock
+        app.setActivationPolicy_(0)
+        
+        # МЕНЯЕМ ИКОНКУ КОДОМ ТОЛЬКО В РЕЖИМЕ РАЗРАБОТКИ
+        # В собранном .app это не нужно и вызывает "прыжок" размера
+        if not getattr(sys, 'frozen', False):
+            if getattr(sys, 'frozen', False):
+                current_bundle_dir = sys._MEIPASS
+            else:
+                current_bundle_dir = os.path.dirname(os.path.abspath(__file__))
+            
+            icon_p = os.path.join(current_bundle_dir, "doe.png")
+
+            if os.path.exists(icon_p):
+                original_image = AppKit.NSImage.alloc().initWithContentsOfFile_(icon_p)
+                if original_image:
+                    target_size = AppKit.NSMakeSize(512, 512)
+                    padding_factor = 0.82 
+                    new_size = AppKit.NSMakeSize(target_size.width * padding_factor, target_size.height * padding_factor)
+                    
+                    canvas = AppKit.NSImage.alloc().initWithSize_(target_size)
+                    canvas.lockFocus()
+                    rect = AppKit.NSMakeRect(
+                        (target_size.width - new_size.width) / 2,
+                        (target_size.height - new_size.height) / 2,
+                        new_size.width,
+                        new_size.height
+                    )
+                    original_image.drawInRect_(rect)
+                    canvas.unlockFocus()
+                    app.setApplicationIconImage_(canvas)
+
+        app.activateIgnoringOtherApps_(True)
+        print("[System] macOS App Policy initialized.")
+    except Exception as e:
+        print(f"[System] macOS Early Fix failed: {e}")
+
 import traceback
 import time
 from datetime import datetime
 
-# ОПРЕДЕЛЯЕМ ПАПКУ С РЕСУРСАМИ
+# ОПРЕДЕЛЯЕМ ПАПКУ С ЛОГАМИ (base_dir нужен только тут)
 if getattr(sys, 'frozen', False):
     base_dir = os.path.dirname(sys.executable)
-    bundle_dir = sys._MEIPASS  # Папка, куда PyInstaller распаковывает --add-data
 else:
     base_dir = os.path.dirname(os.path.abspath(__file__))
-    bundle_dir = base_dir
 
 log_file_path = os.path.join(base_dir, "Doe_Log.txt")
 
@@ -105,9 +156,6 @@ class WindowAPI:
             hwnd = ctypes.windll.user32.FindWindowW(None, "Doe")
             
             if hwnd:
-                # ==========================================
-                # УСТАНОВКА ИКОНКИ ЧЕРЕЗ WIN API (WINDOWS)
-                # ==========================================
                 try:
                     icon_path = os.path.join(bundle_dir, "favicon.ico")
                     if os.path.exists(icon_path):
@@ -168,8 +216,6 @@ class WindowAPI:
                     pass
 
         elif sys.platform == 'darwin':
-            # На macOS иконка уже подхватывается из Doe.app/Contents/Resources/doe.icns
-            # Обращаться к AppKit из этого потока КАТЕГОРИЧЕСКИ нельзя — это роняет приложение.
             try:
                 window.show()
                 print("[WebView] Window successfully shown (macOS).")
@@ -181,6 +227,7 @@ class WindowAPI:
                 window.show()
             except:
                 pass
+
 class APIServerThread(threading.Thread):
     def __init__(self):
         super().__init__(daemon=True)
@@ -210,19 +257,15 @@ if __name__ == '__main__':
     multiprocessing.freeze_support()
     print("[System] Starting main thread...")
     
-    # ==========================================
-    # 🔥 ФИКС ИКОНКИ (ОТВЯЗКА ОТ PYTHON.EXE)
-    # ==========================================
+    # ФИКС ИКОНКИ ДЛЯ WINDOWS
     if sys.platform == 'win32':
         import ctypes
         try:
-            # Уникальный ID заставляет Windows воспринимать скрипт как самостоятельное приложение
             app_id = 'doe.aesthetic.kanban.app.1'
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(app_id)
             print("[System] AppUserModelID set successfully.")
         except Exception as e:
             print(f"[System] Failed to set AppUserModelID: {e}")
-    # ==========================================
 
     server_thread = None
 

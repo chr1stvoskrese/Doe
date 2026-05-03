@@ -5,30 +5,46 @@ echo "Начинаем сборку Doe.app..."
 rm -rf build dist Doe.spec
 
 # ==========================================
-# МАГИЯ MACOS: Генерируем .icns из doe.png
+# МАГИЯ MACOS: Генерируем ПРАВИЛЬНЫЙ .icns с отступами 0.82
 # ==========================================
 if [ -f "doe.png" ]; then
-    echo "Генерация doe.icns из doe.png..."
+    echo "Генерация doe.icns с идеальными отступами..."
     mkdir -p Doe.iconset
-    sips -z 16 16     doe.png --out Doe.iconset/icon_16x16.png
-    sips -z 32 32     doe.png --out Doe.iconset/icon_16x16@2x.png
-    sips -z 32 32     doe.png --out Doe.iconset/icon_32x32.png
-    sips -z 64 64     doe.png --out Doe.iconset/icon_32x32@2x.png
-    sips -z 128 128   doe.png --out Doe.iconset/icon_128x128.png
-    sips -z 256 256   doe.png --out Doe.iconset/icon_128x128@2x.png
-    sips -z 256 256   doe.png --out Doe.iconset/icon_256x256.png
-    sips -z 512 512   doe.png --out Doe.iconset/icon_256x256@2x.png
-    sips -z 512 512   doe.png --out Doe.iconset/icon_512x512.png
-    sips -z 1024 1024 doe.png --out Doe.iconset/icon_512x512@2x.png
+
+    make_icon() {
+        local size=$1
+        local name=$2
+        # Вычисляем размер картинки внутри (82% от холста)
+        # Округляем до целого числа
+        local content_size=$(python3 -c "print(int($size * 0.82))")
+        
+        # 1. Ресайзим исходный png до 82% от целевого размера
+        sips -z $content_size $content_size doe.png --out "Doe.iconset/tmp.png" > /dev/null
+        # 2. Помещаем его в центр прозрачного холста полного размера ($size)
+        sips -p $size $size "Doe.iconset/tmp.png" --out "Doe.iconset/$name.png" > /dev/null
+    }
+
+    make_icon 16    icon_16x16
+    make_icon 32    icon_16x16@2x
+    make_icon 32    icon_32x32
+    make_icon 64    icon_32x32@2x
+    make_icon 128   icon_128x128
+    make_icon 256   icon_128x128@2x
+    make_icon 256   icon_256x256
+    make_icon 512   icon_256x256@2x
+    make_icon 512   icon_512x512
+    make_icon 1024  icon_512x512@2x
+
+    rm "Doe.iconset/tmp.png"
     iconutil -c icns Doe.iconset -o doe.icns
     rm -R Doe.iconset
 fi
-# ==========================================
 
 pyinstaller --noconfirm \
     --windowed \
     --name "Doe" \
     --icon="doe.icns" \
+    --osx-bundle-identifier "com.aesthetic.doe" \
     --add-data "favicon.ico:." \
     --add-data "doe.png:." \
     --add-data "frontend:frontend" \
@@ -52,10 +68,13 @@ pyinstaller --noconfirm \
     --hidden-import "aiosqlite" \
     wrapper.py
 
-echo "Выполняем локальную подпись (Ad-Hoc)..."
+echo "Выполняем локальную подпись..."
 codesign --force --deep --sign - dist/Doe.app
 
-echo "Снимаем атрибут карантина macOS..."
+echo "Снимаем атрибут карантина..."
 xattr -cr dist/Doe.app
+
+# Сброс кэша LaunchServices, чтобы macOS увидела новую иконку немедленно
+/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister -f dist/Doe.app
 
 echo "Сборка завершена!"
