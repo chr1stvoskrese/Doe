@@ -711,32 +711,39 @@ async function onCreateColumn() {
         }
 
         // --- ИДЕАЛЬНО ПЛАВНЫЙ КРОСС-ФЕЙД ---
-
-        // 1. Сначала запускаем анимацию исчезновения формы
         formCol.classList.remove('entered');
         formCol.classList.add('is-exiting');
 
-        // 2. Ждем короткое время (половину анимации), чтобы глаз привык к пустоте,
-        // и подменяем форму на кнопку. 
-        // Так как ширина элементов одинакова, доска не дернется.
         setTimeout(() => {
             if (formCol.parentNode) {
                 const btn = restoreAddButton();
-                // Если кнопка создалась в конце, а мы хотим на место формы:
                 if (btn && formCol.parentNode) {
                     formCol.replaceWith(btn);
                 }
             }
-        }, 120); // 120ms — "золотое сечение" для подмены элементов
+        }, 120);
     };
 
-    // Слушатель для автоматического ресайза текстового поля (предыдущий вид)
-    input.addEventListener('input', () => {
+    // Авто-resize со скроллом при превышении высоты экрана
+    const autoResize = () => {
         input.style.height = 'auto';
-        input.style.height = input.scrollHeight + 'px';
-    });
+        const sh = input.scrollHeight;
+        const boardHeight = document.getElementById('board').clientHeight;
+        
+        const maxAllowedHeight = Math.max(60, boardHeight - 60);
+        
+        if (sh > maxAllowedHeight) {
+            input.style.height = maxAllowedHeight + 'px';
+            input.style.overflowY = 'auto'; 
+        } else {
+            input.style.height = sh + 'px';
+            input.style.overflowY = 'hidden'; 
+        }
+    };
 
-    // Функция сохранения на сервер
+    input.addEventListener('input', autoResize);
+    autoResize();
+
     const submit = async () => {
         const title = input.value.trim();
         if (!title) {
@@ -766,7 +773,6 @@ async function onCreateColumn() {
             });
             realCol.classList.add('column-birth');
 
-            // Заменяем форму на реальную колонку на том же месте
             formCol.replaceWith(realCol);
 
             requestAnimationFrame(() => {
@@ -789,7 +795,6 @@ async function onCreateColumn() {
             realCol.addEventListener('transitionend', cleanup);
             setTimeout(() => realCol.classList.remove('column-birth', 'born'), 500);
 
-            // Возвращаем кнопку «+ Создать колонку» в конец доски
             restoreAddButton();
 
         } catch (err) {
@@ -2634,46 +2639,48 @@ function initTooltip() {
     });
 }
 
+// Выносим показ окна на самый верхний уровень, ДО любых await!
+let isRevealed = false;
+const triggerReveal = () => {
+    if (isRevealed) return;
+    if (window.pywebview && window.pywebview.api) {
+        isRevealed = true;
+        document.body.classList.remove('preload');
+        try {
+            // Вызываем Python-функцию для показа окна
+            const call = window.pywebview.api.reveal_window();
+            if (call && call.catch) call.catch(() => {});
+        } catch (e) {}
+    }
+};
+
+// 1. Ловим событие сразу же при старте скрипта!
+window.addEventListener('pywebviewready', triggerReveal);
+
+// 2. Страховка: используем setTimeout вместо requestAnimationFrame, 
+// так как macOS замораживает rAF для скрытых окон!
+const checkApi = () => {
+    if (isRevealed) return;
+    if (window.pywebview && window.pywebview.api) {
+        triggerReveal();
+    } else {
+        setTimeout(checkApi, 50);
+    }
+};
+
 (async () => {
     initTooltip();
     initTabsScrollbar();
 
-    // 🚀 ПУЛЕНЕПРОБИВАЕМЫЙ ПОКАЗ ОКНА (ДВОЙНАЯ СТРАХОВКА)
-    const revealApp = () => {
-        document.body.classList.remove('preload');
-        let isRevealed = false;
-
-        const triggerReveal = () => {
-            if (isRevealed) return;
-            if (window.pywebview && window.pywebview.api) {
-                isRevealed = true;
-                try {
-                    const call = window.pywebview.api.reveal_window();
-                    if (call && call.catch) call.catch(() => {});
-                } catch (e) {}
-            }
-        };
-
-        // 1. Ловим официальное событие от Python
-        window.addEventListener('pywebviewready', triggerReveal);
-
-        // 2. Страховка: если событие проскочило раньше времени, проверяем вручную каждые 50мс
-        const checkApi = () => {
-            if (isRevealed) return;
-            if (window.pywebview && window.pywebview.api) {
-                triggerReveal();
-            } else {
-                setTimeout(checkApi, 50);
-            }
-        };
-        
-        requestAnimationFrame(() => {
-            requestAnimationFrame(checkApi);
-        });
-    };
-
-    applyLanguage(localStorage.getItem('doe-lang') || 'ru', false);
-    applyTheme(localStorage.getItem('doe-theme') || 'light', false);
+    // Заворачиваем в try-catch на случай, если WKWebView заблокирует localStorage
+    try {
+        applyLanguage(localStorage.getItem('doe-lang') || 'ru', false);
+        applyTheme(localStorage.getItem('doe-theme') || 'light', false);
+    } catch (e) {
+        console.warn("Storage restricted", e);
+        applyLanguage('ru', false);
+        applyTheme('light', false);
+    }
 
     try {
         const [settings, vault, workspaces] = await Promise.all([
@@ -2713,6 +2720,7 @@ function initTooltip() {
     window.addEventListener('resize', () => {
         if (!isResizing) {
             isResizing = true;
+            // Для ресайза rAF подходит, т.к. окно уже видимо
             requestAnimationFrame(() => {
                 clampExpandedTitles();
                 adjustCollapsedColumnWidths();
@@ -2721,6 +2729,6 @@ function initTooltip() {
         }
     });
 
-    // ЗАПУСКАЕМ НАШУ ФУНКЦИЮ В САМОМ КОНЦЕ
-    revealApp();
+    // Запускаем фоновую проверку API через setTimeout (сработает 100%)
+    setTimeout(checkApi, 50);
 })();

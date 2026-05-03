@@ -78,9 +78,6 @@ import urllib.request
 import webview
 import uvicorn
 
-if sys.platform == 'darwin':
-    multiprocessing.set_start_method('fork')
-
 print("[System] Loading FastAPI core...")
 from main import app
 from src.core.config import get_ui_settings
@@ -124,7 +121,6 @@ class WindowAPI:
                             print("[WebView] Custom icon applied via WinAPI.")
                 except Exception as e:
                     print(f"[WebView] Error applying window icon: {e}")
-                # ==========================================
 
                 try:
                     registry = winreg.ConnectRegistry(None, winreg.HKEY_CURRENT_USER)
@@ -154,7 +150,6 @@ class WindowAPI:
                     style = GetWindowLong(hwnd, GWL_EXSTYLE)
                     SetWindowLong(hwnd, GWL_EXSTYLE, style | WS_EX_LAYERED)
                     
-                    user32.SetLayeredWindowAttributes(hwnd, 0, 0, LWA_ALPHA)
                     window.show()
                     time.sleep(0.2)
                     user32.SetLayeredWindowAttributes(hwnd, 0, 255, LWA_ALPHA)
@@ -173,32 +168,19 @@ class WindowAPI:
                     pass
 
         elif sys.platform == 'darwin':
-            # ==========================================
-            # УСТАНОВКА ИКОНКИ ЧЕРЕЗ APPKIT (MACOS)
-            # ==========================================
-            try:
-                import AppKit
-                icon_path = os.path.join(bundle_dir, "doe.png")
-                if os.path.exists(icon_path):
-                    app_inst = AppKit.NSApplication.sharedApplication()
-                    img = AppKit.NSImage.alloc().initByReferencingFile_(icon_path)
-                    app_inst.setApplicationIconImage_(img)
-                    print("[WebView] Custom icon applied via AppKit (macOS).")
-            except Exception as e:
-                print(f"[WebView] Error applying Mac dock icon: {e}")
-            # ==========================================
-            
+            # На macOS иконка уже подхватывается из Doe.app/Contents/Resources/doe.icns
+            # Обращаться к AppKit из этого потока КАТЕГОРИЧЕСКИ нельзя — это роняет приложение.
             try:
                 window.show()
-            except:
-                pass
+                print("[WebView] Window successfully shown (macOS).")
+            except Exception as e:
+                print(f"[WebView] macOS show error: {e}")
 
         else:
             try:
                 window.show()
             except:
                 pass
-
 class APIServerThread(threading.Thread):
     def __init__(self):
         super().__init__(daemon=True)
