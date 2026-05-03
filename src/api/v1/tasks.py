@@ -54,3 +54,11 @@ async def move_task(task_id: int, move_in: TaskMove, db: AsyncSession = Depends(
 async def reorder_tasks_endpoint(reorder_data: TaskReorder, db: AsyncSession = Depends(get_session)):
     await task_service.reorder_tasks(db, reorder_data.ordered_ids)
     return {"message": "Порядок задач обновлен"}
+
+@router.post("/{task_id}/clear-timer", response_model=TaskCreateResponse)
+async def clear_task_timer_endpoint(task_id: int, db: AsyncSession = Depends(get_session)):
+    try:
+        task = await task_service.clear_task_timer(db, task_id)
+        return task
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))

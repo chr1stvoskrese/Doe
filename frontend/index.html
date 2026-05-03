@@ -127,6 +127,21 @@
     </div>
 </div>
 
+<!-- 📝 МОДАЛКА ОТКРЫТИЯ КАРТОЧКИ (ЗАГОТОВКА) -->
+<div class="modal-overlay" id="task-modal">
+    <div class="modal-card" style="width: 600px; min-height: 400px;">
+        <div class="modal-header">
+            <span class="modal-title" id="task-modal-title">Название карточки</span>
+            <button class="modal-close" aria-label="Закрыть">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+        </div>
+        <div class="modal-body" style="padding: 24px; color: var(--text-secondary); text-align: center; display: flex; flex-direction: column; justify-content: center; height: 100%;">
+            Здесь в будущем будет отображаться содержимое карточки.
+        </div>
+    </div>
+</div>
+
 <!-- 🚨 МОДАЛКА ПОДТВЕРЖДЕНИЯ УДАЛЕНИЯ -->
 <div class="modal-overlay" id="confirm-modal">
     <div class="modal-card confirm-card">
@@ -138,6 +153,23 @@
             <button class="confirm-btn cancel-btn" data-action="confirm-cancel">Отмена</button>
             <button class="confirm-btn danger-btn" data-action="confirm-delete">Удалить</button>
         </div>
+    </div>
+</div>
+
+<!-- Глобальное контекстное меню для карточек -->
+<div id="global-card-menu" class="dropdown-menu card-context-menu">
+    <div class="menu-item" data-action="open-card">
+        <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        <span data-i18n="menu.open">Открыть</span>
+    </div>
+    <div class="menu-item" data-action="clear-card-timer">
+        <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span data-i18n="menu.clearTimer">Очистить таймер</span>
+    </div>
+    <div class="menu-divider"></div>
+    <div class="menu-item danger" data-action="delete-card">
+        <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        <span data-i18n="menu.deleteCard">Удалить</span>
     </div>
 </div>
 

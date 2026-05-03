@@ -552,16 +552,15 @@ body {
 .card {
     background: var(--surface-card);
     border-radius: var(--radius-card);
-    padding: 16px 16px;
+    padding: 14px 16px; /* Чуть уменьшил padding сверху для баланса */
     box-shadow: var(--shadow-card);
     border: 1px solid var(--border-light);
-    cursor: grab;               /* Рука для захвата */
+    cursor: grab;
     transition: transform var(--transition-apple), box-shadow var(--transition-apple), background-color var(--transition-apple);
     display: flex;
-    flex-wrap: wrap;            /* Содержимое может переноситься */
-    align-items: center;
-    justify-content: flex-end;  /* Элементы типа таймера прижимаются вправо */
-    gap: 8px 12px;
+    flex-direction: column; /* Элементы теперь идут сверху вниз */
+    align-items: stretch;   /* Растягиваем содержимое по ширине */
+    gap: 8px;               /* Отступ между заголовком и таймером */
     user-select: none;
     will-change: transform, box-shadow;
     pointer-events: auto;
@@ -591,12 +590,11 @@ body {
 
 /* Обертка заголовка карточки (иконка + текст) */
 .card-title-wrapper {
-    width: 100%;                /* Занимает всю ширину карточки */
+    width: 100%;
     display: flex;
-    align-items: flex-start;
+    align-items: flex-start; /* Карандашик будет на уровне первой строки */
     gap: 8px;
-    margin-bottom: 4px;
-    pointer-events: none;       /* Клик проходит сквозь заголовок на карточку */
+    pointer-events: none;
 }
 
 /* Иконка галочки у завершенной задачи */
@@ -620,12 +618,10 @@ body {
     color: var(--text-primary);
     transition: color 0.2s;
     pointer-events: none;
-    
-    /* Перенос длинных слов и строк */
     word-break: break-word;
     overflow-wrap: break-word;
     white-space: pre-wrap;
-    flex: 1;
+    flex: 1; /* ГЛАВНОЕ: Растягиваем заголовок */
     min-width: 0;
 }
 
@@ -1130,6 +1126,26 @@ body {
     40% { transform: translateX(6px); }
     60% { transform: translateX(-3px); }
     80% { transform: translateX(3px); }
+}
+
+/* Добавляем анимацию тряски для карточек и элементов в режиме переименования */
+.card.is-error,
+.card.is-renaming.is-error,
+.column.is-renaming.is-error,
+.board-tab.is-renaming.is-error {
+    animation: column-shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both !important;
+}
+
+/* Окрашиваем текст в красный (ДЛЯ КАРТОЧЕК ОТКЛЮЧЕНО) */
+.column.is-renaming.is-error .column-title-input,
+.board-tab.is-renaming.is-error .tab-name-input {
+    color: #D35446 !important;
+}
+
+/* Красный текст ошибки для темной темы (ДЛЯ КАРТОЧЕК ОТКЛЮЧЕНО) */
+[data-theme="dark"] .column.is-renaming.is-error .column-title-input,
+[data-theme="dark"] .board-tab.is-renaming.is-error .tab-name-input {
+    color: #D65A4B !important;
 }
 
 /* Применяем анимацию тряски через JS */
@@ -2217,4 +2233,203 @@ body[class*="is-dragging-"] .board-tab:not(.active) {
 .board-tab.is-dropped-hover .tab-close-btn:not(.hidden) {
     opacity: 1 !important;
     transition: none !important; /* Убиваем любую микро-анимацию на этот момент */
+}
+
+/* ==========================================
+   МЕНЮ И ПЕРЕИМЕНОВАНИЕ КАРТОЧЕК
+   ========================================== */
+
+/* Обертка для меню внутри карточки */
+.card-menu-wrapper {
+    position: relative;
+    margin-left: 4px; /* Небольшой зазор от текста */
+    display: flex;
+    align-items: center;
+    flex-shrink: 0; /* Не даем кнопке сжиматься */
+}
+
+/* Иконка-карандашик */
+.card-menu-btn {
+    /* Оставляем твои стили, убираем только лишние отступы если были */
+    background: transparent;
+    border: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    cursor: pointer;
+    opacity: 0;
+    transition: all 0.2s ease;
+    pointer-events: auto;
+}
+
+/* Таймер и мета-данные прижимаем к правому краю для эстетики */
+.card-timer, .subtask-meta {
+    align-self: flex-end; 
+    margin-top: 0;
+}
+
+/* Показываем карандашик при наведении на карточку или если меню открыто */
+.card:hover .card-menu-btn,
+.card-menu-btn.active {
+    opacity: 1;
+}
+
+.card-menu-btn:hover,
+.card-menu-btn.active {
+    background: rgba(0, 0, 0, 0.06);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .card-menu-btn:hover,
+[data-theme="dark"] .card-menu-btn.active {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+/* Фикс для карточки при открытом меню */
+.card.has-open-menu {
+    z-index: 1000; /* Чтобы подсветить саму карточку под меню */
+    will-change: auto !important; /* Отключаем GPU слой, чтобы не было конфликтов с fixed */
+}
+
+/* Меню карточки становится fixed для позиционирования идеально поверх всего */
+.card .dropdown-menu {
+    position: fixed;
+    margin: 0;
+    z-index: 10000;
+}
+
+/* 🚀 ФИКС ВЫДЕЛЕНИЯ ТЕКСТА: Разрешаем выделение внутри редактируемой карточки */
+.card.is-renaming {
+    user-select: auto !important;
+    -webkit-user-select: auto !important;
+    cursor: default !important;
+}
+
+.card.is-renaming .card-title-input {
+    cursor: text !important;
+    user-select: text !important;
+    -webkit-user-select: text !important;
+    pointer-events: auto !important;
+    
+    background: var(--brand-pale);
+    border: none;
+    border-radius: 6px;
+    outline: none;
+    font-family: var(--font-main);
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.4;
+    color: var(--text-primary);
+    width: 100%;
+    resize: none;
+    overflow: hidden;
+    padding: 2px 4px;
+    margin: -2px -4px;
+    display: block;
+}
+
+.card.is-renaming .card-title-input::selection {
+    background: #C3C6BC;
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .card.is-renaming .card-title-input {
+    background: rgba(137, 160, 133, 0.15);
+}
+
+[data-theme="dark"] .card.is-renaming .card-title-input::selection {
+    background: #41493E;
+    color: var(--text-primary);
+}
+
+/* 🚀 Senior Fix: Убиваем Containing Block, когда меню открыто */
+.card.has-open-menu {
+    will-change: auto !important; /* Важно! Отключаем создание нового контекста */
+    transform: none !important;   /* Убираем трансформации, чтобы fixed работал честно */
+    z-index: 10000 !important;    /* Поднимаем саму карточку выше соседей */
+}
+
+/* Настройки самого выпадающего меню карточки */
+.card .dropdown-menu {
+    position: fixed;              /* Теперь оно точно будет поверх всего */
+    margin: 0;
+    z-index: 99999;               /* Максимальный приоритет */
+    /* Убираем дефолтные смещения, будем задавать их через JS */
+    top: 0;
+    left: 0;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-8px) scale(0.96);
+    transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+}
+
+.card .dropdown-menu.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+}
+
+/* Глобальное меню карточки */
+.card-context-menu {
+    position: fixed !important; /* Жестко над всеми */
+    z-index: 2147483647 !important; /* Абсолютный максимум z-index в браузерах */
+    margin: 0 !important;
+    pointer-events: auto;
+    
+    /* 🔥 КРИТИЧЕСКИЙ ФИКС: Убираем will-change, чтобы WebView не 
+       отправлял меню под GPU-слои колонок */
+    will-change: auto !important; 
+    
+    /* Меняем анимацию: теперь меню выезжает сбоку, а не сверху */
+    transform: translateX(-12px) scale(0.96);
+    transition: opacity 0.15s ease, transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.15s !important;
+}
+
+/* Состояние открытого глобального меню */
+.card-context-menu.show {
+    transform: translateX(0) scale(1) !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+/* 🔥 Подстраховка: отключаем изоляцию слоев на самой карточке при открытом меню */
+.card.has-open-menu {
+    z-index: 1000;
+    transform: none !important; 
+    will-change: auto !important;
+    /* Удерживаем тень карточки, чтобы она красиво выделялась */
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04) !important;
+}
+
+/* Убедись, что дропдауны имеют плавность */
+.dropdown-menu {
+    transition: opacity 0.15s ease, transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.15s;
+}
+
+/* Подсказка об ошибке в карточке */
+.card-error-hint {
+    color: #D35446;             /* Наш фирменный красный */
+    font-size: 11px;
+    font-weight: 600;
+    margin-top: 6px;
+    opacity: 0;
+    transform: translateY(-4px);
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    pointer-events: none;
+    letter-spacing: 0.01em;
+}
+
+/* Когда карточка в состоянии ошибки, показываем текст */
+.card.is-error .card-error-hint {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Темная тема для подсказки */
+[data-theme="dark"] .card-error-hint {
+    color: #D65A4B;
 }

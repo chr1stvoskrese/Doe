@@ -8,7 +8,7 @@ const translations = {
         settings: 'Настройки', theme: 'Тема', language: 'Язык', about: 'О приложении', workspace: 'Doe Board', cancel: 'Отмена',
         newColumn: '+ Создать колонку', newTask: '+ Новая задача',
         columnModes: { default: 'Стандартный', track_time: 'Учёт времени', completion: 'Результирующий' },
-        menu: { mode: 'Режим колонки', collapse: 'Свернуть колонку', rename: 'Переименовать', delete: 'Удалить', clear: 'Очистить' },
+        menu: { mode: 'Режим колонки', collapse: 'Свернуть колонку', rename: 'Переименовать', delete: 'Удалить', clear: 'Очистить', open: 'Открыть', deleteCard: 'Удалить задачу', clearTimer: 'Очистить таймер'},
         modals: { themeTitle: 'Тема оформления', light: 'Светлая', dark: 'Тёмная', langTitle: 'Выберите язык', aboutTitle: 'О приложении', aboutDesc: 'эстетика, грация локального<br>Kanban-хранилища' },
         card: { timeSpent: 'Времени потрачено:' },
         prompts: { 
@@ -21,13 +21,14 @@ const translations = {
             deleteTabConfirm: 'Удалить вкладку?',
             deleteTabDesc: 'Вкладка и все колонки в ней будут удалены навсегда.'
         },
+        errors: { tooLong: 'Максимум 200 символов' },
         alerts: { loadError: 'Не удалось загрузить доску', error: 'Ошибка' }
     },
     en: {
         settings: 'Settings', theme: 'Theme', language: 'Language', about: 'About', workspace: 'Doe Board', cancel: 'Cancel',
         newColumn: '+ Create column', newTask: '+ New task',
         columnModes: { default: 'Standard', track_time: 'Track time', completion: 'Completed' },
-        menu: { mode: 'Column mode', collapse: 'Collapse column', rename: 'Rename', delete: 'Delete', clear: 'Clear' },
+        menu: { mode: 'Column mode', collapse: 'Collapse column', rename: 'Rename', delete: 'Delete', clear: 'Clear', open: 'Open', deleteCard: 'Delete task', clearTimer: 'Clear timer'},
         modals: { themeTitle: 'Theme', light: 'Light', dark: 'Dark', langTitle: 'Select language', aboutTitle: 'About', aboutDesc: 'aesthetic local-first<br>kanban sanctuary' },
         card: { timeSpent: 'Time spent:' },
         prompts: { 
@@ -40,6 +41,7 @@ const translations = {
             deleteTabConfirm: 'Delete tab?',
             deleteTabDesc: 'The tab and all its columns will be deleted permanently.'
         },
+        errors: { tooLong: 'Maximum 200 characters' },
         alerts: { loadError: 'Failed to load board', error: 'Error' }
     }
 };
@@ -213,6 +215,8 @@ async function updateSettings(data) {
     if (!res.ok) throw new Error('Error saving settings');
 }
 
+
+
 function escapeHtml(text) { const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
 
 function formatTime(startTime) {
@@ -285,7 +289,6 @@ function updateCardAppearance(cardElement, task, columnMode) {
     }
 }
 
-// --- НАЧАЛО ВСТАВКИ 1 ---
 function generateCardHtml(task, columnMode) {
     let timeHtml = '';
     if (task.active_timer) {
@@ -298,6 +301,12 @@ function generateCardHtml(task, columnMode) {
             <div class="card-title-wrapper">
                 <svg class="completed-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
                 <div class="card-title">${escapeHtml(task.title)}</div>
+                <!-- Теперь меню находится здесь, на одном уровне с текстом -->
+                <div class="card-menu-wrapper">
+                    <button class="card-menu-btn" title="Редактировать">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                    </button>
+                </div>
             </div>
             ${timeHtml}
         </div>
@@ -372,7 +381,12 @@ function createColumnElement(column) {
 
     return colDiv;
 }
-// --- КОНЕЦ ВСТАВКИ 1 ---
+
+async function clearTaskTimerAPI(taskId) {
+    const res = await fetch(`${API_BASE}/tasks/${taskId}/clear-timer`, { method: 'POST' });
+    if (!res.ok) throw new Error('Error');
+    return res.json();
+}
 
 async function refreshBoard(scrollToActive = false, newTabId = null) { // <--- ДОБАВИЛ newTabId = null
     try {
@@ -514,6 +528,18 @@ async function onAddTask(columnId) {
             cancel(true);
             return;
         }
+
+        // 🛡 МГНОВЕННАЯ ПРОВЕРКА НА 200 СИМВОЛОВ (Создание)
+        if (title.length > 200) {
+            formCard.classList.remove('is-error');
+            void formCard.offsetWidth; // 🪄 Сбрасываем DOM для гарантированного перезапуска анимации
+            formCard.classList.add('is-error');
+            setTimeout(() => formCard.classList.remove('is-error'), 400);
+            input.focus();
+            return;
+        }
+
+        // Единая проверка блокировки двойного клика
         if (isResolved) return;
         isResolved = true;
 
@@ -710,12 +736,14 @@ async function onCreateColumn() {
         input.style.height = input.scrollHeight + 'px';
     });
 
+    // Функция сохранения на сервер
     const submit = async () => {
         const title = input.value.trim();
         if (!title) {
             cancel(true);
             return;
         }
+
         if (isResolved) return;
         isResolved = true;
 
@@ -1099,11 +1127,17 @@ function onAddTabClick(e) {
     });
 }
 
-// ---------- МЕНЮ КОЛОНКИ ----------
 function closeAllDropdowns() {
+    // Закрываем все стандартные меню
     document.querySelectorAll('.dropdown-menu.show').forEach(m => m.classList.remove('show'));
     document.querySelectorAll('.menu-btn.active').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.settings-trigger.active').forEach(b => b.classList.remove('active'));
+    
+    // Специфичное для карточек
+    document.querySelectorAll('.card-menu-btn.active').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.card.has-open-menu').forEach(c => {
+        c.classList.remove('has-open-menu');
+    });
 }
 
 function toggleColumnMenu(e, columnEl) {
@@ -1495,6 +1529,121 @@ function startColumnRename(columnEl, column) {
     });
 }
 
+function startCardRename(cardEl, task) {
+    const titleDiv = cardEl.querySelector('.card-title');
+    if (!titleDiv || cardEl.classList.contains('is-renaming')) return;
+
+    const input = document.createElement('textarea');
+    input.className = 'card-title-input';
+    input.value = task.title;
+    input.rows = 1;
+    input.spellcheck = false;
+
+    titleDiv.replaceWith(input);
+    cardEl.classList.add('is-renaming');
+
+    const autoResize = () => {
+        input.style.height = 'auto';
+        input.style.height = input.scrollHeight + 'px';
+        
+        // Скрываем ошибку, как только пользователь начал удалять лишнее
+        if (input.value.trim().length <= 200) {
+            cardEl.classList.remove('is-error');
+        }
+    };
+    
+    input.addEventListener('input', autoResize);
+    autoResize();
+    
+    input.focus();
+    input.select();
+
+    let committed = false;
+
+    // ВАЛИДАЦИЯ С КРАСИВЫМ ТЕКСТОМ
+    const validateAndShake = () => {
+        const val = input.value.trim();
+        if (val.length > 200) {
+            // Ищем или создаем элемент подсказки
+            let hint = cardEl.querySelector('.card-error-hint');
+            if (!hint) {
+                hint = document.createElement('div');
+                hint.className = 'card-error-hint';
+                hint.textContent = t('errors.tooLong');
+                // Вставляем после инпута
+                input.after(hint);
+            }
+
+            cardEl.classList.remove('is-error');
+            void cardEl.offsetWidth; // Force Reflow
+            cardEl.classList.add('is-error');
+            
+            return false;
+        }
+        return true;
+    };
+
+    const restore = (title) => {
+        const div = document.createElement('div');
+        div.className = 'card-title';
+        div.textContent = title;
+        
+        // Удаляем все следы редактирования
+        const hint = cardEl.querySelector('.card-error-hint');
+        if (hint) hint.remove();
+        
+        if (input.parentNode) input.replaceWith(div);
+        cardEl.classList.remove('is-renaming', 'is-error');
+    };
+
+    const commit = async () => {
+        if (committed) return;
+
+        if (!validateAndShake()) {
+            input.focus();
+            return; 
+        }
+
+        committed = true;
+        const newTitle = input.value.trim();
+        const finalTitle = newTitle || task.title;
+        
+        restore(finalTitle);
+
+        if (newTitle && newTitle !== task.title) {
+            try {
+                await updateTask(task.id, { title: newTitle });
+                task.title = newTitle;
+            } catch (_) {
+                cardEl.classList.add('is-error');
+                const div = cardEl.querySelector('.card-title');
+                if (div) div.textContent = task.title;
+            }
+        }
+    };
+
+    input.addEventListener('mousedown', (e) => e.stopPropagation());
+
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            e.stopPropagation();
+            if (validateAndShake()) commit();
+        }
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            committed = true;
+            restore(task.title);
+        }
+    });
+
+    input.addEventListener('blur', () => {
+        setTimeout(() => { 
+            if (!committed) commit(); 
+        }, 120);
+    });
+}
+
 function adjustCollapsedColumnWidths() {
     const CHAR_HEIGHT = 18.2;  // 13px * 1.4 line-height
     const MAX_LINES = 5;
@@ -1571,7 +1720,7 @@ document.addEventListener('pointerdown', (e) => {
     if (e.button !== 0) return; // Только левый клик мыши
 
     // 1. Игнорируем клики по интерактивным элементам (чтобы кнопки и инпуты работали штатно)
-    if (e.target.closest('button, input, textarea, .menu-btn, .tab-close-btn, .column.is-renaming, .board-tab.is-renaming, .card-entering')) return;
+    if (e.target.closest('button, input, textarea, .menu-btn, .card-menu-btn, .tab-close-btn, .column.is-renaming, .board-tab.is-renaming, .card.is-renaming, .card-entering')) return;
 
     // 2. Ищем, на чем именно кликнули
     const card = e.target.closest('.card');
@@ -1975,60 +2124,57 @@ async function endDrag() {
 }
 
 // ---------- ГЛОБАЛЬНЫЕ КЛИКИ (меню, модалки) ----------
-document.addEventListener('click', (e) => {
+document.addEventListener('click', async (e) => {
+    const target = e.target;
 
-    // --- ДОБАВЛЕНО: Быстрое переименование по клику на заголовок ---
-    const titleEl = e.target.closest('.column:not(.collapsed) .column-title');
+    // 1. ПЕРЕИМЕНОВАНИЕ КОЛОНКИ (по клику в заголовок)
+    const titleEl = target.closest('.column:not(.collapsed) .column-title');
     if (titleEl) {
         const columnEl = titleEl.closest('.column');
-        // Проверяем, что колонка еще не в процессе переименования
         if (columnEl && !columnEl.classList.contains('is-renaming')) {
             const columnId = parseInt(columnEl.dataset.columnId);
             const column = state.columns.find(c => c.id === columnId);
             if (column) {
                 startColumnRename(columnEl, column);
-                return; // Прерываем обработку других кликов
+                return;
             }
         }
     }
 
-    // --- ИСПРАВЛЕНО: Переименование вкладки ТОЛЬКО если она уже активна ---
-    const tabNameEl = e.target.closest('.board-tab .tab-name');
+    // 2. ПЕРЕИМЕНОВАНИЕ ВКЛАДКИ
+    const tabNameEl = target.closest('.board-tab .tab-name');
     if (tabNameEl) {
         const tabEl = tabNameEl.closest('.board-tab');
         if (tabEl && !tabEl.classList.contains('is-renaming')) {
             const wsId = parseInt(tabEl.dataset.workspaceId);
-            
-            // Запускаем переименование ТОЛЬКО если кликнули по АКТИВНОЙ вкладке
             if (wsId === state.activeWorkspaceId) {
                 const ws = state.workspaces.find(w => w.id === wsId);
                 if (ws) {
                     startTabRename(tabEl, ws);
-                    return; // Прерываем обработку других кликов
+                    return;
                 }
             }
         }
     }
 
-    // --- ОБРАБОТКА КНОПОК АЛЕРТА ---
-    if (e.target.closest('[data-action="confirm-cancel"]')) {
+    // 3. ОБРАБОТКА КНОПОК ПОДТВЕРЖДЕНИЯ (Confirm Modal)
+    if (target.closest('[data-action="confirm-cancel"]')) {
         if (activeConfirmResolve) { activeConfirmResolve(false); activeConfirmResolve = null; }
         document.getElementById('confirm-modal').classList.remove('show');
         return;
     }
-    if (e.target.closest('[data-action="confirm-delete"]')) {
+    if (target.closest('[data-action="confirm-delete"]')) {
         if (activeConfirmResolve) { activeConfirmResolve(true); activeConfirmResolve = null; }
         document.getElementById('confirm-modal').classList.remove('show');
         return;
     }
-    
-    const settingsTrigger = e.target.closest('.settings-trigger');
+
+    // 4. ОТКРЫТИЕ МЕНЮ НАСТРОЕК (Header)
+    const settingsTrigger = target.closest('.settings-trigger');
     if (settingsTrigger) {
         const menu = document.querySelector('.settings-wrapper .dropdown-menu');
         const isShowing = menu.classList.contains('show');
-        
         closeAllDropdowns(); 
-        
         if (!isShowing) { 
             menu.classList.add('show');
             settingsTrigger.classList.add('active');
@@ -2036,133 +2182,169 @@ document.addEventListener('click', (e) => {
         return; 
     }
 
-    const menuItem = e.target.closest('.menu-item');
-    if (menuItem) {
+    // 5. ЛОГИКА ВЫПАДАЮЩЕГО МЕНЮ КАРТОЧКИ (Pencil Button)
+    const cardMenuBtn = target.closest('.card-menu-btn');
+    if (cardMenuBtn) {
+        e.stopPropagation();
+        const globalMenu = document.getElementById('global-card-menu');
+        const cardEl = cardMenuBtn.closest('.card');
+        
+        const isAlreadyOpen = globalMenu.classList.contains('show') && globalMenu.dataset.activeCardId == cardEl.dataset.cardId;
+
+        closeAllDropdowns();
+
+        if (!isAlreadyOpen) {
+            globalMenu.dataset.activeCardId = cardEl.dataset.cardId;
+            
+            const cardRect = cardEl.getBoundingClientRect();
+            let menuTop = cardRect.top;
+            let menuLeft = cardRect.right + 12;
+            const menuWidth = 220;
+
+            if (menuLeft + menuWidth > window.innerWidth - 16) {
+                menuLeft = cardRect.left - menuWidth - 12;
+                globalMenu.style.transformOrigin = 'top right';
+            } else {
+                globalMenu.style.transformOrigin = 'top left';
+            }
+
+            globalMenu.classList.add('show');
+            globalMenu.style.top = `${menuTop}px`;
+            globalMenu.style.left = `${menuLeft}px`;
+
+            cardMenuBtn.classList.add('active');
+            cardEl.classList.add('has-open-menu');
+
+            // Опционально: запускаем переименование сразу при открытии меню
+            const taskId = parseInt(cardEl.dataset.cardId);
+            const colId = parseInt(cardEl.closest('.column').dataset.columnId);
+            const col = state.columns.find(c => c.id === colId);
+            const task = col?.tasks.find(t => t.id === taskId);
+            if (task) startCardRename(cardEl, task);
+        }
+        return;
+    }
+
+    // 6. ОБРАБОТКА ДЕЙСТВИЙ (Меню, Колонки, Карточки, Системные)
+    const menuItem = target.closest('.menu-item');
+    const actionElement = target.closest('[data-action]');
+    const action = actionElement?.dataset.action;
+
+    if (menuItem && action) {
+        // ОПРЕДЕЛЯЕМ КОНТЕКСТ МЕНЮ
+        const globalCardMenu = document.getElementById('global-card-menu');
+        const isCardMenu = menuItem.closest('#global-card-menu');
         const columnEl = menuItem.closest('.column');
+
+        // А) Если это меню карточки
+        if (isCardMenu) {
+            const activeCardId = globalCardMenu.dataset.activeCardId;
+            const cardEl = document.querySelector(`.card[data-card-id="${activeCardId}"]`);
+            if (cardEl) {
+                const taskId = parseInt(activeCardId);
+                const colEl = cardEl.closest('.column');
+
+                if (action === 'open-card') {
+                    const title = cardEl.querySelector('.card-title')?.textContent || 
+                                  cardEl.querySelector('.card-title-input')?.value;
+                    document.getElementById('task-modal-title').textContent = title;
+                    document.getElementById('task-modal').classList.add('show');
+                } 
+                else if (action === 'delete-card') {
+                    cardEl.style.opacity = '0';
+                    cardEl.style.transform = 'scale(0.9)';
+                    setTimeout(() => { if (cardEl.parentNode) cardEl.remove(); updateColumnCount(colEl); }, 200);
+                    const col = state.columns.find(c => c.id === parseInt(colEl.dataset.columnId));
+                    if (col) col.tasks = col.tasks.filter(t => t.id !== taskId);
+                    deleteTask(taskId).catch(err => { console.error(err); refreshBoard(); });
+                } 
+                else if (action === 'clear-card-timer') {
+                    clearTaskTimerAPI(taskId).then(updatedTask => {
+                        const col = state.columns.find(c => c.id === parseInt(colEl.dataset.columnId));
+                        if (col) {
+                            const idx = col.tasks.findIndex(t => t.id === taskId);
+                            if (idx !== -1) col.tasks[idx] = updatedTask;
+                        }
+                        updateCardAppearance(cardEl, updatedTask, col.mode);
+                    });
+                }
+            }
+            closeAllDropdowns();
+            return; // Выходим только если это было меню карточки
+        }
+
+        // Б) Если это меню колонки
         if (columnEl) {
-            handleColumnMenu(menuItem.dataset.action, columnEl, menuItem);
+            handleColumnMenu(action, columnEl, menuItem);
+            closeAllDropdowns();
+            return; // Выходим только если это было меню колонки
         }
     }
 
-    const action = e.target.closest('[data-action]')?.dataset.action;
-    if (action === 'switch-workspace') {
-        const btn = e.target.closest('.workspace-btn');
-        btn.style.pointerEvents = 'none';
-        btn.style.opacity = '0.5'; 
-        
-        // ТРЮК: Даем браузеру 150мс, чтобы он 100% успел перерисовать кнопку.
-        // Иначе macOS моментально заблокирует вкладку модальным окном, и UI покажется зависшим.
-        setTimeout(() => {
+    // 7. СИСТЕМНЫЕ ДЕЙСТВИЯ (Воркспейс, Темы, Язык, О программе)
+    // Сюда код попадет, если это был клик по кнопке воркспейса или пункту настроек
+    if (action) {
+        if (action === 'switch-workspace') {
+            const btn = target.closest('.workspace-btn');
+            btn.style.pointerEvents = 'none'; btn.style.opacity = '0.5'; 
             switchVault().then(async vault => {
-                if (vault.canceled) {
-                    btn.style.pointerEvents = 'auto';
-                    btn.style.opacity = '1';
-                    return;
-                }
-                
+                if (vault.canceled) { btn.style.pointerEvents = 'auto'; btn.style.opacity = '1'; return; }
                 updateVaultName(vault.name);
-                
-                // 🚀 Запрашиваем настройки заново для нового хранилища
-                try {
-                    const settings = await fetchSettings();
-                    state.activeWorkspaceId = settings.active_workspace_id || null;
-                } catch (e) { console.error("Ошибка загрузки настроек нового хранилища", e); }
-                
-                await refreshBoard(true); // 🚀 Вызываем с true при смене хранилища
-                btn.style.pointerEvents = 'auto';
-                btn.style.opacity = '1';
-            }).catch(err => {
-                console.error('Ошибка смены хранилища:', err);
-                btn.style.pointerEvents = 'auto';
-                btn.style.opacity = '1';
+                const settings = await fetchSettings().catch(() => ({}));
+                state.activeWorkspaceId = settings.active_workspace_id || null;
+                await refreshBoard(true);
+                btn.style.pointerEvents = 'auto'; btn.style.opacity = '1';
+            }).catch(() => { btn.style.pointerEvents = 'auto'; btn.style.opacity = '1'; });
+        }
+        else if (action === 'theme') {
+            const currentTheme = document.documentElement.hasAttribute('data-theme') ? 'dark' : 'light';
+            document.querySelectorAll('#theme-list .lang-item').forEach(el => {
+                el.classList.toggle('active', el.dataset.themeValue === currentTheme);
             });
-        }, 150);
-        
+            document.getElementById('theme-modal').classList.add('show');
+            closeAllDropdowns();
+        }
+        else if (action === 'change-lang') {
+            document.getElementById('lang-modal').classList.add('show');
+            closeAllDropdowns();
+        }
+        else if (action === 'about') {
+            document.getElementById('about-modal').classList.add('show');
+            closeAllDropdowns();
+        }
+    }
+
+    // ==========================================
+    // 🔥 ТОТ САМЫЙ ПРОПАВШИЙ БЛОК (КЛИКИ ВНУТРИ МОДАЛОК)
+    // ==========================================
+    const themeItem = target.closest('#theme-list .lang-item');
+    if (themeItem) {
+        const theme = themeItem.dataset.themeValue;
+        applyTheme(theme, true);
+        setTimeout(() => document.getElementById('theme-modal').classList.remove('show'), 150);
         return;
     }
-    if (action === 'theme') {
-        const currentTheme = document.documentElement.hasAttribute('data-theme') ? 'dark' : 'light';
-        document.querySelectorAll('#theme-list .lang-item').forEach(el => {
-            el.classList.toggle('active', el.dataset.themeValue === currentTheme);
-        });
-        document.getElementById('theme-modal').classList.add('show');
-    }
-    if (action === 'change-lang') document.getElementById('lang-modal').classList.add('show');
-    if (action === 'about') document.getElementById('about-modal').classList.add('show');
 
-    if (e.target.closest('.modal-close') || e.target.classList.contains('modal-overlay')) {
-        // Если кликнули мимо окна подтверждения - это приравнивается к отмене
-        if (activeConfirmResolve && (e.target.id === 'confirm-modal' || e.target.closest('#confirm-modal'))) {
+    const langItem = target.closest('#lang-list .lang-item');
+    if (langItem) {
+        const lang = langItem.dataset.value;
+        applyLanguage(lang, true);
+        setTimeout(() => document.getElementById('lang-modal').classList.remove('show'), 150);
+        return;
+    }
+    // ==========================================
+
+    // 8. ЗАКРЫТИЕ МОДАЛОК
+    if (target.closest('.modal-close') || target.classList.contains('modal-overlay')) {
+        if (activeConfirmResolve && (target.id === 'confirm-modal' || target.closest('#confirm-modal'))) {
             activeConfirmResolve(false);
             activeConfirmResolve = null;
         }
         document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('show'));
     }
 
-    const themeItem = e.target.closest('#theme-list .lang-item');
-    if (themeItem) {
-        document.querySelectorAll('#theme-list .lang-item').forEach(el => el.classList.remove('active'));
-        themeItem.classList.add('active');
-        const theme = themeItem.dataset.themeValue;
-        
-        if (document.startViewTransition) {
-            document.startViewTransition(() => applyTheme(theme, true));
-        } else {
-            applyTheme(theme, true);
-        }
-        document.getElementById('theme-modal').classList.remove('show');
-    }
-
-    const langItem = e.target.closest('#lang-list .lang-item');
-    if (langItem) {
-        document.querySelectorAll('#lang-list .lang-item').forEach(el => el.classList.remove('active'));
-        langItem.classList.add('active');
-        const lang = langItem.dataset.value;
-        applyLanguage(lang, true); // true — значит сохраняем на бэкенд
-        document.getElementById('lang-modal').classList.remove('show');
-    }
-
-    const collapsed = e.target.closest('.column.collapsed');
-    
-    if (collapsed && !e.target.closest('.dropdown-menu')) {
-        const columnId = parseInt(collapsed.dataset.columnId);
-        const column = state.columns.find(c => c.id === columnId);
-        if (column) {
-            column.collapsed = false;
-            
-            collapsed.classList.remove('collapsed');
-            collapsed.style.width = '';
-            collapsed.style.minWidth = '';
-            
-            // 🚀 Возвращаем меню способность открываться
-            const menu = collapsed.querySelector('.dropdown-menu');
-            if (menu) menu.style.display = '';
-            
-            const titleEl = collapsed.querySelector('.column-title');
-            if (titleEl) {
-                // Восстанавливаем текст
-                if (titleEl.dataset.fullTitle) {
-                    titleEl.textContent = titleEl.dataset.fullTitle;
-                }
-                // Полностью счищаем весь инлайновый мусор
-                titleEl.style.maxHeight = '';
-                titleEl.style.display = '';
-                titleEl.style.webkitLineClamp = '';
-                titleEl.dataset.clamped = 'false';
-            }
-            
-            // Пересчитываем обрезку текста для развернутого вида
-            requestAnimationFrame(() => {
-                clampExpandedTitles();
-            });
-            
-            updateColumn(columnId, { collapsed: false }).catch(err => {
-                console.error('Failed to save collapsed state', err);
-            });
-        }
-    }
-
-    if (!e.target.closest('.dropdown-menu')) {
+    // 9. ЗАКРЫТИЕ ВСЕХ МЕНЮ ПРИ КЛИКЕ ВНЕ
+    if (!target.closest('.dropdown-menu') && !target.closest('.menu-btn') && !target.closest('.card-menu-btn')) {
         closeAllDropdowns();
     }
 });

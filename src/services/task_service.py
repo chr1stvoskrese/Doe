@@ -176,3 +176,39 @@ async def reorder_tasks(db: AsyncSession, ordered_ids: list[int]) -> None:
             task_map[task_id].position = float(index)
             
     await db.commit()
+
+async def clear_task_timer(db: AsyncSession, task_id: int) -> TaskModel:
+    result = await db.execute(
+        select(TaskModel)
+        .options(
+            selectinload(TaskModel.column),
+            selectinload(TaskModel.timer_sessions)
+        )
+        .where(TaskModel.id == task_id)
+    )
+    task = result.scalar_one_or_none()
+    if not task:
+        raise ValueError("Задача не найдена")
+
+    # Удаляем все сессии таймера для этой задачи
+    for session in task.timer_sessions:
+        await db.delete(session)
+    
+    # Очищаем локальный массив
+    task.timer_sessions = []
+
+    # Если задача прямо сейчас находится в колонке "Учёт времени", начинаем таймер с нуля
+    if task.column.mode == ColumnMode.TRACK_TIME:
+        new_session = TimerSessionModel(
+            task_id=task.id,
+            start_time=datetime.utcnow(),
+            is_active=True,
+        )
+        db.add(new_session)
+        task.timer_sessions.append(new_session)
+
+    await db.commit()
+    await db.refresh(task)
+    
+    _calculate_task_time(task)
+    return task
