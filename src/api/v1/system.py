@@ -22,54 +22,18 @@ async def get_vault():
     name = Path(path).resolve().name
     return VaultResponse(name=name, path=path)
 
+class SwitchVaultRequest(BaseModel):
+    new_path: str
+
 @router.post("/vault/switch", response_model=VaultResponse)
-async def switch_vault_endpoint():
-    new_path = ""
-
-    # Если мы на macOS
-    if sys.platform == 'darwin':
-        script = """
-        try
-            tell application (path to frontmost application as text)
-                set myFolder to choose folder with prompt "Выберите хранилище (Doe Vault)"
-                return POSIX path of myFolder
-            end tell
-        on error number -128
-            return ""
-        end try
-        """
-        process = await asyncio.create_subprocess_exec(
-            'osascript', '-e', script,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE
-        )
-        stdout, _ = await process.communicate()
-        if process.returncode != 0:
-            raise HTTPException(status_code=500, detail="Ошибка вызова диалога macOS")
-        new_path = stdout.decode('utf-8').strip()
-
-    # Если мы на Windows / Linux
-    else:
-        import tkinter as tk
-        from tkinter import filedialog
-        
-        # Создаем скрытое окно
-        root = tk.Tk()
-        root.withdraw()
-        # Выводим поверх всех окон
-        root.attributes('-topmost', True)
-        
-        new_path = filedialog.askdirectory(title="Выберите хранилище (Doe Vault)")
-        root.destroy()
-
-    # Если нажали "Отмена"
+async def switch_vault_endpoint(req: SwitchVaultRequest):
+    new_path = req.new_path
     if not new_path:
         return VaultResponse(canceled=True)
         
     await switch_vault(new_path)
     name = Path(new_path).resolve().name
     return VaultResponse(name=name, path=new_path, canceled=False)
-
 
 class SettingsUpdate(BaseModel):
     theme: Optional[str] = None

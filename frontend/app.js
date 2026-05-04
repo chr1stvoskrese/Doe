@@ -142,8 +142,27 @@ async function fetchVault() {
 }
 
 async function switchVault() {
-    const res = await fetch(`${API_BASE}/system/vault/switch`, { method: 'POST' });
-    if (!res.ok) throw new Error('Canceled or error');
+    // 1. Проверяем, доступен ли нативный API
+    if (!window.pywebview || !window.pywebview.api) {
+        throw new Error("Native API not ready");
+    }
+
+    // 2. Вызываем нативный macOS/Windows диалог выбора папки
+    const selectedPath = await window.pywebview.api.choose_directory();
+    
+    // 3. Если пользователь нажал "Отмена" или просто закрыл окно
+    if (!selectedPath) {
+        return { canceled: true };
+    }
+
+    // 4. Отправляем выбранный путь на бэкенд
+    const res = await fetch(`${API_BASE}/system/vault/switch`, { 
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ new_path: selectedPath })
+    });
+    
+    if (!res.ok) throw new Error('Error switching vault');
     return res.json();
 }
 

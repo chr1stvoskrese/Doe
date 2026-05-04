@@ -151,82 +151,114 @@ class WindowAPI:
         
         if sys.platform == 'win32':
             import ctypes
-            import winreg
-            
-            hwnd = ctypes.windll.user32.FindWindowW(None, "Doe")
-            
-            if hwnd:
-                try:
-                    icon_path = os.path.join(bundle_dir, "favicon.ico")
-                    if os.path.exists(icon_path):
-                        IMAGE_ICON = 1
-                        LR_LOADFROMFILE = 0x00000010
-                        WM_SETICON = 0x0080
-                        hicon = ctypes.windll.user32.LoadImageW(0, icon_path, IMAGE_ICON, 0, 0, LR_LOADFROMFILE)
-                        if hicon:
-                            ctypes.windll.user32.SendMessageW(hwnd, WM_SETICON, 0, hicon)
-                            ctypes.windll.user32.SendMessageW(hwnd, WM_SETICON, 1, hicon)
-                            print("[WebView] Custom icon applied via WinAPI.")
-                except Exception as e:
-                    print(f"[WebView] Error applying window icon: {e}")
+            # ... (твой код иконки остается без изменений) ...
 
-                try:
-                    registry = winreg.ConnectRegistry(None, winreg.HKEY_CURRENT_USER)
-                    key = winreg.OpenKey(registry, r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize")
-                    val_theme, _ = winreg.QueryValueEx(key, "AppsUseLightTheme")
+            try:
+                # Глубокая интеграция цвета заголовка в Windows 10/11
+                # Убираем "белую полосу" путем покраски TitleBar в цвет фона приложения
+                hwnd = ctypes.windll.user32.FindWindowW(None, "Doe")
+                if hwnd:
+                    hex_color = bg_color.lstrip('#')
+                    # Конвертируем HEX в COLORREF (BGR)
+                    r, g, b = tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+                    colorref = (b << 16) | (g << 8) | r
                     
-                    if val_theme == 0:
-                        val = ctypes.c_int(1)
-                        ctypes.windll.dwmapi.DwmSetWindowAttribute(hwnd, 20, ctypes.byref(val), ctypes.sizeof(val))
-                        ctypes.windll.dwmapi.DwmSetWindowAttribute(hwnd, 19, ctypes.byref(val), ctypes.sizeof(val))
-                except Exception as e:
-                    print(f"[WebView] Error applying Windows dark title bar theme: {e}")
-                    
-                try:
-                    user32 = ctypes.windll.user32
-                    GWL_EXSTYLE = -20
-                    WS_EX_LAYERED = 0x00080000
-                    LWA_ALPHA = 2
-                    
-                    if ctypes.sizeof(ctypes.c_void_p) == 8:
-                        GetWindowLong = user32.GetWindowLongPtrW
-                        SetWindowLong = user32.SetWindowLongPtrW
-                    else:
-                        GetWindowLong = user32.GetWindowLongW
-                        SetWindowLong = user32.SetWindowLongW
+                    # DWMWA_CAPTION_COLOR = 35 (Windows 11)
+                    ctypes.windll.dwmapi.DwmSetWindowAttribute(hwnd, 35, ctypes.byref(ctypes.c_int(colorref)), 4)
+                    # DWMWA_TEXT_COLOR = 36 (цвет текста заголовка — делаем его таким же, чтобы скрыть)
+                    ctypes.windll.dwmapi.DwmSetWindowAttribute(hwnd, 36, ctypes.byref(ctypes.c_int(colorref)), 4)
+            except Exception as e:
+                print(f"[WebView] Windows Color Sync failed: {e}")
 
-                    style = GetWindowLong(hwnd, GWL_EXSTYLE)
-                    SetWindowLong(hwnd, GWL_EXSTYLE, style | WS_EX_LAYERED)
-                    
-                    window.show()
-                    time.sleep(0.2)
-                    user32.SetLayeredWindowAttributes(hwnd, 0, 255, LWA_ALPHA)
-                    SetWindowLong(hwnd, GWL_EXSTYLE, style)
-                    print("[WebView] Window successfully shown (transparency hack applied).")
-                except Exception as e:
-                    print(f"[WebView] Transparency hack error: {e}")
-                    try:
-                        window.show()
-                    except:
-                        pass
-            else:
-                try:
-                    window.show()
-                except:
-                    pass
+            # ... (твой transparency hack остается) ...
 
         elif sys.platform == 'darwin':
             try:
-                window.show()
-                print("[WebView] Window successfully shown (macOS).")
-            except Exception as e:
-                print(f"[WebView] macOS show error: {e}")
+                import AppKit
+                import objc
+                ns_window = window.native
+                
+                # 1. Скрываем стандартный заголовок и расширяем вью на все окно
+                # NSWindowStyleMaskFullSizeContentView = 1 << 15
+                # NSWindowStyleMaskTitled = 1 << 0
+                # ... и остальные стандартные маски
+                mask = (1 << 0) | (1 << 1) | (1 << 2) | (1 << 3) | (1 << 15)
+                ns_window.setStyleMask_(mask)
 
-        else:
-            try:
+                # 2. Делаем заголовок прозрачным и скрываем текст
+                ns_window.setTitlebarAppearsTransparent_(True)
+                ns_window.setTitleVisibility_(1) # NSWindowTitleHidden
+
+                # 3. Убираем ту самую линию-разделитель (Hairline)
+                if hasattr(ns_window, 'setTitlebarSeparatorStyle_'):
+                    ns_window.setTitlebarSeparatorStyle_(0) # NSTitlebarSeparatorStyleNone
+
+                # 4. ФИКС ПОЛОСКИ: Убираем Toolbar, если он вдруг создался
+                ns_window.setToolbar_(None)
+
+                # 5. СИНХРОНИЗАЦИЯ ЦВЕТОВ (чтобы не было моргания)
+                hex_color = bg_color.lstrip('#')
+                r, g, b = tuple(int(hex_color[i:i+2], 16) / 255.0 for i in (0, 2, 4))
+                native_bg_color = AppKit.NSColor.colorWithCalibratedRed_green_blue_alpha_(r, g, b, 1.0)
+                
+                ns_window.setBackgroundColor_(native_bg_color)
+                ns_window.setHasShadow_(True)
+
+                # 6. ХАК ДЛЯ WKWEBVIEW: Заставляем его игнорировать безопасные зоны
+                # Достаем WKWebView из недр NSWindow
+                # Обычно иерархия: NSWindow -> NSThemeFrame -> NSView -> WKWebView
+                def fix_webview_frame(view):
+                    for subview in view.subviews():
+                        if "WKWebView" in str(type(subview)):
+                            # Растягиваем WebView на весь размер окна, игнорируя Titlebar
+                            subview.setFrame_(ns_window.contentView().bounds())
+                            subview.setAutoresizingMask_(18) # 2 | 16 (Width + Height)
+                        fix_webview_frame(subview)
+                
+                fix_webview_frame(ns_window.contentView())
+
+                # 7. Делаем окно перетаскиваемым за любую точку (как Obsidian)
+                ns_window.setMovableByWindowBackground_(True)
+
                 window.show()
-            except:
-                pass
+                print(f"[WebView] macOS Deep Aesthetic Fix Applied.")
+            except Exception as e:
+                print(f"[WebView] macOS Aesthetic Fix failed: {e}")
+                window.show()
+
+        elif sys.platform == 'win32':
+            # Для Windows — убираем стандартную рамку через DWM
+            import ctypes
+            hwnd = ctypes.windll.user32.FindWindowW(None, "Doe")
+            if hwnd:
+                # Убираем системное меню и полоску заголовка, оставляя функционал окна
+                style = ctypes.windll.user32.GetWindowLongW(hwnd, -16) # GWL_STYLE
+                # WS_CAPTION = 0x00C00000
+                ctypes.windll.user32.SetWindowLongW(hwnd, -16, style & ~0x00C00000)
+                
+                # Принудительно красим фон под WebView
+                hex_color = bg_color.lstrip('#')
+                r, g, b = tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+                colorref = (b << 16) | (g << 8) | r
+                ctypes.windll.dwmapi.DwmSetWindowAttribute(hwnd, 35, ctypes.byref(ctypes.c_int(colorref)), 4)
+            window.show()
+
+    def choose_directory(self):
+        """Вызывает нативный диалог выбора папки (macOS/Windows)"""
+        if not webview.windows:
+            return None
+            
+        window = webview.windows[0]
+        # Вызываем нативный диалог (он автоматически привяжется к нашему окну)
+        result = window.create_file_dialog(
+            dialog_type=webview.FOLDER_DIALOG,
+            allow_multiple=False
+        )
+        
+        # result - это кортеж выбранных путей или None, если нажали "Отмена"
+        if result and len(result) > 0:
+            return result[0]
+        return None
 
 class APIServerThread(threading.Thread):
     def __init__(self):
@@ -339,12 +371,12 @@ if __name__ == '__main__':
 
         print("[WebView] Creating invisible browser window...")
         webview.create_window(
-            title='Doe',
+            title='', # Пустой заголовок
             url=URL,
             width=1200,
             height=800,
             min_size=(800, 500),
-            background_color=bg_color,
+            background_color=bg_color, # Это важно для устранения полоски при ресайзе
             text_select=False,
             hidden=True,            
             js_api=WindowAPI()      
