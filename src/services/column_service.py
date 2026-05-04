@@ -11,27 +11,34 @@ from src.schemas.column import ColumnResponse
 from src.schemas.task import TaskResponse, TimerSessionResponse
 
 
-async def get_columns_with_tasks(db: AsyncSession, workspace_id: int): # <--- ДОБАВИТЬ workspace_id: int
+async def get_columns_with_tasks(db: AsyncSession, workspace_id: int):
+    # Загружаем колонки
     stmt = (
         select(ColumnModel)
-        .where(ColumnModel.workspace_id == workspace_id) # <--- ФИЛЬТР ПО ВКЛАДКЕ
-        .options(
-            selectinload(ColumnModel.tasks).selectinload(TaskModel.subtasks)
-        )
-        .options(
-            selectinload(ColumnModel.tasks).selectinload(TaskModel.timer_sessions)
-        )
+        .where(ColumnModel.workspace_id == workspace_id)
         .order_by(ColumnModel.position)
     )
-
     result = await db.execute(stmt)
-    columns = result.scalars().unique().all()
+    columns = result.scalars().all()
 
     response_columns = []
     for col in columns:
+        # Тянем только ТОП-ЛЕВЕЛ задачи (у которых нет родителя)
+        tasks_stmt = (
+            select(TaskModel)
+            .where(TaskModel.column_id == col.id, TaskModel.parent_id == None)
+            .options(selectinload(TaskModel.timer_sessions))
+            .order_by(TaskModel.position)
+        )
+        tasks_result = await db.execute(tasks_stmt)
+        root_tasks = tasks_result.scalars().all()
+
         task_responses = []
-        for task in col.tasks:
-            # Считаем сумму только закрытых отрезков времени
+        for task in root_tasks:
+            total_seconds = sum(
+                (s.end_time - s.start_time).total_seconds() 
+                for s in task.timer_sessions if s.end_time is not None
+            )
             total_seconds = sum(
                 (s.end_time - s.start_time).total_seconds() 
                 for s in task.timer_sessions if s.end_time is not None
@@ -53,13 +60,16 @@ async def get_columns_with_tasks(db: AsyncSession, workspace_id: int): # <--- Д
             task_resp = TaskResponse(
                 id=task.id,
                 title=task.title,
+                description=task.description,
                 column_id=task.column_id,
                 parent_id=task.parent_id,
                 position=task.position,
                 created_at=task.created_at,
                 updated_at=task.updated_at,
                 completed_at=task.completed_at,
-                subtasks=[],
+                # На доске подзадачи не нужны, ставим None или [], 
+                # чтобы избежать ленивой загрузки
+                subtasks=[], 
                 active_timer=active_timer,
                 total_time_spent=int(total_seconds),
             )

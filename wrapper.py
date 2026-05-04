@@ -1,4 +1,5 @@
 import sys
+import subprocess
 import os
 
 # ==========================================
@@ -57,13 +58,14 @@ import traceback
 import time
 from datetime import datetime
 
-# ОПРЕДЕЛЯЕМ ПАПКУ С ЛОГАМИ (base_dir нужен только тут)
+# ОПРЕДЕЛЯЕМ ПАПКУ С ЛОГАМИ
+from pathlib import Path
 if getattr(sys, 'frozen', False):
-    base_dir = os.path.dirname(sys.executable)
+    base_dir = Path(sys.executable).parent
 else:
-    base_dir = os.path.dirname(os.path.abspath(__file__))
+    base_dir = Path(__file__).resolve().parent
 
-log_file_path = os.path.join(base_dir, "Doe_Log.txt")
+log_file_path = str(base_dir / "Doe_Log.txt")
 
 class LoggerWriter:
     def __init__(self, filename, original_stream, is_main=False):
@@ -128,6 +130,8 @@ import threading
 import urllib.request
 import webview
 import uvicorn
+import subprocess  # Для macOS 'open'
+import os          # Для Windows 'os.startfile'
 
 print("[System] Loading FastAPI core...")
 from main import app
@@ -142,6 +146,24 @@ theme = settings.get("theme", "light")
 bg_color = '#161815' if theme == 'dark' else '#F4F3EF'
 
 class WindowAPI:
+    def open_local_path(self, path):
+        """Открывает файл или папку в стандартном приложении ОС"""
+        try:
+            # Очищаем путь от префикса протокола
+            clean_path = path.replace('file://', '')
+            # Декодируем URL-символы (пробелы и т.д.)
+            import urllib.parse
+            clean_path = urllib.parse.unquote(clean_path)
+            
+            if sys.platform == 'darwin':
+                subprocess.call(['open', clean_path])
+            elif sys.platform == 'win32':
+                os.startfile(clean_path)
+            return True
+        except Exception as e:
+            print(f"[System] Failed to open path: {e}")
+            return False
+
     def reveal_window(self):
         print("[WebView] Signal received from JS: Interface is ready, showing window.")
         if not webview.windows:
@@ -151,98 +173,30 @@ class WindowAPI:
         
         if sys.platform == 'win32':
             import ctypes
-            # ... (твой код иконки остается без изменений) ...
-
+            # Оставляем только установку иконки и цвета заголовка (для красоты)
             try:
-                # Глубокая интеграция цвета заголовка в Windows 10/11
-                # Убираем "белую полосу" путем покраски TitleBar в цвет фона приложения
-                hwnd = ctypes.windll.user32.FindWindowW(None, "Doe")
+                hwnd = ctypes.windll.user32.FindWindowW(None, window.title)
                 if hwnd:
+                    # Установка иконки в рантайме (чтобы была в заголовке)
+                    icon_path = os.path.join(bundle_dir, "favicon.ico")
+                    if os.path.exists(icon_path):
+                        hicon = ctypes.windll.user32.LoadImageW(0, icon_path, 1, 32, 32, 0x00000010)
+                        ctypes.windll.user32.SendMessageW(hwnd, 0x0080, 0, hicon) # ICON_SMALL
+                        ctypes.windll.user32.SendMessageW(hwnd, 0x0080, 1, hicon) # ICON_BIG
+
+                    # Синхронизация цвета заголовка с темой приложения (Win 11)
+                    # Это сделает окно современным, но ОСТАВИТ рамку и кнопки управления
                     hex_color = bg_color.lstrip('#')
-                    # Конвертируем HEX в COLORREF (BGR)
                     r, g, b = tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
                     colorref = (b << 16) | (g << 8) | r
-                    
-                    # DWMWA_CAPTION_COLOR = 35 (Windows 11)
+                    # DWMWA_CAPTION_COLOR = 35
                     ctypes.windll.dwmapi.DwmSetWindowAttribute(hwnd, 35, ctypes.byref(ctypes.c_int(colorref)), 4)
-                    # DWMWA_TEXT_COLOR = 36 (цвет текста заголовка — делаем его таким же, чтобы скрыть)
-                    ctypes.windll.dwmapi.DwmSetWindowAttribute(hwnd, 36, ctypes.byref(ctypes.c_int(colorref)), 4)
             except Exception as e:
-                print(f"[WebView] Windows Color Sync failed: {e}")
+                print(f"[WebView] Windows UI Sync failed: {e}")
 
-            # ... (твой transparency hack остается) ...
-
-        elif sys.platform == 'darwin':
-            try:
-                import AppKit
-                import objc
-                ns_window = window.native
-                
-                # 1. Скрываем стандартный заголовок и расширяем вью на все окно
-                # NSWindowStyleMaskFullSizeContentView = 1 << 15
-                # NSWindowStyleMaskTitled = 1 << 0
-                # ... и остальные стандартные маски
-                mask = (1 << 0) | (1 << 1) | (1 << 2) | (1 << 3) | (1 << 15)
-                ns_window.setStyleMask_(mask)
-
-                # 2. Делаем заголовок прозрачным и скрываем текст
-                ns_window.setTitlebarAppearsTransparent_(True)
-                ns_window.setTitleVisibility_(1) # NSWindowTitleHidden
-
-                # 3. Убираем ту самую линию-разделитель (Hairline)
-                if hasattr(ns_window, 'setTitlebarSeparatorStyle_'):
-                    ns_window.setTitlebarSeparatorStyle_(0) # NSTitlebarSeparatorStyleNone
-
-                # 4. ФИКС ПОЛОСКИ: Убираем Toolbar, если он вдруг создался
-                ns_window.setToolbar_(None)
-
-                # 5. СИНХРОНИЗАЦИЯ ЦВЕТОВ (чтобы не было моргания)
-                hex_color = bg_color.lstrip('#')
-                r, g, b = tuple(int(hex_color[i:i+2], 16) / 255.0 for i in (0, 2, 4))
-                native_bg_color = AppKit.NSColor.colorWithCalibratedRed_green_blue_alpha_(r, g, b, 1.0)
-                
-                ns_window.setBackgroundColor_(native_bg_color)
-                ns_window.setHasShadow_(True)
-
-                # 6. ХАК ДЛЯ WKWEBVIEW: Заставляем его игнорировать безопасные зоны
-                # Достаем WKWebView из недр NSWindow
-                # Обычно иерархия: NSWindow -> NSThemeFrame -> NSView -> WKWebView
-                def fix_webview_frame(view):
-                    for subview in view.subviews():
-                        if "WKWebView" in str(type(subview)):
-                            # Растягиваем WebView на весь размер окна, игнорируя Titlebar
-                            subview.setFrame_(ns_window.contentView().bounds())
-                            subview.setAutoresizingMask_(18) # 2 | 16 (Width + Height)
-                        fix_webview_frame(subview)
-                
-                fix_webview_frame(ns_window.contentView())
-
-                # 7. Делаем окно перетаскиваемым за любую точку (как Obsidian)
-                ns_window.setMovableByWindowBackground_(True)
-
-                window.show()
-                print(f"[WebView] macOS Deep Aesthetic Fix Applied.")
-            except Exception as e:
-                print(f"[WebView] macOS Aesthetic Fix failed: {e}")
-                window.show()
-
-        elif sys.platform == 'win32':
-            # Для Windows — убираем стандартную рамку через DWM
-            import ctypes
-            hwnd = ctypes.windll.user32.FindWindowW(None, "Doe")
-            if hwnd:
-                # Убираем системное меню и полоску заголовка, оставляя функционал окна
-                style = ctypes.windll.user32.GetWindowLongW(hwnd, -16) # GWL_STYLE
-                # WS_CAPTION = 0x00C00000
-                ctypes.windll.user32.SetWindowLongW(hwnd, -16, style & ~0x00C00000)
-                
-                # Принудительно красим фон под WebView
-                hex_color = bg_color.lstrip('#')
-                r, g, b = tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
-                colorref = (b << 16) | (g << 8) | r
-                ctypes.windll.dwmapi.DwmSetWindowAttribute(hwnd, 35, ctypes.byref(ctypes.c_int(colorref)), 4)
-            window.show()
-
+        # Просто показываем окно. Pywebview сам создаст его стандартным (с рамкой).
+        window.show()
+    
     def choose_directory(self):
         """Вызывает нативный диалог выбора папки (macOS/Windows)"""
         if not webview.windows:
@@ -259,6 +213,22 @@ class WindowAPI:
         if result and len(result) > 0:
             return result[0]
         return None
+    
+    def open_local_path(self, path):
+        """Открывает файл или папку в стандартном приложении ОС"""
+        print(f"[System] Attempting to open path: {path}")
+        try:
+            # Очищаем путь от префиксов, если они придут из Markdown
+            clean_path = path.replace('file://', '')
+            if sys.platform == 'darwin':
+                subprocess.call(['open', clean_path])
+            elif sys.platform == 'win32':
+                os.startfile(clean_path)
+            return True
+        except Exception as e:
+            print(f"[System] Failed to open path: {e}")
+            return False
+
 
 class APIServerThread(threading.Thread):
     def __init__(self):
@@ -370,14 +340,14 @@ if __name__ == '__main__':
             print("[Main] ❌ WARNING: Server did not respond within 5 seconds. Port might be in use or DB is broken.")
 
         print("[WebView] Creating invisible browser window...")
-        webview.create_window(
-            title='', # Пустой заголовок
+        window = webview.create_window(
+            title='Doe — Do more with lEss! (demo)',
             url=URL,
             width=1200,
             height=800,
             min_size=(800, 500),
-            background_color=bg_color, # Это важно для устранения полоски при ресайзе
-            text_select=False,
+            background_color=bg_color, 
+            text_select=True,
             hidden=True,            
             js_api=WindowAPI()      
         )
@@ -394,7 +364,7 @@ if __name__ == '__main__':
             print("[System] Window closed. Shutting down.")
             if server_thread:
                 server_thread.stop()
-                server_thread.join(timeout=1.0)
+                server_thread.join(timeout=0.2)
             print("[System] Server stopped. Exiting.")
             os._exit(0)
             

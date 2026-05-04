@@ -1,9 +1,10 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, UploadFile, File
 from pydantic import BaseModel
 from typing import Optional
 import asyncio
 from pathlib import Path
 import sys
+import shutil
 
 from src.db.database import switch_vault
 from src.core.config import get_active_vault, get_ui_settings, set_ui_settings
@@ -57,3 +58,25 @@ async def update_settings_endpoint(settings: SettingsUpdate):
         active_workspace_id=settings.active_workspace_id
     )
     return SettingsResponse(**get_ui_settings())
+
+@router.post("/upload")
+async def upload_file(file: UploadFile = File(...)):
+    vault_path = get_active_vault()
+    # Создаем папку attachments внутри твоего Vault, если её нет
+    attachments_dir = Path(vault_path) / "attachments"
+    attachments_dir.mkdir(parents=True, exist_ok=True)
+    
+    file_path = attachments_dir / file.filename
+    
+    # Защита от перезаписи (если файл с таким именем уже есть, добавим цифру)
+    counter = 1
+    while file_path.exists():
+        file_path = attachments_dir / f"{Path(file.filename).stem}_{counter}{Path(file.filename).suffix}"
+        counter += 1
+        
+    # Сохраняем файл на диск
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+        
+    # Возвращаем абсолютный путь к сохраненной копии
+    return {"path": str(file_path.resolve()).replace('\\', '/')}

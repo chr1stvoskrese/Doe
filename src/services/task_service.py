@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
+from sqlalchemy.orm.attributes import set_committed_value # <--- ДОБАВИТЬ ЭТО
 
 from src.db.models import TaskModel, ColumnModel, TimerSessionModel, ColumnMode
 from src.schemas.task import TaskCreate, TaskUpdate, TimerSessionResponse
@@ -133,6 +134,16 @@ async def move_task(db: AsyncSession, task_id: int, target_column_id: int) -> Ta
 
     task.column_id = target_column_id
 
+    # РЕКУРСИЯ: Обновляем колонку у всех подзадач, чтобы статусы (Done/Timer) совпадали
+    async def update_children_column(parent_id, new_col_id):
+        res = await db.execute(select(TaskModel).where(TaskModel.parent_id == parent_id))
+        subs = res.scalars().all()
+        for s in subs:
+            s.column_id = new_col_id
+            await update_children_column(s.id, new_col_id)
+    
+    await update_children_column(task.id, target_column_id)
+
     # 1. Если уходим из режима таймера - СТАВИМ НА ПАУЗУ
     if source_column.mode == ColumnMode.TRACK_TIME:
         for session in task.timer_sessions:
@@ -211,4 +222,30 @@ async def clear_task_timer(db: AsyncSession, task_id: int) -> TaskModel:
     await db.refresh(task)
     
     _calculate_task_time(task)
+    return task
+
+async def get_task_with_details(db: AsyncSession, task_id: int) -> TaskModel:
+    result = await db.execute(
+        select(TaskModel)
+        .options(
+            # Загружаем задачу, её подзадачи и их таймеры (1 уровень вложенности)
+            selectinload(TaskModel.subtasks).selectinload(TaskModel.timer_sessions),
+            selectinload(TaskModel.timer_sessions),
+            selectinload(TaskModel.column)
+        )
+        .where(TaskModel.id == task_id)
+    )
+    task = result.scalar_one_or_none()
+    if not task:
+        raise ValueError("Задача не найдена")
+    
+    _calculate_task_time(task)
+    
+    # Чтобы Pydantic не упал при попытке прочитать subtasks у подзадач,
+    # мы принудительно прописываем им пустой список, минуя механизмы lazy-load.
+    for sub in task.subtasks:
+        _calculate_task_time(sub)
+        # set_committed_value — это "безопасная" запись данных в объект ORM
+        set_committed_value(sub, 'subtasks', [])
+        
     return task

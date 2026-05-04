@@ -44,6 +44,7 @@ class TaskModel(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String, nullable=False)
+    description = Column(String, nullable=True)
     column_id = Column(Integer, ForeignKey("columns.id"), nullable=False)
     parent_id = Column(Integer, ForeignKey("tasks.id"), nullable=True)
     position = Column(Float, default=0.0)

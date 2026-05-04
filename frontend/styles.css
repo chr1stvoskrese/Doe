@@ -25,6 +25,7 @@
     --radius-board: 16px;               /* Радиус скругления колонок */
     --radius-card: 16px;                /* Радиус скругления карточек */
     --transition-apple: 0.3s cubic-bezier(0.16, 1, 0.3, 1); /* Плавная кривая анимации в стиле Apple */
+    --line-height-standard: 1.5;
 }
 
 /* Блокируем ВСЕ анимации и переходы на момент начальной загрузки приложения */
@@ -48,18 +49,11 @@ html, body {
 }
 
 .app-header {
-    /* Чтобы "светофоры" на Mac не перекрывали кнопки, 
-       делаем отступ, но БЕЗ визуальной полоски */
-    padding-top: 38px !important; 
-    margin: 0 !important;
-    background: transparent !important;
-    /* Позволяем таскать окно за этот пустой отступ */
-    -webkit-app-region: drag; 
-}
-
-/* Все интерактивные элементы в шапке НЕ должны мешать драгу */
-.header-left-controls, .tabs-wrapper, .add-tab-btn {
-    -webkit-app-region: no-drag;
+    display: flex;
+    align-items: center;
+    padding: 16px 0 16px 24px; /* УБРАЛИ padding-top: 38px */
+    gap: 32px;
+    /* УДАЛИЛИ -webkit-app-region: drag; */
 }
 
 /* Глобальная защита от браузерного выделения и перетаскивания */
@@ -125,8 +119,8 @@ svg, img {
 /* Стекломорфизм для меню и модалок в темной теме */
 [data-theme="dark"] .dropdown-menu,
 [data-theme="dark"] .modal-card {
-    background: rgba(35, 37, 33, 0.85); /* Полупрозрачный фон */
-    border: 1px solid rgba(255, 255, 255, 0.08); /* Тонкая рамка */
+    background: #232521 !important; /* Глухой темный цвет без прозрачности */
+    border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 /* Уникальный фон для завершенных карточек в темной теме */
@@ -181,13 +175,29 @@ body {
     background-color: var(--bg-canvas);
     font-family: var(--font-main);
     color: var(--text-primary);
-    height: 100vh;              /* Высота на весь экран */
+    height: 100vh;
     display: flex;
-    flex-direction: column;     /* Элементы (шапка и доска) идут друг под другом */
-    overflow: hidden;           /* Запрещаем прокрутку всей страницы */
-    -webkit-font-smoothing: antialiased; /* Сглаживание шрифтов для macOS */
-    -moz-osx-font-smoothing: grayscale;   /* Сглаживание шрифтов для Firefox */
-    isolation: isolate;         /* Создаем новый контекст наложения */
+    flex-direction: column;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    isolation: isolate;
+    -webkit-user-select: none; /* Запрещаем выделение интерфейса по умолчанию */
+    user-select: none;
+}
+
+/* РАЗРЕШАЕМ ВЫДЕЛЕНИЕ В ОПИСАНИИ И ИНПУТАХ */
+.markdown-body, 
+.markdown-body *, 
+.description-input, 
+.card-input, 
+.column-input, 
+.tab-input, 
+.card-title-input, 
+.column-title-input, 
+.tab-name-input {
+    -webkit-user-select: text !important;
+    user-select: text !important;
 }
 
 .app-header {
@@ -475,7 +485,7 @@ body {
     opacity: 0;                 /* Изначально невидимо */
     visibility: hidden;         /* Изначально недоступно для кликов */
     transform: translateY(-8px) scale(0.96); /* Сдвиг вверх и уменьшение для анимации появления */
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.2s;
 }
 
 /* Позиционирование меню для колонок */
@@ -885,21 +895,19 @@ body {
     visibility: hidden !important;
 }
 
-/* Слой затемнения модального окна */
 .modal-overlay {
     position: fixed;
-    inset: 0;                   /* На весь экран */
-    background: rgba(0, 0, 0, 0.15);
-    backdrop-filter: blur(4px); /* Размытие доски сзади */
-    -webkit-backdrop-filter: blur(4px);
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4); /* Обычное затемнение без блюра */
+    backdrop-filter: none !important; /* Убираем шизу с размытием */
+    -webkit-backdrop-filter: none !important;
     display: flex;
-    align-items: center;        /* Центровка по вертикали */
-    justify-content: center;    /* Центровка по горизонтали */
-    opacity: 0;                 /* Скрыта */
-    visibility: hidden;         /* Недоступна */
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
     z-index: 1000;
     transition: opacity 0.2s ease, visibility 0.2s;
-    will-change: opacity;
 }
 
 /* Показываем модалку через JS */
@@ -908,9 +916,8 @@ body {
     visibility: visible;
 }
 
-/* Тело модального окна */
 .modal-card {
-    background: var(--surface-card);
+    background: var(--surface-card); /* Чистый белый/светлый фон */
     width: 320px;
     border-radius: var(--radius-card);
     box-shadow: var(--shadow-menu);
@@ -919,9 +926,8 @@ body {
     flex-direction: column;
     border: 1px solid var(--border-light);
     opacity: 0;
-    transform: translateY(15px); /* Анимация "вылета" снизу */
+    transform: translateY(15px);
     transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
-    -webkit-font-smoothing: antialiased;
 }
 
 /* Показываем карточку модалки */
@@ -2442,10 +2448,10 @@ body[class*="is-dragging-"] .board-tab:not(.active) {
 
 /* Подсказка об ошибке в карточке */
 .card-error-hint {
-    color: #D35446;             /* Наш фирменный красный */
+    color: #D35446;
     font-size: 11px;
     font-weight: 600;
-    margin-top: 6px;
+    margin-top: -4px; /* Подтягиваем текст поближе к полю ввода */
     opacity: 0;
     transform: translateY(-4px);
     transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
@@ -2462,4 +2468,674 @@ body[class*="is-dragging-"] .board-tab:not(.active) {
 /* Темная тема для подсказки */
 [data-theme="dark"] .card-error-hint {
     color: #D65A4B;
+}
+
+/* ==========================================
+   СКРЫТИЕ "НЕИЗВЕСТНОГО" ВРЕМЕНИ
+   ========================================== */
+
+/* Скрываем текст, делая его полностью прозрачным, но сохраняем занимаемое место */
+.card.has-unknown-time .subtask-meta {
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+/* Плавное проявление при наведении на саму карточку */
+.card.has-unknown-time:hover .subtask-meta {
+    opacity: 1;
+}
+
+/* Также оставляем видимым, если у карточки открыто контекстное меню */
+.card.has-unknown-time.has-open-menu .subtask-meta {
+    opacity: 1;
+}
+
+/* ==========================================
+   МОДАЛЬНОЕ ОКНО КАРТОЧКИ И MARKDOWN
+   ========================================== */
+
+/* Фиксированная геометрия для окна карточки */
+.task-detail-card {
+    width: 680px;               
+    height: 75vh;               
+    max-height: 92vh;           /* Позволяем растягивать почти на весь экран */
+    max-width: 95vw;            /* Защита от вылета по ширине */
+    min-height: 400px;          /* Текущий минимум */
+    min-width: 400px;           /* Добавляем минимальную ширину */
+    display: flex;
+    flex-direction: column;
+    
+    /* 🚀 МАГИЯ РЕСАЙЗА */
+    resize: both;               /* Включает нативный ползунок в правом нижнем углу */
+    overflow: hidden;           /* Обязательно для работы resize */
+}
+
+/* 🚀 МАГИЯ ДРАГА (Курсоры) */
+.task-detail-card .modal-header {
+    cursor: grab;
+    user-select: none;
+}
+
+.task-detail-card .modal-header:active {
+    cursor: grabbing;
+}
+
+/* Тело модалки, которое не тянется само, а отдает место потомкам */
+.task-detail-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 24px;
+    /* ГЛАВНЫЙ ФИКС: Разрешаем скролл всей модалки */
+    overflow-y: auto; 
+    overflow-x: hidden;
+}
+
+.description-wrapper {
+    flex: none;                 /* Убираем жадность до места */
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    height: 300px;              /* Дефолтная высота */
+    min-height: 150px;          /* Минимум, до которого можно сжать */
+    max-height: 80vh;           /* Чтобы не растянули за край экрана */
+    resize: vertical;           /* ВКЛЮЧАЕМ ТЯНУЧКУ */
+    overflow: auto;             /* Нужно для работы resize */
+    border: 1px solid var(--border-light);
+    border-radius: 10px;
+    padding: 0;
+    background: var(--brand-pale) !important;
+    transition: border-color 0.2s;
+    margin-bottom: 16px;        /* Отступ до подзадач */
+}
+
+/* Меняем цвет рамки, когда внутри активно поле ввода */
+.description-wrapper:has(.description-input:focus) {
+    border-color: rgba(74, 90, 72, 0.3); /* Цвет --brand-pine с прозрачностью */
+}
+
+[data-theme="dark"] .description-wrapper {
+    background: rgba(137, 160, 133, 0.12) !important; /* Цвет для темной темы */
+}
+[data-theme="dark"] .description-wrapper:has(.description-input:focus) {
+    border-color: rgba(137, 160, 133, 0.4);
+}
+
+.markdown-body, 
+.description-input {
+    width: 100%;
+    height: 100% !important;   /* Заставляем их всегда занимать всё место обертки */
+    overflow-y: auto;
+    padding: 12px 16px 12px 12px;
+    font-size: 15px;
+    background: transparent;
+    border: none;
+    outline: none;
+    box-sizing: border-box;
+}
+
+/* Возвращаем инпуту его специфичные настройки шрифта */
+.description-input {
+    display: none;
+    font-family: var(--font-main);
+    line-height: 1.2 !important;
+    color: var(--text-primary);
+    resize: none;              /* Внутренний resize инпута отключаем, тянем только обертку */
+}
+
+/* 1. Цвет выделения в режиме редактирования (textarea) */
+.description-input::selection {
+    background: #C3C6BC;
+    color: var(--text-primary);
+}
+
+/* 2. Цвет выделения в режиме чтения (Markdown), чтобы контент не "синел" при копировании */
+.markdown-body::selection,
+.markdown-body *::selection {
+    background: #C3C6BC;
+    color: var(--text-primary);
+}
+
+/* 3. Поддержка Тёмной темы (Dark Mode Selection) */
+[data-theme="dark"] .description-input::selection,
+[data-theme="dark"] .markdown-body::selection,
+[data-theme="dark"] .markdown-body *::selection {
+    background: #41493E;
+    color: var(--text-primary);
+}
+
+.description-input::placeholder {
+    color: var(--text-secondary);
+    opacity: 0.5;
+    font-family: var(--font-main); /* Плейсхолдер обычным шрифтом */
+}
+
+/* Режим чтения (Markdown) */
+.markdown-body {
+    flex: 1;
+    width: 100%;
+    overflow-y: auto;           
+    padding: 12px; 
+    font-size: 15px;
+    line-height: 1.2; /* Синхронно с инпутом */
+    user-select: text !important;
+}
+
+/* ЦВЕТ ВЫДЕЛЕНИЯ (Selection) для всего блока описания */
+.description-input::selection,
+.markdown-body::selection,
+.markdown-body *::selection {
+    background: #C3C6BC;
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .description-input::selection,
+[data-theme="dark"] .markdown-body::selection,
+[data-theme="dark"] .markdown-body *::selection {
+    background: #41493E;
+    color: var(--text-primary);
+}
+
+/* 4. Пройдемся по остальным инпутам, где был разброс */
+.column-input, 
+.column-title-input, 
+.card-input, 
+.card-title-input,
+.tab-input,
+.tab-name-input {
+    line-height: var(--line-height-standard) !important;
+    font-family: var(--font-main) !important;
+}
+
+/* 5. И заголовки (в них тоже был 1.45 или 1.4) */
+.column-title, .card-title {
+    line-height: var(--line-height-standard);
+}
+
+/* Состояние "пустого" описания */
+.markdown-empty {
+    color: var(--text-secondary);
+    opacity: 0.6;
+    cursor: pointer; /* Для пустой заглушки оставляем курсор-руку, так как работает одиночный клик */
+    display: block;
+}
+
+/* --- Стилизация самого Markdown (UI/UX) --- */
+.markdown-body h1, .markdown-body h2, .markdown-body h3 {
+    margin-top: 24px;
+    margin-bottom: 12px;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: -0.02em;
+}
+
+/* 🔥 ДОБАВИТЬ ЭТО: Убираем отступ сверху у самого первого элемента (заголовка, текста и тд) */
+.markdown-body > *:first-child {
+    margin-top: 0 !important;
+}
+
+.markdown-body h1 { font-size: 24px; }
+.markdown-body h2 { font-size: 20px; }
+.markdown-body h3 { font-size: 18px; }
+.markdown-body p { margin-bottom: 16px; }
+.markdown-body p:last-child { margin-bottom: 0; }
+.markdown-body a { color: var(--brand-pine); text-decoration: none; }
+.markdown-body a:hover { text-decoration: underline; }
+.markdown-body ul, .markdown-body ol { margin-bottom: 16px; padding-left: 24px; }
+.markdown-body li { margin-bottom: 6px; }
+.markdown-body blockquote {
+    border-left: 3px solid var(--brand-pine);
+    padding-left: 16px;
+    color: var(--text-secondary);
+    margin-bottom: 16px;
+    background: var(--brand-pale);
+    padding: 12px 16px;
+    border-radius: 0 8px 8px 0;
+}
+.markdown-body code {
+    font-family: var(--font-mono);
+    background: rgba(0, 0, 0, 0.05);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 13px;
+}
+/* --- Улучшенные блоки кода и Кнопка копирования --- */
+.markdown-body pre {
+    position: relative;
+    background: rgba(0, 0, 0, 0.04) !important;
+    padding: 16px;
+    border-radius: 12px;
+    overflow: visible; /* Чтобы кнопка не обрезалась */
+    margin-bottom: 16px;
+    border: 1px solid var(--border-light);
+}
+
+[data-theme="dark"] .markdown-body pre {
+    background: rgba(255, 255, 255, 0.03) !important;
+}
+
+/* ФИКС ТВОЕЙ "ХУЙНИ" (белых полос): принудительно убираем фон у вложенного кода */
+.markdown-body pre code {
+    background: transparent !important;
+    padding: 0 !important;
+    display: block;
+    color: var(--text-primary);
+    font-family: var(--font-mono);
+    line-height: 1.5;
+}
+
+/* Стили кнопки копирования */
+.code-copy-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    background: var(--surface-card);
+    border: 1px solid var(--border-light);
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0; /* Скрыта по умолчанию */
+    transition: all 0.2s ease;
+    z-index: 10;
+}
+
+/* Показываем кнопку при наведении на блок кода */
+.markdown-body pre:hover .code-copy-btn {
+    opacity: 1;
+}
+
+.code-copy-btn:hover {
+    background: var(--brand-pale);
+    color: var(--brand-pine);
+    border-color: rgba(74, 90, 72, 0.2);
+}
+
+.code-copy-btn.copied {
+    color: var(--success-done);
+    border-color: var(--success-done);
+}
+
+.code-copy-btn svg {
+    width: 14px;
+    height: 14px;
+}
+.markdown-body pre code { background: transparent; padding: 0; }
+
+/* Адаптация Markdown для тёмной темы */
+[data-theme="dark"] .markdown-body code { background: rgba(255, 255, 255, 0.1); }
+[data-theme="dark"] .markdown-body pre { background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-light); }
+
+/* Скроллбары для карточки */
+.markdown-body::-webkit-scrollbar, .description-input::-webkit-scrollbar { width: 6px; }
+.markdown-body::-webkit-scrollbar-track, .description-input::-webkit-scrollbar-track { background: transparent; }
+.markdown-body::-webkit-scrollbar-thumb, .description-input::-webkit-scrollbar-thumb { background: rgba(74, 90, 72, 0.25); border-radius: 4px; }
+[data-theme="dark"] .markdown-body::-webkit-scrollbar-thumb, [data-theme="dark"] .description-input::-webkit-scrollbar-thumb { background: rgba(137, 160, 133, 0.35); }
+
+/* ========================================== CODE BLOCKS: INTEGRATED ========================================== */
+
+/* Контейнер: фон = фон description-wrapper, не выделяется */
+.markdown-body pre {
+  position: relative;
+  padding: 16px 20px !important;
+  margin: 18px 0 !important;
+  border-radius: 12px !important;
+  background: var(--brand-pale) !important;
+  border: 1px solid var(--border-light) !important;
+  box-shadow: none !important;
+  overflow: auto !important;
+  isolation: isolate;
+}
+
+[data-theme="dark"] .markdown-body pre {
+  background: rgba(137, 160, 133, 0.12) !important;
+  border-color: var(--border-light) !important;
+}
+
+/* Шрифт и база — твои исходные */
+.markdown-body pre code {
+  background: transparent !important;
+  padding: 0 !important;
+  font-family: "JetBrains Mono", "SF Mono", Menlo, monospace !important;
+  font-size: 13px !important;
+  line-height: 1.6 !important;
+  color: #242921 !important;
+  text-shadow: none !important;
+}
+
+[data-theme="dark"] .markdown-body pre code {
+  color: #E6E8E5 !important;
+}
+
+/* СИНТАКСИС — оставлен как есть, не менял */
+.token.keyword { color: #AD3DA3 !important; font-weight: 600; }
+.token.string { color: #248A39 !important; }
+.token.function { color: #005CC5 !important; }
+.token.number, .token.boolean { color: #1C00CF !important; }
+.token.comment { color: #8E968D !important; font-style: italic; }
+.token.operator, .token.punctuation { color: #3A4035 !important; opacity: 0.8; }
+
+[data-theme="dark"] .token.keyword { color: #D69780 !important; }
+[data-theme="dark"] .token.string { color: #89A085 !important; }
+[data-theme="dark"] .token.function { color: #A7C0A2 !important; }
+[data-theme="dark"] .token.operator, [data-theme="dark"] .token.punctuation { color: #828A80 !important; }
+[data-theme="dark"] .token.number { color: #EBCB8B !important; }
+
+/* Кнопка копирования — в цветах темы */
+.code-copy-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: var(--surface-card);
+  border: 1px solid var(--border-light);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  opacity: 0;
+}
+
+[data-theme="dark"] .code-copy-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.markdown-body pre:hover .code-copy-btn { opacity: 1; }
+
+.code-copy-btn:hover {
+  background: var(--bg-board);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .code-copy-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+}
+
+/* Базовый класс для всех рукояток */
+.resizer {
+    position: absolute;
+    z-index: 10;
+    /* background: rgba(255, 0, 0, 0.1); /* Раскомментируй для отладки зон */
+}
+
+/* Грани */
+.r-top    { top: -4px; left: 8px; right: 8px; height: 8px; cursor: ns-resize; }
+.r-bottom { bottom: -4px; left: 8px; right: 8px; height: 8px; cursor: ns-resize; }
+.r-left   { left: -4px; top: 8px; bottom: 8px; width: 8px; cursor: ew-resize; }
+.r-right  { right: -4px; top: 8px; bottom: 8px; width: 8px; cursor: ew-resize; }
+
+/* Углы */
+.r-top-left     { top: -4px; left: -4px; width: 12px; height: 12px; cursor: nwse-resize; z-index: 11; }
+.r-top-right    { top: -4px; right: -4px; width: 12px; height: 12px; cursor: nesw-resize; z-index: 11; }
+.r-bottom-left  { bottom: -4px; left: -4px; width: 12px; height: 12px; cursor: nesw-resize; z-index: 11; }
+.r-bottom-right { bottom: -4px; right: -4px; width: 12px; height: 12px; cursor: nwse-resize; z-index: 11; }
+
+/* Обновляем саму карточку: убираем CSS resize и фиксируем overflow */
+.task-detail-card {
+    position: relative; /* Чтобы resizers позиционировались относительно неё */
+    min-width: 400px;
+    min-height: 400px;
+    resize: none !important; /* Отключаем штатный ресайз */
+}
+
+/* Хлебные крошки */
+.task-breadcrumbs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+.breadcrumb-item {
+    cursor: pointer;
+    transition: color 0.2s;
+}
+.breadcrumb-item:hover { color: var(--brand-pine); }
+.breadcrumb-separator { opacity: 0.3; }
+
+/* Секция подзадач */
+.subtasks-section {
+    margin-top: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.subtasks-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+}
+.subtasks-count {
+    background: var(--brand-pale);
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+}
+
+.subtasks-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+/* Элемент подзадачи — Senior UI Polish */
+.subtask-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: var(--surface-card); /* Каждая подзадача как микро-карточка */
+    border: 1px solid var(--border-light);
+    margin-bottom: 4px;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.subtask-checkbox {
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--text-secondary);
+    border-radius: 50%; /* Круглые чекбоксы для подзадач (стиль Apple) */
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.subtask-item.is-done {
+    background: var(--bg-canvas);
+    opacity: 0.7;
+}
+
+.subtask-open-btn {
+    opacity: 0;
+    background: transparent;
+    border: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px; /* Скругление как у кнопок в шапке */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    flex-shrink: 0;
+}
+.subtask-item:hover {
+    background: var(--brand-pale);
+}
+
+.subtask-checkbox {
+    width: 18px;
+    height: 18px;
+    border: 2px solid var(--border-light);
+    border-radius: 5px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: transparent;
+    transition: all 0.2s;
+}
+.subtask-item.is-done .subtask-checkbox {
+    background: var(--success-done);
+    border-color: var(--success-done);
+    color: white;
+}
+.subtask-item.is-done .subtask-title {
+    text-decoration: line-through;
+    opacity: 0.5;
+}
+
+.subtask-title {
+    flex: 1;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Кнопка "Открыть" (Killer Feature) */
+.subtask-open-btn {
+    opacity: 0;
+    background: var(--surface-card);
+    border: 1px solid var(--border-light);
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.subtask-item:hover .subtask-open-btn {
+    opacity: 1;
+}
+.subtask-open-btn:hover {
+    background: var(--brand-pale);
+    color: var(--brand-pine);
+}
+
+/* Темная тема */
+[data-theme="dark"] .subtask-open-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .subtask-inline-input::placeholder {
+    color: var(--text-secondary);
+    opacity: 0.5;
+}
+
+[data-theme="dark"] .subtask-inline-input {
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Обновляем ховер подзадачи: теперь она приподнимается как карточка на доске */
+.subtask-item:hover {
+    transform: translate3d(0, -2px, 0);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    border-color: rgba(74, 90, 72, 0.2);
+    background: var(--surface-card);
+}
+
+/* Кнопка добавления подзадачи (в стиле btn-add-card) */
+.btn-add-subtask {
+    width: 100%;
+    padding: 10px 12px;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 500;
+    text-align: left;
+    cursor: pointer;
+    border-radius: 10px;
+    transition: all 0.15s ease;
+    margin-top: 4px;
+}
+
+.btn-add-subtask:hover {
+    background: rgba(0, 0, 0, 0.03);
+    color: var(--text-primary);
+}
+
+/* Форма создания подзадачи — полная копия логики карточки */
+.subtask-item.subtask-entering {
+    background: transparent;
+    border: 1.5px dashed rgba(74, 90, 72, 0.25);
+    box-shadow: none;
+    opacity: 0;
+    transform: scale(0.98);
+    will-change: opacity, transform;
+    transition: 
+        opacity 0.30s cubic-bezier(0.16, 1, 0.3, 1),
+        transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.subtask-item.subtask-entering.entered {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.subtask-item.subtask-entering.is-exiting {
+    opacity: 0;
+    transform: scale(0.98);
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.subtask-item.subtask-entering .subtask-inline-input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    padding: 0;
+    margin: 0;
+    font-family: var(--font-main);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+    outline: none;
+    resize: none;
+    overflow: hidden;
+}
+
+/* Анимация "Рождения" подзадачи после API */
+.subtask-item.subtask-birth {
+    opacity: 0;
+    transform: translateY(12px);
+    pointer-events: none;
+    will-change: opacity, transform;
+}
+
+.subtask-item.subtask-birth.born {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+    transition:
+        opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+        transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Тряска при ошибке */
+.subtask-item.is-error {
+    animation: column-shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
 }

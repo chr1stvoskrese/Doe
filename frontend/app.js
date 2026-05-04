@@ -1,24 +1,37 @@
 // ---------- ГЛОБАЛЬНОЕ СОСТОЯНИЕ ----------
 let state = { columns: [], workspaces: [], activeWorkspaceId: null };
+let modalNavigationStack = [];
 const API_BASE = '/api/v1';
 
-// ---------- ЛОКАЛИЗАЦИЯ ----------
 const translations = {
     ru: {
         settings: 'Настройки', theme: 'Тема', language: 'Язык', about: 'О приложении', workspace: 'Doe Board', cancel: 'Отмена',
-        newColumn: '+ Создать колонку', newTask: '+ Новая задача',
+        newColumn: '+ Создать колонку', newTask: '+ Новая задача', subtasks: 'Подзадачи',
         columnModes: { default: 'Стандартный', track_time: 'Учёт времени', completion: 'Результирующий' },
-        menu: { mode: 'Режим колонки', collapse: 'Свернуть колонку', rename: 'Переименовать', delete: 'Удалить', clear: 'Очистить', open: 'Открыть', deleteCard: 'Удалить задачу', clearTimer: 'Очистить таймер'},
-        modals: { themeTitle: 'Тема оформления', light: 'Светлая', dark: 'Тёмная', langTitle: 'Выберите язык', aboutTitle: 'О приложении', aboutDesc: 'эстетика, грация локального<br>Kanban-хранилища' },
-        card: { timeSpent: 'Времени потрачено:' },
+        menu: { 
+            mode: 'Режим колонки', collapse: 'Свернуть колонку', rename: 'Переименовать', 
+            delete: 'Удалить', clear: 'Очистить', open: 'Открыть', 
+            deleteCard: 'Удалить задачу', clearTimer: 'Очистить таймер'
+        },
+        modals: { 
+            themeTitle: 'Тема оформления', light: 'Светлая', dark: 'Тёмная', 
+            langTitle: 'Выберите язык', aboutTitle: 'О приложении', 
+            aboutDesc: 'эстетика, грация локального<br>Kanban-хранилища' 
+        },
+        card: { timeSpent: 'Времени потрачено:', unknownTime: 'неизвестно' },
+        taskModal: {
+            descPlaceholder: 'Кликните, чтобы добавить описание...',
+            subtasksPlaceholder: '+ Добавить подзадачу...',
+            uploading: (name) => `[⏳ Сохраняем ${name} в Vault...]`,
+            uploadError: (name) => `[❌ Ошибка сохранения: ${name}]`,
+            uploadNetworkError: (name) => `[❌ Ошибка сети: ${name}]`
+        },
+        timeUnits: { y: 'л', w: 'н', d: 'д', h: 'ч', m: 'м', s: 'с' },
         prompts: { 
             taskTitle: 'Название задачи:', columnTitle: 'Название колонки:', renameColumn: 'Новое название:', 
-            deleteConfirmTitle: 'Удалить колонку?',
-            deleteConfirmDesc: 'Все задачи внутри будут потеряны.',
-            clearConfirmTitle: 'Очистить колонку?',
-            clearConfirmDesc: 'Все задачи внутри будут удалены безвозвратно.',
-            newTabTitle: 'Название новой вкладки:',
-            deleteTabConfirm: 'Удалить вкладку?',
+            deleteConfirmTitle: 'Удалить колонку?', deleteConfirmDesc: 'Все задачи внутри будут потеряны.',
+            clearConfirmTitle: 'Очистить колонку?', clearConfirmDesc: 'Все задачи внутри будут удалены безвозвратно.',
+            newTabTitle: 'Название новой вкладки:', deleteTabConfirm: 'Удалить вкладку?',
             deleteTabDesc: 'Вкладка и все колонки в ней будут удалены навсегда.'
         },
         errors: { tooLong: 'Максимум 200 символов' },
@@ -26,19 +39,32 @@ const translations = {
     },
     en: {
         settings: 'Settings', theme: 'Theme', language: 'Language', about: 'About', workspace: 'Doe Board', cancel: 'Cancel',
-        newColumn: '+ Create column', newTask: '+ New task',
+        newColumn: '+ Create column', newTask: '+ New task', subtasks: 'Subtasks',
         columnModes: { default: 'Standard', track_time: 'Track time', completion: 'Completed' },
-        menu: { mode: 'Column mode', collapse: 'Collapse column', rename: 'Rename', delete: 'Delete', clear: 'Clear', open: 'Open', deleteCard: 'Delete task', clearTimer: 'Clear timer'},
-        modals: { themeTitle: 'Theme', light: 'Light', dark: 'Dark', langTitle: 'Select language', aboutTitle: 'About', aboutDesc: 'aesthetic local-first<br>kanban sanctuary' },
-        card: { timeSpent: 'Time spent:' },
+        menu: { 
+            mode: 'Column mode', collapse: 'Collapse column', rename: 'Rename', 
+            delete: 'Delete', clear: 'Clear', open: 'Open', 
+            deleteCard: 'Delete task', clearTimer: 'Clear timer'
+        },
+        modals: { 
+            themeTitle: 'Theme', light: 'Light', dark: 'Dark', 
+            langTitle: 'Select language', aboutTitle: 'About', 
+            aboutDesc: 'aesthetic local-first<br>kanban sanctuary' 
+        },
+        card: { timeSpent: 'Time spent:', unknownTime: 'unknown' },
+        taskModal: {
+            descPlaceholder: 'Click to add description...',
+            subtasksPlaceholder: '+ Add subtask...',
+            uploading: (name) => `[⏳ Saving ${name} to Vault...]`,
+            uploadError: (name) => `[❌ Error saving: ${name}]`,
+            uploadNetworkError: (name) => `[❌ Network error: ${name}]`
+        },
+        timeUnits: { y: 'y', w: 'w', d: 'd', h: 'h', m: 'm', s: 's' },
         prompts: { 
             taskTitle: 'Task title:', columnTitle: 'Column title:', renameColumn: 'New name:', 
-            deleteConfirmTitle: 'Delete column?',
-            deleteConfirmDesc: 'All tasks inside will be lost.',
-            clearConfirmTitle: 'Clear column?',
-            clearConfirmDesc: 'All tasks inside will be permanently deleted.',
-            newTabTitle: 'New tab name:',
-            deleteTabConfirm: 'Delete tab?',
+            deleteConfirmTitle: 'Delete column?', deleteConfirmDesc: 'All tasks inside will be lost.',
+            clearConfirmTitle: 'Clear column?', clearConfirmDesc: 'All tasks inside will be permanently deleted.',
+            newTabTitle: 'New tab name:', deleteTabConfirm: 'Delete tab?',
             deleteTabDesc: 'The tab and all its columns will be deleted permanently.'
         },
         errors: { tooLong: 'Maximum 200 characters' },
@@ -205,11 +231,41 @@ async function updateColumn(id, data) {
     if (!res.ok) throw new Error('Error'); return res.json();
 }
 function formatTotalTime(seconds) {
-    const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
-    const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
-    const s = Math.floor(seconds % 60).toString().padStart(2, '0');
-    return `${h}:${m}:${s}`;
+    if (seconds === 0) return t('card.unknownTime');
+
+    // Константы времени в секундах
+    const YEAR = 31536000; // 365 дней
+    const WEEK = 604800;   // 7 дней
+    const DAY = 86400;     // 24 часа
+    const HOUR = 3600;     // 60 минут
+
+    // Вычисляем все величины сверху вниз
+    const y = Math.floor(seconds / YEAR);
+    const w = Math.floor((seconds % YEAR) / WEEK);
+    const d = Math.floor((seconds % WEEK) / DAY);
+    const h = Math.floor((seconds % DAY) / HOUR);
+    const m = Math.floor((seconds % HOUR) / 60);
+    const s = Math.floor(seconds % 60);
+
+    const units = t('timeUnits');
+    const parts = [];
+
+    // Собираем массив существующих значений
+    if (y > 0) parts.push(`${y}${units.y}`);
+    if (w > 0) parts.push(`${w}${units.w}`);
+    if (d > 0) parts.push(`${d}${units.d}`);
+    if (h > 0) parts.push(`${h}${units.h}`);
+    if (m > 0) parts.push(`${m}${units.m}`);
+    
+    // Секунды оставляем для очень быстрых задач
+    if (s > 0 || parts.length === 0) {
+        parts.push(`${s}${units.s}`);
+    }
+
+    // Возвращаем строго 2 самых крупных значения
+    return parts.slice(0, 2).join(' ');
 }
+
 async function deleteColumn(id) { const res = await fetch(`${API_BASE}/columns/${id}`, { method: 'DELETE' }); if (!res.ok) throw new Error('Error'); }
 async function clearColumn(id) { 
     const res = await fetch(`${API_BASE}/columns/${id}/tasks`, { method: 'DELETE' }); 
@@ -255,13 +311,23 @@ function formatTime(startTime) {
     }
     const start = new Date(startTime); 
     
-    // Math.max(0, ...) гарантирует, что при микрорассинхроне таймер не покажет 00:00:-1
+    // Math.max(0, ...) гарантирует, что при микрорассинхроне таймер не покажет отрицательные значения
     const diff = Math.max(0, Math.floor((Date.now() - start) / 1000));
     
-    const h = Math.floor(diff / 3600).toString().padStart(2, '0');
+    // Считаем дни, часы, минуты и секунды
+    const d = Math.floor(diff / 86400);
+    const h = Math.floor((diff % 86400) / 3600).toString().padStart(2, '0');
     const m = Math.floor((diff % 3600) / 60).toString().padStart(2, '0');
     const s = Math.floor(diff % 60).toString().padStart(2, '0');
-    return `${h}:${m}:${s}`;
+    
+    // Если прошло меньше суток — показываем классический секундомер
+    if (d === 0) {
+        return `${h}:${m}:${s}`;
+    }
+    
+    // Если прошло больше суток — добавляем дни (берем из нашего нового словаря timeUnits)
+    const units = t('timeUnits');
+    return `${d}${units.d} ${h}:${m}:${s}`;
 }
 
 // ---------- РЕНДЕРИНГ ДОСКИ ----------
@@ -287,6 +353,9 @@ function updateCardAppearance(cardElement, task, columnMode) {
     if (task.completed_at) cardElement.classList.add('is-completed');
     else cardElement.classList.remove('is-completed');
 
+    // ДОБАВЛЕНО: Сбрасываем класс неизвестного времени перед проверкой
+    cardElement.classList.remove('has-unknown-time');
+
     const existingTimer = cardElement.querySelector('.card-timer');
     const existingMeta = cardElement.querySelector('.subtask-meta');
 
@@ -302,14 +371,18 @@ function updateCardAppearance(cardElement, task, columnMode) {
         if (existingMeta) existingMeta.remove();
     } else if (columnMode === 'completion' && task.total_time_spent !== undefined && task.total_time_spent !== null) {
         if (existingTimer) existingTimer.remove();
+        
+        // ДОБАВЛЕНО: Назначаем класс, если время 0
+        if (task.total_time_spent === 0) {
+            cardElement.classList.add('has-unknown-time');
+        }
+
         if (!existingMeta) {
             const metaDiv = document.createElement('div');
             metaDiv.className = 'subtask-meta';
-            // ИСПРАВЛЕНО: Теперь используем функцию t() вместо жесткого текста
             metaDiv.textContent = `${t('card.timeSpent')} ${formatTotalTime(task.total_time_spent)}`;
             cardElement.appendChild(metaDiv);
         } else {
-            // ИСПРАВЛЕНО: Здесь тоже
             existingMeta.textContent = `${t('card.timeSpent')} ${formatTotalTime(task.total_time_spent)}`;
         }
     } else {
@@ -320,17 +393,26 @@ function updateCardAppearance(cardElement, task, columnMode) {
 
 function generateCardHtml(task, columnMode) {
     let timeHtml = '';
+    let extraClasses = [];
+    
+    if (task.completed_at) extraClasses.push('is-completed');
+
     if (task.active_timer) {
         timeHtml = `<div class="card-timer" data-task-id="${task.id}">${formatTime(task.active_timer.start_time)}</div>`;
     } else if (columnMode === 'completion' && task.total_time_spent !== undefined && task.total_time_spent !== null) {
         timeHtml = `<div class="subtask-meta">${t('card.timeSpent')} ${formatTotalTime(task.total_time_spent)}</div>`;
+        
+        // ДОБАВЛЕНО: вешаем класс, если время 0
+        if (task.total_time_spent === 0) {
+            extraClasses.push('has-unknown-time');
+        }
     }
+    
     return `
-        <div class="card ${task.completed_at ? 'is-completed' : ''}" data-card-id="${task.id}">
+        <div class="card ${extraClasses.join(' ')}" data-card-id="${task.id}">
             <div class="card-title-wrapper">
                 <svg class="completed-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
                 <div class="card-title">${escapeHtml(task.title)}</div>
-                <!-- Теперь меню находится здесь, на одном уровне с текстом -->
                 <div class="card-menu-wrapper">
                     <button class="card-menu-btn" title="Редактировать">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
@@ -1436,8 +1518,9 @@ function startTabRename(tabEl, ws) {
     input.addEventListener('input', autoResize);
     autoResize(); // Подгоняем размер сразу при открытии
     
-    input.focus();
-    input.setSelectionRange(input.value.length, input.value.length); // Курсор в конец
+    // Фокусируемся, но запрещаем браузеру мгновенно прыгать к полю
+    input.focus({ preventScroll: true }); 
+    input.setSelectionRange(input.value.length, input.value.length);
 
     let committed = false;
 
@@ -1616,20 +1699,33 @@ function startCardRename(cardEl, task) {
     cardEl.classList.add('is-renaming');
 
     const autoResize = () => {
+        const scrollParent = cardEl.closest('.card-list');
+        const currentScroll = scrollParent ? scrollParent.scrollTop : 0;
+
         input.style.height = 'auto';
         input.style.height = input.scrollHeight + 'px';
         
-        // Скрываем ошибку, как только пользователь начал удалять лишнее
+        if (scrollParent) scrollParent.scrollTop = currentScroll;
+        
         if (input.value.trim().length <= 200) {
             cardEl.classList.remove('is-error');
         }
     };
     
-    input.addEventListener('input', autoResize);
+    input.addEventListener('input', () => {
+        autoResize(); // Меняем высоту при вводе
+        
+        // Закрываем меню ТОЛЬКО при реальном вводе с клавиатуры
+        const globalMenu = document.getElementById('global-card-menu');
+        if (globalMenu.classList.contains('show') && globalMenu.dataset.activeCardId == task.id) {
+            closeAllDropdowns();
+        }
+    });
     autoResize();
     
     input.focus();
-    input.select();
+    // Ставим курсор строго в самый конец строки
+    input.setSelectionRange(input.value.length, input.value.length); 
 
     let committed = false;
 
@@ -1643,8 +1739,14 @@ function startCardRename(cardEl, task) {
                 hint = document.createElement('div');
                 hint.className = 'card-error-hint';
                 hint.textContent = t('errors.tooLong');
-                // Вставляем после инпута
-                input.after(hint);
+                
+                // Вставляем ПОСЛЕ обертки заголовка, чтобы текст упал строго вниз
+                const wrapper = input.closest('.card-title-wrapper');
+                if (wrapper) {
+                    wrapper.after(hint);
+                } else {
+                    input.after(hint);
+                }
             }
 
             cardEl.classList.remove('is-error');
@@ -1678,6 +1780,10 @@ function startCardRename(cardEl, task) {
         }
 
         committed = true;
+        
+        // 🌟 ГАРАНТИРОВАННОЕ ЗАКРЫТИЕ МЕНЮ при сохранении (Enter или клик мимо)
+        closeAllDropdowns();
+
         const newTitle = input.value.trim();
         const finalTitle = newTitle || task.title;
         
@@ -1706,6 +1812,10 @@ function startCardRename(cardEl, task) {
         if (e.key === 'Escape') {
             e.preventDefault();
             committed = true;
+            
+            // 🌟 ГАРАНТИРОВАННОЕ ЗАКРЫТИЕ МЕНЮ при отмене (Escape)
+            closeAllDropdowns();
+            
             restore(task.title);
         }
     });
@@ -2297,40 +2407,48 @@ document.addEventListener('click', async (e) => {
         const globalMenu = document.getElementById('global-card-menu');
         const cardEl = cardMenuBtn.closest('.card');
         
-        const isAlreadyOpen = globalMenu.classList.contains('show') && globalMenu.dataset.activeCardId == cardEl.dataset.cardId;
-
+        // 1. Сначала закрываем всё остальное
         closeAllDropdowns();
 
-        if (!isAlreadyOpen) {
-            globalMenu.dataset.activeCardId = cardEl.dataset.cardId;
-            
-            const cardRect = cardEl.getBoundingClientRect();
-            let menuTop = cardRect.top;
-            let menuLeft = cardRect.right + 12;
-            const menuWidth = 220;
-
-            if (menuLeft + menuWidth > window.innerWidth - 16) {
-                menuLeft = cardRect.left - menuWidth - 12;
-                globalMenu.style.transformOrigin = 'top right';
-            } else {
-                globalMenu.style.transformOrigin = 'top left';
-            }
-
-            globalMenu.classList.add('show');
-            globalMenu.style.top = `${menuTop}px`;
-            globalMenu.style.left = `${menuLeft}px`;
-
-            cardMenuBtn.classList.add('active');
-            cardEl.classList.add('has-open-menu');
-        }
-
-        // ФИКС: ВСЕГДА включаем переименование параллельно при клике на карандаш.
-        // Вынесено из блока if (!isAlreadyOpen)
+        // 2. Подготавливаем меню
+        globalMenu.dataset.activeCardId = cardEl.dataset.cardId;
+        globalMenu.classList.add('show');
+        cardMenuBtn.classList.add('active');
+        cardEl.classList.add('has-open-menu');
+        
+        // 3. Запускаем режим переименования (DOM-мутация происходит тут)
         const taskId = parseInt(cardEl.dataset.cardId);
         const colId = parseInt(cardEl.closest('.column').dataset.columnId);
         const col = state.columns.find(c => c.id === colId);
         const task = col?.tasks.find(t => t.id === taskId);
-        if (task) startCardRename(cardEl, task);
+        
+        if (task && !cardEl.classList.contains('is-renaming')) {
+            startCardRename(cardEl, task);
+        } else {
+            cardEl.querySelector('.card-title-input')?.focus({ preventScroll: true });
+        }
+
+        // 4. ГЛАВНЫЙ ФИКС: Используем двойной requestAnimationFrame
+        // Это железно гарантирует, что браузер УЖЕ отрисовал инпут и знает его новые размеры
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                cardEl.scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'nearest', 
+                    inline: 'center' 
+                });
+            });
+        });
+
+        // 5. Цикл позиции меню
+        const updatePos = () => {
+            if (!globalMenu.classList.contains('show') || globalMenu.dataset.activeCardId != cardEl.dataset.cardId) return;
+            const cardRect = cardEl.getBoundingClientRect();
+            globalMenu.style.top = `${cardRect.top}px`;
+            globalMenu.style.left = `${cardRect.right + 12}px`;
+            requestAnimationFrame(updatePos);
+        };
+        updatePos();
 
         return;
     }
@@ -2355,11 +2473,15 @@ document.addEventListener('click', async (e) => {
                 const colEl = cardEl.closest('.column');
 
                 if (action === 'open-card') {
-                    const title = cardEl.querySelector('.card-title')?.textContent || 
-                                  cardEl.querySelector('.card-title-input')?.value;
-                    document.getElementById('task-modal-title').textContent = title;
+                    const taskId = parseInt(activeCardId);
+                    modalNavigationStack = []; // Сбрасываем историю, так как открываем карточку с доски
+                    
+                    // Вызываем новую функцию загрузки (мы её создадим в шаге 3)
+                    loadTaskIntoModal(taskId); 
+                    
+                    // Показываем саму модалку
                     document.getElementById('task-modal').classList.add('show');
-                } 
+                }
                 else if (action === 'delete-card') {
                     cardEl.style.opacity = '0';
                     cardEl.style.transform = 'scale(0.9)';
@@ -2446,6 +2568,13 @@ document.addEventListener('click', async (e) => {
 
     // 8. ЗАКРЫТИЕ МОДАЛОК
     if (target.closest('.modal-close') || target.classList.contains('modal-overlay')) {
+        
+        // 🔥 ФИКС: Если кликнули по серому фону (overlay) именно модалки карточки — ничего не закрываем.
+        // Браузер сам вызовет blur у текстового поля, и оно перейдет в режим чтения.
+        if (target.id === 'task-modal' && target.classList.contains('modal-overlay')) {
+            return; 
+        }
+
         if (activeConfirmResolve && (target.id === 'confirm-modal' || target.closest('#confirm-modal'))) {
             activeConfirmResolve(false);
             activeConfirmResolve = null;
@@ -2463,6 +2592,96 @@ document.addEventListener('click', async (e) => {
         closeAllDropdowns();
     }
 });
+
+async function loadTaskIntoModal(taskId, pushToStack = true) {
+    try {
+        const res = await fetch(`${API_BASE}/tasks/${taskId}`);
+        if (!res.ok) return;
+        const task = await res.json();
+
+        const modal = document.getElementById('task-modal');
+        const titleEl = document.getElementById('task-modal-title');
+        const renderDiv = document.getElementById('task-desc-render');
+        const inputArea = document.getElementById('task-desc-input');
+        const subtasksList = document.getElementById('subtasks-list');
+        const subtasksCount = document.getElementById('subtasks-count');
+        const formContainer = document.getElementById('subtask-form-container');
+
+        // 1. Хлебные крошки
+        if (pushToStack) {
+            const lastInStack = modalNavigationStack[modalNavigationStack.length - 1];
+            if (!lastInStack || lastInStack.id !== task.id) {
+                modalNavigationStack.push({ id: task.id, title: task.title });
+            }
+        }
+        renderBreadcrumbs();
+
+        // 2. Основные данные
+        modal.dataset.taskId = task.id;
+        modal.dataset.columnId = task.column_id;
+        titleEl.textContent = task.title;
+        
+        // 3. Описание (Markdown)
+        inputArea.value = task.description || "";
+        if (task.description) {
+            renderDiv.innerHTML = marked.parse(task.description, { breaks: true });
+            enhanceCodeBlocks(renderDiv);
+        } else {
+            renderDiv.innerHTML = `<span class="markdown-empty">${currentLang === 'ru' ? 'Кликните, чтобы добавить описание...' : 'Click to add description...'}</span>`;
+        }
+        renderDiv.style.display = 'block';
+        inputArea.style.display = 'none';
+
+        // 4. Рендер списка подзадач
+        subtasksList.innerHTML = '';
+        subtasksCount.textContent = task.subtasks.length;
+        
+        task.subtasks.sort((a, b) => a.position - b.position).forEach(sub => {
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = generateSubtaskHtml(sub).trim();
+            const subItem = tempDiv.firstChild;
+            
+            // Привязка событий (Чекбокс и Открытие)
+            bindSubtaskEvents(subItem, sub, task.id);
+            
+            subtasksList.appendChild(subItem);
+        });
+
+        // 5. Инициализация кнопки добавления (вместо старого инпута)
+        renderSubtaskAddButton(formContainer);
+
+    } catch (err) {
+        console.error("Ошибка загрузки карточки:", err);
+    }
+}
+
+// ФУНКЦИЯ 2: Рисует кликабельный путь наверху модалки
+function renderBreadcrumbs() {
+    const container = document.getElementById('task-breadcrumbs');
+    if (modalNavigationStack.length <= 1) {
+        container.innerHTML = ''; // Если мы на верхнем уровне, крошки не нужны
+        return;
+    }
+
+    container.innerHTML = modalNavigationStack.map((item, index) => {
+        const isLast = index === modalNavigationStack.length - 1;
+        return `
+            <span class="breadcrumb-item ${isLast ? 'active' : ''}" data-index="${index}">${escapeHtml(item.title)}</span>
+            ${!isLast ? '<span class="breadcrumb-separator">/</span>' : ''}
+        `;
+    }).join('');
+
+    // Клик по крошке возвращает нас назад по стеку
+    container.querySelectorAll('.breadcrumb-item').forEach(el => {
+        el.onclick = () => {
+            const index = parseInt(el.dataset.index);
+            if (index === modalNavigationStack.length - 1) return;
+            
+            modalNavigationStack = modalNavigationStack.slice(0, index + 1);
+            loadTaskIntoModal(modalNavigationStack[index].id, false);
+        };
+    });
+}
 
 // ---------- ОБНОВЛЕНИЕ ТАЙМЕРОВ ----------
 function updateTimers() {
@@ -2786,9 +3005,435 @@ const checkApi = () => {
     }
 };
 
+function enhanceCodeBlocks(container) {
+    const codeBlocks = container.querySelectorAll('pre code');
+    
+    codeBlocks.forEach(block => {
+        // Ставим python если забыли указать язык
+        if (!block.className || block.className === "") {
+            block.classList.add('language-python');
+        }
+        
+        // Подсвечиваем
+        if (window.Prism) {
+            Prism.highlightElement(block);
+        }
+    });
+
+    // Кнопка копирования
+    container.querySelectorAll('pre').forEach(pre => {
+        if (pre.querySelector('.code-copy-btn')) return;
+        const btn = document.createElement('button');
+        btn.className = 'code-copy-btn';
+        btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`;
+        btn.onclick = async (e) => {
+            e.stopPropagation();
+            const code = pre.querySelector('code').innerText;
+            await navigator.clipboard.writeText(code);
+            btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+            setTimeout(() => {
+                btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`;
+            }, 2000);
+        };
+        pre.appendChild(btn);
+    });
+}
+
+function generateSubtaskHtml(sub) {
+    const openIconSvg = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`;
+    return `
+        <div class="subtask-item ${sub.completed_at ? 'is-done' : ''}" data-subtask-id="${sub.id}">
+            <div class="subtask-checkbox">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <div class="subtask-title">${escapeHtml(sub.title)}</div>
+            <button class="subtask-open-btn" title="${t('menu.open')}">
+                ${openIconSvg}
+            </button>
+        </div>
+    `;
+}
+
+async function onAddSubtask() {
+    const container = document.getElementById('subtask-form-container');
+    const subtasksList = document.getElementById('subtasks-list');
+    const addBtn = container.querySelector('.btn-add-subtask');
+    const modal = document.getElementById('task-modal');
+    const parentId = parseInt(modal.dataset.taskId);
+    const columnId = parseInt(modal.dataset.columnId);
+
+    if (!addBtn) return;
+
+    // Создаем элемент формы
+    const formItem = document.createElement('div');
+    formItem.className = 'subtask-item subtask-entering';
+    formItem.innerHTML = `
+        <textarea class="subtask-inline-input" placeholder="${t('taskModal.subtasksPlaceholder').replace(/^\+ /, '')}" spellcheck="false" rows="1"></textarea>
+    `;
+
+    // Заменяем кнопку на форму
+    addBtn.replaceWith(formItem);
+
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => formItem.classList.add('entered'));
+    });
+
+    const input = formItem.querySelector('textarea');
+    input.focus();
+
+    let isResolved = false;
+
+    const cancel = (animate = true) => {
+        if (isResolved) return;
+        isResolved = true;
+        input.blur();
+
+        if (!animate) {
+            renderSubtaskAddButton(container);
+            return;
+        }
+
+        formItem.classList.remove('entered');
+        formItem.classList.add('is-exiting');
+        setTimeout(() => renderSubtaskAddButton(container), 200);
+    };
+
+    const submit = async () => {
+        const title = input.value.trim();
+        if (!title) { cancel(true); return; }
+        
+        if (title.length > 200) {
+            formItem.classList.remove('is-error');
+            void formItem.offsetWidth;
+            formItem.classList.add('is-error');
+            return;
+        }
+
+        if (isResolved) return;
+        isResolved = true;
+        input.disabled = true;
+
+        try {
+            const res = await fetch(`${API_BASE}/tasks/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title, column_id: columnId, parent_id: parentId })
+            });
+
+            if (!res.ok) throw new Error();
+            const newSub = await res.json();
+
+            // Создаем реальную подзадачу с анимацией рождения
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = generateSubtaskHtml(newSub).trim();
+            const realSub = tempDiv.firstChild;
+            realSub.classList.add('subtask-birth');
+
+            // Вешаем обработчики (те, что были в loadTaskIntoModal)
+            bindSubtaskEvents(realSub, newSub, parentId);
+
+            // Вставляем в список и анимируем
+            subtasksList.appendChild(realSub);
+            renderSubtaskAddButton(container); // Возвращаем кнопку добавления под формой
+
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => realSub.classList.add('born'));
+            });
+
+            setTimeout(() => realSub.classList.remove('subtask-birth', 'born'), 500);
+            
+            // Обновляем счетчик
+            const countEl = document.getElementById('subtasks-count');
+            countEl.textContent = parseInt(countEl.textContent) + 1;
+            
+            refreshBoard();
+
+        } catch (err) {
+            isResolved = false;
+            input.disabled = false;
+            formItem.classList.add('is-error');
+            setTimeout(() => formItem.classList.remove('is-error'), 400);
+        }
+    };
+
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); submit(); }
+        if (e.key === 'Escape') { e.preventDefault(); cancel(true); }
+    });
+
+    input.addEventListener('blur', () => {
+        if (!isResolved) {
+            if (input.value.trim()) submit(); else cancel(true);
+        }
+    });
+}
+
+// Вспомогательная функция отрисовки кнопки добавления
+function renderSubtaskAddButton(container) {
+    container.innerHTML = `<button class="btn-add-subtask">${t('taskModal.subtasksPlaceholder')}</button>`;
+    container.querySelector('.btn-add-subtask').onclick = onAddSubtask;
+}
+
+// Вспомогательная функция привязки событий (выносим из основного цикла)
+function bindSubtaskEvents(el, sub, parentId) {
+    el.querySelector('.subtask-checkbox').onclick = async (e) => {
+        e.stopPropagation();
+        const isDone = !el.classList.contains('is-done');
+        el.classList.toggle('is-done', isDone);
+        await updateTask(sub.id, { completed_at: isDone ? new Date().toISOString() : null });
+        refreshBoard();
+    };
+    el.querySelector('.subtask-open-btn').onclick = (e) => {
+        e.stopPropagation();
+        loadTaskIntoModal(sub.id, true);
+    };
+}
+
+function initTaskDescriptionLogic() {
+    const renderDiv = document.getElementById('task-desc-render');
+    const inputArea = document.getElementById('task-desc-input');
+    const descWrapper = document.querySelector('.description-wrapper');
+    const modal = document.getElementById('task-modal');
+
+    // Храним последнее сохраненное значение, чтобы не дергать API зря
+    let lastSavedValue = "";
+
+    const switchToEditMode = () => {
+        lastSavedValue = inputArea.value; // Запоминаем текущее значение перед правкой
+        renderDiv.style.display = 'none';
+        inputArea.style.display = 'block';
+        
+        // Маленький хак для установки курсора в конец текста
+        inputArea.focus();
+        inputArea.setSelectionRange(inputArea.value.length, inputArea.value.length);
+    };
+
+    const switchToReadMode = async () => {
+        const newDesc = inputArea.value; // Не тримим здесь, чтобы сохранить форматирование автора
+        const taskId = modal.dataset.taskId;
+
+        // 1. Оптимизация: Если текст не менялся — просто выходим
+        if (newDesc === lastSavedValue) {
+            exitEditingUI(newDesc);
+            return;
+        }
+
+        // 2. Визуально показываем "сохранение" (опционально, в стиле Apple — легкая прозрачность)
+        inputArea.style.opacity = "0.7";
+
+        try {
+            // 3. Отправляем на бэкенд
+            const res = await fetch(`${API_BASE}/tasks/${taskId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ description: newDesc })
+            });
+
+            if (!res.ok) throw new Error("Save failed");
+
+            // Обновляем локальный стейт, чтобы описание не "прыгнуло" при следующем открытии
+            // Ищем задачу во всех колонках
+            for (let col of state.columns) {
+                let task = col.tasks.find(t => t.id == taskId);
+                if (task) {
+                    task.description = newDesc;
+                    break;
+                }
+            }
+
+            console.log(`[Vault] Description for task ${taskId} synced.`);
+        } catch (err) {
+            console.error("Critical sync error:", err);
+            // Здесь можно добавить красную рамку или тряску при ошибке
+        } finally {
+            inputArea.style.opacity = "1";
+            exitEditingUI(newDesc);
+        }
+    };
+
+    const exitEditingUI = (content) => {
+        if (content.trim()) {
+            renderDiv.innerHTML = marked.parse(content, { breaks: true });
+            enhanceCodeBlocks(renderDiv);
+        } else {
+            renderDiv.innerHTML = `<span class="markdown-empty">${currentLang === 'ru' ? 'Кликните, чтобы добавить описание...' : 'Click to add description...'}</span>`;
+        }
+        
+        inputArea.style.display = 'none';
+        renderDiv.style.display = 'block';
+    };
+
+    // Блокируем всплытие кликов из обертки, чтобы ресайз не конфликтовал с драгом модалки
+    descWrapper.addEventListener('mousedown', (e) => e.stopPropagation());
+
+    renderDiv.addEventListener('dblclick', (e) => {
+        if (e.target.tagName === 'A') return;
+        switchToEditMode();
+    });
+
+    renderDiv.addEventListener('click', (e) => {
+        // Если описание пустое (заглушка), входим в режим редактирования по одинарному клику
+        if (renderDiv.querySelector('.markdown-empty')) switchToEditMode();
+    });
+
+    // Тот самый фикс: Blur теперь корректно отрабатывает и вызывает сохранение
+    inputArea.addEventListener('blur', () => {
+        switchToReadMode();
+    });
+}
+
+function initTaskModalDragAndResize() {
+    const taskModal = document.getElementById('task-modal');
+    const card = taskModal.querySelector('.task-detail-card');
+    const header = card.querySelector('.modal-header');
+
+    let currentResizer = null;
+    let isDragging = false;
+    
+    // Начальные параметры
+    let startX, startY, startW, startH, startLeft, startTop;
+
+    const onPointerDown = (e) => {
+        if (e.button !== 0) return;
+
+        const resizer = e.target.closest('.resizer');
+        const isHeader = e.target.closest('.modal-header') && !e.target.closest('.modal-close');
+
+        if (!resizer && !isHeader) return;
+
+        e.preventDefault();
+        
+        // Переводим в абсолют при первом же взаимодействии
+        if (card.style.position !== 'absolute') {
+            const rect = card.getBoundingClientRect();
+            card.style.position = 'absolute';
+            card.style.margin = '0';
+            card.style.left = `${rect.left}px`;
+            card.style.top = `${rect.top}px`;
+            card.style.width = `${rect.width}px`;
+            card.style.height = `${rect.height}px`;
+            card.style.transform = 'none';
+            card.style.transition = 'none';
+        }
+
+        isDragging = isHeader;
+        currentResizer = resizer;
+
+        startX = e.clientX;
+        startY = e.clientY;
+        startW = card.offsetWidth;
+        startH = card.offsetHeight;
+        startLeft = parseFloat(card.style.left);
+        startTop = parseFloat(card.style.top);
+
+        document.body.style.userSelect = 'none';
+        document.addEventListener('pointermove', onPointerMove);
+        document.addEventListener('pointerup', onPointerUp);
+    };
+
+    const onPointerMove = (e) => {
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+
+        // ЛОГИКА ПЕРЕМЕЩЕНИЯ
+        if (isDragging) {
+            card.style.left = `${startLeft + dx}px`;
+            card.style.top = `${startTop + dy}px`;
+            return;
+        }
+
+        // ЛОГИКА РАСШИРЕНИЯ
+        if (currentResizer) {
+            const type = currentResizer.classList;
+
+            // Тянем за правую сторону
+            if (type.contains('r-right') || type.contains('r-top-right') || type.contains('r-bottom-right')) {
+                const newWidth = startW + dx;
+                if (newWidth > 400) card.style.width = `${newWidth}px`;
+            }
+            // Тянем за левую сторону (меняется и ширина, и позиция X)
+            if (type.contains('r-left') || type.contains('r-top-left') || type.contains('r-bottom-left')) {
+                const newWidth = startW - dx;
+                if (newWidth > 400) {
+                    card.style.width = `${newWidth}px`;
+                    card.style.left = `${startLeft + dx}px`;
+                }
+            }
+            // Тянем за низ
+            if (type.contains('r-bottom') || type.contains('r-bottom-left') || type.contains('r-bottom-right')) {
+                const newHeight = startH + dy;
+                if (newHeight > 400) card.style.height = `${newHeight}px`;
+            }
+            // Тянем за верх (меняется и высота, и позиция Y)
+            if (type.contains('r-top') || type.contains('r-top-left') || type.contains('r-top-right')) {
+                const newHeight = startH - dy;
+                if (newHeight > 400) {
+                    card.style.height = `${newHeight}px`;
+                    card.style.top = `${startTop + dy}px`;
+                }
+            }
+        }
+    };
+
+    const onPointerUp = () => {
+        isDragging = false;
+        currentResizer = null;
+        document.body.style.userSelect = '';
+        document.removeEventListener('pointermove', onPointerMove);
+        document.removeEventListener('pointerup', onPointerUp);
+    };
+
+    // Вешаем один слушатель на все окно модалки
+    taskModal.addEventListener('pointerdown', onPointerDown);
+}
+
+// Слушатель для инпута подзадач внутри модалки
+document.addEventListener('keydown', async (e) => {
+    if (e.target.id === 'subtask-quick-add' && e.key === 'Enter') {
+        const input = e.target;
+        const title = input.value.trim();
+        const modal = document.getElementById('task-modal');
+        const parentId = parseInt(modal.dataset.taskId);
+        const columnId = parseInt(modal.dataset.columnId);
+
+        if (title) {
+            input.disabled = true;
+            try {
+                // Создаем задачу, передавая parent_id
+                const res = await fetch(`${API_BASE}/tasks/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        title, 
+                        column_id: columnId, 
+                        parent_id: parentId 
+                    })
+                });
+                if (res.ok) {
+                    input.value = '';
+                    // Перезагружаем текущую карточку, чтобы увидеть новую подзадачу
+                    await loadTaskIntoModal(parentId, false); 
+                    refreshBoard(); 
+                }
+            } catch (err) {
+                console.error(err);
+            } finally {
+                input.disabled = false;
+                input.focus();
+            }
+        }
+    }
+});
+
+// Запускаем инициализацию (можно поместить вызов внутрь главной IIFE async функции внизу файла)
+initTaskDescriptionLogic();
+
+
+
 (async () => {
     initTooltip();
     initTabsScrollbar();
+    initTaskModalDragAndResize();
 
     // 1. Первичная настройка темы/языка из кэша (чтобы не моргало)
     try {

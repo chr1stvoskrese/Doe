@@ -62,3 +62,11 @@ async def clear_task_timer_endpoint(task_id: int, db: AsyncSession = Depends(get
         return task
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
+
+@router.get("/{task_id}", response_model=TaskResponse)
+async def get_task(task_id: int, db: AsyncSession = Depends(get_session)):
+    try:
+        task = await task_service.get_task_with_details(db, task_id)
+        return task
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))

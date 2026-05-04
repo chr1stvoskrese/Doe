@@ -20,6 +20,7 @@ class TaskCreate(TaskBase):
 class TaskUpdate(BaseModel):
     """Данные для обновления задачи (все поля необязательные)."""
     title: Optional[str] = Field(None, min_length=1, max_length=200)
+    description: Optional[str] = None
     column_id: Optional[int] = None
     parent_id: Optional[int] = None
     position: Optional[float] = None
@@ -49,6 +50,7 @@ class TaskCreateResponse(TaskBase):
     """Упрощённый ответ при создании/обновлении/перемещении задачи."""
     id: int
     column_id: int
+    description: Optional[str] = None
     parent_id: Optional[int]
     position: float
     created_at: datetime
@@ -65,12 +67,14 @@ class TaskResponse(TaskBase):
     """Полная информация о задаче, возвращаемая API (с подзадачами)."""
     id: int
     column_id: int
+    description: Optional[str] = None
     parent_id: Optional[int]
     position: float
     created_at: datetime
     updated_at: datetime
     completed_at: Optional[datetime]
-    subtasks: List["TaskResponse"] = []
+    # Заменяем List на Optional, чтобы Pydantic не лез в базу, если мы не подложили данные
+    subtasks: Optional[List["TaskResponse"]] = None
     active_timer: Optional[TimerSessionResponse] = None
     total_time_spent: Optional[int] = None
 

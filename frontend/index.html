@@ -8,6 +8,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"> 
     <link rel="stylesheet" href="/static/styles.css">
+    <link rel="stylesheet" href="static/prism.min.css">
+    <script src="/static/marked.min.js"></script>
 </head>
 
 <body class="preload">
@@ -127,17 +129,46 @@
     </div>
 </div>
 
-<!-- 📝 МОДАЛКА ОТКРЫТИЯ КАРТОЧКИ (ЗАГОТОВКА) -->
+<!-- 📝 МОДАЛКА ОТКРЫТИЯ КАРТОЧКИ -->
 <div class="modal-overlay" id="task-modal">
-    <div class="modal-card" style="width: 600px; min-height: 400px;">
+    <div class="modal-card task-detail-card">
+        <!-- Зоны для растягивания (Resizers) -->
+        <div class="resizer r-top"></div>
+        <div class="resizer r-bottom"></div>
+        <div class="resizer r-left"></div>
+        <div class="resizer r-right"></div>
+        <div class="resizer r-top-left"></div>
+        <div class="resizer r-top-right"></div>
+        <div class="resizer r-bottom-left"></div>
+        <div class="resizer r-bottom-right"></div>
         <div class="modal-header">
             <span class="modal-title" id="task-modal-title">Название карточки</span>
             <button class="modal-close" aria-label="Закрыть">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
             </button>
         </div>
-        <div class="modal-body" style="padding: 24px; color: var(--text-secondary); text-align: center; display: flex; flex-direction: column; justify-content: center; height: 100%;">
-            Здесь в будущем будет отображаться содержимое карточки.
+        <div class="modal-body task-detail-body">
+            <!-- Хлебные крошки для навигации назад -->
+            <div id="task-breadcrumbs" class="task-breadcrumbs"></div>
+
+            <div class="description-wrapper">
+                <div id="task-desc-render" class="markdown-body"></div>
+                <textarea id="task-desc-input" class="description-input" spellcheck="false" placeholder="Описание задачи..."></textarea>
+            </div>
+
+            <!-- НОВАЯ СЕКЦИЯ ПОДЗАДАЧ -->
+            <div class="subtasks-section">
+                <div class="subtasks-header">
+                    <span data-i18n="subtasks">Подзадачи</span>
+                    <span class="subtasks-count" id="subtasks-count">0</span>
+                </div>
+                <div id="subtasks-list" class="subtasks-list">
+                    <!-- Рендерится через JS -->
+                </div>
+                <div id="subtask-form-container" class="subtask-add-wrapper">
+                    <!-- Сюда JS будет рендерить либо кнопку "+", либо форму -->
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -173,7 +204,8 @@
     </div>
 </div>
 
-<!-- Подключаем наш объединённый скрипт -->
+<script src="static/prism.min.js"></script> 
+<script src="static/marked.min.js"></script>
 <script src="/static/app.js"></script>
 </body>
 </html>
