@@ -6,6 +6,8 @@ from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Float, Boo
 from sqlalchemy.orm import relationship, declarative_base
 import enum
 
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Float, Boolean, Enum, JSON
+
 Base = declarative_base()
 
 
@@ -45,6 +47,7 @@ class TaskModel(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String, nullable=False)
     description = Column(String, nullable=True)
+    attachments_order = Column(JSON, default=list)
     column_id = Column(Integer, ForeignKey("columns.id"), nullable=False)
     parent_id = Column(Integer, ForeignKey("tasks.id"), nullable=True)
     position = Column(Float, default=0.0)

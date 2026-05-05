@@ -13,6 +13,11 @@ from src.api.v1 import columns, tasks, system, workspaces
 from src.db.database import init_dev_database, close_database
 from fastapi import Response
 
+from src.core.config import get_active_vault
+
+
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     vault_path = await init_dev_database()
@@ -32,6 +37,19 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.get("/attachments/{file_path:path}")
+async def serve_attachment(file_path: str):
+    """
+    Раздает файлы из папки attachments активного хранилища.
+    Это необходимо, чтобы Markdown мог рендерить теги <img> с относительными путями.
+    """
+    vault_path = Path(get_active_vault())
+    full_path = vault_path / "attachments" / file_path
+    
+    if full_path.exists() and full_path.is_file():
+        return FileResponse(full_path)
+    return Response(status_code=404)
 
 @app.get("/favicon.ico", include_in_schema=False)
 async def favicon():

@@ -1420,21 +1420,10 @@ body.is-dragging-card .column-header {
     background: rgba(137, 160, 133, 0.55);
 }
 
-.column-drag-clone,
-.card-drag-clone,
-.tab-drag-clone {
-    /* Удаляем строку transform: translateZ(0) !important; */
-    backface-visibility: hidden !important; 
-    will-change: transform !important;
-    pointer-events: none !important; /* <--- и на всякий случай добавляем это */
-}
-
-/* Сглаживание шрифтов применяем ко всем, это не нагружает GPU, но убирает мыло */
-.column-drag-clone *,
-.card-drag-clone *,
-.tab-drag-clone * {
-    -webkit-font-smoothing: antialiased !important;
-    -moz-osx-font-smoothing: grayscale !important;
+/* Сглаживание шрифтов применяем ко всем, это не нагружает GPU, но убирает мыло */ 
+.column-drag-clone *, .card-drag-clone *, .tab-drag-clone *, .subtask-drag-clone * {
+    -webkit-font-smoothing: antialiased !important; 
+    -moz-osx-font-smoothing: grayscale !important; 
 }
 
 
@@ -2233,11 +2222,11 @@ body[class*="is-dragging-"] .board-tab.active:not(.is-ghost):not(.tab-drag-clone
     color: var(--text-primary) !important;
 }
 
-/* 2. Блокировка карточек (Cards) */
-/* Исключаем прыжки карточек, если одна пролетает над другой */
-body.is-dragging-card .card:not(.card-drag-clone) {
-    transform: none !important;
-    box-shadow: var(--shadow-card) !important;
+/* 2. Блокировка карточек (Cards) и подзадач при Drag & Drop */ 
+body.is-dragging-card .card:not(.card-drag-clone),
+body.is-dragging-subtask .subtask-item:not(.subtask-drag-clone) { 
+    transform: none !important; 
+    box-shadow: var(--shadow-card) !important; 
 }
 
 /* 3. Блокировка свёрнутых колонок (Collapsed Columns) */
@@ -2905,28 +2894,70 @@ body[class*="is-dragging-"] .board-tab:not(.active) {
 .breadcrumb-item:hover { color: var(--brand-pine); }
 .breadcrumb-separator { opacity: 0.3; }
 
-/* Секция подзадач */
+/* Секции контента (Вложения и Подзадачи) */
+.attachments-section,
 .subtasks-section {
     margin-top: 24px;
     display: flex;
     flex-direction: column;
     gap: 12px;
 }
+/* Жесткая синхронизация заголовков секций */
 .subtasks-header {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    margin-bottom: 8px !important;
+    user-select: none;
+}
+
+.subtasks-header span:first-child {
+    font-size: 11px !important;       /* Уменьшаем размер для Apple-стиля */
+    font-weight: 800 !important;       /* Делаем жирнее, чтобы читалось */
+    text-transform: uppercase !important;
+    letter-spacing: 0.12em !important; /* Максимальная разрядка */
+    color: var(--text-secondary) !important; /* Принудительный серый цвет */
+    opacity: 0.8;
+}
+
+.subtasks-count {
+    background: rgba(255, 255, 255, 0.08) !important; /* Фиксированный фон для контраста */
+    color: var(--text-secondary) !important;
+    padding: 1px 6px !important;
+    border-radius: 5px !important;      /* macOS-style радиус */
+    font-size: 10px !important;
+    font-weight: 700 !important;
+    min-width: 18px;
+    text-align: center;
+    line-height: 1.4;
+}
+
+[data-theme="dark"] .subtasks-count {
+    background: rgba(255, 255, 255, 0.12) !important; /* Чуть светлее в темной теме */
+}
+
+/* Кнопка добавления в шапке (+ Вложения) */
+.header-add-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    width: 20px;
+    height: 20px;
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-size: 13px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--text-secondary);
+    justify-content: center;
+    border-radius: 6px;
+    padding: 0;
+    transition: background 0.15s, color 0.15s;
 }
-.subtasks-count {
-    background: var(--brand-pale);
-    padding: 2px 8px;
-    border-radius: 10px;
-    font-size: 11px;
+.header-add-btn:hover {
+    background: rgba(0, 0, 0, 0.08);
+    color: var(--text-primary);
+}
+[data-theme="dark"] .header-add-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
 }
 
 .subtasks-list {
@@ -2935,50 +2966,90 @@ body[class*="is-dragging-"] .board-tab:not(.active) {
     gap: 4px;
 }
 
-/* Элемент подзадачи — Senior UI Polish */
 .subtask-item {
     display: flex;
-    align-items: center;
+    align-items: center; /* БЫЛО: flex-start */
     gap: 12px;
     padding: 10px 12px;
     border-radius: 12px;
-    background: var(--surface-card); /* Каждая подзадача как микро-карточка */
+    background: var(--surface-card);
     border: 1px solid var(--border-light);
     margin-bottom: 4px;
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: var(--shadow-card);
+    transition: transform var(--transition-apple), 
+                box-shadow var(--transition-apple), 
+                background-color var(--transition-apple),
+                border-color var(--transition-apple);
+    will-change: transform, box-shadow;
+    cursor: grab;
 }
 
 .subtask-checkbox {
-    width: 20px;
-    height: 20px;
-    border: 2px solid var(--text-secondary);
-    border-radius: 50%; /* Круглые чекбоксы для подзадач (стиль Apple) */
+    width: 18px;
+    height: 18px;
+    border: 2px solid var(--border-light);
+    border-radius: 5px;
     cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: transparent;
     transition: all 0.2s;
+    flex-shrink: 0;
+    margin-top: 0; /* БЫЛО: 1px */
 }
 
-.subtask-item.is-done {
-    background: var(--bg-canvas);
-    opacity: 0.7;
+.subtask-item.is-done { 
+    background: #F7F6F3; /* Точно как .card.is-completed */
+    box-shadow: var(--shadow-card); /* Оставляем легкую тень как у карточек */
+}
+
+.subtask-item.is-done:hover { 
+    transform: translate3d(0, -2px, 0); 
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04); 
+}
+
+/* 5. Темная тема (Dark Mode Support) */
+[data-theme="dark"] .subtask-item {
+    /* Переменные уже подтянутся сами из :root, 
+       но мы гарантируем, что тени будут глубокими */
+    box-shadow: var(--shadow-card); 
+}
+
+[data-theme="dark"] .subtask-item:hover {
+    /* В темной теме тени должны быть жестче для отделения от фона */
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .subtask-item.is-done {
+    background: #1A1C19; /* Соответствует .card.is-completed в темной теме */
 }
 
 .subtask-open-btn {
     opacity: 0;
-    background: transparent;
-    border: none;
-    width: 28px;
-    height: 28px;
-    border-radius: 8px; /* Скругление как у кнопок в шапке */
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    background: var(--surface-card);
+    border: 1px solid var(--border-light);
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
     color: var(--text-secondary);
     cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: all 0.2s;
     flex-shrink: 0;
+    margin-top: 0; /* БЫЛО: -3px */
 }
 .subtask-item:hover {
-    background: var(--brand-pale);
+    transform: translate3d(0, -2px, 0);
+    /* Тень приподнятой карточки */
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
+    background: var(--surface-card);
+    /* Убираем специфичный border-color, который был раньше, для чистоты */
+    border-color: var(--border-light);
+}
+
+.subtask-item:active {
+    cursor: grabbing;
 }
 
 .subtask-checkbox {
@@ -3007,10 +3078,10 @@ body[class*="is-dragging-"] .board-tab:not(.active) {
     flex: 1;
     font-size: 14px;
     font-weight: 500;
+    line-height: 1.2; /* Плотно и аккуратно для центрированных строк */
     color: var(--text-primary);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    word-break: break-word;
+    white-space: pre-wrap;
 }
 
 /* Кнопка "Открыть" (Killer Feature) */
@@ -3025,6 +3096,8 @@ body[class*="is-dragging-"] .board-tab:not(.active) {
     color: var(--text-secondary);
     cursor: pointer;
     transition: all 0.2s;
+    flex-shrink: 0;   /* ИЗМЕНЕНО */
+    margin-top: -3px; /* ИЗМЕНЕНО: балансируем кнопку по первой строке */
 }
 .subtask-item:hover .subtask-open-btn {
     opacity: 1;
@@ -3049,14 +3122,6 @@ body[class*="is-dragging-"] .board-tab:not(.active) {
     border-color: rgba(255, 255, 255, 0.1);
 }
 
-/* Обновляем ховер подзадачи: теперь она приподнимается как карточка на доске */
-.subtask-item:hover {
-    transform: translate3d(0, -2px, 0);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-    border-color: rgba(74, 90, 72, 0.2);
-    background: var(--surface-card);
-}
-
 /* Кнопка добавления подзадачи (в стиле btn-add-card) */
 .btn-add-subtask {
     width: 100%;
@@ -3078,64 +3143,421 @@ body[class*="is-dragging-"] .board-tab:not(.active) {
     color: var(--text-primary);
 }
 
-/* Форма создания подзадачи — полная копия логики карточки */
-.subtask-item.subtask-entering {
-    background: transparent;
-    border: 1.5px dashed rgba(74, 90, 72, 0.25);
-    box-shadow: none;
-    opacity: 0;
-    transform: scale(0.98);
-    will-change: opacity, transform;
-    transition: 
-        opacity 0.30s cubic-bezier(0.16, 1, 0.3, 1),
-        transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+/* Убираем фон даже при наведении на пунктирную форму */
+.subtask-item.subtask-entering:hover {
+    background: transparent !important;
+    transform: none !important;
+    box-shadow: none !important;
 }
 
-.subtask-item.subtask-entering.entered {
-    opacity: 1;
-    transform: scale(1);
-}
-
-.subtask-item.subtask-entering.is-exiting {
-    opacity: 0;
-    transform: scale(0.98);
-    pointer-events: none;
-    transition: opacity 0.2s ease, transform 0.2s ease;
-}
-
+/* Делаем textarea внутри пунктира полностью невидимой */
 .subtask-item.subtask-entering .subtask-inline-input {
-    width: 100%;
-    background: transparent;
-    border: none;
-    padding: 0;
-    margin: 0;
-    font-family: var(--font-main);
-    font-size: 14px;
-    font-weight: 500;
-    color: var(--text-primary);
-    outline: none;
-    resize: none;
-    overflow: hidden;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
 }
 
-/* Анимация "Рождения" подзадачи после API */
-.subtask-item.subtask-birth {
-    opacity: 0;
-    transform: translateY(12px);
-    pointer-events: none;
-    will-change: opacity, transform;
-}
+.subtask-item.subtask-entering.entered { opacity: 1; transform: scale(1); }
 
-.subtask-item.subtask-birth.born {
+.subtask-item.subtask-entering.is-exiting { opacity: 0; transform: scale(0.96); pointer-events: none; transition: opacity 0.2s ease, transform 0.2s ease; }
+
+/* Скроллбары для инпута подзадач */
+.subtask-inline-input::-webkit-scrollbar { width: 6px; height: 6px; }
+.subtask-inline-input::-webkit-scrollbar-track { background: transparent; border-radius: 4px; }
+.subtask-inline-input::-webkit-scrollbar-thumb { background: rgba(74, 90, 72, 0.25); border-radius: 4px; }
+.subtask-inline-input::-webkit-scrollbar-thumb:hover { background: rgba(74, 90, 72, 0.45); }
+[data-theme="dark"] .subtask-inline-input::-webkit-scrollbar-thumb { background: rgba(137, 160, 133, 0.35); }
+[data-theme="dark"] .subtask-inline-input::-webkit-scrollbar-thumb:hover { background: rgba(137, 160, 133, 0.55); }
+
+/* Поддержка показа ошибки в подзадаче */
+.subtask-item.is-error .card-error-hint {
     opacity: 1;
     transform: translateY(0);
-    pointer-events: auto;
-    transition:
-        opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1),
-        transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.subtask-item .card-error-hint {
+    margin-top: 6px;
+}
+
+/* Анимация "Рождения" подзадачи — ЖЕСТКАЯ СИНХРОНИЗАЦИЯ */
+.subtask-item.subtask-birth {
+    opacity: 0; 
+    transform: translateY(16px); /* Было 12, у карточек 16 */
+    pointer-events: none; 
+    will-change: opacity, transform; 
+}
+
+.subtask-item.subtask-birth.born { 
+    opacity: 1; 
+    transform: translateY(0); 
+    pointer-events: auto; 
+    transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1) 0.05s, 
+                transform 0.45s cubic-bezier(0.16, 1, 0.3, 1); 
 }
 
 /* Тряска при ошибке */
 .subtask-item.is-error {
     animation: column-shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+/* --- СТИЛИ ДЛЯ DRAG & DROP ПОДЗАДАЧ (Senior UI Polish) --- */
+
+/* Клон подзадачи в полете: полная копия обычной карточки */
+.subtask-drag-clone {
+    position: fixed !important;
+    z-index: 99999;
+    pointer-events: none !important;
+    margin: 0 !important;
+    
+    /* Цвета и границы как у карточек (авто-поддержка темной темы) */
+    background: var(--surface-card) !important;
+    border: 1px solid var(--border-light) !important;
+    border-radius: 12px !important;
+    box-shadow: var(--shadow-drag) !important;
+    
+    /* Убираем прозрачность */
+    opacity: 1 !important; 
+
+    /* Сохраняем внутреннюю геометрию подзадачи */
+    display: flex !important;
+    align-items: flex-start !important;
+    padding: 10px 12px !important;
+    gap: 12px !important;
+}
+
+/* Призрак на месте оригинала: полная копия карточек */
+.subtask-item.is-ghost { 
+    opacity: 0.3 !important; 
+    background: var(--border-light) !important; 
+    border: 1px solid transparent !important; 
+    box-shadow: none !important; 
+}
+
+.subtask-item.is-ghost * {
+    visibility: hidden !important;
+}
+
+/* Курсоры */
+.subtask-item:not(.subtask-entering) {
+    cursor: grab;
+}
+
+body.is-dragging-subtask .subtask-item {
+    cursor: grabbing !important;
+}
+
+/* Состояние когда форма появилась */
+.subtask-item.subtask-entering.entered {
+    opacity: 1;
+    transform: scale(1);
+}
+
+/* Убираем синий ПИЗДЕЦ (outline) и все рамки у инпута внутри пунктира */
+.subtask-item.subtask-entering .subtask-inline-input {
+    background: transparent !important;
+    border: none !important;
+    outline: none !important; /* УБИРАЕТ СИНЮЮ РАМКУ */
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100%;
+    color: var(--text-primary);
+    font-family: var(--font-main);
+    font-size: 14px;
+    resize: none;
+}
+
+/* Чтобы пунктир не подсвечивался и не дергался при наведении */
+.subtask-item.subtask-entering:hover {
+    background: transparent !important;
+    transform: none !important;
+    box-shadow: none !important;
+    border-color: rgba(74, 90, 72, 0.45) !important;
+}
+
+/* --- СТИЛИ ДЛЯ ПУНКТИРА И ОШИБОК ПОДЗАДАЧИ --- */
+.subtask-item.subtask-entering {
+    background: transparent !important;
+    border: 1.5px dashed rgba(74, 90, 72, 0.25) !important;
+    box-shadow: none !important;
+    padding: 10px 12px !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    cursor: default !important;
+    min-height: 0 !important; 
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Убираем синий контур и системный фон */
+.subtask-inline-input {
+    background: transparent !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    width: 100% !important;
+    padding: 0 !important;
+    font-size: 14px !important;
+    line-height: 1.4 !important;
+    color: var(--text-primary) !important;
+    resize: none !important;
+    overflow: hidden !important; /* Убираем скролл, так как высота будет по тексту */
+    display: block !important;
+}
+
+/* ФИКС ЦВЕТА ВЫДЕЛЕНИЯ */
+.subtask-inline-input::selection {
+    background: #C3C6BC !important;
+    color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .subtask-inline-input::selection {
+    background: #41493E !important;
+    color: var(--text-primary) !important;
+}
+
+/* Текст ошибки внутри подзадачи */
+.subtask-item .card-error-hint {
+    margin-top: 6px;
+    font-size: 11px;
+    color: #D35446;
+    font-weight: 600;
+    opacity: 0;
+    transform: translateY(-4px);
+    transition: all 0.2s ease;
+}
+
+/* Показ ошибки */
+.subtask-item.is-error {
+    border-color: #D35446 !important;
+    animation: column-shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+.subtask-item.is-error .card-error-hint {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.subtask-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+    margin-top: 0; /* БЫЛО: -3px */
+}
+
+/* Кнопка удаления (корзина) */
+.subtask-delete-btn {
+    opacity: 0;
+    background: transparent;
+    border: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+/* Показываем обе кнопки при наведении на подзадачу */
+.subtask-item:hover .subtask-delete-btn,
+.subtask-item:hover .subtask-open-btn {
+    opacity: 1;
+}
+
+/* Эффект при наведении на корзину (Danger zone) */
+.subtask-delete-btn:hover {
+    background: rgba(211, 84, 70, 0.1);
+    color: #D35446;
+}
+
+[data-theme="dark"] .subtask-delete-btn:hover {
+    background: rgba(214, 90, 75, 0.15);
+    color: #D65A4B;
+}
+
+/* Переопределяем старую кнопку открытия, чтобы она работала в группе */
+.subtask-open-btn {
+    opacity: 0;
+    position: static !important; /* Отменяем абсолютное позиционирование если было */
+    margin: 0 !important;
+}
+
+/* ==========================================
+   ПЕРЕИМЕНОВАНИЕ ЗАГОЛОВКА В МОДАЛКЕ И ПОДЗАДАЧ
+   ========================================== */
+
+/* Инпут для главного заголовка в открытой карточке */
+.task-modal-title-input {
+    background: var(--brand-pale);
+    border: none;
+    border-radius: 6px;
+    outline: none;
+    font-family: var(--font-main);
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+    flex: 1;
+    margin-right: 12px; /* Зазор до крестика закрытия */
+    resize: none;
+    overflow: hidden;
+    padding: 4px 6px;
+    margin-left: -6px; /* Компенсация padding для сохранения позиции текста */
+    display: block;
+    line-height: 1.4;
+}
+
+/* Инпут для переименования подзадачи */
+.subtask-title-input {
+    background: var(--brand-pale);
+    border: none;
+    border-radius: 6px;
+    outline: none;
+    font-family: var(--font-main);
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.4;
+    color: var(--text-primary);
+    flex: 1;
+    resize: none;
+    overflow: hidden;
+    padding: 2px 6px;
+    margin: -2px -6px;
+    display: block;
+}
+
+/* Цвета выделения текста */
+.task-modal-title-input::selection,
+.subtask-title-input::selection {
+    background: #C3C6BC;
+    color: var(--text-primary);
+}
+
+/* --- Поддержка тёмной темы --- */
+[data-theme="dark"] .task-modal-title-input,
+[data-theme="dark"] .subtask-title-input {
+    background: rgba(137, 160, 133, 0.15);
+}
+[data-theme="dark"] .task-modal-title-input::selection,
+[data-theme="dark"] .subtask-title-input::selection {
+    background: #41493E;
+    color: var(--text-primary);
+}
+
+/* Состояние редактирования для подзадачи (отключаем драг) */
+.subtask-item.is-renaming {
+    cursor: default !important;
+}
+.subtask-item.is-renaming .subtask-title-input {
+    cursor: text !important;
+    pointer-events: auto !important;
+}
+
+/* ДОБАВЬТЕ ЭТИ СТРОКИ В КОНЕЦ ФАЙЛА frontend/styles.css */
+
+/* Стилизация вложений на основе подзадач */
+body.is-dragging-attachment .attachment-item {
+    cursor: grabbing !important;
+}
+.attachment-item .subtask-checkbox {
+    border: none !important;
+    background: transparent !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.attachment-item svg {
+    display: block; /* Убирает лишний дескриптор внизу строки */
+}
+
+/* ==========================================
+   ФИКС ОТСТУПОВ ВЛОЖЕНИЙ (Senior UI Refinement)
+   ========================================== */
+
+/* Наследуем стандартный зазор (gap: 12px) от подзадач */
+.attachment-item {
+    padding-left: 12px !important; 
+}
+
+/* Оставляем размер контейнера 18x18 как у чекбоксов для идеальной соосности */
+.attachment-item .subtask-checkbox {
+    margin: 0 !important;      
+    border: none !important;
+    background: transparent !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Убираем возможный лишний отступ у текста */
+.attachment-item .subtask-title {
+    margin-left: 0 !important;
+    line-height: 1.2;
+}
+
+/* Делаем иконку чуть бледнее (secondary), чтобы она не спорила с текстом */
+.attachment-item .subtask-checkbox svg {
+    opacity: 0.7;
+    color: var(--text-secondary);
+}
+
+/* При наведении на весь элемент подсвечиваем иконку */
+.attachment-item:hover .subtask-checkbox svg {
+    opacity: 1;
+    color: var(--brand-pine);
+}
+/* ==========================================
+   DRAG & DROP ВЛОЖЕНИЙ (Senior UI Polish)
+   ========================================== */
+
+/* Клон вложения, который летит за мышкой */
+.attachment-drag-clone {
+    position: fixed !important;
+    z-index: 99999;
+    pointer-events: none !important;
+    margin: 0 !important;
+    
+    /* Стилизация под карточку в полете */
+    background: var(--surface-card) !important;
+    border: 1px solid var(--border-light) !important;
+    border-radius: 12px !important;
+    box-shadow: var(--shadow-drag) !important;
+    opacity: 1 !important; 
+
+    /* Сохраняем геометрию как у подзадач */
+    display: flex !important;
+    align-items: center !important;
+    padding: 10px 12px !important;
+    gap: 12px !important;
+    
+    /* Ускорение отрисовки */
+    will-change: transform;
+    contain: layout style paint;
+}
+
+/* Призрак вложения, остающийся в списке */
+.attachment-item.is-ghost { 
+    opacity: 0.2 !important; 
+    background: var(--border-light) !important; 
+    border: 1px solid transparent !important; 
+    box-shadow: none !important; 
+}
+
+/* Прячем содержимое призрака, чтобы не отвлекало */
+.attachment-item.is-ghost * {
+    visibility: hidden !important;
+}
+
+/* Принудительный курсор для всей страницы во время драга */
+body.is-dragging-attachment, 
+body.is-dragging-attachment * {
+    cursor: grabbing !important;
+}
+
+/* Блокируем hover-эффекты у других вложений, пока тащим одно */
+body.is-dragging-attachment .attachment-item:not(.attachment-drag-clone) {
+    transform: none !important;
+    box-shadow: var(--shadow-card) !important;
+    transition: none !important;
 }

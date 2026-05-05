@@ -156,6 +156,20 @@
                 <textarea id="task-desc-input" class="description-input" spellcheck="false" placeholder="Описание задачи..."></textarea>
             </div>
 
+            <!-- НОВАЯ СЕКЦИЯ ВЛОЖЕНИЙ -->
+            <div class="attachments-section subtasks-section">
+                <div class="subtasks-header">
+                    <span data-i18n="attachments">Вложения</span>
+                    <span class="subtasks-count" id="attachments-count">0</span>
+                    <button id="btn-add-attachment" class="header-add-btn" title="Добавить вложение">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    </button>
+                </div>
+                <div id="attachments-list" class="subtasks-list">
+                    <!-- Рендерится через JS -->
+                </div>
+            </div>
+
             <!-- НОВАЯ СЕКЦИЯ ПОДЗАДАЧ -->
             <div class="subtasks-section">
                 <div class="subtasks-header">

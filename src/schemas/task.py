@@ -24,6 +24,7 @@ class TaskUpdate(BaseModel):
     column_id: Optional[int] = None
     parent_id: Optional[int] = None
     position: Optional[float] = None
+    attachments_order: Optional[List[str]] = None
 
 
 class TaskMove(BaseModel):
@@ -51,6 +52,7 @@ class TaskCreateResponse(TaskBase):
     id: int
     column_id: int
     description: Optional[str] = None
+    attachments_order: List[str] = []
     parent_id: Optional[int]
     position: float
     created_at: datetime
@@ -68,6 +70,7 @@ class TaskResponse(TaskBase):
     id: int
     column_id: int
     description: Optional[str] = None
+    attachments_order: List[str] = []
     parent_id: Optional[int]
     position: float
     created_at: datetime

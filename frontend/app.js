@@ -8,6 +8,7 @@ const translations = {
         settings: 'Настройки', theme: 'Тема', language: 'Язык', about: 'О приложении', workspace: 'Doe Board', cancel: 'Отмена',
         newColumn: '+ Создать колонку', newTask: '+ Новая задача', subtasks: 'Подзадачи',
         columnModes: { default: 'Стандартный', track_time: 'Учёт времени', completion: 'Результирующий' },
+        attachments: 'Вложения', addAttachment: '+ Добавить вложение...',
         menu: { 
             mode: 'Режим колонки', collapse: 'Свернуть колонку', rename: 'Переименовать', 
             delete: 'Удалить', clear: 'Очистить', open: 'Открыть', 
@@ -41,6 +42,7 @@ const translations = {
         settings: 'Settings', theme: 'Theme', language: 'Language', about: 'About', workspace: 'Doe Board', cancel: 'Cancel',
         newColumn: '+ Create column', newTask: '+ New task', subtasks: 'Subtasks',
         columnModes: { default: 'Standard', track_time: 'Track time', completion: 'Completed' },
+        attachments: 'Attachments', addAttachment: '+ Add attachment...',
         menu: { 
             mode: 'Column mode', collapse: 'Collapse column', rename: 'Rename', 
             delete: 'Delete', clear: 'Clear', open: 'Open', 
@@ -71,6 +73,10 @@ const translations = {
         alerts: { loadError: 'Failed to load board', error: 'Error' }
     }
 };
+
+// Глобальная защита: запрещаем браузеру открывать файлы при случайном перетаскивании мимо зоны
+window.addEventListener('dragover', (e) => e.preventDefault());
+window.addEventListener('drop', (e) => e.preventDefault());
 
 let currentLang = 'ru';
 let activeConfirmResolve = null; // Добавили эту строку
@@ -1827,6 +1833,198 @@ function startCardRename(cardEl, task) {
     });
 }
 
+// ==========================================
+// ПЕРЕИМЕНОВАНИЕ ЗАГОЛОВКА ОТКРЫТОЙ КАРТОЧКИ
+// ==========================================
+function startModalTaskRename(titleEl) {
+    const modal = document.getElementById('task-modal');
+    if (modal.classList.contains('is-renaming')) return;
+
+    const taskId = parseInt(modal.dataset.taskId);
+    const originalTitle = titleEl.textContent;
+
+    const input = document.createElement('textarea');
+    input.className = 'task-modal-title-input';
+    input.value = originalTitle;
+    input.rows = 1;
+    input.spellcheck = false;
+
+    titleEl.replaceWith(input);
+    modal.classList.add('is-renaming');
+
+    // Авто-ресайз по высоте
+    const autoResize = () => {
+        input.style.height = 'auto';
+        input.style.height = input.scrollHeight + 'px';
+    };
+    input.addEventListener('input', autoResize);
+    autoResize();
+    
+    input.focus();
+    input.setSelectionRange(input.value.length, input.value.length);
+
+    let committed = false;
+
+    const restore = (title) => {
+        const span = document.createElement('span');
+        span.className = 'modal-title';
+        span.id = 'task-modal-title';
+        span.textContent = title;
+        if (input.parentNode) input.replaceWith(span);
+        modal.classList.remove('is-renaming');
+    };
+
+    const commit = async () => {
+        if (committed) return;
+        
+        const newTitle = input.value.trim();
+        // Защита от переполнения
+        if (newTitle.length > 200) {
+            input.style.color = '#D35446';
+            setTimeout(() => input.style.color = '', 400);
+            input.focus();
+            return;
+        }
+
+        committed = true;
+        const finalTitle = newTitle || originalTitle;
+        restore(finalTitle);
+
+        if (newTitle && newTitle !== originalTitle) {
+            try {
+                await updateTask(taskId, { title: newTitle });
+                
+                // Обновляем задачу в локальном стейте (если она на главной доске)
+                for (let col of state.columns) {
+                    let t = col.tasks.find(t => t.id === taskId);
+                    if (t) {
+                        t.title = newTitle;
+                        break;
+                    }
+                }
+                refreshBoard(); // Чтобы название карточки обновилось и на фоне
+                
+                // Обновляем хлебные крошки внутри модалки
+                if (modalNavigationStack.length > 0) {
+                    modalNavigationStack[modalNavigationStack.length - 1].title = newTitle;
+                    renderBreadcrumbs();
+                }
+            } catch (e) {
+                console.error("Ошибка при переименовании задачи", e);
+                restore(originalTitle);
+            }
+        }
+    };
+
+    // Защита от перехвата драг-н-дропом модалки
+    input.addEventListener('mousedown', (e) => e.stopPropagation());
+    input.addEventListener('click', (e) => e.stopPropagation());
+    input.addEventListener('pointerdown', (e) => e.stopPropagation());
+
+    input.addEventListener('keydown', (e) => {
+        e.stopPropagation();
+        if (e.key === 'Enter') { e.preventDefault(); commit(); }
+        if (e.key === 'Escape') { e.preventDefault(); committed = true; restore(originalTitle); }
+    });
+    input.addEventListener('blur', () => setTimeout(() => { if (!committed) commit(); }, 120));
+}
+
+// ==========================================
+// ПЕРЕИМЕНОВАНИЕ ПОДЗАДАЧИ
+// ==========================================
+function startSubtaskRename(subtaskEl) {
+    const titleDiv = subtaskEl.querySelector('.subtask-title');
+    if (!titleDiv || subtaskEl.classList.contains('is-renaming')) return;
+
+    const subtaskId = parseInt(subtaskEl.dataset.subtaskId);
+    const originalTitle = titleDiv.textContent;
+
+    const input = document.createElement('textarea');
+    input.className = 'subtask-title-input';
+    input.value = originalTitle;
+    input.rows = 1;
+    input.spellcheck = false;
+
+    titleDiv.replaceWith(input);
+    subtaskEl.classList.add('is-renaming');
+
+    const autoResize = () => {
+        input.style.height = 'auto';
+        input.style.height = input.scrollHeight + 'px';
+    };
+    input.addEventListener('input', () => {
+        if (input.value.trim().length <= 200) {
+            subtaskEl.classList.remove('is-error');
+            const hint = subtaskEl.querySelector('.card-error-hint');
+            if (hint) hint.remove();
+        }
+        autoResize();
+    });
+    autoResize();
+    
+    input.focus();
+    input.setSelectionRange(input.value.length, input.value.length);
+
+    let committed = false;
+
+    const restore = (title) => {
+        const div = document.createElement('div');
+        div.className = 'subtask-title';
+        div.textContent = title;
+        
+        const hint = subtaskEl.querySelector('.card-error-hint');
+        if (hint) hint.remove();
+
+        if (input.parentNode) input.replaceWith(div);
+        subtaskEl.classList.remove('is-renaming', 'is-error');
+    };
+
+    const commit = async () => {
+        if (committed) return;
+        
+        const newTitle = input.value.trim();
+        
+        // Валидация на 200 символов с тряской
+        if (newTitle.length > 200) {
+            if (!subtaskEl.querySelector('.card-error-hint')) {
+                const hint = document.createElement('div');
+                hint.className = 'card-error-hint';
+                hint.textContent = t('errors.tooLong');
+                subtaskEl.appendChild(hint);
+            }
+            subtaskEl.classList.remove('is-error');
+            void subtaskEl.offsetWidth; // Force Reflow
+            subtaskEl.classList.add('is-error');
+            input.focus();
+            return;
+        }
+
+        committed = true;
+        const finalTitle = newTitle || originalTitle;
+        restore(finalTitle);
+
+        if (newTitle && newTitle !== originalTitle) {
+            try {
+                await updateTask(subtaskId, { title: newTitle });
+            } catch (e) {
+                console.error("Ошибка при переименовании подзадачи", e);
+                restore(originalTitle);
+            }
+        }
+    };
+
+    input.addEventListener('mousedown', (e) => e.stopPropagation());
+    input.addEventListener('click', (e) => e.stopPropagation());
+    input.addEventListener('pointerdown', (e) => e.stopPropagation());
+
+    input.addEventListener('keydown', (e) => {
+        e.stopPropagation();
+        if (e.key === 'Enter') { e.preventDefault(); commit(); }
+        if (e.key === 'Escape') { e.preventDefault(); committed = true; restore(originalTitle); }
+    });
+    input.addEventListener('blur', () => setTimeout(() => { if (!committed) commit(); }, 120));
+}
+
 function adjustCollapsedColumnWidths() {
     const CHAR_HEIGHT = 18.2;  // 13px * 1.4 line-height
     const MAX_LINES = 5;
@@ -1906,12 +2104,22 @@ document.addEventListener('pointerdown', (e) => {
     if (e.target.closest('button, input, textarea, .menu-btn, .card-menu-btn, .tab-close-btn, .column.is-renaming, .board-tab.is-renaming, .card.is-renaming, .card-entering')) return;
 
     // 2. Ищем, на чем именно кликнули
+    const subtask = e.target.closest('.subtask-item');
+    const attachment = e.target.closest('.attachment-item'); // <--- ВОТ ЭТО НАДО ДОБАВИТЬ
     const card = e.target.closest('.card');
-    const column = e.target.closest('.column'); // 🔥 ФИКС: Теперь захватывать можно любые колонки
+    const column = e.target.closest('.column');
     const tab = e.target.closest('.board-tab');
 
-    // 3. ЖЕСТКАЯ ИЕРАРХИЯ ЗАХВАТА (Решает Баги 1 и 2)
-    if (card) {
+    // 3. ЖЕСТКАЯ ИЕРАРХИЯ ЗАХВАТА
+    if (attachment) { // <--- ВОТ ЭТО НАДО ДОБАВИТЬ
+        potentialDragType = 'attachment';
+        potentialDragTarget = attachment;
+    }
+    else if (subtask) { 
+        potentialDragType = 'subtask';
+        potentialDragTarget = subtask;
+    }
+    else if (card) {
         // Кликнули в карточку -> тащим карточку
         potentialDragType = 'card';
         potentialDragTarget = card;
@@ -2006,7 +2214,7 @@ function startDrag(element, type, e) {
     const initialY = e.clientY - offsetY;
     
     // Коэффициент увеличения (колонки увеличиваем чуть меньше, чем карточки)
-    const scale = dragType === 'column' ? 1.02 : 1.04;
+    const scale = (dragType === 'column' || dragType === 'tab') ? 1.02 : 1.04;
     
     // Применяем transform СРАЗУ. Теперь при appendChild элемент появится 
     // ровно в том месте, где находится мышь, не дожидаясь следующего кадра.
@@ -2087,6 +2295,32 @@ function performHitTest() {
             }
         }
     }
+
+    // 4. ПОДЗАДАЧИ
+    else if (dragType === 'subtask') {
+        const hoverSub = elemUnderMouse.closest('.subtask-item:not(.is-ghost)');
+        if (hoverSub && hoverSub !== draggedElement && hoverSub.closest('#subtasks-list')) {
+            const rect = hoverSub.getBoundingClientRect();
+            // Сортировка по вертикали
+            if (mouseY > rect.top + rect.height / 2) {
+                if (hoverSub.nextElementSibling !== draggedElement) hoverSub.after(draggedElement);
+            } else {
+                if (hoverSub.previousElementSibling !== draggedElement) hoverSub.before(draggedElement);
+            }
+        }
+    }
+    // 5. ВЛОЖЕНИЯ
+    else if (dragType === 'attachment') {
+        const hoverAtt = elemUnderMouse.closest('.attachment-item:not(.is-ghost)');
+        if (hoverAtt && hoverAtt !== draggedElement && hoverAtt.closest('#attachments-list')) {
+            const rect = hoverAtt.getBoundingClientRect();
+            if (mouseY > rect.top + rect.height / 2) {
+                if (hoverAtt.nextElementSibling !== draggedElement) hoverAtt.after(draggedElement);
+            } else {
+                if (hoverAtt.previousElementSibling !== draggedElement) hoverAtt.before(draggedElement);
+            }
+        }
+    }
 }
 
 function handleEdgePanning() {
@@ -2148,29 +2382,25 @@ function handleEdgePanning() {
 function renderPhysics() {
     if (!isDragging || !dragClone) return;
 
-    // 1. Сначала двигаем экран
     const didScroll = handleEdgePanning();
     
-    // 2. Рассчитываем инерцию и наклон (твой существующий код)
     const deltaX = mouseX - lastMouseX;
     lastMouseX = mouseX;
     
-    const maxRotation = dragType === 'tab' ? 3 : (dragType === 'column' ? 3 : 12); 
+    // Добавляем 'attachment' к лимиту наклона как у подзадач
+    const maxRotation = (dragType === 'tab' || dragType === 'column') ? 3 : 12; 
     targetRotation = Math.max(-maxRotation, Math.min(maxRotation, deltaX * 0.4));
     currentRotation += (targetRotation - currentRotation) * 0.15;
 
-    // 3. Обновляем позицию клона
     const x = mouseX - parseFloat(dragClone.dataset.offsetX);
     const y = mouseY - parseFloat(dragClone.dataset.offsetY);
-    const scale = dragType === 'column' ? 1.02 : 1.04;
+    
+    // Добавляем 'attachment' в список типов, которые чуть-чуть увеличиваются (scale 1.04)
+    const scale = (dragType === 'column' || dragType === 'tab') ? 1.02 : 1.04;
     
     dragClone.style.transform = `translate3d(${x}px, ${y}px, 0) rotate(${currentRotation}deg) scale(${scale})`;
     
-    // 4. Если экран едет, пересчитываем, куда должна упасть карточка прямо сейчас
-    if (didScroll) {
-        performHitTest();
-    }
-    
+    if (didScroll) performHitTest();
     rafId = requestAnimationFrame(renderPhysics);
 }
 
@@ -2180,6 +2410,44 @@ async function endDrag() {
     
     document.body.classList.remove(`is-dragging-${dragType}`);
     document.body.style.userSelect = '';
+
+    if (dragType === 'subtask') {
+            const currentSubtasks = Array.from(document.querySelectorAll('#subtasks-list .subtask-item:not(.subtask-drag-clone)'));
+            const orderedIds = currentSubtasks.map(s => parseInt(s.dataset.subtaskId));
+            
+            try {
+                // Используем тот же универсальный эндпоинт реордера задач
+                await saveTasksOrder(orderedIds);
+                // Обновляем доску на фоне, чтобы позиции синхронизировались в стейте
+                refreshBoard(); 
+            } catch (error) {
+                console.error("Ошибка сохранения порядка подзадач", error);
+            }
+    }
+
+    if (dragType === 'attachment') {
+        // Собираем новый порядок прямо из DOM элементов
+        const currentAttachments = Array.from(document.querySelectorAll('#attachments-list .attachment-item:not(.attachment-drag-clone)'));
+        const orderedPaths = currentAttachments.map(el => el.dataset.path);
+        
+        const taskId = document.getElementById('task-modal').dataset.taskId;
+        
+        try {
+            // Тихо отправляем новый массив в БД (Markdown не трогаем!)
+            await updateTask(taskId, { attachments_order: orderedPaths });
+            
+            // Обновляем локальный стейт, чтобы при переоткрытии порядок сохранился
+            for (let col of state.columns) {
+                let task = col.tasks.find(t => t.id == parseInt(taskId));
+                if (task) {
+                    task.attachments_order = orderedPaths;
+                    break;
+                }
+            }
+        } catch (error) {
+            console.error("Ошибка сохранения порядка вложений", error);
+        }
+    }
     
     if (dragClone) {
         dragClone.remove();
@@ -2372,6 +2640,23 @@ document.addEventListener('click', async (e) => {
                     return;
                 }
             }
+        }
+    }
+
+    // ПЕРЕИМЕНОВАНИЕ ГЛАВНОГО ЗАГОЛОВКА В МОДАЛКЕ КАРТОЧКИ
+    const modalTitleEl = target.closest('#task-modal-title');
+    if (modalTitleEl) {
+        startModalTaskRename(modalTitleEl);
+        return;
+    }
+
+    // ПЕРЕИМЕНОВАНИЕ ПОДЗАДАЧИ
+    const subtaskTitleEl = target.closest('.subtask-title');
+    if (subtaskTitleEl) {
+        const subtaskEl = subtaskTitleEl.closest('.subtask-item');
+        if (subtaskEl && !subtaskEl.classList.contains('is-renaming')) {
+            startSubtaskRename(subtaskEl);
+            return;
         }
     }
 
@@ -2623,10 +2908,23 @@ async function loadTaskIntoModal(taskId, pushToStack = true) {
         
         // 3. Описание (Markdown)
         inputArea.value = task.description || "";
+        const attachmentsList = document.getElementById('attachments-list');
+        const attachmentsCount = document.getElementById('attachments-count');
+        
         if (task.description) {
-            renderDiv.innerHTML = marked.parse(task.description, { breaks: true });
+            // Парсим вложения
+            const extracted = extractAttachments(task.description, task.attachments_order || []);
+            attachmentsCount.textContent = extracted.length;
+            attachmentsList.innerHTML = '';
+            extracted.forEach(att => attachmentsList.appendChild(createAttachmentElement(att)));
+
+            const cleanRegex = /(!?)\[[^\]]+\]\(attachments\/[^)]+\)!\s*/g;
+            let readModeText = task.description.replace(cleanRegex, '');
+            renderDiv.innerHTML = marked.parse(readModeText, { breaks: true });
             enhanceCodeBlocks(renderDiv);
         } else {
+            attachmentsCount.textContent = '0';
+            attachmentsList.innerHTML = '';
             renderDiv.innerHTML = `<span class="markdown-empty">${currentLang === 'ru' ? 'Кликните, чтобы добавить описание...' : 'Click to add description...'}</span>`;
         }
         renderDiv.style.display = 'block';
@@ -3040,16 +3338,19 @@ function enhanceCodeBlocks(container) {
 }
 
 function generateSubtaskHtml(sub) {
+    const trashIconSvg = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
     const openIconSvg = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`;
+    
     return `
         <div class="subtask-item ${sub.completed_at ? 'is-done' : ''}" data-subtask-id="${sub.id}">
             <div class="subtask-checkbox">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4"><polyline points="20 6 9 17 4 12"/></svg>
             </div>
             <div class="subtask-title">${escapeHtml(sub.title)}</div>
-            <button class="subtask-open-btn" title="${t('menu.open')}">
-                ${openIconSvg}
-            </button>
+            <div class="subtask-actions">
+                <button class="subtask-delete-btn" title="${t('menu.delete')}">${trashIconSvg}</button>
+                <button class="subtask-open-btn" title="${t('menu.open')}">${openIconSvg}</button>
+            </div>
         </div>
     `;
 }
@@ -3064,48 +3365,67 @@ async function onAddSubtask() {
 
     if (!addBtn) return;
 
-    // Создаем элемент формы
+    // 1. Создаем форму-пунктир
     const formItem = document.createElement('div');
     formItem.className = 'subtask-item subtask-entering';
     formItem.innerHTML = `
         <textarea class="subtask-inline-input" placeholder="${t('taskModal.subtasksPlaceholder').replace(/^\+ /, '')}" spellcheck="false" rows="1"></textarea>
     `;
 
-    // Заменяем кнопку на форму
     addBtn.replaceWith(formItem);
-
-    requestAnimationFrame(() => {
-        requestAnimationFrame(() => formItem.classList.add('entered'));
-    });
-
     const input = formItem.querySelector('textarea');
+    
+    const autoResize = () => {
+        input.style.height = '0px'; 
+        input.style.height = input.scrollHeight + 'px';
+        
+        // ФОКУС СКРОЛЛА: При наборе текста держим инпут в поле зрения
+        formItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    };
+
+    input.addEventListener('input', () => {
+        if (input.value.trim().length <= 200) {
+            formItem.classList.remove('is-error');
+            const hint = formItem.querySelector('.card-error-hint');
+            if (hint) hint.remove();
+        }
+        autoResize();
+    });
+    
+    autoResize();
     input.focus();
+
+    // ФОКУС СКРОЛЛА: Сразу после появления формы скроллим к ней
+    requestAnimationFrame(() => {
+        formItem.classList.add('entered');
+        formItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
 
     let isResolved = false;
 
-    const cancel = (animate = true) => {
+    const cancel = () => {
         if (isResolved) return;
         isResolved = true;
-        input.blur();
-
-        if (!animate) {
-            renderSubtaskAddButton(container);
-            return;
-        }
-
-        formItem.classList.remove('entered');
-        formItem.classList.add('is-exiting');
+        formItem.style.opacity = '0';
         setTimeout(() => renderSubtaskAddButton(container), 200);
     };
 
     const submit = async () => {
         const title = input.value.trim();
-        if (!title) { cancel(true); return; }
-        
+        if (!title) { cancel(); return; }
+
         if (title.length > 200) {
+            if (!formItem.querySelector('.card-error-hint')) {
+                const hint = document.createElement('div');
+                hint.className = 'card-error-hint';
+                hint.textContent = t('errors.tooLong');
+                formItem.appendChild(hint);
+            }
             formItem.classList.remove('is-error');
             void formItem.offsetWidth;
             formItem.classList.add('is-error');
+            autoResize(); 
+            input.focus();
             return;
         }
 
@@ -3123,47 +3443,44 @@ async function onAddSubtask() {
             if (!res.ok) throw new Error();
             const newSub = await res.json();
 
-            // Создаем реальную подзадачу с анимацией рождения
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = generateSubtaskHtml(newSub).trim();
             const realSub = tempDiv.firstChild;
             realSub.classList.add('subtask-birth');
-
-            // Вешаем обработчики (те, что были в loadTaskIntoModal)
+            
+            subtasksList.appendChild(realSub);
             bindSubtaskEvents(realSub, newSub, parentId);
 
-            // Вставляем в список и анимируем
-            subtasksList.appendChild(realSub);
-            renderSubtaskAddButton(container); // Возвращаем кнопку добавления под формой
+            formItem.remove();
+            renderSubtaskAddButton(container);
 
+            // ФОКУС СКРОЛЛА: Когда родилась новая подзадача, летим к ней
             requestAnimationFrame(() => {
-                requestAnimationFrame(() => realSub.classList.add('born'));
+                realSub.classList.add('born');
+                realSub.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             });
 
             setTimeout(() => realSub.classList.remove('subtask-birth', 'born'), 500);
-            
-            // Обновляем счетчик
-            const countEl = document.getElementById('subtasks-count');
-            countEl.textContent = parseInt(countEl.textContent) + 1;
-            
+            document.getElementById('subtasks-count').textContent = parseInt(document.getElementById('subtasks-count').textContent) + 1;
             refreshBoard();
-
         } catch (err) {
             isResolved = false;
             input.disabled = false;
             formItem.classList.add('is-error');
             setTimeout(() => formItem.classList.remove('is-error'), 400);
+            input.focus();
         }
     };
 
     input.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') { e.preventDefault(); submit(); }
-        if (e.key === 'Escape') { e.preventDefault(); cancel(true); }
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit(); }
+        if (e.key === 'Escape') { e.preventDefault(); cancel(); }
     });
 
     input.addEventListener('blur', () => {
-        if (!isResolved) {
-            if (input.value.trim()) submit(); else cancel(true);
+        if (!isResolved) { 
+            if (input.value.trim()) submit(); 
+            else cancel(); 
         }
     });
 }
@@ -3176,6 +3493,7 @@ function renderSubtaskAddButton(container) {
 
 // Вспомогательная функция привязки событий (выносим из основного цикла)
 function bindSubtaskEvents(el, sub, parentId) {
+    // 1. Чекбокс
     el.querySelector('.subtask-checkbox').onclick = async (e) => {
         e.stopPropagation();
         const isDone = !el.classList.contains('is-done');
@@ -3183,6 +3501,29 @@ function bindSubtaskEvents(el, sub, parentId) {
         await updateTask(sub.id, { completed_at: isDone ? new Date().toISOString() : null });
         refreshBoard();
     };
+
+    // 2. УДАЛЕНИЕ (Корзина)
+    el.querySelector('.subtask-delete-btn').onclick = async (e) => {
+        e.stopPropagation();
+        
+        // Анимация исчезновения (Senior UI Touch)
+        el.style.transition = 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)';
+        el.style.opacity = '0';
+        el.style.transform = 'translateX(30px) scale(0.95)';
+        
+        setTimeout(() => {
+            if (el.parentNode) el.remove();
+            // Обновляем счетчик подзадач в заголовке модалки
+            const countEl = document.getElementById('subtasks-count');
+            countEl.textContent = Math.max(0, parseInt(countEl.textContent) - 1);
+        }, 250);
+
+        // Отправляем в базу и обновляем доску на фоне
+        await deleteTask(sub.id);
+        refreshBoard();
+    };
+
+    // 3. ОТКРЫТИЕ (Expand)
     el.querySelector('.subtask-open-btn').onclick = (e) => {
         e.stopPropagation();
         loadTaskIntoModal(sub.id, true);
@@ -3195,65 +3536,195 @@ function initTaskDescriptionLogic() {
     const descWrapper = document.querySelector('.description-wrapper');
     const modal = document.getElementById('task-modal');
 
-    // Храним последнее сохраненное значение, чтобы не дергать API зря
     let lastSavedValue = "";
 
     const switchToEditMode = () => {
-        lastSavedValue = inputArea.value; // Запоминаем текущее значение перед правкой
+        lastSavedValue = inputArea.value; 
+
+        // 1. ХИТРЫЙ ТРЮК: Вычисляем пропорциональную позицию клика через Selection API
+        let relativePos = 1; // По умолчанию в конец
+        const selection = window.getSelection();
+        
+        if (selection.rangeCount > 0 && renderDiv.contains(selection.anchorNode)) {
+            const range = selection.getRangeAt(0);
+            const preCaretRange = range.cloneRange();
+            
+            // Выделяем весь текст от начала блока до места клика
+            preCaretRange.selectNodeContents(renderDiv);
+            preCaretRange.setEnd(range.startContainer, range.startOffset);
+            
+            const textBefore = preCaretRange.toString();
+            const totalText = renderDiv.textContent || '';
+            
+            // Получаем процентное соотношение (например, кликнули ровно посередине = 0.5)
+            if (totalText.length > 0) {
+                relativePos = textBefore.length / totalText.length;
+            }
+        }
+
         renderDiv.style.display = 'none';
         inputArea.style.display = 'block';
+
+        // Снимаем любые остаточные выделения текста (чтобы не было синего фона)
+        window.getSelection().removeAllRanges();
         
-        // Маленький хак для установки курсора в конец текста
+        // 2. Ставим курсор в вычисленное место (пропорция * общая длина сырого Markdown)
         inputArea.focus();
-        inputArea.setSelectionRange(inputArea.value.length, inputArea.value.length);
+        const targetIndex = Math.floor(inputArea.value.length * relativePos);
+        inputArea.setSelectionRange(targetIndex, targetIndex);
+        
+        // 3. Синхронизируем скролл, чтобы курсор оказался примерно по центру поля зрения
+        const scrollTarget = (inputArea.scrollHeight * relativePos) - (inputArea.clientHeight / 2);
+        inputArea.scrollTop = Math.max(0, scrollTarget);
     };
 
+    // ==========================================
+    // ЛОГИКА DRAG & DROP ФАЙЛОВ В ОПИСАНИЕ
+    // ==========================================
+    const handleFileDrop = async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        descWrapper.style.borderColor = ''; // Убираем подсветку зоны
+
+        const files = e.dataTransfer.files;
+        if (!files || files.length === 0) return;
+
+        const file = files[0];
+
+        // Если кинули в режим чтения (Markdown) - автоматически переключаем в редактирование
+        if (renderDiv.style.display !== 'none') {
+            switchToEditMode();
+            // Делаем отступ, чтобы файл добавился с новой строки
+            inputArea.value += "\n"; 
+            inputArea.selectionStart = inputArea.value.length;
+        }
+
+        const cursorPos = inputArea.selectionStart;
+        const text = inputArea.value;
+        const placeholder = `\n[⏳ Загрузка ${file.name}...]()`;
+
+        // Вставляем плейсхолдер туда, где стоял курсор
+        inputArea.value = text.substring(0, cursorPos) + placeholder + text.substring(cursorPos);
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const res = await fetch(`${API_BASE}/system/upload`, { 
+                method: 'POST', 
+                body: formData 
+            });
+            if (!res.ok) throw new Error('Upload failed');
+            const data = await res.json();
+            
+            const encodedPath = encodeURI(data.path);
+            inputArea.value = inputArea.value.replace(placeholder, `\n[${data.name}](${encodedPath})`);
+            
+            // Вызываем blur, чтобы сохранить задачу, обновить Markdown и отрендерить список вложений
+            inputArea.dispatchEvent(new Event('blur')); 
+        } catch (err) {
+            inputArea.value = inputArea.value.replace(placeholder, `\n[❌ Ошибка загрузки ${file.name}]()`);
+        }
+    };
+
+    // Подсвечиваем рамку, когда держим файл над описанием
+    descWrapper.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        descWrapper.style.borderColor = 'var(--brand-pine)';
+    });
+
+    descWrapper.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        // Возвращаем стандартный цвет рамки, если курсор не в фокусе ввода
+        descWrapper.style.borderColor = document.activeElement === inputArea ? 'rgba(74, 90, 72, 0.3)' : '';
+    });
+
+    // Обработка самого броска
+    descWrapper.addEventListener('drop', handleFileDrop);
+    // ==========================================
+
     const switchToReadMode = async () => {
-        const newDesc = inputArea.value; // Не тримим здесь, чтобы сохранить форматирование автора
+        const newDesc = inputArea.value;
         const taskId = modal.dataset.taskId;
 
-        // 1. Оптимизация: Если текст не менялся — просто выходим
         if (newDesc === lastSavedValue) {
-            exitEditingUI(newDesc);
+            exitEditingUI(newDesc, null);
             return;
         }
 
-        // 2. Визуально показываем "сохранение" (опционально, в стиле Apple — легкая прозрачность)
         inputArea.style.opacity = "0.7";
 
         try {
-            // 3. Отправляем на бэкенд
+            // Ищем задачу в локальном стейте
+            let currentTask = null;
+            for (let col of state.columns) {
+                currentTask = col.tasks.find(t => t.id == taskId);
+                if (currentTask) break;
+            }
+
+            // Достаем актуальный список вложений, чтобы бэкенд зафиксировал новые/удаленные
+            const savedOrder = currentTask ? (currentTask.attachments_order || []) : [];
+            const extracted = extractAttachments(newDesc, savedOrder);
+            const newOrderPaths = extracted.map(a => a.path);
+
+            // Отправляем ОДНИМ запросом и текст, и актуализированный порядок файлов
             const res = await fetch(`${API_BASE}/tasks/${taskId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ description: newDesc })
+                body: JSON.stringify({ 
+                    description: newDesc,
+                    attachments_order: newOrderPaths 
+                })
             });
 
             if (!res.ok) throw new Error("Save failed");
 
-            // Обновляем локальный стейт, чтобы описание не "прыгнуло" при следующем открытии
-            // Ищем задачу во всех колонках
-            for (let col of state.columns) {
-                let task = col.tasks.find(t => t.id == taskId);
-                if (task) {
-                    task.description = newDesc;
-                    break;
-                }
+            // Сохраняем в стейт
+            if (currentTask) {
+                currentTask.description = newDesc;
+                currentTask.attachments_order = newOrderPaths;
             }
-
-            console.log(`[Vault] Description for task ${taskId} synced.`);
+            
+            // Передаем извлеченные файлы в UI, чтобы не парсить их заново
+            exitEditingUI(newDesc, extracted);
         } catch (err) {
             console.error("Critical sync error:", err);
-            // Здесь можно добавить красную рамку или тряску при ошибке
+            exitEditingUI(newDesc, null);
         } finally {
             inputArea.style.opacity = "1";
-            exitEditingUI(newDesc);
         }
     };
 
-    const exitEditingUI = (content) => {
+    const exitEditingUI = (content, preCalculatedAttachments = null) => {
+        const attachmentsList = document.getElementById('attachments-list');
+        const attachmentsCount = document.getElementById('attachments-count');
+        const taskId = modal.dataset.taskId;
+        
+        if (attachmentsCount && attachmentsList) {
+            let extracted = preCalculatedAttachments;
+            
+            // Если вышли без изменений текста, вычисляем порядок из стейта
+            if (!extracted) {
+                let currentTask = null;
+                for (let col of state.columns) {
+                    currentTask = col.tasks.find(t => t.id == taskId);
+                    if (currentTask) break;
+                }
+                const savedOrder = currentTask ? (currentTask.attachments_order || []) : [];
+                extracted = extractAttachments(content, savedOrder);
+            }
+
+            attachmentsCount.textContent = extracted.length;
+            attachmentsList.innerHTML = '';
+            extracted.forEach(att => attachmentsList.appendChild(createAttachmentElement(att)));
+        }
+
         if (content.trim()) {
-            renderDiv.innerHTML = marked.parse(content, { breaks: true });
+            const cleanRegex = /(!?)\[[^\]]+\]\(attachments\/[^)]+\)!\s*/g;
+            const cleanContent = content.replace(cleanRegex, '');
+            renderDiv.innerHTML = marked.parse(cleanContent, { breaks: true });
             enhanceCodeBlocks(renderDiv);
         } else {
             renderDiv.innerHTML = `<span class="markdown-empty">${currentLang === 'ru' ? 'Кликните, чтобы добавить описание...' : 'Click to add description...'}</span>`;
@@ -3263,8 +3734,15 @@ function initTaskDescriptionLogic() {
         renderDiv.style.display = 'block';
     };
 
-    // Блокируем всплытие кликов из обертки, чтобы ресайз не конфликтовал с драгом модалки
     descWrapper.addEventListener('mousedown', (e) => e.stopPropagation());
+
+    // ФИКС ГЛИТЧА: На 1-й клик ставится каретка, на 2-й клик блокируется "синее" выделение слова
+    renderDiv.addEventListener('mousedown', (e) => {
+        if (e.target.tagName === 'A') return;
+        if (e.detail > 1) {
+            e.preventDefault(); 
+        }
+    });
 
     renderDiv.addEventListener('dblclick', (e) => {
         if (e.target.tagName === 'A') return;
@@ -3272,11 +3750,28 @@ function initTaskDescriptionLogic() {
     });
 
     renderDiv.addEventListener('click', (e) => {
-        // Если описание пустое (заглушка), входим в режим редактирования по одинарному клику
-        if (renderDiv.querySelector('.markdown-empty')) switchToEditMode();
+        // 1. Перехват клика по ссылке
+        const link = e.target.closest('a');
+        if (link) {
+            const href = link.getAttribute('href');
+            // Если это наша локальная ссылка на вложение
+            if (href && href.startsWith('attachments/')) {
+                e.preventDefault();
+                e.stopPropagation();
+                // Отправляем команду на бэкенд открыть файл в ОС
+                fetch(`${API_BASE}/system/open-file`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({path: decodeURIComponent(href)})
+                });
+                return;
+            }
+        }
+        
+        // 2. Если кликнули не по ссылке, а просто по тексту — переходим в режим редактирования
+        switchToEditMode();
     });
 
-    // Тот самый фикс: Blur теперь корректно отрабатывает и вызывает сохранение
     inputArea.addEventListener('blur', () => {
         switchToReadMode();
     });
@@ -3424,6 +3919,135 @@ document.addEventListener('keydown', async (e) => {
         }
     }
 });
+
+function extractAttachments(desc, savedOrder = []) {
+    const regex = /(!?)\[([^\]]+)\]\((attachments\/[^)]+)\)(!?)/g;
+    let match;
+    const attachments = [];
+    
+    // 1. Собираем всё, что физически есть в Markdown
+    while ((match = regex.exec(desc)) !== null) {
+        const realFileName = decodeURIComponent(match[3].split('/').pop());
+        attachments.push({
+            fullMatch: match[0],
+            isImage: match[1] === '!',
+            name: realFileName,
+            path: match[3],
+            isHidden: match[4] === '!'
+        });
+    }
+
+    // 2. Сортируем согласно массиву из БД
+    attachments.sort((a, b) => {
+        const idxA = savedOrder.indexOf(a.path);
+        const idxB = savedOrder.indexOf(b.path);
+        
+        // Если файла еще нет в массиве (только добавили), кидаем его в конец
+        const posA = idxA !== -1 ? idxA : Infinity;
+        const posB = idxB !== -1 ? idxB : Infinity;
+        
+        return posA - posB;
+    });
+
+    return attachments;
+}
+
+function createAttachmentElement(att) {
+    const div = document.createElement('div');
+    div.className = 'subtask-item attachment-item'; 
+    div.dataset.fullMatch = att.fullMatch;
+    div.dataset.path = att.path; // <--- Сохраняем путь для сортировки
+    
+    // Используем простую обертку для иконки
+    const fileIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: block;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>`;
+    const trashIcon = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
+    
+    div.innerHTML = `
+        <div class="subtask-checkbox">
+            ${fileIcon}
+        </div>
+        <div class="subtask-title">${escapeHtml(att.name)}</div>
+        <div class="subtask-actions">
+            <button class="subtask-delete-btn" title="${t('menu.delete')}">${trashIcon}</button>
+        </div>
+    `;
+    
+    // ... остальной код (EventListener-ы) оставляем без изменений ...
+    div.addEventListener('click', async (e) => {
+        if (e.target.closest('.subtask-delete-btn')) return;
+        await fetch(`${API_BASE}/system/open-file`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({path: decodeURIComponent(att.path)})
+        });
+    });
+    
+    div.querySelector('.subtask-delete-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        div.style.transition = 'all 0.2s ease-out';
+        div.style.opacity = '0';
+        div.style.transform = 'translateX(20px)';
+
+        setTimeout(() => {
+            const inputArea = document.getElementById('task-desc-input');
+            // Экранируем спецсимволы в пути и ищем конструкцию по пути, а не по названию
+            const safePath = att.path.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const pathRegex = new RegExp(`(!?)\\[[^\\]]*\\]\\(${safePath}\\)(!?)`, 'g');
+            
+            inputArea.value = inputArea.value.replace(pathRegex, '').trim();
+            inputArea.dispatchEvent(new Event('blur')); 
+        }, 200);
+    });
+    
+    return div;
+}
+
+function appendAttachmentToDescription(name, path) {
+    const inputArea = document.getElementById('task-desc-input');
+    const encodedPath = encodeURI(path); // <--- КОДИРУЕМ
+    const markdown = `\n[${name}](${encodedPath})!`;
+    inputArea.value = (inputArea.value + markdown).trim();
+    inputArea.dispatchEvent(new Event('blur'));
+}
+
+// Обработчик кнопки "+ Добавить вложение"
+document.addEventListener('click', async (e) => {
+    if (e.target.closest('#btn-add-attachment')) {
+        if (window.pywebview && window.pywebview.api && window.pywebview.api.choose_file) {
+            const absPath = await window.pywebview.api.choose_file();
+            if (absPath) {
+                const res = await fetch(`${API_BASE}/system/import-file`, {
+                    method: 'POST', 
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ absolute_path: absPath })
+                });
+                if(res.ok) {
+                    const data = await res.json();
+                    appendAttachmentToDescription(data.name, data.path);
+                }
+            }
+        } else {
+            // Фолбэк для браузера (если запускать без pywebview)
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.onchange = async () => {
+                if (input.files.length > 0) {
+                    const formData = new FormData();
+                    formData.append('file', input.files[0]);
+                    const res = await fetch(`${API_BASE}/system/upload`, {
+                        method: 'POST', body: formData
+                    });
+                    if(res.ok) {
+                        const data = await res.json();
+                        appendAttachmentToDescription(data.name, data.path);
+                    }
+                }
+            };
+            input.click();
+        }
+    }
+});
+
 
 // Запускаем инициализацию (можно поместить вызов внутрь главной IIFE async функции внизу файла)
 initTaskDescriptionLogic();

@@ -145,13 +145,43 @@ settings = get_ui_settings()
 theme = settings.get("theme", "light")
 bg_color = '#161815' if theme == 'dark' else '#F4F3EF'
 
+# --- ЗАМЕНИТЕ КЛАСС WindowAPI в wrapper.py на этот ---
 class WindowAPI:
+    def choose_file(self):
+        """Вызывает нативный диалог выбора файла (macOS/Windows)"""
+        if not webview.windows:
+            return None
+            
+        window = webview.windows[0]
+        result = window.create_file_dialog(
+            dialog_type=webview.OPEN_DIALOG,
+            allow_multiple=False
+        )
+        
+        if result and len(result) > 0:
+            return result[0]
+        return None
+
+    def choose_directory(self):
+        """Вызывает нативный диалог выбора папки (macOS/Windows)"""
+        if not webview.windows:
+            return None
+            
+        window = webview.windows[0]
+        result = window.create_file_dialog(
+            dialog_type=webview.FOLDER_DIALOG,
+            allow_multiple=False
+        )
+        
+        if result and len(result) > 0:
+            return result[0]
+        return None
+    
     def open_local_path(self, path):
         """Открывает файл или папку в стандартном приложении ОС"""
+        print(f"[System] Attempting to open path: {path}")
         try:
-            # Очищаем путь от префикса протокола
             clean_path = path.replace('file://', '')
-            # Декодируем URL-символы (пробелы и т.д.)
             import urllib.parse
             clean_path = urllib.parse.unquote(clean_path)
             
@@ -170,65 +200,25 @@ class WindowAPI:
             return
         
         window = webview.windows[0]
-        
         if sys.platform == 'win32':
             import ctypes
-            # Оставляем только установку иконки и цвета заголовка (для красоты)
             try:
                 hwnd = ctypes.windll.user32.FindWindowW(None, window.title)
                 if hwnd:
-                    # Установка иконки в рантайме (чтобы была в заголовке)
                     icon_path = os.path.join(bundle_dir, "favicon.ico")
                     if os.path.exists(icon_path):
                         hicon = ctypes.windll.user32.LoadImageW(0, icon_path, 1, 32, 32, 0x00000010)
-                        ctypes.windll.user32.SendMessageW(hwnd, 0x0080, 0, hicon) # ICON_SMALL
-                        ctypes.windll.user32.SendMessageW(hwnd, 0x0080, 1, hicon) # ICON_BIG
+                        ctypes.windll.user32.SendMessageW(hwnd, 0x0080, 0, hicon)
+                        ctypes.windll.user32.SendMessageW(hwnd, 0x0080, 1, hicon)
 
-                    # Синхронизация цвета заголовка с темой приложения (Win 11)
-                    # Это сделает окно современным, но ОСТАВИТ рамку и кнопки управления
                     hex_color = bg_color.lstrip('#')
                     r, g, b = tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
                     colorref = (b << 16) | (g << 8) | r
-                    # DWMWA_CAPTION_COLOR = 35
                     ctypes.windll.dwmapi.DwmSetWindowAttribute(hwnd, 35, ctypes.byref(ctypes.c_int(colorref)), 4)
             except Exception as e:
                 print(f"[WebView] Windows UI Sync failed: {e}")
 
-        # Просто показываем окно. Pywebview сам создаст его стандартным (с рамкой).
         window.show()
-    
-    def choose_directory(self):
-        """Вызывает нативный диалог выбора папки (macOS/Windows)"""
-        if not webview.windows:
-            return None
-            
-        window = webview.windows[0]
-        # Вызываем нативный диалог (он автоматически привяжется к нашему окну)
-        result = window.create_file_dialog(
-            dialog_type=webview.FOLDER_DIALOG,
-            allow_multiple=False
-        )
-        
-        # result - это кортеж выбранных путей или None, если нажали "Отмена"
-        if result and len(result) > 0:
-            return result[0]
-        return None
-    
-    def open_local_path(self, path):
-        """Открывает файл или папку в стандартном приложении ОС"""
-        print(f"[System] Attempting to open path: {path}")
-        try:
-            # Очищаем путь от префиксов, если они придут из Markdown
-            clean_path = path.replace('file://', '')
-            if sys.platform == 'darwin':
-                subprocess.call(['open', clean_path])
-            elif sys.platform == 'win32':
-                os.startfile(clean_path)
-            return True
-        except Exception as e:
-            print(f"[System] Failed to open path: {e}")
-            return False
-
 
 class APIServerThread(threading.Thread):
     def __init__(self):
