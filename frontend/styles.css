@@ -28,6 +28,57 @@
     --line-height-standard: 1.5;
 }
 
+/* ==========================================
+   ГЛОБАЛЬНЫЕ СТИЛИ СКРОЛЛБАРА (ВЕЗДЕ)
+   ========================================== */
+
+/* Для Firefox */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(74, 90, 72, 0.25) transparent;
+}
+
+[data-theme="dark"] * {
+    scrollbar-color: rgba(137, 160, 133, 0.35) transparent;
+}
+
+/* Ядерный фикс для Chrome, Safari, Edge и pywebview (WebKit) */
+/* Убрали *, теперь это применяется абсолютно ко всем scroll-контейнерам жестко */
+::-webkit-scrollbar {
+    width: 6px !important;  
+    height: 6px !important; 
+    background-color: transparent !important;
+}
+
+::-webkit-scrollbar-track {
+    background-color: transparent !important;
+    border-radius: 4px !important;
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: rgba(74, 90, 72, 0.25) !important;
+    border-radius: 4px !important;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(74, 90, 72, 0.45) !important;
+}
+
+/* Глобальный скроллбар для Тёмной темы */
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+    background-color: rgba(137, 160, 133, 0.35) !important;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(137, 160, 133, 0.55) !important;
+}
+
+/* Окно (html/body) всё ещё должно быть железно без скроллов */
+html::-webkit-scrollbar, 
+body::-webkit-scrollbar {
+    display: none !important;
+}
+
 /* Блокируем ВСЕ анимации и переходы на момент начальной загрузки приложения */
 .preload * {
     -webkit-transition: none !important;
@@ -39,13 +90,23 @@
 }
 
 /* КРИТИЧЕСКИЙ СБРОС */
-html, body {
+html {
+    background-color: var(--bg-canvas) !important;
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+}
+
+body {
     margin: 0 !important;
     padding: 0 !important;
-    border: none !important;
-    outline: none !important;
-    background-color: var(--bg-canvas); /* Чтобы фон WebView совпадал с окном */
+    background-color: var(--bg-canvas) !important;
+    height: 100%;
+    width: 100%;
     overflow: hidden;
+    -webkit-user-drag: none;
 }
 
 .app-header {
@@ -938,11 +999,12 @@ body {
 
 /* Шапка модального окна */
 .modal-header {
-    padding: 16px 20px;
+    padding: 16px 24px; /* Идеальное выравнивание с контентом ниже */
     border-bottom: 1px solid var(--border-light);
     display: flex;
-    align-items: center;
+    align-items: flex-start; /* Из прошлого фикса */
     justify-content: space-between;
+    position: relative; /* Для позиционирования ошибки */
 }
 
 /* Заголовок в модалке */
@@ -952,8 +1014,30 @@ body {
     color: var(--text-primary);
 }
 
-/* Кнопка закрытия модалки */
-.modal-close {
+/* Специфичные стили для заголовка именно ОТКРЫТОЙ КАРТОЧКИ (для переноса) */
+#task-modal-title {
+    flex: 1;
+    min-width: 0;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    white-space: pre-wrap;
+    line-height: 1.4;
+    cursor: pointer;
+    margin-right: 12px;
+}
+
+/* Контейнер кнопок шапки */
+.modal-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+    margin-top: -2px; /* Компенсация по высоте первой строки */
+}
+
+/* Кнопки в шапке модалки (закрыть, развернуть) */
+.modal-close,
+.modal-maximize {
     background: none;
     border: none;
     cursor: pointer;
@@ -962,15 +1046,85 @@ body {
     align-items: center;
     justify-content: center;
     padding: 6px;
-    margin: -6px;               /* Увеличение области клика */
+    margin: -6px 0 -6px 0;
     border-radius: 8px;
     transition: background 0.15s, color 0.15s;
 }
 
-/* Наведение на кнопку закрытия */
-.modal-close:hover {
+.modal-close:hover,
+.modal-maximize:hover {
     background: rgba(0, 0, 0, 0.05);
     color: var(--text-primary);
+}
+
+/* Темная тема для кнопок */
+[data-theme="dark"] .modal-close:hover,
+[data-theme="dark"] .modal-maximize:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+/* --- ПОЛНОЭКРАННЫЙ РЕЖИМ КАРТОЧКИ --- */
+.task-detail-card.maximized {
+    position: fixed !important;
+    top: 16px !important;
+    left: 16px !important;
+    width: calc(100vw - 32px) !important;
+    height: calc(100vh - 32px) !important;
+    max-width: none !important;
+    max-height: none !important;
+    transform: none !important;
+    border-radius: 12px !important;
+    transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1), 
+                height 0.3s cubic-bezier(0.16, 1, 0.3, 1), 
+                top 0.3s cubic-bezier(0.16, 1, 0.3, 1), 
+                left 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+/* Скрываем ресайзеры в полноэкранном режиме */
+.task-detail-card.maximized .resizer {
+    display: none !important;
+}
+
+/* Отключаем курсор-руку в полноэкранном режиме */
+.task-detail-card.maximized .modal-header {
+    cursor: default !important;
+}
+
+/* --- ПОЛНОЭКРАННЫЙ РЕЖИМ КАРТОЧКИ --- */
+.task-detail-card.maximized {
+    position: fixed !important;
+    top: 16px !important;
+    left: 16px !important;
+    width: calc(100vw - 32px) !important;
+    height: calc(100vh - 32px) !important;
+    max-width: none !important;
+    max-height: none !important;
+    transform: none !important;
+    border-radius: 12px !important;
+    transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1), 
+                height 0.3s cubic-bezier(0.16, 1, 0.3, 1), 
+                top 0.3s cubic-bezier(0.16, 1, 0.3, 1), 
+                left 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+/* Класс для плавной анимации возврата в центр */
+.task-detail-card.is-restoring {
+    transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1), 
+                height 0.3s cubic-bezier(0.16, 1, 0.3, 1), 
+                top 0.3s cubic-bezier(0.16, 1, 0.3, 1), 
+                left 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+/* Скрываем ресайзеры во время анимаций и полноэкранного режима */
+.task-detail-card.maximized .resizer,
+.task-detail-card.is-restoring .resizer {
+    display: none !important;
+}
+
+/* Отключаем курсор-руку */
+.task-detail-card.maximized .modal-header,
+.task-detail-card.is-restoring .modal-header {
+    cursor: default !important;
 }
 
 /* Основное содержимое модалки */
@@ -1181,8 +1335,21 @@ body {
 .card.is-error,
 .card.is-renaming.is-error,
 .column.is-renaming.is-error,
-.board-tab.is-renaming.is-error {
+.board-tab.is-renaming.is-error,
+.modal-header.is-error {
     animation: column-shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both !important;
+}
+
+/* Позиционирование подсказки об ошибке в шапке модалки */
+.modal-header {
+    position: relative; /* База для абсолютного позиционирования подсказки */
+}
+
+.modal-header .card-error-hint {
+    position: absolute;
+    bottom: 2px;
+    left: 20px;
+    margin: 0;
 }
 
 /* Окрашиваем текст в красный (ДЛЯ КАРТОЧЕК ОТКЛЮЧЕНО) */
@@ -1366,58 +1533,6 @@ body.is-dragging-card .column-header {
     display: -webkit-box;
     -webkit-box-orient: vertical;
     overflow: hidden;
-}
-
-/* Стилизация скроллбаров для полей ввода (textarea) */
-.column-input,
-.column-title-input {
-    scrollbar-width: thin;      /* Тонкий скролл в Firefox */
-    scrollbar-color: rgba(74, 90, 72, 0.25) transparent;
-}
-
-/* Цвет скролла в темной теме */
-[data-theme="dark"] .column-input,
-[data-theme="dark"] .column-title-input {
-    scrollbar-color: rgba(137, 160, 133, 0.35) transparent;
-}
-
-/* Размеры скроллбара в Webkit-браузерах */
-.column-input::-webkit-scrollbar,
-.column-title-input::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-}
-
-/* Путь скроллбара */
-.column-input::-webkit-scrollbar-track,
-.column-title-input::-webkit-scrollbar-track {
-    background: transparent;
-    border-radius: 4px;
-}
-
-/* Ползунок скроллбара */
-.column-input::-webkit-scrollbar-thumb,
-.column-title-input::-webkit-scrollbar-thumb {
-    background: rgba(74, 90, 72, 0.25);
-    border-radius: 4px;
-}
-
-/* Наведение на ползунок */
-.column-input::-webkit-scrollbar-thumb:hover,
-.column-title-input::-webkit-scrollbar-thumb:hover {
-    background: rgba(74, 90, 72, 0.45);
-}
-
-/* Ползунок в темной теме */
-[data-theme="dark"] .column-input::-webkit-scrollbar-thumb,
-[data-theme="dark"] .column-title-input::-webkit-scrollbar-thumb {
-    background: rgba(137, 160, 133, 0.35);
-}
-
-/* Ползунок ховер в темной теме */
-[data-theme="dark"] .column-input::-webkit-scrollbar-thumb:hover,
-[data-theme="dark"] .column-title-input::-webkit-scrollbar-thumb:hover {
-    background: rgba(137, 160, 133, 0.55);
 }
 
 /* Сглаживание шрифтов применяем ко всем, это не нагружает GPU, но убирает мыло */ 
@@ -1666,27 +1781,6 @@ body.is-dragging-card .column-header {
 /* Анимация тряски при ошибке API */
 .card-entering.is-error {
     animation: column-shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
-}
-
-/* Скроллбар для инпута карточки */
-.card-input::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-}
-.card-input::-webkit-scrollbar-track {
-    background: transparent;
-    border-radius: 4px;
-}
-.card-input::-webkit-scrollbar-thumb {
-    background: rgba(74, 90, 72, 0.25);
-    border-radius: 4px;
-}
-.card-input::-webkit-scrollbar-thumb:hover {
-    background: rgba(74, 90, 72, 0.45);
-}[data-theme="dark"] .card-input::-webkit-scrollbar-thumb {
-    background: rgba(137, 160, 133, 0.35);
-}[data-theme="dark"] .card-input::-webkit-scrollbar-thumb:hover {
-    background: rgba(137, 160, 133, 0.55);
 }
 
 /* ==========================================
@@ -2042,8 +2136,8 @@ body.is-dragging-tab .tab-close-btn {
     display: none !important;
 }
 
-/* 5. Глобальное скрытие при перетаскивании для чистоты интерфейса */
-body[class*="is-dragging-"] .board-tab::after {
+/* 5. Скрытие разделителей ТОЛЬКО при перетаскивании самих вкладок */
+body.is-dragging-tab .board-tab::after {
     display: none !important;
 }
 
@@ -2448,8 +2542,9 @@ body[class*="is-dragging-"] .board-tab:not(.active) {
     letter-spacing: 0.01em;
 }
 
-/* Когда карточка в состоянии ошибки, показываем текст */
-.card.is-error .card-error-hint {
+/* Когда элемент в состоянии ошибки, показываем текст */
+.card.is-error .card-error-hint,
+.modal-header.is-error .card-error-hint {
     opacity: 1;
     transform: translateY(0);
 }
@@ -2503,6 +2598,7 @@ body[class*="is-dragging-"] .board-tab:not(.active) {
 .task-detail-card .modal-header {
     cursor: grab;
     user-select: none;
+    align-items: flex-start; /* Чтобы крестик оставался сверху при многострочном тексте */
 }
 
 .task-detail-card .modal-header:active {
@@ -2514,28 +2610,28 @@ body[class*="is-dragging-"] .board-tab:not(.active) {
     flex: 1;
     display: flex;
     flex-direction: column;
-    padding: 24px;
-    /* ГЛАВНЫЙ ФИКС: Разрешаем скролл всей модалки */
-    overflow-y: auto; 
+    padding: 24px !important; /* Строгая симметрия со всех сторон */
+    overflow-y: auto;         /* Возвращаем стандартное поведение скролла */
     overflow-x: hidden;
 }
 
 .description-wrapper {
-    flex: none;                 /* Убираем жадность до места */
+    flex: none;                 
     position: relative;
     display: flex;
     flex-direction: column;
-    height: 300px;              /* Дефолтная высота */
-    min-height: 150px;          /* Минимум, до которого можно сжать */
-    max-height: 80vh;           /* Чтобы не растянули за край экрана */
-    resize: vertical;           /* ВКЛЮЧАЕМ ТЯНУЧКУ */
-    overflow: auto;             /* Нужно для работы resize */
+    height: 300px;              
+    min-height: 150px;          
+    max-height: 80vh;           
+    resize: vertical;           
+    overflow: hidden;           
     border: 1px solid var(--border-light);
     border-radius: 10px;
-    padding: 0;
+    padding-bottom: 14px;       
+    /* Убрали кривой padding-right: 4px */
     background: var(--brand-pale) !important;
     transition: border-color 0.2s;
-    margin-bottom: 16px;        /* Отступ до подзадач */
+    margin-bottom: 16px;        
 }
 
 /* Меняем цвет рамки, когда внутри активно поле ввода */
@@ -2553,9 +2649,13 @@ body[class*="is-dragging-"] .board-tab:not(.active) {
 .markdown-body, 
 .description-input {
     width: 100%;
-    height: 100% !important;   /* Заставляем их всегда занимать всё место обертки */
-    overflow-y: auto;
-    padding: 12px 16px 12px 12px;
+    height: 100% !important;   
+    overflow-y: auto;          /* Возвращаем стандартное поведение скролла */
+    overflow-x: hidden;        
+    overflow-wrap: break-word; 
+    word-wrap: break-word;     
+    word-break: break-word;    
+    padding: 12px 12px 0 12px !important; /* Строгая симметрия внутри поля ввода */
     font-size: 15px;
     background: transparent;
     border: none;
@@ -2569,7 +2669,8 @@ body[class*="is-dragging-"] .board-tab:not(.active) {
     font-family: var(--font-main);
     line-height: 1.2 !important;
     color: var(--text-primary);
-    resize: none;              /* Внутренний resize инпута отключаем, тянем только обертку */
+    resize: none;              
+    white-space: pre-wrap;     /* ДОБАВЛЕНО: Сохраняем нажатия Enter, но ломаем длинные строки */
 }
 
 /* 1. Цвет выделения в режиме редактирования (textarea) */
@@ -2606,8 +2707,25 @@ body[class*="is-dragging-"] .board-tab:not(.active) {
     overflow-y: auto;           
     padding: 12px; 
     font-size: 15px;
-    line-height: 1.2; /* Синхронно с инпутом */
+    line-height: 1.2; 
     user-select: text !important;
+}
+
+/* ДОБАВЛЕНО: Принудительный перенос внутри всех тегов текста */
+.markdown-body p, 
+.markdown-body li, 
+.markdown-body a, 
+.markdown-body span {
+    overflow-wrap: break-word !important;
+    word-break: break-word !important;
+}
+
+/* ДОБАВЛЕНО: Исключение для блоков кода (горизонтальный скролл там нужен) */
+.markdown-body pre {
+    overflow-x: auto !important;
+    white-space: pre !important;
+    word-break: normal !important;
+    overflow-wrap: normal !important;
 }
 
 /* ЦВЕТ ВЫДЕЛЕНИЯ (Selection) для всего блока описания */
@@ -2759,12 +2877,6 @@ body[class*="is-dragging-"] .board-tab:not(.active) {
 [data-theme="dark"] .markdown-body code { background: rgba(255, 255, 255, 0.1); }
 [data-theme="dark"] .markdown-body pre { background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-light); }
 
-/* Скроллбары для карточки */
-.markdown-body::-webkit-scrollbar, .description-input::-webkit-scrollbar { width: 6px; }
-.markdown-body::-webkit-scrollbar-track, .description-input::-webkit-scrollbar-track { background: transparent; }
-.markdown-body::-webkit-scrollbar-thumb, .description-input::-webkit-scrollbar-thumb { background: rgba(74, 90, 72, 0.25); border-radius: 4px; }
-[data-theme="dark"] .markdown-body::-webkit-scrollbar-thumb, [data-theme="dark"] .description-input::-webkit-scrollbar-thumb { background: rgba(137, 160, 133, 0.35); }
-
 /* ========================================== CODE BLOCKS: INTEGRATED ========================================== */
 
 /* Контейнер: фон = фон description-wrapper, не выделяется */
@@ -2881,16 +2993,30 @@ body[class*="is-dragging-"] .board-tab:not(.active) {
 /* Хлебные крошки */
 .task-breadcrumbs {
     display: flex;
+    flex-wrap: wrap; /* Разрешаем перенос крошек на новые строки */
+    align-items: center; /* Центрируем текст и слеши по вертикали */
     gap: 8px;
     margin-bottom: 12px;
     font-size: 12px;
     font-weight: 500;
     color: var(--text-secondary);
 }
+
+.task-breadcrumbs:empty {
+    display: none;
+}
+
 .breadcrumb-item {
     cursor: pointer;
     transition: color 0.2s;
+    /* Ограничиваем длину в ~20 символов и добавляем троеточие */
+    max-width: 20ch; 
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block; /* Обязательно для работы overflow */
 }
+
 .breadcrumb-item:hover { color: var(--brand-pine); }
 .breadcrumb-separator { opacity: 0.3; }
 
@@ -3082,6 +3208,7 @@ body[class*="is-dragging-"] .board-tab:not(.active) {
     color: var(--text-primary);
     word-break: break-word;
     white-space: pre-wrap;
+    cursor: pointer; /* <--- Добавили курсор-палец */
 }
 
 /* Кнопка "Открыть" (Killer Feature) */
@@ -3160,14 +3287,6 @@ body[class*="is-dragging-"] .board-tab:not(.active) {
 .subtask-item.subtask-entering.entered { opacity: 1; transform: scale(1); }
 
 .subtask-item.subtask-entering.is-exiting { opacity: 0; transform: scale(0.96); pointer-events: none; transition: opacity 0.2s ease, transform 0.2s ease; }
-
-/* Скроллбары для инпута подзадач */
-.subtask-inline-input::-webkit-scrollbar { width: 6px; height: 6px; }
-.subtask-inline-input::-webkit-scrollbar-track { background: transparent; border-radius: 4px; }
-.subtask-inline-input::-webkit-scrollbar-thumb { background: rgba(74, 90, 72, 0.25); border-radius: 4px; }
-.subtask-inline-input::-webkit-scrollbar-thumb:hover { background: rgba(74, 90, 72, 0.45); }
-[data-theme="dark"] .subtask-inline-input::-webkit-scrollbar-thumb { background: rgba(137, 160, 133, 0.35); }
-[data-theme="dark"] .subtask-inline-input::-webkit-scrollbar-thumb:hover { background: rgba(137, 160, 133, 0.55); }
 
 /* Поддержка показа ошибки в подзадаче */
 .subtask-item.is-error .card-error-hint {
@@ -3406,6 +3525,13 @@ body.is-dragging-subtask .subtask-item {
     margin-left: -6px; /* Компенсация padding для сохранения позиции текста */
     display: block;
     line-height: 1.4;
+    
+    /* Новые свойства для поддержки многострочности: */
+    word-break: break-word;
+    overflow-wrap: break-word;
+    white-space: pre-wrap;
+    user-select: text !important;
+    -webkit-user-select: text !important;
 }
 
 /* Инпут для переименования подзадачи */
@@ -3502,11 +3628,6 @@ body.is-dragging-attachment .attachment-item {
     color: var(--text-secondary);
 }
 
-/* При наведении на весь элемент подсвечиваем иконку */
-.attachment-item:hover .subtask-checkbox svg {
-    opacity: 1;
-    color: var(--brand-pine);
-}
 /* ==========================================
    DRAG & DROP ВЛОЖЕНИЙ (Senior UI Polish)
    ========================================== */
@@ -3561,3 +3682,302 @@ body.is-dragging-attachment .attachment-item:not(.attachment-drag-clone) {
     box-shadow: var(--shadow-card) !important;
     transition: none !important;
 }
+
+/* ==========================================
+   СТИЛИ ПОТЕРЯННЫХ ВЛОЖЕНИЙ
+   ========================================== */
+
+/* Красный цвет для иконки вопроса */
+.attachment-item .subtask-checkbox.missing {
+    cursor: pointer; /* Подсказываем, что можно кликнуть */
+}
+.attachment-item .subtask-checkbox.missing svg {
+    color: #D35446 !important;
+    opacity: 1 !important;
+}
+
+/* Перечеркнутый полупрозрачный текст для потерянного файла */
+.attachment-item .subtask-title.missing-text {
+    color: var(--text-secondary);
+    text-decoration: line-through;
+    opacity: 0.7;
+}
+
+/* Темная тема */
+[data-theme="dark"] .attachment-item .subtask-checkbox.missing svg {
+    color: #D65A4B !important;
+}
+[data-theme="dark"] .attachment-item .subtask-title.missing-text {
+    color: rgba(255, 255, 255, 0.4);
+}
+
+/* ==========================================
+   ЭКРАН ВЫБОРА ХРАНИЛИЩА (VAULT SELECTOR)
+   ========================================== */
+.vault-screen {
+    position: fixed;
+    inset: 0;
+    background: var(--bg-canvas);
+    z-index: 999999;
+    display: flex;
+    justify-content: center;
+    align-items: center; 
+    padding: 20px; /* <--- ЗАЩИТА 1: Не даем окну прилипать к краям экрана */
+    box-sizing: border-box;
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.vault-screen.hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.vault-container {
+    width: 100%;
+    max-width: 680px; 
+    height: 100%; 
+    max-height: 640px; 
+    padding: 32px; 
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    overflow: hidden; 
+    
+    /* ДОБАВИТЬ ЭТИ ДВЕ СТРОКИ: Плавное масштабирование и затухание контента */
+    transition: opacity 0.2s ease, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: opacity, transform;
+}
+
+.vault-screen.content-hidden .vault-container {
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Герой-блок (Логотип) */
+.vault-hero {
+    text-align: center;
+    margin-bottom: 24px;
+    flex-shrink: 0;
+}
+
+.vault-logo-img {
+    width: 60px;
+    height: 60px;
+    margin-bottom: 12px;
+    object-fit: contain;
+    -webkit-user-drag: none;
+    user-select: none;
+}
+
+.vault-title {
+    font-family: var(--font-main);
+    font-size: 34px;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: -0.04em;
+    margin-bottom: 4px;
+}
+
+.vault-subtitle {
+    font-size: 14px;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+/* Карточки действий */
+.vault-actions {
+    display: flex;
+    gap: 16px;
+    width: 100%;
+    margin-bottom: 24px;
+    flex-shrink: 0;
+    /* КЛЮЧЕВОЙ МОМЕНТ: карточки больше не растягиваются на общую высоту */
+    align-items: flex-start; 
+}
+
+.vault-action-card {
+    flex: 1;
+    background: var(--surface-card);
+    border: 1px solid var(--border-light);
+    border-radius: 16px;
+    padding: 20px 16px;
+    text-align: center;
+    cursor: pointer;
+    box-shadow: var(--shadow-card);
+    /* Добавляем background-color в transition и убираем жесткие скачки */
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
+    
+    /* Чтобы текст ошибки не "выплескивался" до анимации */
+    overflow: hidden; 
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.vault-action-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 24px rgba(0,0,0,0.06);
+    border-color: rgba(74, 90, 72, 0.2);
+}
+
+[data-theme="dark"] .vault-action-card:hover {
+    border-color: rgba(137, 160, 133, 0.3);
+}
+
+.vault-action-icon {
+    width: 48px;
+    height: 48px;
+    margin: 0 auto 12px;
+    border-radius: 50%;
+    border: 1.5px dashed rgba(74, 90, 72, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--brand-pine);
+}
+
+[data-theme="dark"] .vault-action-icon {
+    border-color: rgba(137, 160, 133, 0.3);
+    color: #89A085;
+}
+
+.vault-action-card h3 {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+}
+
+.vault-action-card p {
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+    padding: 0 8px;
+}
+
+/* Форма создания хранилища */
+.vault-create-form {
+    width: 100%;
+    background: var(--surface-card);
+    border: 1px solid var(--border-light);
+    border-radius: 16px;
+    padding: 32px 24px;
+    box-shadow: var(--shadow-card);
+    margin-bottom: 24px;
+    text-align: center;
+    flex-shrink: 0;
+    animation: fadeInBtn 0.2s ease-out;
+}
+
+.vault-create-form h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 24px; /* Отодвинули заголовок от инпута */
+    letter-spacing: -0.01em;
+}
+
+.vault-create-prompt {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+}
+
+.vault-name-input {
+    background: var(--bg-canvas) !important;
+    margin-bottom: 20px;
+    text-align: center;
+    font-size: 16px;
+    padding: 12px;
+    border-radius: 10px;
+}
+
+.vault-create-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
+
+/* Зеленая акцентная кнопка вместо красной */
+.vault-submit-btn {
+    background: var(--brand-pine) !important;
+}
+
+.vault-submit-btn:hover {
+    background: #3A4738 !important;
+}
+
+[data-theme="dark"] .vault-submit-btn {
+    background: #738A70 !important;
+}
+
+[data-theme="dark"] .vault-submit-btn:hover {
+    background: #5D735B !important;
+}
+
+
+/* Подвал (Privacy text) */
+.vault-footer {
+    flex: 0 0 auto; /* <--- КРИТИЧНО: Жестко запрещаем подвалу сжиматься */
+    margin-top: auto; 
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    color: var(--text-secondary);
+    font-size: 12px;
+    line-height: 1.5;
+    text-align: left;
+    opacity: 0.8;
+}
+
+/* Состояние ошибки для карточки хранилища */
+.vault-action-card.is-invalid {
+    border-color: rgba(211, 84, 70, 0.4) !important;
+    background: rgba(211, 84, 70, 0.03) !important;
+    animation: column-shake 0.3s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+.vault-action-card.is-invalid .vault-action-icon {
+    border-color: rgba(211, 84, 70, 0.5) !important;
+    color: #D35446 !important;
+}
+
+/* Текст ошибки под описанием в карточке */
+.vault-error-hint {
+    color: #D35446;
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    line-height: 1.2;
+    text-align: center;
+    
+    /* ФИЗИКА: Изначально схлопнута */
+    max-height: 0;
+    opacity: 0;
+    margin-top: 0;
+    overflow: hidden;
+    pointer-events: none;
+
+    /* Быстрый переход для мгновенного отклика (0.2s — стандарт macOS для микро-фидбека) */
+    transition: 
+        max-height 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+        opacity 0.2s ease,
+        margin-top 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Класс активации — разворачиваем высоту */
+.vault-error-hint.visible {
+    max-height: 40px; /* Запас для текста */
+    opacity: 1;
+    margin-top: 12px;
+}
+
+@keyframes errorReveal {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+

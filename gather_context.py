@@ -7,7 +7,7 @@ import pyperclip
 
 # Папки, которые скрипт будет игнорировать
 IGNORE_DIRS = {
-    'venv', '.git', '__pycache__', 'alembic', 'node_modules', 
+    'venv', '.git', '__pycache__', 'node_modules', 
     '.idea', '.vscode', 'build', 'dist', '__MACOSX'
 }
 

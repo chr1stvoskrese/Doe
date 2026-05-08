@@ -1,4 +1,3 @@
-# --- ПОЛНОСТЬЮ ЗАМЕНИТЕ src/api/v1/system.py ---
 from fastapi import APIRouter, HTTPException, status, UploadFile, File
 from pydantic import BaseModel
 from typing import Optional
@@ -7,6 +6,10 @@ import sys
 import subprocess
 from pathlib import Path
 import shutil
+import webbrowser # <--- Добавили для открытия веб-ссылок
+import urllib.parse # <--- Для работы с file://
+
+from urllib.parse import unquote
 
 from src.db.database import switch_vault
 from src.core.config import get_active_vault, get_ui_settings, set_ui_settings
@@ -33,7 +36,35 @@ async def switch_vault_endpoint(req: SwitchVaultRequest):
     if not new_path:
         return VaultResponse(canceled=True)
         
+    # --- НОВАЯ ПРОВЕРКА ---
+    db_file = os.path.join(new_path, "board.db")
+    if not os.path.exists(db_file):
+        # Возвращаем 400 ошибку, чтобы фронтенд понял: это не хранилище
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            detail="INVALID_VAULT"
+        )
+    # ----------------------
+        
     await switch_vault(new_path)
+    name = Path(new_path).resolve().name
+    return VaultResponse(name=name, path=new_path, canceled=False)
+
+class CreateVaultRequest(BaseModel):
+    parent_path: str
+    name: str
+
+@router.post("/vault/create", response_model=VaultResponse)
+async def create_vault_endpoint(req: CreateVaultRequest):
+    if not req.parent_path or not req.name:
+        return VaultResponse(canceled=True)
+        
+    # Склеиваем родительскую папку (например, ~/Documents) и имя хранилища (DoeProject)
+    new_path = os.path.join(req.parent_path, req.name)
+    
+    # switch_vault автоматически создаст нужную папку с помощью exist_ok=True
+    await switch_vault(new_path)
+    
     name = Path(new_path).resolve().name
     return VaultResponse(name=name, path=new_path, canceled=False)
 
@@ -60,7 +91,6 @@ async def update_settings_endpoint(settings: SettingsUpdate):
     )
     return SettingsResponse(**get_ui_settings())
 
-# ЗАГРУЗКА ИЗ ПЕРЕТАСКИВАНИЯ (Drag & Drop)
 @router.post("/upload")
 async def upload_file(file: UploadFile = File(...)):
     vault_path = Path(get_active_vault())
@@ -81,7 +111,6 @@ async def upload_file(file: UploadFile = File(...)):
 class ImportFileReq(BaseModel):
     absolute_path: str
 
-# ИМПОРТ ИЗ НАТИВНОГО ДИАЛОГА
 @router.post("/import-file")
 async def import_file(req: ImportFileReq):
     vault_path = Path(get_active_vault())
@@ -104,11 +133,9 @@ async def import_file(req: ImportFileReq):
 class OpenFileReq(BaseModel):
     path: str
 
-# НАТИВНОЕ ОТКРЫТИЕ ФАЙЛА
 @router.post("/open-file")
 async def open_file_endpoint(req: OpenFileReq):
     vault_path = Path(get_active_vault())
-    # Формируем абсолютный путь из относительного
     abs_path = vault_path / req.path
     
     if not abs_path.exists():
@@ -122,3 +149,84 @@ async def open_file_endpoint(req: OpenFileReq):
         return {"success": True}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+class ValidateAttachmentsReq(BaseModel):
+    paths: list[str]
+
+@router.post("/validate-attachments")
+async def validate_attachments(req: ValidateAttachmentsReq):
+    vault_path = Path(get_active_vault())
+    result = {}
+    
+    for p in req.paths:
+        try:
+            decoded_path = unquote(p)
+            abs_path = vault_path / decoded_path
+            
+            if abs_path.exists() and abs_path.is_file():
+                result[p] = {"exists": True, "real_name": abs_path.name}
+            else:
+                result[p] = {"exists": False, "real_name": Path(decoded_path).name}
+        except Exception:
+            result[p] = {"exists": False, "real_name": "Unknown"}
+            
+    return result
+
+
+# ==============================================================
+# НОВЫЙ ЭНДПОИНТ: БЕЗОПАСНОЕ ОТКРЫТИЕ ВНЕШНИХ ССЫЛОК И ПУТЕЙ
+# ==============================================================
+class OpenLinkReq(BaseModel):
+    url: str
+
+@router.post("/open-link")
+async def open_link_endpoint(req: OpenLinkReq):
+    target = req.url
+    try:
+        # 1. Если это веб-ссылка или IP -> открываем в браузере
+        if target.startswith(("http://", "https://")):
+            webbrowser.open(target)
+            return {"success": True}
+
+        # 2. Обработка локальных путей
+        clean_path = target
+        
+        # Убираем file:// если есть
+        if clean_path.startswith("file://"):
+            clean_path = clean_path.replace("file://", "", 1)
+            # Фикс для Windows (убираем лишний слэш перед диском, например /C:/)
+            if sys.platform == 'win32' and clean_path.startswith('/'):
+                clean_path = clean_path[1:]
+        
+        # Декодируем URL-символы (%20 и прочее) в нормальные строки
+        clean_path = urllib.parse.unquote(clean_path)
+
+        # --- МАГИЯ ТИЛЬДЫ (Senior Developer Trick) ---
+        # os.path.expanduser автоматически заменит ~ на домашнюю папку текущего пользователя
+        # Она работает кроссплатформенно.
+        if clean_path.startswith("~"):
+            clean_path = os.path.expanduser(clean_path)
+        # ----------------------------------------------
+
+        # Превращаем в абсолютный путь (на случай, если пользователь ввел относительный не от ~)
+        final_path = Path(clean_path).absolute()
+
+        print(f"[System] Attempting to open path: {final_path}")
+
+        if sys.platform == 'darwin':
+            # macOS: команда open идеально справляется и с файлами, и с папками
+            subprocess.call(['open', str(final_path)])
+        elif sys.platform == 'win32':
+            # Windows: os.startfile — это аналог двойного клика в проводнике
+            if final_path.exists():
+                os.startfile(str(final_path))
+            else:
+                # Если файла нет, не вызываем исключение, а просто логируем
+                print(f"[System] Path does not exist: {final_path}")
+                return {"success": False, "error": "File not found"}
+        
+        return {"success": True}
+        
+    except Exception as e:
+        print(f"[System] Failed to open external link {target}: {e}")
+        return {"success": False, "error": str(e)}

@@ -25,3 +25,5 @@ dist/
 .vscode/
 .idea/
 *.swp
+
+board_dev.db

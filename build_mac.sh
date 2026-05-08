@@ -49,6 +49,8 @@ pyinstaller --noconfirm \
     --add-data "doe.png:." \
     --add-data "frontend:frontend" \
     --add-data "src:src" \
+    --add-data "alembic.ini:." \
+    --add-data "alembic:alembic" \
     --hidden-import "src.api.v1.columns" \
     --hidden-import "src.api.v1.tasks" \
     --hidden-import "src.api.v1.system" \

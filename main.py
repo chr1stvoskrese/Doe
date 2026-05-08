@@ -63,6 +63,13 @@ async def favicon():
     
     return Response(status_code=204)
 
+@app.get("/doe.png", include_in_schema=False)
+async def get_logo():
+    logo_path = base_dir / "doe.png"
+    if logo_path.exists():
+        return FileResponse(logo_path)
+    return Response(status_code=404)
+
 app.include_router(columns.router, prefix="/api/v1")
 app.include_router(tasks.router, prefix="/api/v1")
 app.include_router(system.router, prefix="/api/v1")
@@ -81,10 +88,21 @@ async def serve_index():
     settings = get_ui_settings()
     theme = settings.get("theme", "light")
     lang = settings.get("language", "ru")
+    
+    # Тот самый цвет из wrapper.py и CSS
+    bg_color = '#161815' if theme == 'dark' else '#F4F3EF'
+    
     index_file = frontend_path / "index.html"
     with open(index_file, "r", encoding="utf-8") as f:
         html_content = f.read()
+
+    # Мы добавляем стиль фона ПРЯМО В HEAD. 
+    # Это гарантирует, что даже если CSS еще не загружен, 
+    # весь вьюпорт уже будет нужного цвета.
     inject_script = f"""
+    <style>
+        html, body {{ background-color: {bg_color} !important; }}
+    </style>
     <script>
         if ('{theme}' === 'dark') {{
             document.documentElement.setAttribute('data-theme', 'dark');
@@ -94,9 +112,7 @@ async def serve_index():
     </script>
     </head>
     """
-
     html_content = html_content.replace("</head>", inject_script)
-
     return HTMLResponse(content=html_content)
 
 @app.get("/")

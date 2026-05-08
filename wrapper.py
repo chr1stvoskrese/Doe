@@ -199,7 +199,8 @@ class WindowAPI:
         if not webview.windows:
             return
         
-        window = webview.windows[0]
+        # Берем последнее созданное окно (надежнее при пересоздании окон)
+        window = webview.windows[-1]
         if sys.platform == 'win32':
             import ctypes
             try:
@@ -219,6 +220,42 @@ class WindowAPI:
                 print(f"[WebView] Windows UI Sync failed: {e}")
 
         window.show()
+
+    def open_main_window(self):
+        """Порождает новое окно приложения и убивает старое диалоговое"""
+        current_window = webview.active_window() or (webview.windows[0] if webview.windows else None)
+        webview.create_window(
+            title='Doe — Aesthetic Kanban',
+            url=URL,
+            width=1200,
+            height=800,
+            min_size=(800, 600),
+            resizable=True,
+            background_color=bg_color,
+            text_select=True,
+            hidden=True,
+            js_api=WindowAPI()
+        )
+        if current_window:
+            current_window.destroy()
+
+    def open_vault_window(self):
+        """Порождает маленькое окно выбора хранилища и убивает основное"""
+        current_window = webview.active_window() or (webview.windows[0] if webview.windows else None)
+        webview.create_window(
+            title='Doe — Select Vault',
+            url=f"{URL}?mode=vault",
+            width=760,
+            height=680,
+            min_size=(760, 680),
+            resizable=False,
+            background_color=bg_color,
+            text_select=True,
+            hidden=True,
+            js_api=WindowAPI()
+        )
+        if current_window:
+            current_window.destroy()
 
 class APIServerThread(threading.Thread):
     def __init__(self):
@@ -330,12 +367,27 @@ if __name__ == '__main__':
             print("[Main] ❌ WARNING: Server did not respond within 5 seconds. Port might be in use or DB is broken.")
 
         print("[WebView] Creating invisible browser window...")
+        
+        # Проверяем, есть ли у нас уже активное хранилище
+        from src.core.config import _load_config
+        config_data = _load_config()
+        is_configured = "active_vault" in config_data
+
+        # Задаем параметры в зависимости от того, первый ли это запуск
+        start_url = URL if is_configured else f"{URL}?mode=vault"
+        start_w = 1200 if is_configured else 760
+        start_h = 800 if is_configured else 680
+        min_w = 800 if is_configured else 760
+        min_h = 600 if is_configured else 680
+        is_resizable = is_configured
+
         window = webview.create_window(
-            title='Doe — Do more with lEss! (demo)',
-            url=URL,
-            width=1200,
-            height=800,
-            min_size=(800, 500),
+            title='Doe — Aesthetic Kanban' if is_configured else 'Doe — Select Vault',
+            url=start_url,
+            width=start_w,           
+            height=start_h,          
+            min_size=(min_w, min_h), 
+            resizable=is_resizable,     
             background_color=bg_color, 
             text_select=True,
             hidden=True,            
