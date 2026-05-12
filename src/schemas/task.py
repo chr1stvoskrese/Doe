@@ -9,6 +9,7 @@ from typing import Optional, List
 class TaskBase(BaseModel):
     """Общие поля задачи."""
     title: str = Field(..., min_length=1, max_length=1000, description="Текст задачи")
+    is_visible_on_board: bool = False
 
 
 class TaskCreate(TaskBase):
@@ -25,11 +26,17 @@ class TaskUpdate(BaseModel):
     parent_id: Optional[int] = None
     position: Optional[float] = None
     attachments_order: Optional[List[str]] = None
+    completed_at: Optional[datetime] = None
+    is_visible_on_board: Optional[bool] = None
 
 
 class TaskMove(BaseModel):
     """Схема для перемещения задачи в другую колонку."""
     target_column_id: int = Field(..., description="ID колонки, куда перемещается задача")
+
+class TaskExportReq(BaseModel):
+    """Схема для запроса экспорта карточки."""
+    export_path: str = Field(..., description="Абсолютный путь к папке для экспорта")
 
 
 class TimerSessionResponse(BaseModel):
@@ -64,6 +71,11 @@ class TaskCreateResponse(TaskBase):
     class Config:
         from_attributes = True
 
+
+class TaskSetTimeReq(BaseModel):
+    """Схема для ручной установки потраченного времени."""
+    total_seconds: int = Field(..., description="Новое общее время в секундах", ge=0)
+    
 
 class TaskResponse(TaskBase):
     """Полная информация о задаче, возвращаемая API (с подзадачами)."""

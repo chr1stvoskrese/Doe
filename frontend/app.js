@@ -6,7 +6,7 @@ const API_BASE = '/api/v1';
 const translations = {
     ru: {
         settings: 'Настройки', theme: 'Тема', language: 'Язык', about: 'О приложении', workspace: 'Doe Board', cancel: 'Отмена',
-        newColumn: '+ Создать колонку', newTask: '+ Новая задача', subtasks: 'Подзадачи',
+        newColumn: '+ Создать колонку', newTask: '+ Новая карточка', subtasks: 'Чек-лист',
         columnModes: { default: 'Стандартный', track_time: 'Учёт времени', completion: 'Результирующий' },
         defaultWorkspace: 'Начальная вкладка',
         attachments: 'Вложения', addAttachment: '+ Добавить вложение...',
@@ -18,14 +18,17 @@ const translations = {
             openDesc: 'Выберите существующее хранилище из вашего устройства',
             privacy: 'Все данные хранятся только на вашем устройстве.<br>Конфиденциальность. Без облака. Без компромиссов.',
             createPrompt: 'Введите название и выберите папку, где оно будет сохранено',
-            namePlaceholder: 'Название хранилища...',
-            selectFolder: 'Выбрать папку',
-            errorInvalid: 'Папка не содержит данных Doe'
+            namePlaceholder: 'Название нового хранилища...',
+            selectFolder: 'Выбрать местоположение',
+            errorInvalid: 'Папка не содержит данных Doe',
+            recent: 'История хранилищ',
+            recentEmpty: 'Ранее открытые хранилища появятся здесь'
         },
         menu: { 
             mode: 'Режим колонки', collapse: 'Свернуть колонку', rename: 'Переименовать', 
             delete: 'Удалить', clear: 'Очистить', open: 'Открыть', 
-            deleteCard: 'Удалить задачу', clearTimer: 'Очистить таймер'
+            deleteCard: 'Удалить карточку', clearTimer: 'Очистить таймер',
+            exportCard: 'Экспорт в Markdown'
         },
         modals: { 
             themeTitle: 'Тема оформления', light: 'Светлая', dark: 'Тёмная', 
@@ -35,17 +38,20 @@ const translations = {
         card: { timeSpent: 'Времени потрачено:', unknownTime: 'неизвестно' },
         taskModal: {
             descPlaceholder: 'Кликните, чтобы добавить описание...',
-            inputPlaceholder: 'Описание задачи...',
-            subtasksPlaceholder: '+ Добавить подзадачу...',
+            inputPlaceholder: 'Описание карточки...',
+            subtasksPlaceholder: '+ Добавить пункт...',
+            timerPlaceholder: '1ч 30м',
+            created: 'Создано',
+            updated: 'Изменено',
             uploading: (name) => `[⏳ Сохраняем ${name} в Vault...]`,
             uploadError: (name) => `[❌ Ошибка сохранения: ${name}]`,
             uploadNetworkError: (name) => `[❌ Ошибка сети: ${name}]`
         },
         timeUnits: { y: 'л', w: 'н', d: 'д', h: 'ч', m: 'м', s: 'с' },
         prompts: { 
-            taskTitle: 'Название задачи:', columnTitle: 'Название колонки:', renameColumn: 'Новое название:', 
-            deleteConfirmTitle: 'Удалить колонку?', deleteConfirmDesc: 'Все задачи внутри будут потеряны.',
-            clearConfirmTitle: 'Очистить колонку?', clearConfirmDesc: 'Все задачи внутри будут удалены безвозвратно.',
+            taskTitle: 'Название карточки:', columnTitle: 'Название колонки:', renameColumn: 'Новое название:', 
+            deleteConfirmTitle: 'Удалить колонку?', deleteConfirmDesc: 'Все карточки внутри будут потеряны.',
+            clearConfirmTitle: 'Очистить колонку?', clearConfirmDesc: 'Все карточки внутри будут удалены безвозвратно.',
             newTabTitle: 'Название новой вкладки:', deleteTabConfirm: 'Удалить вкладку?',
             deleteTabDesc: 'Вкладка и все колонки в ней будут удалены навсегда.'
         },
@@ -54,7 +60,7 @@ const translations = {
     },
     en: {
         settings: 'Settings', theme: 'Theme', language: 'Language', about: 'About', workspace: 'Doe Board', cancel: 'Cancel',
-        newColumn: '+ Create column', newTask: '+ New task', subtasks: 'Subtasks',
+        newColumn: '+ Create column', newTask: '+ New card', subtasks: 'Checklist',
         columnModes: { default: 'Standard', track_time: 'Track time', completion: 'Completed' },
         defaultWorkspace: 'Main Board',
         attachments: 'Attachments', addAttachment: '+ Add attachment...',
@@ -66,14 +72,17 @@ const translations = {
             openDesc: 'Select an existing vault from your device',
             privacy: 'All data is stored locally on your device.<br>Privacy. No cloud. No compromises.',
             createPrompt: 'Enter a name and choose where to save your new vault',
-            namePlaceholder: 'Vault name...',
-            selectFolder: 'Select folder',
-            errorInvalid: 'Folder is not a valid Doe Vault'
+            namePlaceholder: 'New vault name...',
+            selectFolder: 'Browse location',
+            errorInvalid: 'Folder is not a valid Doe Vault',
+            recent: 'Recent Vaults',
+            recentEmpty: 'Previously opened vaults will appear here'
         },
         menu: { 
             mode: 'Column mode', collapse: 'Collapse column', rename: 'Rename', 
             delete: 'Delete', clear: 'Clear', open: 'Open', 
-            deleteCard: 'Delete task', clearTimer: 'Clear timer'
+            deleteCard: 'Delete card', clearTimer: 'Clear timer',
+            exportCard: 'Export to Markdown'
         },
         modals: { 
             themeTitle: 'Theme', light: 'Light', dark: 'Dark', 
@@ -83,17 +92,20 @@ const translations = {
         card: { timeSpent: 'Time spent:', unknownTime: 'unknown' },
         taskModal: {
             descPlaceholder: 'Click to add description...',
-            inputPlaceholder: 'Task description...',
-            subtasksPlaceholder: '+ Add subtask...',
+            inputPlaceholder: 'Card description...',
+            subtasksPlaceholder: '+ Add item...',
+            timerPlaceholder: '1h 30m',
+            created: 'Created',
+            updated: 'Updated',
             uploading: (name) => `[⏳ Saving ${name} to Vault...]`,
             uploadError: (name) => `[❌ Error saving: ${name}]`,
             uploadNetworkError: (name) => `[❌ Network error: ${name}]`
         },
         timeUnits: { y: 'y', w: 'w', d: 'd', h: 'h', m: 'm', s: 's' },
         prompts: { 
-            taskTitle: 'Task title:', columnTitle: 'Column title:', renameColumn: 'New name:', 
-            deleteConfirmTitle: 'Delete column?', deleteConfirmDesc: 'All tasks inside will be lost.',
-            clearConfirmTitle: 'Clear column?', clearConfirmDesc: 'All tasks inside will be permanently deleted.',
+            taskTitle: 'Card title:', columnTitle: 'Column title:', renameColumn: 'New name:', 
+            deleteConfirmTitle: 'Delete column?', deleteConfirmDesc: 'All cards inside will be lost.',
+            clearConfirmTitle: 'Clear column?', clearConfirmDesc: 'All cards inside will be permanently deleted.',
             newTabTitle: 'New tab name:', deleteTabConfirm: 'Delete tab?',
             deleteTabDesc: 'The tab and all its columns will be deleted permanently.'
         },
@@ -132,6 +144,72 @@ function applyTheme(theme, saveToBackend = false) {
     }
 }
 
+function formatExactTime(seconds) {
+    if (!seconds) return "00:00:00";
+    
+    const MAX_SECONDS = 31536000000; // 1000 лет
+    if (seconds >= MAX_SECONDS) {
+        return currentLang === 'ru' ? '1000+ лет' : '1000+ y';
+    }
+    
+    const d = Math.floor(seconds / 86400);
+    const h = Math.floor((seconds % 86400) / 3600).toString().padStart(2, '0');
+    const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
+    const s = Math.floor(seconds % 60).toString().padStart(2, '0');
+    
+    if (d === 0) {
+        return `${h}:${m}:${s}`;
+    }
+    
+    const units = t('timeUnits');
+    return `${d}${units.d} ${h}:${m}:${s}`;
+}
+
+function parseTimeToSeconds(input) {
+    input = input.trim().toLowerCase();
+    if (!input) return null;
+
+    let seconds = 0;
+    let matchedAny = false;
+
+    // СНЯТО ОГРАНИЧЕНИЕ: теперь \d+ позволяет вводить хоть миллион часов/дней (например "999999:30:00")
+    const timeMatch = input.match(/(?:^|\s)(\d+):(\d{1,2})(?::(\d{1,2}))?(?:\s|$)/);
+    if (timeMatch) {
+        seconds += parseInt(timeMatch[1]) * 3600 + parseInt(timeMatch[2]) * 60;
+        if (timeMatch[3]) seconds += parseInt(timeMatch[3]);
+        matchedAny = true;
+    }
+
+    // Вспомогательная функция для поиска текстовых единиц измерения
+    const matchUnit = (regex, multiplier) => {
+        const match = input.match(regex);
+        if (match) {
+            seconds += parseFloat(match[1]) * multiplier;
+            matchedAny = true;
+        }
+    };
+
+    // Парсим без лимитов: 100000y, 999999d и т.д.
+    matchUnit(/(\d+(?:\.\d+)?)\s*(y|л|год|лет|года)/, 31536000);
+    matchUnit(/(\d+(?:\.\d+)?)\s*(mo|мес)/, 2592000);
+    matchUnit(/(\d+(?:\.\d+)?)\s*(w|н|нед)/, 604800);
+    matchUnit(/(\d+(?:\.\d+)?)\s*(d|д|день|дней|дня)/, 86400);
+    matchUnit(/(\d+(?:\.\d+)?)\s*(h|ч|hour|час|часов|часа)/, 3600);
+    matchUnit(/(\d+(?:\.\d+)?)\s*(m(?!o)|м|min|мин)/, 60);
+    matchUnit(/(\d+(?:\.\d+)?)\s*(s|с|sec|сек)/, 1);
+
+    const MAX_SECONDS = 31536000000; // Ровно 1000 лет
+
+    if (matchedAny) return Math.min(Math.floor(seconds), MAX_SECONDS);
+
+    // Если ввели просто число без букв (например "99999") - считаем это минутами
+    if (/^\d+(?:\.\d+)?$/.test(input)) {
+        return Math.min(Math.floor(parseFloat(input) * 60), MAX_SECONDS);
+    }
+
+    return null;
+}
+
 function applyLanguage(lang, saveToBackend = false) {
     currentLang = lang;
     localStorage.setItem('doe-lang', lang);
@@ -154,6 +232,16 @@ function applyLanguage(lang, saveToBackend = false) {
         el.classList.toggle('active', el.dataset.value === lang);
     });
 
+    // Мгновенно обновляем даты в истории хранилищ
+    document.querySelectorAll('.vault-history-date').forEach(el => {
+        const ts = el.dataset.timestamp;
+        if (ts) {
+            el.textContent = formatDateTime(ts);
+        } else {
+            el.textContent = lang === 'ru' ? 'Ранее' : 'Earlier';
+        }
+    });
+
     if (state.columns.length > 0) renderBoard();
 }
 
@@ -171,6 +259,15 @@ async function saveWorkspacesOrder(orderedIds) {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ordered_ids: orderedIds })
     });
     if (!res.ok) throw new Error('Error');
+}
+
+async function triggerGarbageCollector() {
+    try {
+        // Фоновый запрос, мы даже не ждем его ответа (fire-and-forget)
+        fetch(`${API_BASE}/system/cleanup-attachments`, { method: 'POST' }).catch(() => {});
+    } catch (e) {
+        console.error("Garbage Collector trigger failed:", e);
+    }
 }
 
 async function fetchWorkspaces() { 
@@ -276,6 +373,11 @@ async function updateColumn(id, data) {
 function formatTotalTime(seconds) {
     if (seconds === 0) return t('card.unknownTime');
 
+    const MAX_SECONDS = 31536000000; // 1000 лет
+    if (seconds >= MAX_SECONDS) {
+        return currentLang === 'ru' ? '1000+ лет' : '1000+ y';
+    }
+
     // Константы времени в секундах
     const YEAR = 31536000; // 365 дней
     const WEEK = 604800;   // 7 дней
@@ -322,7 +424,13 @@ async function updateTask(id, data) {
     const res = await fetch(`${API_BASE}/tasks/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
     if (!res.ok) throw new Error('Error'); return res.json();
 }
-async function deleteTask(id) { const res = await fetch(`${API_BASE}/tasks/${id}`, { method: 'DELETE' }); if (!res.ok) throw new Error('Error'); }
+
+async function deleteTask(id) { 
+    const res = await fetch(`${API_BASE}/tasks/${id}`, { method: 'DELETE' }); 
+    if (!res.ok) throw new Error('Error'); 
+    return res.json(); 
+}
+
 async function moveTask(taskId, targetColumnId) {
     const res = await fetch(`${API_BASE}/tasks/${taskId}/move`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ target_column_id: targetColumnId }) });
     if (!res.ok) throw new Error('Error'); return res.json();
@@ -347,35 +455,76 @@ async function updateSettings(data) {
 
 function escapeHtml(text) { const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
 
-function formatTime(startTime) {
-    // Подстраховка: если сервер всё же прислал без Z, добавляем, чтобы браузер не применял локальный пояс
-    if (typeof startTime === 'string' && !startTime.endsWith('Z')) {
-        startTime += 'Z'; 
+function formatTime(task) {
+    let startStr = task.active_timer.start_time;
+    if (!startStr.endsWith('Z')) startStr += 'Z'; 
+    const start = new Date(startStr); 
+    
+    // Считаем сколько натикало с момента последнего запуска (или снятия с паузы)
+    const activeSeconds = Math.max(0, Math.floor((Date.now() - start) / 1000));
+    // Берем "замороженное" время из прошлых сессий
+    const closedSeconds = task.total_time_spent || 0;
+    
+    // Складываем всё вместе! 
+    const diff = activeSeconds + closedSeconds;
+    
+    const MAX_SECONDS = 31536000000; // 1000 лет
+    if (diff >= MAX_SECONDS) {
+        return currentLang === 'ru' ? '1000+ лет' : '1000+ y';
     }
-    const start = new Date(startTime); 
     
-    // Math.max(0, ...) гарантирует, что при микрорассинхроне таймер не покажет отрицательные значения
-    const diff = Math.max(0, Math.floor((Date.now() - start) / 1000));
-    
-    // Считаем дни, часы, минуты и секунды
     const d = Math.floor(diff / 86400);
     const h = Math.floor((diff % 86400) / 3600).toString().padStart(2, '0');
     const m = Math.floor((diff % 3600) / 60).toString().padStart(2, '0');
     const s = Math.floor(diff % 60).toString().padStart(2, '0');
     
-    // Если прошло меньше суток — показываем классический секундомер
     if (d === 0) {
         return `${h}:${m}:${s}`;
     }
     
-    // Если прошло больше суток — добавляем дни (берем из нашего нового словаря timeUnits)
     const units = t('timeUnits');
     return `${d}${units.d} ${h}:${m}:${s}`;
+}
+
+function bumpModalUpdatedDate() {
+    const span = document.getElementById('task-updated-text');
+    if (span) {
+        const nowStr = formatDateTime(new Date().toISOString());
+        span.innerHTML = `${t('taskModal.updated')}: ${nowStr}`;
+    }
+}
+
+// ---------- РЕНДЕРИНГ ДОСКИ ----------
+
+function formatDateTime(isoString) {
+    if (!isoString) return '';
+    
+    // Бэкенд отдает время в UTC (datetime.utcnow()), 
+    // поэтому гарантируем, что JS распарсит его как UTC и переведет в локальное время пользователя.
+    let dateStr = isoString;
+    if (!dateStr.endsWith('Z') && !dateStr.includes('+')) {
+        dateStr += 'Z';
+    }
+    
+    const date = new Date(dateStr);
+    
+    // Настройки форматирования (например: 7 мая 2026 г., 15:40)
+    const options = { 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric', 
+        hour: '2-digit', 
+        minute: '2-digit' 
+    };
+    
+    return date.toLocaleDateString(currentLang, options);
 }
 
 // ---------- РЕНДЕРИНГ ДОСКИ ----------
 function renderBoard() {
     const board = document.getElementById('board');
+    const savedScroll = board.scrollLeft; // 🔥 СОХРАНЯЕМ СКРОЛЛ
+
     board.innerHTML = '';
     const sorted = [...state.columns].sort((a, b) => a.position - b.position);
     for (const col of sorted) board.appendChild(createColumnElement(col));
@@ -385,10 +534,13 @@ function renderBoard() {
     addColBtn.textContent = t('newColumn');
     addColBtn.addEventListener('click', onCreateColumn);
     board.appendChild(addColBtn);
+    
+    board.scrollLeft = savedScroll; // 🔥 ВОССТАНАВЛИВАЕМ СКРОЛЛ
+
     // Корректируем ширину свёрнутых колонок после layout
     requestAnimationFrame(() => {
         adjustCollapsedColumnWidths();
-        clampExpandedTitles();  // ← добавлено
+        clampExpandedTitles();
     });
 }
 
@@ -396,41 +548,105 @@ function updateCardAppearance(cardElement, task, columnMode) {
     if (task.completed_at) cardElement.classList.add('is-completed');
     else cardElement.classList.remove('is-completed');
 
-    // ДОБАВЛЕНО: Сбрасываем класс неизвестного времени перед проверкой
     cardElement.classList.remove('has-unknown-time');
 
-    const existingTimer = cardElement.querySelector('.card-timer');
-    const existingMeta = cardElement.querySelector('.subtask-meta');
+    // Убиваем старые элементы (наследие старой верстки)
+    Array.from(cardElement.children).forEach(child => {
+        if (child.classList.contains('card-timer') || child.classList.contains('subtask-meta')) {
+            child.remove();
+        }
+    });
 
+    const subtasks = task.subtasks || [];
+    const hasChecklist = subtasks.length > 0;
+    
+    let isTimer = false;
+    let isCompletionTime = false;
+    
     if (columnMode === 'track_time' && task.active_timer) {
-        if (!existingTimer) {
-            const timerDiv = document.createElement('div');
-            timerDiv.className = 'card-timer'; timerDiv.dataset.taskId = task.id;
-            timerDiv.textContent = formatTime(task.active_timer.start_time);
-            cardElement.appendChild(timerDiv);
-        } else {
-            existingTimer.textContent = formatTime(task.active_timer.start_time);
-        }
-        if (existingMeta) existingMeta.remove();
+        isTimer = true;
     } else if (columnMode === 'completion' && task.total_time_spent !== undefined && task.total_time_spent !== null) {
-        if (existingTimer) existingTimer.remove();
-        
-        // ДОБАВЛЕНО: Назначаем класс, если время 0
-        if (task.total_time_spent === 0) {
-            cardElement.classList.add('has-unknown-time');
+        isCompletionTime = true;
+        if (task.total_time_spent === 0) cardElement.classList.add('has-unknown-time');
+    }
+
+    let footer = cardElement.querySelector('.card-footer');
+    
+    // Создаем футер, если он нужен
+    if (hasChecklist || isTimer || isCompletionTime) {
+        if (!footer) {
+            footer = document.createElement('div');
+            footer.className = 'card-footer';
+            cardElement.appendChild(footer);
+        }
+        footer.classList.remove('is-empty'); // Восстанавливаем, если он исчезал
+    }
+
+    // Хелпер для мягкого растворения элементов
+    const smoothRemoveElement = (el) => {
+        if (!el || el.classList.contains('meta-exiting')) return;
+        el.classList.add('meta-exiting');
+        setTimeout(() => { if (el.parentNode) el.remove(); }, 300);
+    };
+
+    if (footer) {
+        // ТОЧЕЧНОЕ ОБНОВЛЕНИЕ ЧЕКЛИСТА
+        let checklistEl = footer.querySelector('.checklist-meta:not(.meta-exiting)');
+        if (hasChecklist) {
+            const total = subtasks.length;
+            const done = subtasks.filter(s => s.completed_at).length;
+            const allDoneClass = done === total ? 'all-done' : '';
+            
+            if (!checklistEl) {
+                checklistEl = document.createElement('div');
+                const branchIcon = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="3" x2="6" y2="15"></line><circle cx="18" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><path d="M18 9a9 9 0 0 1-9 9"></path></svg>`;
+                checklistEl.innerHTML = `${branchIcon}<span></span>`;
+                footer.insertBefore(checklistEl, footer.firstChild);
+            }
+            checklistEl.className = `checklist-meta ${allDoneClass}`;
+            checklistEl.querySelector('span').textContent = `${done}/${total}`;
+        } else if (checklistEl) {
+            smoothRemoveElement(checklistEl);
         }
 
-        if (!existingMeta) {
-            const metaDiv = document.createElement('div');
-            metaDiv.className = 'subtask-meta';
-            metaDiv.textContent = `${t('card.timeSpent')} ${formatTotalTime(task.total_time_spent)}`;
-            cardElement.appendChild(metaDiv);
+        // ТОЧЕЧНОЕ ОБНОВЛЕНИЕ ТАЙМЕРА И ПОТРАЧЕННОГО ВРЕМЕНИ
+        let timerEl = footer.querySelector('.card-timer:not(.meta-exiting)');
+        let totalTimeEl = footer.querySelector('.subtask-meta:not(.meta-exiting)');
+
+        if (isTimer) {
+            if (totalTimeEl) smoothRemoveElement(totalTimeEl);
+            if (!timerEl) {
+                timerEl = document.createElement('div');
+                timerEl.className = 'card-timer';
+                footer.appendChild(timerEl);
+            }
+            timerEl.dataset.taskId = task.id;
+            timerEl.textContent = formatTime(task);
+        } else if (isCompletionTime) {
+            if (timerEl) smoothRemoveElement(timerEl);
+            if (!totalTimeEl) {
+                totalTimeEl = document.createElement('div');
+                totalTimeEl.className = 'subtask-meta';
+                footer.appendChild(totalTimeEl);
+            }
+            totalTimeEl.textContent = `${t('card.timeSpent')} ${formatTotalTime(task.total_time_spent)}`;
         } else {
-            existingMeta.textContent = `${t('card.timeSpent')} ${formatTotalTime(task.total_time_spent)}`;
+            if (timerEl) smoothRemoveElement(timerEl);
+            if (totalTimeEl) smoothRemoveElement(totalTimeEl);
         }
-    } else {
-        if (existingTimer) existingTimer.remove();
-        if (existingMeta) existingMeta.remove();
+
+        // Плавное скрытие всего футера (схлопывание), если в нем не осталось активных элементов
+        const activeChildren = Array.from(footer.children).filter(c => !c.classList.contains('meta-exiting'));
+        if (activeChildren.length === 0) {
+            footer.classList.add('is-empty');
+            setTimeout(() => {
+                // Если за 300мс ничего нового в футер не закинули - стираем из DOM
+                const stillEmpty = Array.from(footer.children).filter(c => !c.classList.contains('meta-exiting')).length === 0;
+                if (stillEmpty && footer.parentNode) {
+                    footer.remove();
+                }
+            }, 300);
+        }
     }
 }
 
@@ -441,14 +657,37 @@ function generateCardHtml(task, columnMode) {
     if (task.completed_at) extraClasses.push('is-completed');
 
     if (task.active_timer) {
-        timeHtml = `<div class="card-timer" data-task-id="${task.id}">${formatTime(task.active_timer.start_time)}</div>`;
+        timeHtml = `<div class="card-timer" data-task-id="${task.id}">${formatTime(task)}</div>`;
     } else if (columnMode === 'completion' && task.total_time_spent !== undefined && task.total_time_spent !== null) {
         timeHtml = `<div class="subtask-meta">${t('card.timeSpent')} ${formatTotalTime(task.total_time_spent)}</div>`;
-        
-        // ДОБАВЛЕНО: вешаем класс, если время 0
-        if (task.total_time_spent === 0) {
-            extraClasses.push('has-unknown-time');
-        }
+        if (task.total_time_spent === 0) extraClasses.push('has-unknown-time');
+    }
+
+    let checklistHtml = '';
+    // Безопасное чтение
+    const subtasks = task.subtasks || [];
+    if (subtasks.length > 0) {
+        const total = subtasks.length;
+        const done = subtasks.filter(s => s.completed_at).length;
+        const allDoneClass = done === total ? 'all-done' : '';
+        // Значок проекта / иерархии (Git Branch)
+        const branchIcon = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="3" x2="6" y2="15"></line><circle cx="18" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><path d="M18 9a9 9 0 0 1-9 9"></path></svg>`;
+        checklistHtml = `
+            <div class="checklist-meta ${allDoneClass}">
+                ${branchIcon}
+                <span>${done}/${total}</span>
+            </div>
+        `;
+    }
+
+    let footerHtml = '';
+    if (checklistHtml || timeHtml) {
+        footerHtml = `
+            <div class="card-footer">
+                ${checklistHtml}
+                ${timeHtml}
+            </div>
+        `;
     }
     
     return `
@@ -462,7 +701,7 @@ function generateCardHtml(task, columnMode) {
                     </button>
                 </div>
             </div>
-            ${timeHtml}
+            ${footerHtml}
         </div>
     `;
 }
@@ -1960,6 +2199,8 @@ function startModalTaskRename(titleEl) {
             try {
                 await updateTask(taskId, { title: newTitle });
                 
+                bumpModalUpdatedDate();
+                
                 // Обновляем задачу в локальном стейте (если она на главной доске)
                 for (let col of state.columns) {
                     let t = col.tasks.find(t => t.id === taskId);
@@ -2170,14 +2411,18 @@ document.addEventListener('pointerdown', (e) => {
     if (e.target.closest('button, input, textarea, .menu-btn, .card-menu-btn, .tab-close-btn, .column.is-renaming, .board-tab.is-renaming, .card.is-renaming, .card-entering')) return;
 
     // 2. Ищем, на чем именно кликнули
+    const vaultHistory = e.target.closest('.vault-history-item');
     const subtask = e.target.closest('.subtask-item');
     const attachment = e.target.closest('.attachment-item'); // <--- ВОТ ЭТО НАДО ДОБАВИТЬ
     const card = e.target.closest('.card');
     const column = e.target.closest('.column');
     const tab = e.target.closest('.board-tab');
 
-    // 3. ЖЕСТКАЯ ИЕРАРХИЯ ЗАХВАТА
-    if (attachment) { // <--- ВОТ ЭТО НАДО ДОБАВИТЬ
+    if (vaultHistory) { // <--- ВСТАВИТЬ НА ПЕРВОЕ МЕСТО!
+        potentialDragType = 'vault-history';
+        potentialDragTarget = vaultHistory;
+    }
+    else if (attachment) { // <--- ВОТ ЭТО НАДО ДОБАВИТЬ
         potentialDragType = 'attachment';
         potentialDragTarget = attachment;
     }
@@ -2387,61 +2632,100 @@ function performHitTest() {
             }
         }
     }
+    // 6. ИСТОРИЯ ХРАНИЛИЩ
+    else if (dragType === 'vault-history') {
+        const hoverHist = elemUnderMouse.closest('.vault-history-item:not(.is-ghost)');
+        if (hoverHist && hoverHist !== draggedElement && hoverHist.closest('#vault-history-list')) {
+            const rect = hoverHist.getBoundingClientRect();
+            if (mouseY > rect.top + rect.height / 2) {
+                if (hoverHist.nextElementSibling !== draggedElement) hoverHist.after(draggedElement);
+            } else {
+                if (hoverHist.previousElementSibling !== draggedElement) hoverHist.before(draggedElement);
+            }
+        }
+    }
 }
 
 function handleEdgePanning() {
     if (!isDragging) return false;
 
     let container = null;
-    // Зона активации (в пикселях от края). На маленьких экранах 100px — оптимально.
-    let scrollZone = 100;  
-    // Максимальная скорость (пикселей за один кадр при 60fps)
-    let maxSpeed = 22;    
-    let speedX = 0;
+    let axis = 'x'; // По умолчанию горизонтальный скролл
+    let scrollZone = 60; // Зона активации от края
+    let maxSpeed = 16;   // Максимальная скорость
 
-    // Определяем целевой контейнер
+    // 1. ОПРЕДЕЛЯЕМ КОНТЕЙНЕР И ОСЬ В ЗАВИСИМОСТИ ОТ ТОГО, ЧТО ТАЩИМ
     if (dragType === 'tab') {
         container = document.getElementById('tabs-container');
-        scrollZone = 60; // Для вкладок зона чуть меньше
-    } else {
+        axis = 'x';
+    } else if (dragType === 'column') {
         container = document.querySelector('.board-container');
+        axis = 'x';
+        scrollZone = 100;
+        maxSpeed = 22;
+    } else if (dragType === 'vault-history') {
+        container = document.getElementById('vault-history-list');
+        axis = 'y'; // Вертикальный скролл для истории
+    } else if (dragType === 'subtask' || dragType === 'attachment') {
+        container = document.querySelector('.task-detail-body');
+        axis = 'y'; // Вертикальный скролл в модалке карточки
+    } else if (dragType === 'card') {
+        // Умный выбор для карточки: скроллим колонку (Y) или саму доску (X)
+        const hoverCol = document.elementFromPoint(mouseX, mouseY)?.closest('.column:not(.is-ghost)');
+        if (hoverCol) {
+            container = hoverCol.querySelector('.card-list');
+            axis = 'y';
+        } else {
+            container = document.querySelector('.board-container');
+            axis = 'x';
+            scrollZone = 100;
+            maxSpeed = 22;
+        }
     }
 
     if (!container) return false;
 
     const rect = container.getBoundingClientRect();
+    let speed = 0;
 
-    // ПРАВЫЙ КРАЙ
-    if (mouseX > rect.right - scrollZone) {
-        // Рассчитываем интенсивность: 0 у границы зоны, 1 у самого края экрана
-        const intensity = (mouseX - (rect.right - scrollZone)) / scrollZone;
-        const safeIntensity = Math.max(0, Math.min(intensity, 1));
-        
-        // Квадратичное ускорение: дает очень мягкий старт и быстрый полет в конце
-        speedX = Math.pow(safeIntensity, 2) * maxSpeed;
-    } 
-    // ЛЕВЫЙ КРАЙ
-    else if (mouseX < rect.left + scrollZone) {
-        const intensity = (rect.left + scrollZone - mouseX) / scrollZone;
-        const safeIntensity = Math.max(0, Math.min(intensity, 1));
-        
-        speedX = -(Math.pow(safeIntensity, 2) * maxSpeed);
-    }
+    // 2. ГОРИЗОНТАЛЬНЫЙ СКРОЛЛ (X)
+    if (axis === 'x') {
+        if (mouseX > rect.right - scrollZone) {
+            const intensity = Math.max(0, Math.min((mouseX - (rect.right - scrollZone)) / scrollZone, 1));
+            speed = Math.pow(intensity, 2) * maxSpeed;
+        } else if (mouseX < rect.left + scrollZone) {
+            const intensity = Math.max(0, Math.min((rect.left + scrollZone - mouseX) / scrollZone, 1));
+            speed = -(Math.pow(intensity, 2) * maxSpeed);
+        }
 
-    if (speedX !== 0) {
-        const prevScroll = container.scrollLeft;
-        container.scrollLeft += speedX;
-
-        // Если скролл реально изменился (не уперлись в край)
-        if (container.scrollLeft !== prevScroll) {
-            // Синхронизируем кастомный скроллбар вкладок, если нужно
-            if (dragType === 'tab' && window.updateTabsScrollbar) {
-                window.updateTabsScrollbar();
+        if (speed !== 0) {
+            const prevScroll = container.scrollLeft;
+            container.scrollLeft += speed;
+            if (container.scrollLeft !== prevScroll) {
+                if (dragType === 'tab' && window.updateTabsScrollbar) window.updateTabsScrollbar();
+                return true;
             }
-            return true;
+        }
+    } 
+    // 3. ВЕРТИКАЛЬНЫЙ СКРОЛЛ (Y)
+    else if (axis === 'y') {
+        if (mouseY > rect.bottom - scrollZone) {
+            const intensity = Math.max(0, Math.min((mouseY - (rect.bottom - scrollZone)) / scrollZone, 1));
+            speed = Math.pow(intensity, 2) * maxSpeed;
+        } else if (mouseY < rect.top + scrollZone) {
+            const intensity = Math.max(0, Math.min((rect.top + scrollZone - mouseY) / scrollZone, 1));
+            speed = -(Math.pow(intensity, 2) * maxSpeed);
+        }
+
+        if (speed !== 0) {
+            const prevScroll = container.scrollTop;
+            container.scrollTop += speed;
+            if (container.scrollTop !== prevScroll) {
+                return true;
+            }
         }
     }
-    
+
     return false;
 }
 
@@ -2454,7 +2738,7 @@ function renderPhysics() {
     lastMouseX = mouseX;
     
     // Добавляем 'attachment' к лимиту наклона как у подзадач
-    const maxRotation = (dragType === 'tab' || dragType === 'column') ? 3 : 12; 
+    const maxRotation = (dragType === 'tab' || dragType === 'column') ? 3 : (dragType === 'vault-history' ? 5 : 12); 
     targetRotation = Math.max(-maxRotation, Math.min(maxRotation, deltaX * 0.4));
     currentRotation += (targetRotation - currentRotation) * 0.15;
 
@@ -2485,7 +2769,7 @@ async function endDrag() {
                 // Используем тот же универсальный эндпоинт реордера задач
                 await saveTasksOrder(orderedIds);
                 // Обновляем доску на фоне, чтобы позиции синхронизировались в стейте
-                refreshBoard(); 
+                // refreshBoard(); 
             } catch (error) {
                 console.error("Ошибка сохранения порядка подзадач", error);
             }
@@ -2512,6 +2796,23 @@ async function endDrag() {
             }
         } catch (error) {
             console.error("Ошибка сохранения порядка вложений", error);
+        }
+    }
+
+    if (dragType === 'vault-history') {
+        // Собираем текущий порядок путей из DOM
+        const currentItems = Array.from(document.querySelectorAll('#vault-history-list .vault-history-item:not(.vault-history-drag-clone)'));
+        const orderedPaths = currentItems.map(el => el.dataset.path);
+        
+        try {
+            // Тихо отправляем новый порядок в API
+            await fetch(`${API_BASE}/system/vault/history/reorder`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ordered_paths: orderedPaths })
+            });
+        } catch (error) {
+            console.error("Ошибка сохранения порядка истории", error);
         }
     }
     
@@ -2592,30 +2893,35 @@ async function endDrag() {
                     const sourceCol = state.columns.find(c => c.id === sourceColumnId);
 
                     if (newColumnId !== sourceColumnId) {
-                        if (targetCol.mode === 'track_time') {
-                            draggedElement.classList.remove('is-completed');
-                            let timerEl = draggedElement.querySelector('.card-timer');
-                            if (!timerEl) {
-                                timerEl = document.createElement('div');
-                                timerEl.className = 'card-timer';
-                                timerEl.dataset.taskId = taskId;
-                                draggedElement.appendChild(timerEl);
+                        // --- 1. ОПТИМИСТИЧНОЕ ОБНОВЛЕНИЕ UI (БЕЗ ДЕРГАНИЙ) ---
+                        // Берем копию задачи из стейта, чтобы сымитировать новый режим без поломки DOM
+                        let optimisticTask = null;
+                        if (sourceCol) {
+                            const foundTask = sourceCol.tasks.find(t => t.id === taskId);
+                            if (foundTask) {
+                                optimisticTask = JSON.parse(JSON.stringify(foundTask));
                             }
-                            timerEl.textContent = '00:00:00';
-                            const metaEl = draggedElement.querySelector('.subtask-meta');
-                            if (metaEl) metaEl.remove();
-                        } else if (targetCol.mode === 'completion') {
-                            draggedElement.classList.add('is-completed');
-                            const timerEl = draggedElement.querySelector('.card-timer');
-                            if (timerEl) timerEl.remove();
-                        } else {
-                            draggedElement.classList.remove('is-completed');
-                            const timerEl = draggedElement.querySelector('.card-timer');
-                            if (timerEl) timerEl.remove();
+                        }
+                        
+                        if (optimisticTask) {
+                            if (targetCol.mode === 'track_time') {
+                                optimisticTask.completed_at = null;
+                                optimisticTask.active_timer = { start_time: new Date().toISOString() };
+                            } else if (targetCol.mode === 'completion') {
+                                optimisticTask.completed_at = new Date().toISOString();
+                                optimisticTask.active_timer = null;
+                            } else {
+                                optimisticTask.completed_at = null;
+                                optimisticTask.active_timer = null;
+                            }
+                            // Штатно собираем footer до ответа сервера, никакой дерготни!
+                            updateCardAppearance(draggedElement, optimisticTask, targetCol.mode);
                         }
 
+                        // --- 2. ЗАПРОС К API И ФИНАЛЬНОЕ ОБНОВЛЕНИЕ ---
                         const updatedTask = await moveTask(taskId, newColumnId);
                         
+                        let taskForUI = updatedTask;
                         if (sourceCol && targetCol) {
                             const taskIndex = sourceCol.tasks.findIndex(t => t.id == taskId);
                             if (taskIndex !== -1) {
@@ -2625,10 +2931,13 @@ async function endDrag() {
                                 movedTask.active_timer = updatedTask.active_timer; 
                                 movedTask.total_time_spent = updatedTask.total_time_spent;
                                 targetCol.tasks.push(movedTask);
+                                
+                                // Берем объект из стейта (с сохраненными подзадачами)
+                                taskForUI = movedTask;
                             }
                         }
                         
-                        updateCardAppearance(draggedElement, updatedTask, targetCol.mode);
+                        updateCardAppearance(draggedElement, taskForUI, targetCol.mode);
                         draggedElement.dataset.sourceColumnId = newColumnId;
                     }
 
@@ -2727,6 +3036,39 @@ document.addEventListener('click', async (e) => {
         }
     }
 
+    // ЭКСПОРТ ИЗ МОДАЛКИ КАРТОЧКИ
+    const exportModalBtn = target.closest('.modal-export');
+    if (exportModalBtn) {
+        e.stopPropagation();
+        const modal = document.getElementById('task-modal');
+        const taskId = parseInt(modal.dataset.taskId);
+        
+        if (window.pywebview && window.pywebview.api && window.pywebview.api.choose_directory) {
+            const exportDir = await window.pywebview.api.choose_directory();
+            if (exportDir) {
+                exportModalBtn.style.opacity = '0.5'; // Эффект загрузки
+                fetch(`${API_BASE}/tasks/${taskId}/export`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ export_path: exportDir })
+                }).then(res => {
+                    if (res.ok) {
+                        exportModalBtn.style.opacity = '1';
+                    } else {
+                        alert(t('alerts.error'));
+                        exportModalBtn.style.opacity = '1';
+                    }
+                }).catch(err => {
+                    console.error(err);
+                    exportModalBtn.style.opacity = '1';
+                });
+            }
+        } else {
+            alert('Экспорт в Markdown работает только в десктопном приложении Doe.');
+        }
+        return;
+    }
+
     // 3. ОБРАБОТКА КНОПОК ПОДТВЕРЖДЕНИЯ (Confirm Modal)
     if (target.closest('[data-action="confirm-cancel"]')) {
         if (activeConfirmResolve) { activeConfirmResolve(false); activeConfirmResolve = null; }
@@ -2739,10 +3081,13 @@ document.addEventListener('click', async (e) => {
         return;
     }
 
-    // 4. ОТКРЫТИЕ МЕНЮ НАСТРОЕК (Header)
+    // 4. ОТКРЫТИЕ МЕНЮ НАСТРОЕК (Header & Vault)
     const settingsTrigger = target.closest('.settings-trigger');
     if (settingsTrigger) {
-        const menu = document.querySelector('.settings-wrapper .dropdown-menu');
+        // ФИКС: Ищем меню ИМЕННО внутри текущего враппера (чтобы работало и на стартовом экране)
+        const wrapper = settingsTrigger.closest('.settings-wrapper');
+        const menu = wrapper.querySelector('.dropdown-menu');
+        
         const isShowing = menu.classList.contains('show');
         closeAllDropdowns(); 
         if (!isShowing) { 
@@ -2835,22 +3180,66 @@ document.addEventListener('click', async (e) => {
                     document.getElementById('task-modal').classList.add('show');
                 }
                 else if (action === 'delete-card') {
-                    cardEl.style.opacity = '0';
-                    cardEl.style.transform = 'scale(0.9)';
-                    setTimeout(() => { if (cardEl.parentNode) cardEl.remove(); updateColumnCount(colEl); }, 200);
-                    const col = state.columns.find(c => c.id === parseInt(colEl.dataset.columnId));
-                    if (col) col.tasks = col.tasks.filter(t => t.id !== taskId);
-                    deleteTask(taskId).catch(err => { console.error(err); refreshBoard(); });
-                } 
+                    // Запускаем красивое удаление (Клон + Spacer) мгновенно для кликнутой карточки
+                    animateCardDeletion(cardEl);
+                    
+                    // Вычищаем из локального стейта до ответа сервера (optimistic UI)
+                    for (let col of state.columns) {
+                        col.tasks = col.tasks.filter(t => t.id !== taskId);
+                    }
+                    
+                    deleteTask(taskId).then(data => {
+                        const deletedIds = data.deleted_ids || [];
+                        
+                        // Удаляем с доски всё дерево превьюх (если у задачи были подзадачи на доске)
+                        deletedIds.forEach(id => {
+                            if (id === taskId) return; // Эту мы уже анимировали выше
+                            const boardCard = document.querySelector(`.card[data-card-id="${id}"]`);
+                            if (boardCard) {
+                                animateCardDeletion(boardCard);
+                            }
+                            
+                            // Вычищаем остатки из локального стейта
+                            for (let col of state.columns) {
+                                col.tasks = col.tasks.filter(t => t.id !== id);
+                            }
+                        });
+                    }).catch(err => { 
+                        console.error(err); 
+                        refreshBoard(); 
+                    });
+                }
                 else if (action === 'clear-card-timer') {
                     clearTaskTimerAPI(taskId).then(updatedTask => {
                         const col = state.columns.find(c => c.id === parseInt(colEl.dataset.columnId));
                         if (col) {
                             const idx = col.tasks.findIndex(t => t.id === taskId);
-                            if (idx !== -1) col.tasks[idx] = updatedTask;
+                            if (idx !== -1) {
+                                // Бережно переносим массив подзадач из старого стейта в новый
+                                updatedTask.subtasks = col.tasks[idx].subtasks;
+                                col.tasks[idx] = updatedTask;
+                            }
                         }
                         updateCardAppearance(cardEl, updatedTask, col.mode);
                     });
+                }
+                else if (action === 'export-card') {
+                    if (window.pywebview && window.pywebview.api && window.pywebview.api.choose_directory) {
+                        const exportDir = await window.pywebview.api.choose_directory();
+                        if (exportDir) {
+                            fetch(`${API_BASE}/tasks/${taskId}/export`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ export_path: exportDir })
+                            }).then(res => {
+                                if (!res.ok) {
+                                    alert(t('alerts.error'));
+                                }
+                            }).catch(err => console.error(err));
+                        }
+                    } else {
+                        alert('Экспорт в Markdown работает только в десктопном приложении Doe.');
+                    }
                 }
             }
             closeAllDropdowns();
@@ -2896,8 +3285,16 @@ document.addEventListener('click', async (e) => {
     const themeItem = target.closest('#theme-list .lang-item');
     if (themeItem) {
         const theme = themeItem.dataset.themeValue;
-        applyTheme(theme, true);
-        setTimeout(() => document.getElementById('theme-modal').classList.remove('show'), 150);
+        
+        // 1. Сначала запускаем плавное CSS-растворение модалки
+        document.getElementById('theme-modal').classList.remove('show');
+        
+        // 2. Ждем ровно 250мс (время fade-out из CSS) и запускаем красивый круг
+        // смены темы уже на абсолютно чистом интерфейсе
+        setTimeout(() => {
+            applyTheme(theme, true);
+        }, 250);
+        
         return;
     }
 
@@ -2914,7 +3311,6 @@ document.addEventListener('click', async (e) => {
     if (target.closest('.modal-close') || target.classList.contains('modal-overlay')) {
         
         // 🔥 ФИКС: Если кликнули по серому фону (overlay) именно модалки карточки — ничего не закрываем.
-        // Браузер сам вызовет blur у текстового поля, и оно перейдет в режим чтения.
         if (target.id === 'task-modal' && target.classList.contains('modal-overlay')) {
             return; 
         }
@@ -2927,13 +3323,21 @@ document.addEventListener('click', async (e) => {
         // --- СБРОС ГЕОМЕТРИИ И FULLSCREEN СТАТУСА ПРИ ЗАКРЫТИИ ---
         const taskModal = document.getElementById('task-modal');
         if (taskModal && taskModal.classList.contains('show')) {
+            
+            // 🌟 НОВОЕ: ЗАПУСК СБОРЩИКА МУСОРА ПРИ ЗАКРЫТИИ КАРТОЧКИ
+            // Проверяем, что крестик нажали именно внутри модалки задачи
+            if (target.closest('#task-modal')) {
+                triggerGarbageCollector();
+            }
+            
             const card = taskModal.querySelector('.task-detail-card');
             const maximizeBtn = taskModal.querySelector('.modal-maximize');
             
             if (card) {
+
                 // Иконку разворота возвращаем сразу
                 if(maximizeBtn) {
-                    maximizeBtn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>`;
+                    maximizeBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="14 6 18 6 18 10"></polyline><polyline points="10 18 6 18 6 14"></polyline><line x1="18" y1="6" x2="13" y2="11"></line><line x1="6" y1="18" x2="11" y2="13"></line></svg>`;
                 }
 
                 // Ждем 300мс, пока окно плавно исчезнет (CSS анимация длится 0.25s).
@@ -2986,6 +3390,28 @@ async function loadTaskIntoModal(taskId, pushToStack = true) {
 
         // 1. Хлебные крошки
         if (pushToStack) {
+            // --- ПОЛНОЕ ВОССТАНОВЛЕНИЕ ИСТОРИИ (Рекурсивный подъем до корня) ---
+            if (modalNavigationStack.length === 0 && task.parent_id) {
+                let currentParentId = task.parent_id;
+                const ancestry = [];
+                
+                // Поднимаемся вверх, пока не кончатся родители
+                while (currentParentId) {
+                    try {
+                        const pRes = await fetch(`${API_BASE}/tasks/${currentParentId}`);
+                        if (!pRes.ok) break;
+                        const pTask = await pRes.json();
+                        // Кладем в начало массива (unshift), чтобы корень был первым
+                        ancestry.unshift({ id: pTask.id, title: pTask.title });
+                        currentParentId = pTask.parent_id;
+                    } catch (e) {
+                        break;
+                    }
+                }
+                // Присваиваем найденную цепочку стеку
+                modalNavigationStack = [...ancestry];
+            }
+
             const lastInStack = modalNavigationStack[modalNavigationStack.length - 1];
             if (!lastInStack || lastInStack.id !== task.id) {
                 modalNavigationStack.push({ id: task.id, title: task.title });
@@ -2998,6 +3424,22 @@ async function loadTaskIntoModal(taskId, pushToStack = true) {
         modal.dataset.columnId = task.column_id;
         titleEl.textContent = task.title;
         
+        // --- Рендер дат создания и изменения ---
+        const datesMetaEl = document.getElementById('task-dates-meta');
+        if (datesMetaEl) {
+            const createdStr = formatDateTime(task.created_at);
+            const updatedStr = formatDateTime(task.updated_at);
+            
+            datesMetaEl.innerHTML = `
+                <div>
+                    <span>${t('taskModal.created')}: ${createdStr}</span>
+                    <span class="date-separator">&middot;</span>
+                    <span id="task-updated-text">${t('taskModal.updated')}: ${updatedStr}</span>
+                </div>
+            `;
+        }
+        // ----------------------------------------------
+
         // 3. Описание (Markdown)
         inputArea.value = task.description || "";
         const attachmentsList = document.getElementById('attachments-list');
@@ -3028,19 +3470,114 @@ async function loadTaskIntoModal(taskId, pushToStack = true) {
         subtasksList.innerHTML = '';
         subtasksCount.textContent = task.subtasks.length;
         
+        // ВЫЧИСЛЯЕМ РЕЖИМ КОЛОНКИ РОДИТЕЛЯ
+        const parentColumn = state.columns.find(c => c.id === task.column_id);
+        const parentMode = parentColumn ? parentColumn.mode : 'default';
+        
         task.subtasks.sort((a, b) => a.position - b.position).forEach(sub => {
             const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = generateSubtaskHtml(sub).trim();
+            tempDiv.innerHTML = generateSubtaskHtml(sub, parentMode).trim();
             const subItem = tempDiv.firstChild;
             
-            // Привязка событий (Чекбокс и Открытие)
-            bindSubtaskEvents(subItem, sub, task.id);
+            // Привязка событий с передачей режима
+            bindSubtaskEvents(subItem, sub, task.id, parentMode);
             
             subtasksList.appendChild(subItem);
         });
 
         // 5. Инициализация кнопки добавления (вместо старого инпута)
         renderSubtaskAddButton(formContainer);
+
+        // 6. Инициализация и логика Таймера (Редактируемого)
+        const modalTimeTracker = document.getElementById('modal-time-tracker');
+        const modalTimerPill = document.getElementById('modal-task-timer');
+        const modalTimerInput = document.getElementById('modal-task-timer-input');
+        
+        // Всегда показываем таймер (в других колонках он будет просто на паузе)
+        modalTimeTracker.style.display = 'flex';
+        
+        // Привязываем ID задачи к пилюле для живого обновления через updateTimers()
+        modalTimerPill.dataset.taskId = task.id;
+        
+        // Отображаем исходное значение
+        const exactTime = task.active_timer ? formatTime(task) : formatExactTime(task.total_time_spent || 0);
+        modalTimerPill.textContent = exactTime;
+
+        // Сбрасываем старые обработчики путем глубокого клонирования
+        const newPill = modalTimerPill.cloneNode(true);
+        const newInput = modalTimerInput.cloneNode(true);
+        modalTimerPill.replaceWith(newPill);
+        modalTimerInput.replaceWith(newInput);
+
+        let timerCommitted = false;
+
+        newPill.addEventListener('click', (e) => {
+            e.stopPropagation();
+            timerCommitted = false;
+            newPill.style.display = 'none';
+            newInput.style.display = 'block';
+            newInput.value = newPill.textContent;
+            newInput.focus();
+            newInput.select();
+        });
+
+        const commitTimer = async () => {
+            if (timerCommitted) return;
+            timerCommitted = true;
+            
+            const seconds = parseTimeToSeconds(newInput.value);
+            
+            // Если ввели чушь - просто возвращаем как было
+            if (seconds === null) {
+                newInput.style.display = 'none';
+                newPill.style.display = 'block';
+                return;
+            }
+
+            newInput.disabled = true;
+            try {
+                const res = await fetch(`${API_BASE}/tasks/${task.id}/set-time`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ total_seconds: seconds })
+                });
+
+                if (res.ok) {
+                    const updatedTask = await res.json();
+                    const col = state.columns.find(c => c.id === updatedTask.column_id);
+                    if (col) {
+                        const idx = col.tasks.findIndex(t => t.id === updatedTask.id);
+                        if (idx !== -1) {
+                            // Сохраняем подзадачи при записи обновленного времени
+                            updatedTask.subtasks = col.tasks[idx].subtasks;
+                            col.tasks[idx] = updatedTask;
+                        }
+                    }
+                    
+                    newPill.textContent = updatedTask.active_timer ? formatTime(updatedTask) : formatExactTime(updatedTask.total_time_spent || 0);
+                    
+                    refreshBoard();
+                }
+            } catch (err) {
+                console.error("Ошибка сохранения времени:", err);
+            } finally {
+                newInput.disabled = false;
+                newInput.style.display = 'none';
+                newPill.style.display = 'block';
+            }
+        };
+
+        newInput.addEventListener('mousedown', (e) => e.stopPropagation());
+        newInput.addEventListener('keydown', (e) => {
+            e.stopPropagation();
+            if (e.key === 'Enter') commitTimer();
+            if (e.key === 'Escape') {
+                timerCommitted = true;
+                newInput.style.display = 'none';
+                newPill.style.display = 'block';
+            }
+        });
+        newInput.addEventListener('blur', commitTimer);
 
     } catch (err) {
         console.error("Ошибка загрузки карточки:", err);
@@ -3075,18 +3612,33 @@ function renderBreadcrumbs() {
     });
 }
 
-// ---------- ОБНОВЛЕНИЕ ТАЙМЕРОВ ----------
 function updateTimers() {
+    // 1. Обновляем все таймеры на самой доске
     document.querySelectorAll('.card-timer').forEach(el => {
         const taskId = el.dataset.taskId;
         for (const col of state.columns) {
             const task = col.tasks.find(t => t.id == taskId);
             if (task?.active_timer) {
-                el.textContent = formatTime(task.active_timer.start_time);
+                el.textContent = formatTime(task);
                 break;
             }
         }
     });
+
+    // 2. Обновляем таймер внутри модалки (если она открыта)
+    const modalTimerPill = document.getElementById('modal-task-timer');
+    if (modalTimerPill && modalTimerPill.dataset.taskId && modalTimerPill.style.display !== 'none') {
+        const taskId = modalTimerPill.dataset.taskId;
+        for (const col of state.columns) {
+            const task = col.tasks.find(t => t.id == taskId);
+            if (task) {
+                if (task.active_timer) {
+                    modalTimerPill.textContent = formatTime(task);
+                }
+                break;
+            }
+        }
+    }
 }
 
 function updateColumnCount(columnEl, count = null) {
@@ -3097,6 +3649,52 @@ function updateColumnCount(columnEl, count = null) {
     }
 }
 
+// Универсальная функция плавного удаления карточки с доски (Clone + Spacer)
+function animateCardDeletion(boardCard) {
+    if (!boardCard || !boardCard.parentNode) return;
+    
+    // 1. Снимаем размеры и координаты
+    const rect = boardCard.getBoundingClientRect();
+    
+    // 2. Создаем клона
+    const clone = boardCard.cloneNode(true);
+    clone.classList.add('card-deleting-clone');
+    clone.style.left = `${rect.left}px`;
+    clone.style.top = `${rect.top}px`;
+    clone.style.width = `${rect.width}px`;
+    clone.style.height = `${rect.height}px`;
+    clone.removeAttribute('id');
+    clone.removeAttribute('data-card-id');
+    document.body.appendChild(clone);
+    
+    // 3. Создаем распорку
+    const spacer = document.createElement('div');
+    spacer.className = 'card-spacer';
+    spacer.style.height = `${rect.height}px`;
+    
+    // 4. Подменяем оригинал распоркой
+    const parentCol = boardCard.closest('.column');
+    boardCard.replaceWith(spacer);
+    
+    // Мгновенно обновляем счетчик в шапке
+    if (parentCol) {
+        updateColumnCount(parentCol, parentCol.querySelectorAll('.card:not(.card-drag-clone)').length);
+    }
+    
+    // 5. Запускаем анимацию на следующем кадре
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            clone.classList.add('is-animating');
+            spacer.classList.add('is-shrinking');
+        });
+    });
+    
+    // 6. Убираем мусор
+    setTimeout(() => {
+        if (clone.parentNode) clone.remove();
+        if (spacer.parentNode) spacer.remove();
+    }, 450);
+}
 
 function clampSingleTitle(titleEl) {
     if (!titleEl) return;
@@ -3435,23 +4033,47 @@ function enhanceCodeBlocks(container) {
     });
 }
 
-function generateSubtaskHtml(sub) {
+function generateSubtaskHtml(sub, parentMode = 'default') {
     const trashIconSvg = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
     const openIconSvg = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`;
+    const eyeOpenSvg = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
+    const eyeClosedSvg = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`;
     
+    const currentEyeSvg = sub.is_visible_on_board ? eyeOpenSvg : eyeClosedSvg;
+    const eyeClass = sub.is_visible_on_board ? 'active-eye' : '';
+    
+    const isAgent = sub.is_visible_on_board;
+    const isLocked = isAgent;
+    const isDone = sub.completed_at;
+
+    const checkIcon = isAgent 
+        ? (isDone 
+            ? `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4"><polyline points="20 6 9 17 4 12"/></svg>` 
+            : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>`)
+        : `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4"><polyline points="20 6 9 17 4 12"/></svg>`;
+
+    let titleAttr = '';
+    if (isAgent) titleAttr = 'title="Статус управляется на доске"';
+
     return `
-        <div class="subtask-item ${sub.completed_at ? 'is-done' : ''}" data-subtask-id="${sub.id}">
-            <div class="subtask-checkbox">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4"><polyline points="20 6 9 17 4 12"/></svg>
+        <div class="subtask-item ${isDone ? 'is-done' : ''} ${isAgent ? 'is-board-agent' : ''}" data-subtask-id="${sub.id}">
+            <div class="subtask-checkbox ${isLocked ? 'locked' : ''}" ${titleAttr}>
+                ${checkIcon}
             </div>
+            
+            <!-- ГЛАЗИК ТЕПЕРЬ ЗДЕСЬ (Сразу после чекбокса) -->
+            <button class="subtask-eye-btn ${eyeClass}" title="Показывать на доске как карточку">${currentEyeSvg}</button>
+            
             <div class="subtask-title">${escapeHtml(sub.title)}</div>
+            
             <div class="subtask-actions">
-                <button class="subtask-delete-btn" title="${t('menu.delete')}">${trashIconSvg}</button>
                 <button class="subtask-open-btn" title="${t('menu.open')}">${openIconSvg}</button>
+                <button class="subtask-delete-btn" title="${t('menu.delete')}">${trashIconSvg}</button>
             </div>
         </div>
     `;
 }
+
 
 async function onAddSubtask() {
     const container = document.getElementById('subtask-form-container');
@@ -3474,11 +4096,16 @@ async function onAddSubtask() {
     const input = formItem.querySelector('textarea');
     
     const autoResize = () => {
-        input.style.height = '0px'; 
+        // ФИКС СКРОЛЛА: Запоминаем текущую позицию скролла модалки
+        const scrollParent = formItem.closest('.task-detail-body');
+        const currentScroll = scrollParent ? scrollParent.scrollTop : 0;
+
+        // Плавно пересчитываем высоту, не схлопывая элемент в 0
+        input.style.height = 'auto'; 
         input.style.height = input.scrollHeight + 'px';
         
-        // ФОКУС СКРОЛЛА: При наборе текста держим инпут в поле зрения
-        formItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        // Восстанавливаем скролл, чтобы интерфейс не прыгал
+        if (scrollParent) scrollParent.scrollTop = currentScroll;
     };
 
     input.addEventListener('input', () => {
@@ -3491,9 +4118,10 @@ async function onAddSubtask() {
     });
     
     autoResize();
-    input.focus();
+    // ФИКС СКРОЛЛА: запрещаем браузеру мгновенно и резко прыгать к полю при фокусе
+    input.focus({ preventScroll: true });
 
-    // ФОКУС СКРОЛЛА: Сразу после появления формы скроллим к ней
+    // Единожды плавно скроллим к новой форме, если она не влезла в экран
     requestAnimationFrame(() => {
         formItem.classList.add('entered');
         formItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -3523,7 +4151,7 @@ async function onAddSubtask() {
             void formItem.offsetWidth;
             formItem.classList.add('is-error');
             autoResize(); 
-            input.focus();
+            input.focus({ preventScroll: true });
             return;
         }
 
@@ -3540,6 +4168,8 @@ async function onAddSubtask() {
 
             if (!res.ok) throw new Error();
             const newSub = await res.json();
+            
+            bumpModalUpdatedDate();
 
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = generateSubtaskHtml(newSub).trim();
@@ -3552,7 +4182,7 @@ async function onAddSubtask() {
             formItem.remove();
             renderSubtaskAddButton(container);
 
-            // ФОКУС СКРОЛЛА: Когда родилась новая подзадача, летим к ней
+            // ФОКУС СКРОЛЛА: Когда родилась новая подзадача, плавно летим к ней
             requestAnimationFrame(() => {
                 realSub.classList.add('born');
                 realSub.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -3560,13 +4190,13 @@ async function onAddSubtask() {
 
             setTimeout(() => realSub.classList.remove('subtask-birth', 'born'), 500);
             document.getElementById('subtasks-count').textContent = parseInt(document.getElementById('subtasks-count').textContent) + 1;
-            refreshBoard();
+            refreshBoard(); // Обновляем индикатор на карточке доски
         } catch (err) {
             isResolved = false;
             input.disabled = false;
             formItem.classList.add('is-error');
             setTimeout(() => formItem.classList.remove('is-error'), 400);
-            input.focus();
+            input.focus({ preventScroll: true });
         }
     };
 
@@ -3590,41 +4220,115 @@ function renderSubtaskAddButton(container) {
 }
 
 // Вспомогательная функция привязки событий (выносим из основного цикла)
-function bindSubtaskEvents(el, sub, parentId) {
+function bindSubtaskEvents(el, sub, parentId, parentMode = 'default') {
     // 1. Чекбокс
     el.querySelector('.subtask-checkbox').onclick = async (e) => {
         e.stopPropagation();
+
+        // --- БЛОКИРОВКА ТОЛЬКО ЕСЛИ КАРТОЧКА НА ДОСКЕ ---
+        if (sub.is_visible_on_board) {
+            el.classList.remove('is-error');
+            void el.offsetWidth;
+            el.classList.add('is-error');
+            setTimeout(() => el.classList.remove('is-error'), 400);
+            return;
+        }
+
         const isDone = !el.classList.contains('is-done');
         el.classList.toggle('is-done', isDone);
-        await updateTask(sub.id, { completed_at: isDone ? new Date().toISOString() : null });
-        refreshBoard();
+        
+        const timestamp = isDone ? new Date().toISOString() : null;
+        sub.completed_at = timestamp; 
+        
+        await updateTask(sub.id, { completed_at: timestamp });
+        refreshBoard(); // Обновляем прогресс на карточке доски
     };
 
     // 2. УДАЛЕНИЕ (Корзина)
     el.querySelector('.subtask-delete-btn').onclick = async (e) => {
         e.stopPropagation();
-        
-        // Анимация исчезновения (Senior UI Touch)
         el.style.transition = 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)';
         el.style.opacity = '0';
         el.style.transform = 'translateX(30px) scale(0.95)';
         
         setTimeout(() => {
             if (el.parentNode) el.remove();
-            // Обновляем счетчик подзадач в заголовке модалки
             const countEl = document.getElementById('subtasks-count');
             countEl.textContent = Math.max(0, parseInt(countEl.textContent) - 1);
         }, 250);
 
-        // Отправляем в базу и обновляем доску на фоне
-        await deleteTask(sub.id);
-        refreshBoard();
+        try {
+            const data = await deleteTask(sub.id);
+            
+            bumpModalUpdatedDate();
+            
+            const deletedIds = data.deleted_ids || [];
+            
+            // Если у этой подзадачи были свои подзадачи или она была на доске - вычищаем всё!
+            deletedIds.forEach(id => {
+                const boardCard = document.querySelector(`.card[data-card-id="${id}"]`);
+                if (boardCard) {
+                    animateCardDeletion(boardCard);
+                }
+                
+                // Вычищаем из локального стейта
+                for (let col of state.columns) {
+                    const taskIndex = col.tasks.findIndex(t => t.id === id);
+                    if (taskIndex !== -1) col.tasks.splice(taskIndex, 1);
+                }
+            });
+            refreshBoard(); // Обновляем индикатор 1/10
+        } catch(err) {
+            console.error("Ошибка при глубоком удалении:", err);
+        }
     };
 
     // 3. ОТКРЫТИЕ (Expand)
     el.querySelector('.subtask-open-btn').onclick = (e) => {
         e.stopPropagation();
         loadTaskIntoModal(sub.id, true);
+    };
+
+    // 4. ГЛАЗИК (Видимость на доске)
+    el.querySelector('.subtask-eye-btn').onclick = (e) => {
+        e.stopPropagation();
+        const eyeBtn = e.currentTarget;
+        const checkbox = el.querySelector('.subtask-checkbox');
+        
+        sub.is_visible_on_board = !sub.is_visible_on_board;
+
+        const eyeOpenSvg = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
+        const eyeClosedSvg = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`;
+        const checkIconSvg = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4"><polyline points="20 6 9 17 4 12"/></svg>`;
+        const boardIconSvg = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>`;
+
+        eyeBtn.innerHTML = sub.is_visible_on_board ? eyeOpenSvg : eyeClosedSvg;
+        eyeBtn.classList.toggle('active-eye', sub.is_visible_on_board);
+        el.classList.toggle('is-board-agent', sub.is_visible_on_board);
+        
+        // Отправляем запрос на сервер и ЖДЕМ ответ 
+        updateTask(sub.id, { 
+            is_visible_on_board: sub.is_visible_on_board
+        }).then(updatedSub => {
+            // Синхронизируем статус с БД
+            sub.completed_at = updatedSub.completed_at;
+            
+            const isDone = sub.completed_at;
+            const isLocked = sub.is_visible_on_board;
+
+            checkbox.classList.toggle('locked', isLocked);
+            el.classList.toggle('is-done', !!isDone);
+            
+            if (sub.is_visible_on_board) {
+                checkbox.setAttribute('title', 'Статус управляется на доске');
+                checkbox.innerHTML = isDone ? checkIconSvg : boardIconSvg;
+            } else {
+                checkbox.removeAttribute('title');
+                checkbox.innerHTML = checkIconSvg;
+            }
+            
+            refreshBoard();
+        }).catch(console.error);
     };
 }
 
@@ -3639,22 +4343,20 @@ function initTaskDescriptionLogic() {
     const switchToEditMode = () => {
         lastSavedValue = inputArea.value; 
 
-        // 1. ХИТРЫЙ ТРЮК: Вычисляем пропорциональную позицию клика через Selection API
-        let relativePos = 1; // По умолчанию в конец
+        // 1. Вычисляем пропорциональную позицию клика через Selection API
+        let relativePos = 1; 
         const selection = window.getSelection();
         
         if (selection.rangeCount > 0 && renderDiv.contains(selection.anchorNode)) {
             const range = selection.getRangeAt(0);
             const preCaretRange = range.cloneRange();
             
-            // Выделяем весь текст от начала блока до места клика
             preCaretRange.selectNodeContents(renderDiv);
             preCaretRange.setEnd(range.startContainer, range.startOffset);
             
             const textBefore = preCaretRange.toString();
             const totalText = renderDiv.textContent || '';
             
-            // Получаем процентное соотношение (например, кликнули ровно посередине = 0.5)
             if (totalText.length > 0) {
                 relativePos = textBefore.length / totalText.length;
             }
@@ -3663,69 +4365,114 @@ function initTaskDescriptionLogic() {
         renderDiv.style.display = 'none';
         inputArea.style.display = 'block';
 
-        // Снимаем любые остаточные выделения текста (чтобы не было синего фона)
         window.getSelection().removeAllRanges();
         
-        // 2. Ставим курсор в вычисленное место (пропорция * общая длина сырого Markdown)
+        // 2. Ставим курсор
         inputArea.focus();
         const targetIndex = Math.floor(inputArea.value.length * relativePos);
         inputArea.setSelectionRange(targetIndex, targetIndex);
         
-        // 3. Синхронизируем скролл, чтобы курсор оказался примерно по центру поля зрения
+        // 3. Синхронизируем скролл
         const scrollTarget = (inputArea.scrollHeight * relativePos) - (inputArea.clientHeight / 2);
         inputArea.scrollTop = Math.max(0, scrollTarget);
     };
 
     // ==========================================
-    // ЛОГИКА DRAG & DROP ФАЙЛОВ В ОПИСАНИЕ
+    // ЛОГИКА ВСТАВКИ (PASTE) И DRAG & DROP ФАЙЛОВ
     // ==========================================
+    const processFileForDescription = async (file) => {
+        const isEditMode = renderDiv.style.display === 'none';
+
+        let fileName = file.name;
+        if (!fileName || fileName === 'image.png') {
+            const dateStr = new Date().toISOString().replace(/[:.-]/g, '').slice(0, 15);
+            fileName = `Скриншот_${dateStr}.png`;
+        }
+
+        const placeholder = `[⏳ Загрузка ${fileName}...]()`;
+
+        if (isEditMode) {
+            const cursorPos = inputArea.selectionStart;
+            const text = inputArea.value;
+            const textBefore = text.substring(0, cursorPos);
+            
+            // Умный префикс для пустой строки
+            let prefix = "";
+            if (textBefore.trim() !== "") {
+                if (textBefore.endsWith('\n')) prefix = "\n";
+                else prefix = "\n\n";
+            }
+            
+            const insertText = `${prefix}${placeholder}\n`;
+            inputArea.value = textBefore + insertText + text.substring(cursorPos);
+            inputArea.selectionStart = inputArea.selectionEnd = cursorPos + insertText.length;
+            inputArea.dispatchEvent(new Event('input'));
+        } else {
+            const text = inputArea.value;
+            let prefix = "";
+            if (text.trim() !== "") {
+                if (text.endsWith('\n')) prefix = "\n";
+                else prefix = "\n\n";
+            }
+            inputArea.value = text + prefix + placeholder;
+            
+            const cleanRegex = /(!?)\[[^\]]+\]\(attachments\/[^)]+\)!\s*/g;
+            const tempText = inputArea.value.replace(cleanRegex, '');
+            renderDiv.innerHTML = marked.parse(tempText, { breaks: true });
+        }
+
+        const formData = new FormData();
+        formData.append('file', file, fileName);
+
+        try {
+            const res = await fetch(`${API_BASE}/system/upload`, { method: 'POST', body: formData });
+            if (!res.ok) throw new Error('Upload failed');
+            const data = await res.json();
+            const encodedPath = encodeURI(data.path);
+            const finalMarkdown = `[${data.name}](${encodedPath})`;
+            
+            inputArea.value = inputArea.value.replace(placeholder, finalMarkdown);
+        } catch (err) {
+            inputArea.value = inputArea.value.replace(placeholder, `[❌ Ошибка: ${fileName}]()`);
+        }
+
+        if (isEditMode) {
+            inputArea.dispatchEvent(new Event('input'));
+            inputArea.focus();
+        } else {
+            lastSavedValue = null; 
+            await switchToReadMode();
+        }
+    };
+
     const handleFileDrop = async (e) => {
         e.preventDefault();
         e.stopPropagation();
-        descWrapper.style.borderColor = ''; // Убираем подсветку зоны
+        descWrapper.style.borderColor = ''; 
 
         const files = e.dataTransfer.files;
         if (!files || files.length === 0) return;
 
-        const file = files[0];
+        processFileForDescription(files[0]);
+    };
 
-        // Если кинули в режим чтения (Markdown) - автоматически переключаем в редактирование
-        if (renderDiv.style.display !== 'none') {
-            switchToEditMode();
-            // Делаем отступ, чтобы файл добавился с новой строки
-            inputArea.value += "\n"; 
-            inputArea.selectionStart = inputArea.value.length;
+    const handleFilePaste = async (e) => {
+        const items = (e.clipboardData || window.clipboardData).items;
+        let file = null;
+
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].kind === 'file') {
+                file = items[i].getAsFile();
+                break; 
+            }
         }
 
-        const cursorPos = inputArea.selectionStart;
-        const text = inputArea.value;
-        const placeholder = `\n[⏳ Загрузка ${file.name}...]()`;
-
-        // Вставляем плейсхолдер туда, где стоял курсор
-        inputArea.value = text.substring(0, cursorPos) + placeholder + text.substring(cursorPos);
-
-        const formData = new FormData();
-        formData.append('file', file);
-
-        try {
-            const res = await fetch(`${API_BASE}/system/upload`, { 
-                method: 'POST', 
-                body: formData 
-            });
-            if (!res.ok) throw new Error('Upload failed');
-            const data = await res.json();
-            
-            const encodedPath = encodeURI(data.path);
-            inputArea.value = inputArea.value.replace(placeholder, `\n[${data.name}](${encodedPath})`);
-            
-            // Вызываем blur, чтобы сохранить задачу, обновить Markdown и отрендерить список вложений
-            inputArea.dispatchEvent(new Event('blur')); 
-        } catch (err) {
-            inputArea.value = inputArea.value.replace(placeholder, `\n[❌ Ошибка загрузки ${file.name}]()`);
+        if (file) {
+            e.preventDefault(); // Блокируем вставку текста base64
+            processFileForDescription(file);
         }
     };
 
-    // Подсвечиваем рамку, когда держим файл над описанием
     descWrapper.addEventListener('dragover', (e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -3735,14 +4482,18 @@ function initTaskDescriptionLogic() {
     descWrapper.addEventListener('dragleave', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        // Возвращаем стандартный цвет рамки, если курсор не в фокусе ввода
         descWrapper.style.borderColor = document.activeElement === inputArea ? 'rgba(74, 90, 72, 0.3)' : '';
     });
 
-    // Обработка самого броска
     descWrapper.addEventListener('drop', handleFileDrop);
-    // ==========================================
+    
+    // Слушаем вставку из буфера обмена (Ctrl+V / Cmd+V)
+    inputArea.addEventListener('paste', handleFilePaste);
+    renderDiv.addEventListener('paste', handleFilePaste);
 
+    // ==========================================
+    // ЛОГИКА СОХРАНЕНИЯ ОПИСАНИЯ
+    // ==========================================
     const switchToReadMode = async () => {
         const newDesc = inputArea.value;
         const taskId = modal.dataset.taskId;
@@ -3755,15 +4506,12 @@ function initTaskDescriptionLogic() {
         inputArea.style.opacity = "0.7";
 
         try {
-            // 🔥 РЕШЕНИЕ: Читаем актуальный порядок прямо из DOM-дерева модалки!
-            // Это решает проблему подзадач, которых нет в state.columns
             const currentAttachments = Array.from(document.querySelectorAll('#attachments-list .attachment-item'));
             const savedOrder = currentAttachments.map(el => el.dataset.path);
 
             const extracted = extractAttachments(newDesc, savedOrder);
             const newOrderPaths = extracted.map(a => a.path);
 
-            // Отправляем ОДНИМ запросом и текст, и актуализированный порядок файлов
             const res = await fetch(`${API_BASE}/tasks/${taskId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
@@ -3774,8 +4522,9 @@ function initTaskDescriptionLogic() {
             });
 
             if (!res.ok) throw new Error("Save failed");
+            
+            bumpModalUpdatedDate();
 
-            // Сохраняем в стейт (только если это задача верхнего уровня, чтобы UI не сбоил)
             for (let col of state.columns) {
                 let currentTask = col.tasks.find(t => t.id == taskId);
                 if (currentTask) {
@@ -3785,7 +4534,6 @@ function initTaskDescriptionLogic() {
                 }
             }
             
-            // Передаем извлеченные файлы в UI, чтобы не парсить их заново
             exitEditingUI(newDesc, extracted);
         } catch (err) {
             console.error("Critical sync error:", err);
@@ -3800,7 +4548,6 @@ function initTaskDescriptionLogic() {
         const attachmentsCount = document.getElementById('attachments-count');
         
         if (attachmentsCount && attachmentsList && preCalculatedAttachments) {
-            // Обогащаем (проверяем на диске), если это не было сделано ранее
             let extracted = preCalculatedAttachments;
             if (extracted.length > 0 && extracted[0].exists === undefined) {
                 extracted = await enrichAttachments(extracted);
@@ -3826,7 +4573,6 @@ function initTaskDescriptionLogic() {
 
     descWrapper.addEventListener('mousedown', (e) => e.stopPropagation());
 
-    // ФИКС ГЛИТЧА: На 1-й клик ставится каретка, на 2-й клик блокируется "синее" выделение слова
     renderDiv.addEventListener('mousedown', (e) => {
         if (e.target.tagName === 'A') return;
         if (e.detail > 1) {
@@ -3866,9 +4612,6 @@ function initTaskDescriptionLogic() {
             return;
         }
         
-        // --- SENIOR UX HACK: Один клик для пустой заглушки ---
-        // Если в textarea пусто, значит на экране висит серая надпись "Кликните, чтобы добавить..."
-        // В этом случае разрешаем переход в редактирование по первому же клику.
         if (!inputArea.value.trim()) {
             switchToEditMode();
         }
@@ -3919,8 +4662,8 @@ function initTaskModalDragAndResize() {
 
             void card.offsetWidth; // Force Reflow
             card.classList.add('maximized');
-            // Меняем иконку (15px)
-            maximizeBtn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 14 10 14 10 20"></polyline><polyline points="20 10 14 10 14 4"></polyline><line x1="14" y1="10" x2="21" y2="3"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>`;
+            // Меняем иконку на "Сжатие" (геометрически выверенная)
+            maximizeBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 10 14 10 14 6"></polyline><polyline points="6 14 10 14 10 18"></polyline><line x1="14" y1="10" x2="18" y2="6"></line><line x1="10" y1="14" x2="6" y2="18"></line></svg>`;
         } else {
             // СЖАТИЕ В ЦЕНТР: FLIP анимация
             // 1. Измеряем начальную (полноэкранную) позицию
@@ -3959,8 +4702,7 @@ function initTaskModalDragAndResize() {
             card.style.width = `${targetRect.width}px`;
             card.style.height = `${targetRect.height}px`;
 
-            maximizeBtn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>`;
-
+            maximizeBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="14 6 18 6 18 10"></polyline><polyline points="10 18 6 18 6 14"></polyline><line x1="18" y1="6" x2="13" y2="11"></line><line x1="6" y1="18" x2="11" y2="13"></line></svg>`;
             // 6. Убираем лишние стили после завершения анимации
             const cleanup = (ev) => {
                 if (ev && ev.target !== card) return; // Игнорируем всплытия от дочерних элементов
@@ -3998,14 +4740,31 @@ function initTaskModalDragAndResize() {
         // ЗАЩИТА: Запрещаем таскать и ресайзить, если окно на весь экран
         if (card.classList.contains('maximized')) return;
 
+        // ЗАЩИТА: Игнорируем клики вне самой карточки (по полупрозрачному оверлею)
+        if (!e.target.closest('.task-detail-card')) return;
+
         const resizer = e.target.closest('.resizer');
         
-        // Исключаем кнопки из зоны захвата драга
-        const isHeader = e.target.closest('.modal-header') && 
-                         !e.target.closest('.modal-close') && 
-                         !e.target.closest('.modal-maximize');
+        // 🔥 ИСПРАВЛЕНИЕ: Убрали .modal-title из этого списка!
+        // Теперь заголовок модалки можно хватать и тащить.
+        const isInteractive = e.target.closest(
+            'button, input, textarea, a, ' + 
+            '.markdown-body, .description-wrapper, ' + 
+            '.subtask-item, .attachment-item, ' +      
+            '.breadcrumb-item'
+        );
 
-        if (!resizer && !isHeader) return;
+        // Исключаем клики по нативным скроллбарам
+        const isScrollbarClick = (e.target.clientWidth > 0 && e.offsetX > e.target.clientWidth) || 
+                                 (e.target.clientHeight > 0 && e.offsetY > e.target.clientHeight);
+
+        if (!resizer && (isInteractive || isScrollbarClick)) return;
+
+        // Если мы кликнули в пустоту (или по заголовку для драга), 
+        // снимаем фокус с любого активного инпута (например, переименования), чтобы он сохранился.
+        if (document.activeElement && document.activeElement !== document.body) {
+            document.activeElement.blur();
+        }
 
         e.preventDefault();
         
@@ -4021,7 +4780,7 @@ function initTaskModalDragAndResize() {
             card.style.transform = 'none';
         }
 
-        isDragging = isHeader;
+        isDragging = !resizer;
         currentResizer = resizer;
 
         startX = e.clientX;
@@ -4038,9 +4797,12 @@ function initTaskModalDragAndResize() {
             currentRotation = 0;
             targetRotation = 0;
             
-            card.style.transition = 'none'; // Отключаем CSS-анимации на время драга
-            card.style.willChange = 'left, top, transform'; // Сообщаем браузеру ускорить GPU
+            card.style.transition = 'none'; 
+            card.style.willChange = 'left, top, transform'; 
             
+            // Включаем кулак
+            document.body.classList.add('is-dragging-modal');
+
             cancelAnimationFrame(rafId);
             rafId = requestAnimationFrame(renderModalPhysics);
         }
@@ -4096,17 +4858,18 @@ function initTaskModalDragAndResize() {
         }
     };
 
-    const onPointerUp = (e) => { // <--- Добавили (e)
+    const onPointerUp = (e) => {
         // Завершение физики
         if (isDragging) {
+            // 🔥 ФИКС КУРСОРА: Отключаем кулак
+            document.body.classList.remove('is-dragging-modal');
+            
             cancelAnimationFrame(rafId);
             // Плавно и "желейно" возвращаем наклон в 0 градусов
             card.style.transition = 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)';
             card.style.transform = 'rotate(0deg)';
             card.style.willChange = 'auto'; // Снимаем нагрузку с GPU
             
-            // 🔥 ФИКС: Если мы реально протащили окно больше чем на 3 пикселя,
-            // ставим глобальную блокировку клика на 50 миллисекунд
             if (Math.abs(e.clientX - startX) > 3 || Math.abs(e.clientY - startY) > 3) {
                 window._isAfterDrag = true;
                 setTimeout(() => window._isAfterDrag = false, 50);
@@ -4296,20 +5059,47 @@ function createAttachmentElement(att) {
     });
     
     // Удаление вложения из текста
-    div.querySelector('.subtask-delete-btn').addEventListener('click', (e) => {
+    div.querySelector('.subtask-delete-btn').addEventListener('click', async (e) => {
         e.stopPropagation();
+        
+        // 1. Визуально скрываем элемент мгновенно
         div.style.transition = 'all 0.2s ease-out';
         div.style.opacity = '0';
         div.style.transform = 'translateX(20px)';
 
+        const pathToDelete = att.path;
+
+        // 2. СРАЗУ отправляем запрос на физическое удаление с диска (исключение из правил)
+        fetch(`${API_BASE}/system/delete-file`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ path: pathToDelete })
+        }).catch(err => console.error("Physical delete failed:", err));
+
+        // 3. Стираем упоминание файла из текста Markdown
         setTimeout(() => {
             const inputArea = document.getElementById('task-desc-input');
-            const safePath = att.path.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            // Удаляем конструкцию целиком, опираясь на путь
+            const renderDiv = document.getElementById('task-desc-render');
+            const isEditMode = renderDiv.style.display === 'none';
+            
+            const safePath = pathToDelete.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             const pathRegex = new RegExp(`(!?)\\[[^\\]]*\\]\\(${safePath}\\)(!?)`, 'g');
             
-            inputArea.value = inputArea.value.replace(pathRegex, '').trim();
-            inputArea.dispatchEvent(new Event('blur')); 
+            const oldText = inputArea.value;
+            inputArea.value = oldText.replace(pathRegex, '').trim();
+            
+            // Если текст реально изменился — решаем, что делать дальше в зависимости от режима
+            if (oldText !== inputArea.value) {
+                if (isEditMode) {
+                    inputArea.dispatchEvent(new Event('input'));
+                    inputArea.focus();
+                } else {
+                    inputArea.dispatchEvent(new Event('blur')); // Сохраняем в фоне
+                }
+            } else {
+                // Если ссылка была где-то еще, просто убираем из DOM
+                if (div.parentNode) div.remove();
+            }
         }, 200);
     });
     
@@ -4319,27 +5109,62 @@ function createAttachmentElement(att) {
 // Вспомогательная функция для ювелирной замены сломанного пути в Markdown
 function replaceBrokenAttachment(att, newData) {
     const inputArea = document.getElementById('task-desc-input');
+    const renderDiv = document.getElementById('task-desc-render');
+    const isEditMode = renderDiv.style.display === 'none';
+
     const encodedNewPath = encodeURI(newData.path);
+    // Восстанавливаем стандартную ссылку
+    const newMarkdown = `[${newData.name}](${encodedNewPath})`;
     
-    // att.fullMatch: "[супер фотка просто вау](attachments/суперфотка.pn)"
-    // att.path: "attachments/суперфотка.pn"
-    // Мы заменяем строго кусок в круглых скобках!
-    // Результат: "[супер фотка просто вау](attachments/фильм.mp4)"
-    const newMarkdown = att.fullMatch.replace(`(${att.path})`, `(${encodedNewPath})`);
-    
-    // Точечно заменяем именно эту сломанную строку в общем тексте
+    // Заменяем старый битый кусок текста (att.fullMatch) на новую ссылку
     inputArea.value = inputArea.value.replace(att.fullMatch, newMarkdown);
     
-    // Имитируем выход из инпута, чтобы запустить сохранение на бэкенд и перерисовку
-    inputArea.dispatchEvent(new Event('blur'));
+    if (isEditMode) {
+        inputArea.dispatchEvent(new Event('input'));
+        inputArea.focus();
+    } else {
+        inputArea.dispatchEvent(new Event('blur'));
+    }
 }
 
 function appendAttachmentToDescription(name, path) {
     const inputArea = document.getElementById('task-desc-input');
-    const encodedPath = encodeURI(path); // <--- КОДИРУЕМ
-    const markdown = `\n[${name}](${encodedPath})!`;
-    inputArea.value = (inputArea.value + markdown).trim();
-    inputArea.dispatchEvent(new Event('blur'));
+    const renderDiv = document.getElementById('task-desc-render');
+    const isEditMode = renderDiv.style.display === 'none';
+
+    const encodedPath = encodeURI(path); 
+    const attachmentMarkdown = `[${name}](${encodedPath})`;
+    
+    if (isEditMode) {
+        const cursorPos = inputArea.selectionStart;
+        const text = inputArea.value;
+        const textBefore = text.substring(0, cursorPos);
+
+        let prefix = "";
+        if (textBefore.trim() !== "") {
+            // 🔥 SENIOR UI LOGIC:
+            // Если текст заканчивается на один \n — добавляем еще один для пустой строки
+            // Если текст заканчивается на буквы — добавляем два \n\n
+            if (textBefore.endsWith('\n')) prefix = "\n";
+            else prefix = "\n\n";
+        }
+        
+        const insertText = `${prefix}${attachmentMarkdown}\n`;
+        
+        inputArea.value = textBefore + insertText + text.substring(cursorPos);
+        inputArea.selectionStart = inputArea.selectionEnd = cursorPos + insertText.length;
+        inputArea.dispatchEvent(new Event('input'));
+        inputArea.focus();
+    } else {
+        const text = inputArea.value;
+        let prefix = "";
+        if (text.trim() !== "") {
+            if (text.endsWith('\n')) prefix = "\n";
+            else prefix = "\n\n";
+        }
+        inputArea.value = text + prefix + attachmentMarkdown;
+        inputArea.dispatchEvent(new Event('blur')); 
+    }
 }
 
 // Обработчик кнопки "+ Добавить вложение"
@@ -4390,6 +5215,159 @@ async function showVaultScreen() {
     } else {
         window.location.href = "/app?mode=vault"; // Fallback для разработки в браузере
     }
+}
+
+async function fetchVaultHistory() {
+    try {
+        const res = await fetch(`${API_BASE}/system/vault/history`);
+        if (res.ok) return await res.json();
+    } catch (e) { console.error(e); }
+    return [];
+}
+
+async function renderVaultHistory() {
+    const list = document.getElementById('vault-history-list');
+    if (!list) return;
+    list.innerHTML = '';
+    
+    const history = await fetchVaultHistory();
+    
+    if (history.length === 0) {
+        list.innerHTML = `
+            <div style="text-align:center; padding: 24px; color: var(--text-secondary); font-size: 13px; opacity: 0.6;" data-i18n="vault.recentEmpty">
+                ${t('vault.recentEmpty')}
+            </div>`;
+        return;
+    }
+
+    const folderIcon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>`;
+    const trashIcon = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
+
+    history.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'subtask-item vault-history-item';
+        div.dataset.path = item.path;
+        
+        // Форматируем дату (функция formatDateTime уже есть в коде и сама учитывает язык)
+        let dateStr = '';
+        if (item.last_opened) {
+            dateStr = formatDateTime(item.last_opened);
+        } else {
+            // Если это старое хранилище, открывавшееся до появления этой функции в коде
+            dateStr = currentLang === 'ru' ? 'Ранее' : 'Earlier';
+        }
+
+        div.innerHTML = `
+            <div class="subtask-checkbox" style="border:none; color: var(--brand-pine); opacity: 0.8; cursor: inherit;">
+                ${folderIcon}
+            </div>
+            <div class="vault-history-info">
+                <div class="vault-history-name">${escapeHtml(item.name)}</div>
+                <div class="vault-history-meta">
+                    <div class="vault-history-path" title="${escapeHtml(item.path)}">${escapeHtml(item.path)}</div>
+                    <!-- Теперь блок даты есть в DOM всегда, поэтому он без проблем копируется в Drag&Drop клон -->
+                    <div class="vault-history-date" data-timestamp="${item.last_opened || ''}">${dateStr}</div>
+                </div>
+            </div>
+            <div class="subtask-actions">
+                <button class="subtask-delete-btn vault-hist-del" title="${t('menu.delete')}">${trashIcon}</button>
+            </div>
+        `;
+
+        // В обработчике КЛИКА нужно блокировать открытие, если мы только что бросили элемент
+        div.addEventListener('click', async (e) => {
+            if (window._isAfterDrag) return; // <--- ЗАЩИТА ОТ СЛУЧАЙНОГО ОТКРЫТИЯ ПРИ БРОСКЕ
+            if (e.target.closest('.vault-hist-del')) return;
+            
+            try {
+                // Эффект загрузки (затемняем интерфейс)
+                div.style.opacity = '0.5';
+                div.style.pointerEvents = 'none';
+
+                const res = await fetch(`${API_BASE}/system/vault/switch`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ new_path: item.path })
+                });
+                
+                if (res.ok) {
+                    const result = await res.json();
+                    updateVaultName(result.name);
+                    const settings = await fetchSettings().catch(() => ({}));
+                    state.activeWorkspaceId = settings.active_workspace_id || null;
+                    await transitionToApp();
+                } else if (res.status === 400) {
+                    // Папка удалена или повреждена (показываем ошибку тряской)
+                    div.style.opacity = '1';
+                    div.style.pointerEvents = 'auto';
+                    div.classList.add('is-error');
+                    setTimeout(() => div.classList.remove('is-error'), 400);
+                }
+            } catch (err) {
+                console.error(err);
+                div.style.opacity = '1';
+                div.style.pointerEvents = 'auto';
+            }
+        });
+
+        // Клик по корзине — удаление из истории
+        div.querySelector('.vault-hist-del').addEventListener('click', async (e) => {
+            e.stopPropagation();
+            
+            // 1. Снимаем точные размеры
+            const rect = div.getBoundingClientRect();
+            
+            // 2. Создаем клона (падает вниз)
+            const clone = div.cloneNode(true);
+            clone.classList.add('vault-deleting-clone');
+            clone.style.left = `${rect.left}px`;
+            clone.style.top = `${rect.top}px`;
+            clone.style.width = `${rect.width}px`;
+            clone.style.height = `${rect.height}px`;
+            document.body.appendChild(clone);
+            
+            // 3. Создаем умную распорку
+            const spacer = document.createElement('div');
+            spacer.className = 'vault-history-spacer';
+            spacer.style.height = `${rect.height}px`;
+            
+            // 4. Мгновенно подменяем оригинал распоркой
+            div.replaceWith(spacer);
+
+            // 5. Запускаем анимации на следующем кадре
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    clone.classList.add('is-animating');
+                    spacer.classList.add('is-shrinking');
+                });
+            });
+
+            // 6. Убираем мусор из DOM после анимации. 
+            // Благодаря отрицательному margin-top, в момент удаления spacer занимает 
+            // ровно 0 пикселей в физике списка, поэтому скачка не будет вообще.
+            setTimeout(() => {
+                if (clone.parentNode) clone.remove();
+                if (spacer.parentNode) spacer.remove();
+                
+                if (list.querySelectorAll('.vault-history-item').length === 0) {
+                    renderVaultHistory();
+                }
+            }, 450);
+
+            // 7. Фоновый запрос
+            try {
+                await fetch(`${API_BASE}/system/vault/history/remove`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ path: item.path })
+                });
+            } catch (err) {
+                console.error("Ошибка удаления из истории:", err);
+            }
+        });
+
+        list.appendChild(div);
+    });
 }
 
 async function transitionToApp() {
@@ -4544,9 +5522,19 @@ initTaskDescriptionLogic();
         });
     });
 
-    // Если это окно выбора хранилища — обрываем загрузку доски, показываем только занавес
+    // Если это окно выбора хранилища — загружаем настройки, историю и показываем занавес
     if (isVaultMode) {
         document.getElementById('vault-screen').classList.remove('hidden', 'content-hidden');
+        
+        try {
+            // Даже на экране входа мы запрашиваем глобальные настройки (тема/язык)
+            const settingsData = await fetchSettings().catch(() => ({}));
+            if (settingsData.theme) applyTheme(settingsData.theme, false);
+            if (settingsData.language) applyLanguage(settingsData.language, false);
+        } catch (e) { console.error("Settings load failed in vault mode", e); }
+
+        renderVaultHistory();
+        
         document.body.classList.remove('preload');
         setTimeout(triggerReveal, 50);
         return; 
@@ -4595,10 +5583,15 @@ initTaskDescriptionLogic();
             // Выполняем замеры высот и схлопывание (фикс вспышки макета)
             adjustCollapsedColumnWidths();
             clampExpandedTitles();
+
+            // 🌟 НОВОЕ: Запускаем фоновую очистку мусора при старте приложения, 
+            // когда хранилище и БД гарантированно подключены.
+            triggerGarbageCollector();
+
         } else {
             // Если воркспейсов вообще нет (критическая ситуация)
             console.error("No workspaces found even after initialization");
-            renderBoard(); // Отрисует пустую доску с кнопкой "+"
+            renderBoard(); 
         }
 
         // 5. ПОКАЗЫВАЕМ ОКНО (убираем preload)

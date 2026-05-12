@@ -100,10 +100,15 @@ async def serve_index():
     # Это гарантирует, что даже если CSS еще не загружен, 
     # весь вьюпорт уже будет нужного цвета.
     inject_script = f"""
-    <style>
+    <style id="doe-bg-lock">
         html, body {{ background-color: {bg_color} !important; }}
     </style>
     <script>
+        // Senior UX: Снимаем жесткий лок фона сразу после загрузки DOM
+        window.addEventListener('DOMContentLoaded', () => {{
+            setTimeout(() => document.getElementById('doe-bg-lock')?.remove(), 50);
+        }});
+        
         if ('{theme}' === 'dark') {{
             document.documentElement.setAttribute('data-theme', 'dark');
         }}

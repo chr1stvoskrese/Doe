@@ -26,7 +26,44 @@ def get_active_vault() -> str:
 def set_active_vault(vault_path: str) -> None:
     data = _load_config()
     data["active_vault"] = vault_path
+    
+    history = data.get("vault_history", [])
+    
+    # Очистка от дублей и миграция старого формата (список строк) в список словарей
+    cleaned = []
+    for item in history:
+        if isinstance(item, str):
+            if item != vault_path:
+                cleaned.append({"path": item, "last_opened": None})
+        elif isinstance(item, dict):
+            if item.get("path") != vault_path:
+                cleaned.append(item)
+                
+    # Формируем текущую дату в формате ISO + Z (для фронтенда)
+    now_iso = datetime.utcnow().isoformat() + "Z"
+    # Добавляем текущее хранилище на самый верх
+    cleaned.insert(0, {"path": vault_path, "last_opened": now_iso})
+    
+    data["vault_history"] = cleaned[:10]  # Храним только 10 последних
     _save_config(data)
+
+def remove_vault_from_history(vault_path: str) -> None:
+    data = _load_config()
+    history = data.get("vault_history", [])
+    
+    cleaned = []
+    for item in history:
+        if isinstance(item, str) and item != vault_path:
+            cleaned.append(item)
+        elif isinstance(item, dict) and item.get("path") != vault_path:
+            cleaned.append(item)
+            
+    data["vault_history"] = cleaned
+    _save_config(data)
+
+def get_vault_history() -> list[str]:
+    data = _load_config()
+    return data.get("vault_history", [])
 
 def get_ui_settings() -> dict:
     data = _load_config()
@@ -50,3 +87,26 @@ def set_ui_settings(theme: str = None, language: str = None, active_workspace_id
         data["active_workspaces"][vault_path] = active_workspace_id
         
     _save_config(data)
+
+def reorder_vault_history(ordered_paths: list[str]) -> None:
+    data = _load_config()
+    history = data.get("vault_history", [])
+    
+    # Создаем словарь для быстрого поиска, чтобы не потерять даты при Drag&Drop
+    history_map = {}
+    for item in history:
+        if isinstance(item, str):
+            history_map[item] = {"path": item, "last_opened": None}
+        elif isinstance(item, dict):
+            history_map[item.get("path")] = item
+            
+    new_history = []
+    for p in ordered_paths[:10]:
+        if p in history_map:
+            new_history.append(history_map[p])
+        else:
+            new_history.append({"path": p, "last_opened": None})
+            
+    data["vault_history"] = new_history
+    _save_config(data)
+

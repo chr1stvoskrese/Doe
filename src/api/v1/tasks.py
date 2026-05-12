@@ -10,6 +10,8 @@ from src.schemas.task import (
     TaskResponse,
     TaskCreateResponse,
     TaskReorder,
+    TaskExportReq,
+    TaskSetTimeReq,
 )
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
@@ -33,13 +35,13 @@ async def update_task(task_id: int, task_in: TaskUpdate, db: AsyncSession = Depe
         raise HTTPException(status_code=404, detail=str(e))
 
 
-@router.delete("/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{task_id}", status_code=status.HTTP_200_OK)
 async def delete_task(task_id: int, db: AsyncSession = Depends(get_session)):
     try:
-        await task_service.delete_task(db, task_id)
+        deleted_ids = await task_service.delete_task(db, task_id)
+        return {"deleted_ids": deleted_ids}
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
-    return
 
 
 @router.post("/{task_id}/move", response_model=TaskCreateResponse)
@@ -63,10 +65,28 @@ async def clear_task_timer_endpoint(task_id: int, db: AsyncSession = Depends(get
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
+@router.post("/{task_id}/export")
+async def export_task_endpoint(task_id: int, req: TaskExportReq, db: AsyncSession = Depends(get_session)):
+    try:
+        result = await task_service.export_task_to_markdown(db, task_id, req.export_path)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.get("/{task_id}", response_model=TaskResponse)
 async def get_task(task_id: int, db: AsyncSession = Depends(get_session)):
     try:
         task = await task_service.get_task_with_details(db, task_id)
+        return task
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+@router.post("/{task_id}/set-time", response_model=TaskCreateResponse)
+async def set_task_time_endpoint(task_id: int, req: TaskSetTimeReq, db: AsyncSession = Depends(get_session)):
+    try:
+        task = await task_service.set_task_time(db, task_id, req.total_seconds)
         return task
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))

@@ -192,7 +192,6 @@ svg, img {
 /* Цвет границ кнопки создания колонки в темной теме */
 [data-theme="dark"] .new-column-btn {
     border-color: rgba(137, 160, 133, 0.25);
-    will-change: transform; /* Оптимизация производительности анимации */
 }
 
 /* Фон затемнения модального окна в темной теме */
@@ -708,22 +707,35 @@ body {
 .card-title-wrapper {
     width: 100%;
     display: flex;
-    align-items: flex-start; /* Карандашик будет на уровне первой строки */
-    gap: 8px;
+    align-items: flex-start;
+    /* gap: 8px; УБРАЛИ, чтобы не было пустой дырки от скрытой галочки */
     pointer-events: none;
 }
 
-/* Иконка галочки у завершенной задачи */
+/* Иконка галочки у завершенной задачи (теперь с плавной анимацией) */
 .completed-icon {
     color: var(--success-done);
-    flex-shrink: 0;             /* Иконка не сжимается */
-    margin-top: 2px;            /* Выравнивание по первой строке текста */
-    display: none;              /* По умолчанию скрыта */
+    flex-shrink: 0;
+    margin-top: 2px;
+    
+    /* Мягко прячем вместо display:none */
+    width: 0;
+    margin-right: 0;
+    opacity: 0;
+    transform: scale(0.5) translateX(-8px);
+    transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1), 
+                margin-right 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+                opacity 0.3s ease, 
+                transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    overflow: hidden;
 }
 
-/* Показываем галочку только если задача завершена */
+/* Плавно показываем галочку и отодвигаем текст */
 .card.is-completed .completed-icon {
-    display: block;
+    width: 16px;
+    margin-right: 8px; /* Включаем отступ до заголовка */
+    opacity: 1;
+    transform: scale(1) translateX(0);
 }
 
 /* Текст заголовка карточки */
@@ -732,19 +744,119 @@ body {
     font-weight: 500;
     line-height: 1.4;
     color: var(--text-primary);
-    transition: color 0.2s;
+    transition: color 0.3s ease; /* Сделали смену цвета более плавной */
     pointer-events: none;
     word-break: break-word;
     overflow-wrap: break-word;
     white-space: pre-wrap;
-    flex: 1; /* ГЛАВНОЕ: Растягиваем заголовок */
+    flex: 1; 
     min-width: 0;
+}
+
+/* Контейнер для нижних элементов карточки */
+.card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 4px;
+    pointer-events: none;
+    width: 100%;
+    transition: margin-top 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+}
+
+/* Скрытый футер, который плавно сжимает отступ карточки */
+.card-footer.is-empty {
+    margin-top: 0 !important;
+    opacity: 0 !important;
+}
+
+/* Плавное появление новых мета-тегов на карточке (таймеры, чек-листы) */
+@keyframes meta-pop-in {
+    from { opacity: 0; transform: scale(0.9) translateY(4px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.checklist-meta, .card-timer, .subtask-meta {
+    animation: meta-pop-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); 
+    max-width: 200px; /* Лимит, чтобы CSS знал от чего схлопывать */
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+/* Класс для плавного исчезновения перед удалением */
+.meta-exiting {
+    opacity: 0 !important;
+    transform: scale(0.6) translateY(-4px) !important;
+    max-width: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    border: none !important;
 }
 
 /* Зачеркнутый текст у завершенной задачи */
 .card.is-completed .card-title {
     text-decoration: line-through;
     color: var(--text-secondary);
+}
+
+/* СТАЛО */
+/* Контейнер для нижних элементов карточки */
+.card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 4px;
+    pointer-events: none;
+    width: 100%;
+}
+
+/* Когда есть только один элемент, прижимаем его в нужную сторону */
+.card-footer > .card-timer, 
+.card-footer > .subtask-meta {
+    margin-left: auto; /* Таймер всегда справа */
+}
+
+/* Индикатор подзадач */
+.checklist-meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    background: rgba(0, 0, 0, 0.04);
+    padding: 3px 8px;
+    border-radius: 6px;
+    letter-spacing: 0.04em;
+    transition: all 0.2s ease;
+}
+
+[data-theme="dark"] .checklist-meta {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.checklist-meta svg {
+    opacity: 0.7;
+}
+
+/* Если все подзадачи выполнены — красим в зеленый */
+.checklist-meta.all-done {
+    color: var(--success-done);
+    background: rgba(137, 160, 133, 0.15);
+}
+
+.checklist-meta.all-done svg {
+    opacity: 1;
+}
+
+[data-theme="dark"] .checklist-meta.all-done {
+    color: #FFFFFF;
+    background: var(--success-done);
 }
 
 /* Текст таймера на карточке */
@@ -759,20 +871,29 @@ body {
     font-weight: 600;
     letter-spacing: 0.02em;
     margin-top: 0;
-    order: 3;                   /* Порядок отображения (в конце) */
     pointer-events: none;
 }
 
 /* Мета-информация на карточке (например, потраченное время) */
 .subtask-meta {
-    font-size: 12px;
+    font-family: var(--font-mono); /* Цифры времени будут ровными, как в таймере */
+    font-size: 11px;
+    font-weight: 600;
     color: var(--text-secondary);
-    display: flex;
+    background: rgba(0, 0, 0, 0.04); /* Легкий фон пилюли */
+    padding: 4px 10px;
+    border-radius: 8px; /* Скругление как у остальных элементов */
+    display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
     margin-top: 0;
-    order: 2;                   /* Идет перед таймером */
     pointer-events: none;
+    letter-spacing: 0.02em;
+}
+
+/* Поддержка тёмной темы для пилюли времени */
+[data-theme="dark"] .subtask-meta {
+    background: rgba(255, 255, 255, 0.06);
 }
 
 /* Кнопка создания новой карточки внизу колонки */
@@ -813,8 +934,10 @@ body {
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s ease;
-    will-change: transform;
+    
+    /* 🔥 ФИКС: Убрали will-change и transition: all. 
+       Анимируем только цвет фона и рамки, чтобы не дергать GPU-композитор */
+    transition: background-color 0.2s ease, border-color 0.2s ease;
     animation: fadeInBtn 0.2s ease-out;
 }
 
@@ -967,7 +1090,7 @@ body {
     justify-content: center;
     opacity: 0;
     visibility: hidden;
-    z-index: 1000;
+    z-index: 9999999; /* ФИКС: Делаем выше, чем vault-screen (999999) */
     transition: opacity 0.2s ease, visibility 0.2s;
 }
 
@@ -999,12 +1122,12 @@ body {
 
 /* Шапка модального окна */
 .modal-header {
-    padding: 16px 24px; /* Идеальное выравнивание с контентом ниже */
+    padding: 16px; /* Строгие 16px со всех сторон, как в колонках */
     border-bottom: 1px solid var(--border-light);
     display: flex;
-    align-items: flex-start; /* Из прошлого фикса */
+    align-items: flex-start;
     justify-content: space-between;
-    position: relative; /* Для позиционирования ошибки */
+    position: relative;
 }
 
 /* Заголовок в модалке */
@@ -1014,52 +1137,58 @@ body {
     color: var(--text-primary);
 }
 
-/* Специфичные стили для заголовка именно ОТКРЫТОЙ КАРТОЧКИ (для переноса) */
-#task-modal-title {
-    flex: 1;
-    min-width: 0;
-    word-break: break-word;
-    overflow-wrap: break-word;
-    white-space: pre-wrap;
-    line-height: 1.4;
-    cursor: pointer;
-    margin-right: 12px;
-}
-
 /* Контейнер кнопок шапки */
 .modal-header-actions {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 4px; /* Небольшой зазор между кнопками */
     flex-shrink: 0;
-    margin-top: -2px; /* Компенсация по высоте первой строки */
+    margin-top: -2px; /* Выравнивание по уровню текста заголовка */
 }
 
-/* Кнопки в шапке модалки (закрыть, развернуть) */
+/* Выравнивание одиночного крестика для остальных модалок (Тема, Язык и т.д.) */
+.modal-header > .modal-close {
+    margin-top: -2px;
+}
+
+/* Кнопки в шапке модалки (закрыть, развернуть, экспорт) в стиле эстетичных кнопок */
 .modal-close,
-.modal-maximize {
-    background: none;
+.modal-maximize,
+.modal-export {
+    background: transparent;
     border: none;
     cursor: pointer;
     color: var(--text-secondary);
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 6px;
-    margin: -6px 0 -6px 0;
-    border-radius: 8px;
-    transition: background 0.15s, color 0.15s;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    margin: 0;
+    border-radius: 8px; /* Красивое скругление, как в чек-листе */
+    transition: all 0.2s ease; /* Плавная анимация как у subtask-open-btn */
+}
+
+/* Жестко фиксируем одинаковый размер самих иконок */
+.modal-close svg,
+.modal-maximize svg,
+.modal-export svg {
+    width: 16px !important;
+    height: 16px !important;
 }
 
 .modal-close:hover,
-.modal-maximize:hover {
+.modal-maximize:hover,
+.modal-export:hover {
     background: rgba(0, 0, 0, 0.05);
     color: var(--text-primary);
 }
 
 /* Темная тема для кнопок */
 [data-theme="dark"] .modal-close:hover,
-[data-theme="dark"] .modal-maximize:hover {
+[data-theme="dark"] .modal-maximize:hover,
+[data-theme="dark"] .modal-export:hover {
     background: rgba(255, 255, 255, 0.08);
 }
 
@@ -1178,7 +1307,7 @@ body {
 
 /* Окно "О программе" */
 .about-content {
-    padding: 32px 24px;
+    padding: 32px 16px; /* Горизонтальные отступы теперь 16px */
     text-align: center;
     display: flex;
     flex-direction: column;
@@ -1348,7 +1477,7 @@ body {
 .modal-header .card-error-hint {
     position: absolute;
     bottom: 2px;
-    left: 20px;
+    left: 16px; /* Выравниваем ровно по новому краю шапки */
     margin: 0;
 }
 
@@ -1466,8 +1595,8 @@ body {
 
 /* Цвет выделения в темной теме */
 [data-theme="dark"] .column-title-input::selection {
-    background: #41493E;
-    color: var(--text-primary);
+    background: #5C635A !important;
+    color: #FFFFFF !important;
 }
 
 /* Глобальная блокировка ховеров и кликов во время драга колонки */
@@ -1541,6 +1670,12 @@ body.is-dragging-card .column-header {
     -moz-osx-font-smoothing: grayscale !important; 
 }
 
+/* Запрет ховеров внутри клона */
+.subtask-drag-clone * {
+    transition: none !important;
+    pointer-events: none !important;
+}
+
 
 /* Клон колонки, который остается для анимации удаления */
 .column-deleting-clone {
@@ -1581,6 +1716,49 @@ body.is-dragging-card .column-header {
     width: 0 !important;        /* Убираем ширину */
     min-width: 0 !important;
     margin-right: -24px !important; /* Компенсируем gap родительской доски (24px) */
+}
+
+/* ==========================================
+   АНИМАЦИЯ УДАЛЕНИЯ КАРТОЧЕК
+   ========================================== */
+.card-deleting-clone {
+    position: fixed !important;
+    z-index: 9999;
+    margin: 0 !important;
+    pointer-events: none !important;
+    transform-origin: center center;
+    will-change: transform, opacity;
+    transition: opacity 0.20s ease, transform 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    /* Копируем базовый вид */
+    background: var(--surface-card);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+}
+
+.card-deleting-clone.is-animating {
+    opacity: 0 !important;
+    transform: scale(0.92) translateY(8px) !important;
+}
+
+/* Распорка, которая занимает место удаленной карточки и плавно сжимается */
+.card-spacer {
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    background: transparent !important;
+    pointer-events: none !important;
+    flex-shrink: 0 !important;
+    will-change: height, margin-top;
+    transition:
+        height 0.35s cubic-bezier(0.25, 1, 0.5, 1) 0.05s,
+        margin-top 0.35s cubic-bezier(0.25, 1, 0.5, 1) 0.05s !important;
+}
+
+.card-spacer.is-shrinking {
+    height: 0 !important;
+    margin-top: -12px !important; /* Ровно компенсирует gap родительского списка (12px) */
 }
 
 /* Модальное окно подтверждения (Confirm) */
@@ -1743,6 +1921,12 @@ body.is-dragging-card .column-header {
     cursor: text;
 }
 
+/* Эстетичное выделение текста при создании */
+.card-input::selection {
+    background: #C3C6BC;
+    color: var(--text-primary);
+}
+
 .card-input::placeholder {
     color: var(--text-secondary);
     opacity: 0.55;
@@ -1754,6 +1938,18 @@ body.is-dragging-card .column-header {
 
 [data-theme="dark"] .card-input {
     color: var(--text-primary);
+}
+
+/* Выделение в тёмной теме */
+[data-theme="dark"] .card-input::selection {
+    background: #5C635A !important;
+    color: #FFFFFF !important;
+}
+
+/* Глобальное нейтральное выделение для темной темы */
+[data-theme="dark"] ::selection {
+    background: #62676E !important;
+    color: #FFFFFF !important;
 }
 
 [data-theme="dark"] .card-input::placeholder {
@@ -2280,9 +2476,11 @@ body.is-dragging-tab .board-tab::after {
 /* Инпут вкладки в темной теме */
 [data-theme="dark"] .tab-name-input {
     background: rgba(137, 160, 133, 0.15);
-}[data-theme="dark"] .tab-name-input::selection {
-    background: #41493E;
-    color: var(--text-primary);
+}
+
+[data-theme="dark"] .tab-name-input::selection {
+    background: #5C635A !important;
+    color: #FFFFFF !important;
 }
 
 /* ==========================================
@@ -2400,8 +2598,8 @@ body[class*="is-dragging-"] .board-tab:not(.active) {
 
 /* Таймер и мета-данные прижимаем к правому краю для эстетики */
 .card-timer, .subtask-meta {
-    align-self: flex-end; 
     margin-top: 0;
+    /* Убрали align-self: flex-end, теперь они идеально центрируются по вертикали вместе с чек-листом */
 }
 
 /* Показываем карандашик при наведении на карточку или если меню открыто */
@@ -2470,8 +2668,14 @@ body[class*="is-dragging-"] .board-tab:not(.active) {
 }
 
 [data-theme="dark"] .card.is-renaming .card-title-input::selection {
-    background: #41493E;
-    color: var(--text-primary);
+    background: #5C635A !important;
+    color: #FFFFFF !important;
+}
+
+/* Senior UX: Благородный Кварцевый Мох (Global) */
+[data-theme="dark"] *::selection {
+    background: #5C635A !important;
+    color: #FFFFFF !important;
 }
 
 
@@ -2594,15 +2798,45 @@ body[class*="is-dragging-"] .board-tab:not(.active) {
     overflow: hidden;           /* Обязательно для работы resize */
 }
 
-/* 🚀 МАГИЯ ДРАГА (Курсоры) */
-.task-detail-card .modal-header {
+/* 🚀 МАГИЯ ДРАГА (Курсоры) для всего окна модалки */
+.task-detail-card {
+    cursor: grab; /* Курсор руки над всем нефункциональным пространством */
+}
+
+.task-detail-card.maximized {
+    cursor: default !important; /* В полноэкранном режиме таскать нельзя */
+}
+
+/* ✅ ДОБАВИТЬ ВМЕСТО УДАЛЕННОГО */
+/* Оставляем обычный курсор только над неинтерактивными текстовыми заголовками секций */
+.subtasks-header span {
+    cursor: default;
+}
+
+/* Явно указываем курсор для контейнера хлебных крошек (между ссылками) */
+.task-breadcrumbs {
     cursor: grab;
+}
+
+/* Обертка получает автоматический курсор, чтобы заработала иконка ресайза */
+.description-wrapper {
+    cursor: auto;
+}
+
+/* А текстовый курсор оставляем только самому тексту и инпуту */
+.markdown-body, .description-input {
+    cursor: text;
+}
+
+.task-detail-card .modal-header {
     user-select: none;
     align-items: flex-start; /* Чтобы крестик оставался сверху при многострочном тексте */
 }
 
-.task-detail-card .modal-header:active {
-    cursor: grabbing;
+/* 🔥 Кулак при перетаскивании модалки (глобально) */
+body.is-dragging-modal, 
+body.is-dragging-modal * {
+    cursor: grabbing !important;
 }
 
 /* Тело модалки, которое не тянется само, а отдает место потомкам */
@@ -2610,8 +2844,8 @@ body[class*="is-dragging-"] .board-tab:not(.active) {
     flex: 1;
     display: flex;
     flex-direction: column;
-    padding: 24px !important; /* Строгая симметрия со всех сторон */
-    overflow-y: auto;         /* Возвращаем стандартное поведение скролла */
+    padding: 16px !important; /* Отступ 16px, описание будет на одной линии с кнопками и заголовком */
+    overflow-y: auto;
     overflow-x: hidden;
 }
 
@@ -2686,12 +2920,12 @@ body[class*="is-dragging-"] .board-tab:not(.active) {
     color: var(--text-primary);
 }
 
-/* 3. Поддержка Тёмной темы (Dark Mode Selection) */
+/* 3. Поддержка Тёмной темы (Spruce Stone Selection) */
 [data-theme="dark"] .description-input::selection,
 [data-theme="dark"] .markdown-body::selection,
 [data-theme="dark"] .markdown-body *::selection {
-    background: #41493E;
-    color: var(--text-primary);
+    background: #5C635A !important;
+    color: #FFFFFF !important;
 }
 
 .description-input::placeholder {
@@ -2990,36 +3224,6 @@ body[class*="is-dragging-"] .board-tab:not(.active) {
     resize: none !important; /* Отключаем штатный ресайз */
 }
 
-/* Хлебные крошки */
-.task-breadcrumbs {
-    display: flex;
-    flex-wrap: wrap; /* Разрешаем перенос крошек на новые строки */
-    align-items: center; /* Центрируем текст и слеши по вертикали */
-    gap: 8px;
-    margin-bottom: 12px;
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--text-secondary);
-}
-
-.task-breadcrumbs:empty {
-    display: none;
-}
-
-.breadcrumb-item {
-    cursor: pointer;
-    transition: color 0.2s;
-    /* Ограничиваем длину в ~20 символов и добавляем троеточие */
-    max-width: 20ch; 
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    display: block; /* Обязательно для работы overflow */
-}
-
-.breadcrumb-item:hover { color: var(--brand-pine); }
-.breadcrumb-separator { opacity: 0.3; }
-
 /* Секции контента (Вложения и Подзадачи) */
 .attachments-section,
 .subtasks-section {
@@ -3113,7 +3317,8 @@ body[class*="is-dragging-"] .board-tab:not(.active) {
 .subtask-checkbox {
     width: 18px;
     height: 18px;
-    border: 2px solid var(--border-light);
+    border: 1.5px solid var(--text-secondary); /* Изящная тонкая рамка */
+    opacity: 0.7;
     border-radius: 5px;
     cursor: pointer;
     display: flex;
@@ -3122,7 +3327,22 @@ body[class*="is-dragging-"] .board-tab:not(.active) {
     color: transparent;
     transition: all 0.2s;
     flex-shrink: 0;
-    margin-top: 0; /* БЫЛО: 1px */
+}
+
+/* --- СТИЛИ БЛОКИРОВКИ ЧЕКБОКСА-АГЕНТА --- */
+.subtask-checkbox.locked {
+    cursor: not-allowed;
+    border-style: dashed; /* Пунктирная рамка намекает на "ссылку" куда-то еще */
+    opacity: 0.5;
+    color: var(--text-secondary); /* Иконка колонки всегда видна и окрашена в серый */
+}
+
+/* Если агентская карточка выполнена на доске - возвращаем ей зеленый цвет */
+.subtask-item.is-done .subtask-checkbox.locked {
+    background: var(--success-done);
+    border-style: solid;
+    opacity: 1;
+    color: white;
 }
 
 .subtask-item.is-done { 
@@ -3151,20 +3371,6 @@ body[class*="is-dragging-"] .board-tab:not(.active) {
     background: #1A1C19; /* Соответствует .card.is-completed в темной теме */
 }
 
-.subtask-open-btn {
-    opacity: 0;
-    background: var(--surface-card);
-    border: 1px solid var(--border-light);
-    padding: 4px 8px;
-    border-radius: 6px;
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--text-secondary);
-    cursor: pointer;
-    transition: all 0.2s;
-    flex-shrink: 0;
-    margin-top: 0; /* БЫЛО: -3px */
-}
 .subtask-item:hover {
     transform: translate3d(0, -2px, 0);
     /* Тень приподнятой карточки */
@@ -3178,19 +3384,8 @@ body[class*="is-dragging-"] .board-tab:not(.active) {
     cursor: grabbing;
 }
 
-.subtask-checkbox {
-    width: 18px;
-    height: 18px;
-    border: 2px solid var(--border-light);
-    border-radius: 5px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: transparent;
-    transition: all 0.2s;
-}
 .subtask-item.is-done .subtask-checkbox {
+    opacity: 1; /* Возвращаем яркость при активации */
     background: var(--success-done);
     border-color: var(--success-done);
     color: white;
@@ -3211,34 +3406,83 @@ body[class*="is-dragging-"] .board-tab:not(.active) {
     cursor: pointer; /* <--- Добавили курсор-палец */
 }
 
-/* Кнопка "Открыть" (Killer Feature) */
+.subtask-eye-btn:hover,
+.subtask-open-btn:hover {
+    background: rgba(0, 0, 0, 0.06);
+    color: var(--text-primary);
+}
+
+/* Кнопка "Открыть" (стрелочка) - скрыта по умолчанию */
 .subtask-open-btn {
     opacity: 0;
-    background: var(--surface-card);
-    border: 1px solid var(--border-light);
-    padding: 4px 8px;
-    border-radius: 6px;
-    font-size: 11px;
-    font-weight: 600;
+    background: transparent;
+    border: none;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
     color: var(--text-secondary);
     cursor: pointer;
-    transition: all 0.2s;
-    flex-shrink: 0;   /* ИЗМЕНЕНО */
-    margin-top: -3px; /* ИЗМЕНЕНО: балансируем кнопку по первой строке */
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    margin: 0 !important;
 }
+
+/* Кнопка "Глазик" - ВИДНА ВСЕГДА */
+.subtask-eye-btn {
+    opacity: 1; 
+    background: transparent;
+    border: none;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    
+    /* Идеальная симметрия: компенсируем внутренние "пустые" пиксели кнопки 
+       и стандартный gap родителя (12px). Теперь отступы вокруг иконки одинаковые! */
+    margin-left: -8px !important;
+    margin-right: -8px !important;
+}
+
+/* Выключенный глазик делаем чуть прозрачным, чтобы не "кричал" */
+.subtask-eye-btn:not(.active-eye) {
+    opacity: 0.5;
+}
+
+/* Активный глазик горит основным цветом текста */
+.subtask-eye-btn.active-eye {
+    opacity: 1;
+    color: var(--text-primary);
+}
+
+/* Ховер на выключенный глазик */
+.subtask-eye-btn:hover {
+    opacity: 1;
+    background: rgba(0, 0, 0, 0.06);
+    color: var(--text-primary);
+}
+
+/* Показываем стрелочку "Открыть" и Корзину только при наведении на подзадачу */
+.subtask-item:hover .subtask-delete-btn,
 .subtask-item:hover .subtask-open-btn {
     opacity: 1;
 }
-.subtask-open-btn:hover {
-    background: var(--brand-pale);
-    color: var(--brand-pine);
-}
 
-/* Темная тема */
+/* Темная тема для ховеров */
+[data-theme="dark"] .subtask-eye-btn:hover,
 [data-theme="dark"] .subtask-open-btn:hover {
     background: rgba(255, 255, 255, 0.08);
     color: var(--text-primary);
 }
+
 
 [data-theme="dark"] .subtask-inline-input::placeholder {
     color: var(--text-secondary);
@@ -3323,7 +3567,10 @@ body[class*="is-dragging-"] .board-tab:not(.active) {
 /* Клон подзадачи в полете: полная копия обычной карточки */
 .subtask-drag-clone {
     position: fixed !important;
-    z-index: 99999;
+    top: 0 !important;                     /* 🔥 ФИКС: Жесткая привязка для translate3d */
+    left: 0 !important;                    /* 🔥 ФИКС: Жесткая привязка для translate3d */
+    transform-origin: top left !important; /* 🔥 ГЛАВНЫЙ ФИКС: Точка масштабирования scale() */
+    z-index: 99999 !important;
     pointer-events: none !important;
     margin: 0 !important;
     
@@ -3338,21 +3585,14 @@ body[class*="is-dragging-"] .board-tab:not(.active) {
 
     /* Сохраняем внутреннюю геометрию подзадачи */
     display: flex !important;
-    align-items: flex-start !important;
+    align-items: center !important;        /* 🔥 ФИКС: Возвращаем center вместо flex-start */
     padding: 10px 12px !important;
     gap: 12px !important;
-}
 
-/* Призрак на месте оригинала: полная копия карточек */
-.subtask-item.is-ghost { 
-    opacity: 0.3 !important; 
-    background: var(--border-light) !important; 
-    border: 1px solid transparent !important; 
-    box-shadow: none !important; 
-}
-
-.subtask-item.is-ghost * {
-    visibility: hidden !important;
+    /* Максимальная оптимизация для 60 FPS */
+    transition: none !important;
+    contain: layout style paint !important;
+    will-change: transform !important;
 }
 
 /* Курсоры */
@@ -3428,9 +3668,10 @@ body.is-dragging-subtask .subtask-item {
     color: var(--text-primary) !important;
 }
 
+/* ФИКС ЦВЕТА ВЫДЕЛЕНИЯ */
 [data-theme="dark"] .subtask-inline-input::selection {
-    background: #41493E !important;
-    color: var(--text-primary) !important;
+    background: #5C635A !important;
+    color: #FFFFFF !important;
 }
 
 /* Текст ошибки внутри подзадачи */
@@ -3479,7 +3720,20 @@ body.is-dragging-subtask .subtask-item {
     transition: all 0.2s ease;
 }
 
+.subtask-delete-btn {
+    transition: opacity 0.2s ease, background 0.2s ease, color 0.2s ease !important;
+    transform: translateZ(0);
+}
+
+
+.subtask-eye-btn.active-eye {
+    opacity: 1;
+    color: var(--text-primary);
+}
+
+
 /* Показываем обе кнопки при наведении на подзадачу */
+.subtask-item:hover .subtask-eye-btn,
 .subtask-item:hover .subtask-delete-btn,
 .subtask-item:hover .subtask-open-btn {
     opacity: 1;
@@ -3496,43 +3750,9 @@ body.is-dragging-subtask .subtask-item {
     color: #D65A4B;
 }
 
-/* Переопределяем старую кнопку открытия, чтобы она работала в группе */
-.subtask-open-btn {
-    opacity: 0;
-    position: static !important; /* Отменяем абсолютное позиционирование если было */
-    margin: 0 !important;
-}
-
 /* ==========================================
    ПЕРЕИМЕНОВАНИЕ ЗАГОЛОВКА В МОДАЛКЕ И ПОДЗАДАЧ
    ========================================== */
-
-/* Инпут для главного заголовка в открытой карточке */
-.task-modal-title-input {
-    background: var(--brand-pale);
-    border: none;
-    border-radius: 6px;
-    outline: none;
-    font-family: var(--font-main);
-    font-size: 15px;
-    font-weight: 600;
-    color: var(--text-primary);
-    flex: 1;
-    margin-right: 12px; /* Зазор до крестика закрытия */
-    resize: none;
-    overflow: hidden;
-    padding: 4px 6px;
-    margin-left: -6px; /* Компенсация padding для сохранения позиции текста */
-    display: block;
-    line-height: 1.4;
-    
-    /* Новые свойства для поддержки многострочности: */
-    word-break: break-word;
-    overflow-wrap: break-word;
-    white-space: pre-wrap;
-    user-select: text !important;
-    -webkit-user-select: text !important;
-}
 
 /* Инпут для переименования подзадачи */
 .subtask-title-input {
@@ -3567,8 +3787,8 @@ body.is-dragging-subtask .subtask-item {
 }
 [data-theme="dark"] .task-modal-title-input::selection,
 [data-theme="dark"] .subtask-title-input::selection {
-    background: #41493E;
-    color: var(--text-primary);
+    background: #5C635A !important;
+    color: #FFFFFF !important;
 }
 
 /* Состояние редактирования для подзадачи (отключаем драг) */
@@ -3611,6 +3831,7 @@ body.is-dragging-attachment .attachment-item {
     margin: 0 !important;      
     border: none !important;
     background: transparent !important;
+    opacity: 1 !important; /* Отменяем прозрачность родителя, т.к. она есть у самой SVG-иконки */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -3635,7 +3856,10 @@ body.is-dragging-attachment .attachment-item {
 /* Клон вложения, который летит за мышкой */
 .attachment-drag-clone {
     position: fixed !important;
-    z-index: 99999;
+    top: 0 !important;                     /* 🔥 ФИКС */
+    left: 0 !important;                    /* 🔥 ФИКС */
+    transform-origin: top left !important; /* 🔥 ФИКС */
+    z-index: 99999 !important;
     pointer-events: none !important;
     margin: 0 !important;
     
@@ -3653,22 +3877,25 @@ body.is-dragging-attachment .attachment-item {
     gap: 12px !important;
     
     /* Ускорение отрисовки */
-    will-change: transform;
-    contain: layout style paint;
+    transition: none !important;
+    will-change: transform !important;
+    contain: layout style paint !important;
 }
 
-/* Призрак вложения, остающийся в списке */
+.attachment-drag-clone * {
+    transition: none !important;
+    pointer-events: none !important;
+}
+
+/* Эстетичный полупрозрачный призрак для подзадач и вложений (как у карточек) */
+.subtask-item.is-ghost,
 .attachment-item.is-ghost { 
-    opacity: 0.2 !important; 
+    opacity: 0.3 !important; 
     background: var(--border-light) !important; 
     border: 1px solid transparent !important; 
     box-shadow: none !important; 
 }
-
-/* Прячем содержимое призрака, чтобы не отвлекало */
-.attachment-item.is-ghost * {
-    visibility: hidden !important;
-}
+/* Мы намеренно не прячем внутренности (текст и иконки), чтобы призрак был точной копией */
 
 /* Принудительный курсор для всей страницы во время драга */
 body.is-dragging-attachment, 
@@ -3735,21 +3962,6 @@ body.is-dragging-attachment .attachment-item:not(.attachment-drag-clone) {
     pointer-events: none;
 }
 
-.vault-container {
-    width: 100%;
-    max-width: 680px; 
-    height: 100%; 
-    max-height: 640px; 
-    padding: 32px; 
-    display: flex;
-    flex-direction: column;
-    box-sizing: border-box;
-    overflow: hidden; 
-    
-    /* ДОБАВИТЬ ЭТИ ДВЕ СТРОКИ: Плавное масштабирование и затухание контента */
-    transition: opacity 0.2s ease, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-    will-change: opacity, transform;
-}
 
 .vault-screen.content-hidden .vault-container {
     opacity: 0;
@@ -3858,26 +4070,17 @@ body.is-dragging-attachment .attachment-item:not(.attachment-drag-clone) {
     padding: 0 8px;
 }
 
-/* Форма создания хранилища */
 .vault-create-form {
     width: 100%;
     background: var(--surface-card);
     border: 1px solid var(--border-light);
     border-radius: 16px;
-    padding: 32px 24px;
+    padding: 24px; /* <--- ТЕПЕРЬ СТРОГО ОДИНАКОВО (1, 2 и 3) */
     box-shadow: var(--shadow-card);
     margin-bottom: 24px;
     text-align: center;
     flex-shrink: 0;
     animation: fadeInBtn 0.2s ease-out;
-}
-
-.vault-create-form h3 {
-    font-size: 18px;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin-bottom: 24px; /* Отодвинули заголовок от инпута */
-    letter-spacing: -0.01em;
 }
 
 .vault-create-prompt {
@@ -3888,11 +4091,12 @@ body.is-dragging-attachment .attachment-item:not(.attachment-drag-clone) {
 
 .vault-name-input {
     background: var(--bg-canvas) !important;
-    margin-bottom: 20px;
+    margin-bottom: 20px; /* Отступ между полем и кнопками внутри */
     text-align: center;
     font-size: 16px;
     padding: 12px;
     border-radius: 10px;
+    width: 100%; /* Чтобы он тянулся до краев за вычетом 24px паддинга */
 }
 
 .vault-create-buttons {
@@ -3981,3 +4185,463 @@ body.is-dragging-attachment .attachment-item:not(.attachment-drag-clone) {
     to { opacity: 1; transform: translateY(0); }
 }
 
+.task-date-item svg {
+    opacity: 0.6;
+}
+
+.breadcrumb-item:hover { 
+    color: var(--brand-pine); 
+}
+
+.breadcrumb-separator { 
+    opacity: 0.3; 
+    font-size: 11px;
+}
+
+/* Убеждаемся, что шапка имеет фон и работает как крыша для ярлычка */
+.modal-header {
+    position: relative;
+    z-index: 10;
+    background: var(--surface-card); /* Скрывает уезжающий наверх ярлычок */
+}
+
+/* ==========================================
+   МЕТА-ИНФОРМАЦИЯ: ХЛЕБНЫЕ КРОШКИ И ДАТЫ
+   ========================================== */
+.task-header-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    gap: 12px;
+}
+
+.task-breadcrumbs {
+    display: flex;
+    flex-wrap: wrap; 
+    align-items: center;
+    gap: 6px 8px; 
+    font-size: 13px;
+    color: var(--text-secondary);
+    flex: 1;
+    min-width: 0;
+}
+
+.breadcrumb-item {
+    cursor: pointer;
+    transition: color 0.2s ease;
+    color: var(--text-secondary);
+}
+.breadcrumb-item:hover { color: var(--brand-pine); }
+.breadcrumb-item.active { color: var(--text-primary); font-weight: 500; pointer-events: none; }
+.breadcrumb-separator { opacity: 0.3; font-size: 11px; flex-shrink: 0; }
+
+/* Обертка для заголовка и выезжающих дат */
+.modal-title-group {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+    margin-right: 12px; /* Зазор до кнопок закрытия */
+}
+
+/* Специфичные стили для заголовка именно ОТКРЫТОЙ КАРТОЧКИ (для переноса) */
+#task-modal-title {
+    word-break: break-word;
+    overflow-wrap: break-word;
+    white-space: pre-wrap;
+    line-height: 1.4;
+    cursor: pointer;
+}
+
+.task-modal-dates {
+    display: grid;
+    grid-template-rows: 0fr;
+    /* Ускоряем до 0.2s для "отклика", меняем кривую на более строгую */
+    transition: grid-template-rows 0.2s cubic-bezier(0.4, 0, 0.2, 1), 
+                opacity 0.2s ease,
+                transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+                visibility 0.2s;
+    
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    
+    opacity: 0;
+    visibility: hidden; /* Жестко исключаем из отрисовки в скрытом состоянии */
+    pointer-events: none;
+    user-select: none;
+    
+    /* Эффект "ухода под текст": в скрытом состоянии блок чуть выше своего места */
+    transform: translate3d(0, -6px, 0); 
+    will-change: grid-template-rows, opacity, transform;
+}
+
+.task-modal-dates > div {
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 12px;
+    
+    /* Убираем верхний паддинг, заменим его на статический межстрочный интервал */
+    padding: 0; 
+    margin-top: 0;
+    line-height: 24px; /* Фиксируем высоту строки для монолитности */
+}
+
+/* Состояние при наведении: плавное проявление и "выход" сверху вниз */
+.modal-title-group:hover .task-modal-dates,
+.modal-title-group:has(.task-modal-title-input:focus) .task-modal-dates {
+    grid-template-rows: 1fr; 
+    opacity: 0.5; /* Чуть меньше яркость, чтобы не отвлекать от заголовка */
+    visibility: visible;
+    transform: translate3d(0, 4px, 0); /* Мягко выезжает на 4px вниз */
+}
+
+.task-modal-dates span {
+    white-space: nowrap;
+    display: inline-block;
+    /* Убираем любые дефолтные смещения */
+    vertical-align: baseline;
+}
+
+.date-separator {
+    opacity: 0.5;
+    font-size: 14px;
+    line-height: 1;
+}
+
+/* Инпут для главного заголовка в открытой карточке */
+.task-modal-title-input {
+    background: var(--brand-pale);
+    border: none;
+    border-radius: 6px;
+    outline: none;
+    font-family: var(--font-main);
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+    width: 100%;
+    resize: none;
+    overflow: hidden;
+    padding: 4px 6px;
+    margin-left: -6px; /* Компенсация padding для сохранения позиции текста */
+    display: block;
+    line-height: 1.4;
+    
+    /* Новые свойства для поддержки многострочности: */
+    word-break: break-word;
+    overflow-wrap: break-word;
+    white-space: pre-wrap;
+    user-select: text !important;
+    -webkit-user-select: text !important;
+}
+
+/* ==========================================
+   СЕКЦИЯ ИСТОРИИ ХРАНИЛИЩ
+   ========================================== */
+.vault-history-section {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    margin-bottom: 0px; 
+    overflow: visible; /* 🔥 ИСПРАВЛЕНО: Убрали hidden, чтобы контейнер не отсекал тени */
+    flex: 1;
+    min-height: 0;
+}
+
+/* Прижимаем заголовок секции, чтобы он не уезжал от списка */
+.vault-history-section .subtasks-header {
+    margin-bottom: 0 !important; 
+    z-index: 2; 
+}
+
+.vault-history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px; /* <--- ВМЕСТО MARGIN-BOTTOM */
+    
+    overflow-y: auto;
+    overflow-x: hidden;
+    flex: 1;
+    
+    padding-left: 16px;
+    margin-left: -16px;
+    padding-right: 18px; 
+    margin-right: -18px;
+    padding-top: 16px; 
+    padding-bottom: 32px; 
+}
+
+.vault-history-item {
+    cursor: pointer !important;
+    margin-bottom: 0; /* <--- УБРАЛИ MARGIN */
+    user-select: none;
+    -webkit-user-select: none;
+    position: relative; 
+    transition: transform var(--transition-apple), 
+                box-shadow var(--transition-apple), 
+                background-color var(--transition-apple) !important;
+}
+
+.vault-history-spacer.is-shrinking {
+    height: 0 !important;
+    margin-top: -8px !important; /* <--- Ровно компенсирует gap (8px) */
+}
+
+.vault-container {
+    width: 100%;
+    max-width: 680px; 
+    height: 100%; 
+    max-height: 640px; 
+    padding: 32px; 
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    overflow: hidden; 
+    position: relative; /* ФИКС: Точка отсчета для позиционирования настроек */
+    
+    /* ДОБАВИТЬ ЭТИ ДВЕ СТРОКИ: Плавное масштабирование и затухание контента */
+    transition: opacity 0.2s ease, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: opacity, transform;
+}
+
+/* Позиционирование настроек на экране Vault */
+.vault-settings-wrapper {
+    position: absolute;
+    top: 32px; /* Совпадает с верхней границей логотипа (равно padding-top контейнера) */
+    left: 32px; /* Выравнивание строго по левому краю контента внутри карточки */
+    z-index: 10;
+}
+
+/* ФИКС: Чтобы выпадающее меню не обрезалось краями vault-screen */
+.vault-settings-wrapper .dropdown-menu {
+    top: 44px;
+    left: 0;
+    transform-origin: top left;
+}
+
+.vault-history-spacer {
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    background: transparent !important;
+    pointer-events: none !important;
+    flex-shrink: 0 !important;
+    will-change: height, margin-top;
+    transition:
+        height 0.35s cubic-bezier(0.25, 1, 0.5, 1) 0.05s,
+        margin-top 0.35s cubic-bezier(0.25, 1, 0.5, 1) 0.05s !important;
+}
+
+/* Кулак при зажатии элемента */
+.vault-history-item:active {
+    cursor: grabbing !important;
+}
+
+.vault-history-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 1px;
+}
+
+.vault-history-item:hover {
+    /* 🔥 ИСПРАВЛЕНО: Убрали scale(1.015), оставили только подъем вверх.
+       Тени скопированы 1 в 1 из обычных карточек на доске */
+    transform: translate3d(0, -2px, 0) !important;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04) !important;
+    z-index: 10;
+    background: var(--surface-card);
+}
+
+[data-theme="dark"] .vault-history-item:hover {
+    /* 🔥 ИСПРАВЛЕНО: Тени темной темы 1 в 1 как у карточек/подзадач */
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Кулак глобально по всему экрану во время перетаскивания */
+body.is-dragging-vault-history, 
+body.is-dragging-vault-history * {
+    cursor: grabbing !important;
+}
+
+.vault-history-info {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+    gap: 2px;
+}
+
+.vault-history-name {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-family: var(--font-main);
+    font-size: 14px;
+    letter-spacing: -0.01em;
+}
+
+/* Изменили класс с .subtask-title на .vault-history-path, чтобы убить переименование */
+.vault-history-path {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    opacity: 0.6;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+    min-width: 0;
+}
+
+.vault-history-date {
+    font-size: 10px;
+    color: var(--text-secondary);
+    font-weight: 500;
+    flex-shrink: 0;
+    letter-spacing: 0.02em;
+    
+    /* Скрываем дату по умолчанию, но она продолжает занимать место, 
+       поэтому путь (/Users/...) не будет прыгать при наведении */
+    opacity: 0; 
+    transition: opacity 0.2s ease;
+    transform: translateZ(0); /* Защита от субпиксельного дергания */
+}
+
+.vault-history-item:hover .vault-history-date {
+    opacity: 0.8;
+}
+
+/* Стили для летающего клона при Drag & Drop */
+.vault-history-drag-clone {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    transform-origin: top left !important;
+    z-index: 999999 !important; /* Поверх модального окна выбора */
+    pointer-events: none !important;
+    margin: 0 !important;
+    background: var(--surface-card) !important;
+    border: 1px solid var(--border-light) !important;
+    border-radius: 12px !important;
+    box-shadow: var(--shadow-drag) !important;
+    opacity: 1 !important;
+    display: flex !important;
+    align-items: center !important;
+    padding: 10px 12px !important;
+    gap: 12px !important;
+    transition: none !important;
+    will-change: transform !important;
+    contain: layout style paint !important;
+}
+
+.vault-history-drag-clone * {
+    pointer-events: none !important;
+}
+
+/* 🔥 ИСПРАВЛЕНО: Принудительно показываем корзину во время перетаскивания */
+.vault-history-drag-clone .subtask-delete-btn {
+    opacity: 1 !important;
+    color: var(--text-secondary) !important;
+}
+
+/* На всякий случай гарантируем видимость даты в летящем клоне */
+.vault-history-drag-clone .vault-history-date {
+    display: block !important;
+    opacity: 0.8 !important;
+}
+
+/* Полупрозрачный призрак на месте оригинала */
+.vault-history-item.is-ghost {
+    opacity: 0.3 !important; 
+    background: var(--border-light) !important; 
+    border: 1px solid transparent !important; 
+    box-shadow: none !important; 
+}
+
+/* ==========================================
+   АНИМАЦИЯ УДАЛЕНИЯ ХРАНИЛИЩА (Как у карточек)
+   ========================================== */
+.vault-deleting-clone {
+    position: fixed !important;
+    z-index: 999999 !important;
+    margin: 0 !important;
+    pointer-events: none !important;
+    transform-origin: center center;
+    will-change: transform, opacity;
+    /* Точно та же кривая и тайминги, что и на доске */
+    transition: opacity 0.20s ease, transform 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.vault-deleting-clone.is-animating {
+    opacity: 0 !important;
+    transform: scale(0.92) translateY(8px) !important; /* Уменьшение и падение */
+}
+
+/* ==========================================
+   ТАЙМЕР В МОДАЛКЕ КАРТОЧКИ (EDITABLE)
+   ========================================== */
+.modal-time-tracker {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end; /* Прижимаем к правому краю */
+    gap: 8px;
+    margin-top: -8px; /* Подтягиваем ближе к описанию */
+    margin-bottom: 16px;
+}
+
+.modal-time-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.modal-timer-pill {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--timer-text);
+    background: var(--timer-bg);
+    padding: 4px 12px;
+    border-radius: 8px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    cursor: text;
+    transition: opacity 0.2s, background 0.2s;
+    user-select: none;
+}
+
+.modal-timer-pill:hover {
+    background: rgba(194, 122, 98, 0.2);
+}
+
+[data-theme="dark"] .modal-timer-pill:hover {
+    background: rgba(214, 151, 128, 0.22);
+}
+
+.modal-timer-input {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--timer-text);
+    background: var(--surface-card);
+    border: 1px solid var(--timer-text);
+    padding: 3px 10px;
+    border-radius: 8px;
+    font-weight: 600;
+    outline: none;
+    width: 140px; /* <--- Увеличено с 90px до 140px */
+    text-align: center;
+    letter-spacing: 0.02em;
+}
+
+.modal-timer-input::selection {
+    background: var(--timer-bg);
+}
+
+[data-theme="dark"] .modal-timer-input {
+    background: rgba(0, 0, 0, 0.2);
+}

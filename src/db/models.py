@@ -55,6 +55,8 @@ class TaskModel(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     completed_at = Column(DateTime, nullable=True)
 
+    is_visible_on_board = Column(Boolean, default=False)
+
     column = relationship("ColumnModel", back_populates="tasks")
     parent = relationship("TaskModel", remote_side=[id], back_populates="subtasks")
     subtasks = relationship("TaskModel", back_populates="parent", cascade="all, delete-orphan")

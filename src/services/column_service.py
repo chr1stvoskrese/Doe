@@ -4,7 +4,11 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
+from sqlalchemy.orm.attributes import set_committed_value # <-- ДОБАВИТЬ ЭТО
 from datetime import datetime, timedelta
+from src.services.task_service import cleanup_orphaned_attachments
+
+from sqlalchemy import select, or_
 
 from src.db.models import ColumnModel, TaskModel, TimerSessionModel, ColumnMode
 from src.schemas.column import ColumnResponse
@@ -26,8 +30,14 @@ async def get_columns_with_tasks(db: AsyncSession, workspace_id: int):
         # Тянем только ТОП-ЛЕВЕЛ задачи (у которых нет родителя)
         tasks_stmt = (
             select(TaskModel)
-            .where(TaskModel.column_id == col.id, TaskModel.parent_id == None)
-            .options(selectinload(TaskModel.timer_sessions))
+            .where(
+                TaskModel.column_id == col.id, 
+                or_(TaskModel.parent_id == None, TaskModel.is_visible_on_board == True)
+            )
+            .options(
+                selectinload(TaskModel.timer_sessions),
+                selectinload(TaskModel.subtasks)
+            )
             .order_by(TaskModel.position)
         )
         tasks_result = await db.execute(tasks_stmt)
@@ -35,25 +45,42 @@ async def get_columns_with_tasks(db: AsyncSession, workspace_id: int):
 
         task_responses = []
         for task in root_tasks:
-            total_seconds = sum(
-                (s.end_time - s.start_time).total_seconds() 
-                for s in task.timer_sessions if s.end_time is not None
-            )
+            # Безопасная сериализация подзадач без мутации SQLAlchemy Identity Map!
+            # Это возвращает счетчик подзадач для вынесенных на доску карточек (глазик).
+            serialized_subtasks = []
+            for sub in task.subtasks:
+                serialized_subtasks.append(
+                    TaskResponse(
+                        id=sub.id,
+                        title=sub.title,
+                        description=sub.description,
+                        attachments_order=sub.attachments_order,
+                        column_id=sub.column_id,
+                        parent_id=sub.parent_id,
+                        position=sub.position,
+                        created_at=sub.created_at,
+                        updated_at=sub.updated_at,
+                        completed_at=sub.completed_at,
+                        is_visible_on_board=sub.is_visible_on_board,
+                        subtasks=[], # Жестко обрываем рекурсию для Pydantic, не ломая ORM-кэш!
+                        active_timer=None,
+                        total_time_spent=0
+                    )
+                )
+
             total_seconds = sum(
                 (s.end_time - s.start_time).total_seconds() 
                 for s in task.timer_sessions if s.end_time is not None
             )
 
-            # Ищем активный таймер и сдвигаем его для фронтенда
+            # Ищем активный таймер
             active_sessions = [s for s in task.timer_sessions if s.is_active]
             active_timer = None
             if active_sessions:
                 current_active = active_sessions[-1]
-                # Сдвигаем назад на накопленное время, чтобы JS корректно продолжил отсчет
-                shifted_start = current_active.start_time - timedelta(seconds=total_seconds)
                 active_timer = TimerSessionResponse(
                     id=current_active.id,
-                    start_time=shifted_start,
+                    start_time=current_active.start_time, # БЕЗ СДВИГОВ
                     is_active=True,
                 )
 
@@ -67,9 +94,8 @@ async def get_columns_with_tasks(db: AsyncSession, workspace_id: int):
                 created_at=task.created_at,
                 updated_at=task.updated_at,
                 completed_at=task.completed_at,
-                # На доске подзадачи не нужны, ставим None или [], 
-                # чтобы избежать ленивой загрузки
-                subtasks=[], 
+                # Передаем подзадачи, чтобы на доске отображался счетчик (например, 1/5)
+                subtasks=serialized_subtasks, 
                 active_timer=active_timer,
                 total_time_spent=int(total_seconds),
             )
@@ -166,3 +192,4 @@ async def clear_column_tasks(db: AsyncSession, column_id: int) -> None:
         await db.delete(task)
         
     await db.commit()
+    await cleanup_orphaned_attachments(db)

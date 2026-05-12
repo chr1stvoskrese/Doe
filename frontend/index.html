@@ -14,10 +14,25 @@
 
 <body class="preload">
 
-<!-- 🦌 ЭКРАН ВЫБОРА ХРАНИЛИЩА (VAULT SELECTOR) -->
 <div class="vault-screen" id="vault-screen">
     <div class="vault-container">
-        
+        <!-- Кнопка настроек для экрана входа (перенесена внутрь контейнера) -->
+        <div class="vault-settings-wrapper settings-wrapper">
+            <button class="icon-btn settings-trigger" aria-label="Настройки">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
+            </button>
+            <div class="dropdown-menu">
+                <div class="menu-item" data-action="theme">
+                    <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                    <span data-i18n="theme">Тема</span>
+                </div>
+                <div class="menu-item" data-action="change-lang">
+                    <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                    <span data-i18n="language">Язык</span>
+                </div>
+            </div>
+        </div>
+
         <!-- Логотип и заголовок -->
         <div class="vault-hero">
             <img src="/doe.png" alt="Doe Logo" class="vault-logo-img">
@@ -46,12 +61,20 @@
 
         <!-- Форма создания хранилища (скрыта по умолчанию) -->
         <div class="vault-create-form" id="vault-create-form" style="display: none;">
-            <h3 data-i18n="vault.createTitle">Создать хранилище</h3>
             
             <input type="text" id="new-vault-name" class="column-input vault-name-input" data-i18n="vault.namePlaceholder" placeholder="Название хранилища..." autocomplete="off" spellcheck="false" />
             <div class="vault-create-buttons">
                 <button class="confirm-btn cancel-btn" onclick="cancelVaultCreate()" data-i18n="cancel">Отмена</button>
                 <button class="confirm-btn danger-btn vault-submit-btn" onclick="confirmVaultCreate()" data-i18n="vault.selectFolder">Выбрать папку</button>
+            </div>
+        </div>
+
+        <div class="vault-history-section" id="vault-history-section">
+            <div class="subtasks-header">
+                <span data-i18n="vault.recent">История хранилищ</span>
+            </div>
+            <div id="vault-history-list" class="subtasks-list vault-history-list">
+                <!-- Рендерится через JS -->
             </div>
         </div>
 
@@ -124,7 +147,7 @@
         <div class="modal-header">
             <span class="modal-title" data-i18n="modals.themeTitle">Тема оформления</span>
             <button class="modal-close" aria-label="Закрыть">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
             </button>
         </div>
         <div class="modal-body" id="theme-list">
@@ -146,7 +169,7 @@
         <div class="modal-header">
             <span class="modal-title" data-i18n="modals.langTitle">Выберите язык</span>
             <button class="modal-close" aria-label="Закрыть">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
             </button>
         </div>
         <div class="modal-body" id="lang-list">
@@ -168,7 +191,7 @@
         <div class="modal-header">
             <span class="modal-title" data-i18n="modals.aboutTitle">О приложении</span>
             <button class="modal-close" aria-label="Закрыть">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
             </button>
         </div>
         <div class="about-content">
@@ -192,23 +215,39 @@
         <div class="resizer r-bottom-left"></div>
         <div class="resizer r-bottom-right"></div>
         <div class="modal-header">
-            <span class="modal-title" id="task-modal-title">Название карточки</span>
+            <div class="modal-title-group">
+                <span class="modal-title" id="task-modal-title">Название карточки</span>
+                <div id="task-dates-meta" class="task-modal-dates"></div>
+            </div>
             <div class="modal-header-actions">
+                <button class="modal-export" aria-label="Экспорт">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                </button>
                 <button class="modal-maximize" aria-label="Развернуть">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="14 6 18 6 18 10"></polyline><polyline points="10 18 6 18 6 14"></polyline><line x1="18" y1="6" x2="13" y2="11"></line><line x1="6" y1="18" x2="11" y2="13"></line></svg>
                 </button>
                 <button class="modal-close" aria-label="Закрыть">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                 </button>
             </div>
         </div>
+        
         <div class="modal-body task-detail-body">
-            <!-- Хлебные крошки для навигации назад -->
-            <div id="task-breadcrumbs" class="task-breadcrumbs"></div>
+            
+            <div class="task-header-meta">
+                <!-- Крошки слева -->
+                <div id="task-breadcrumbs" class="task-breadcrumbs"></div>
+            </div>
 
             <div class="description-wrapper">
                 <div id="task-desc-render" class="markdown-body"></div>
                 <textarea id="task-desc-input" class="description-input" spellcheck="false" data-i18n="taskModal.inputPlaceholder"></textarea>
+            </div>
+
+            <div class="modal-time-tracker" id="modal-time-tracker">
+                <span class="modal-time-label" data-i18n="card.timeSpent">Времени потрачено:</span>
+                <div class="modal-timer-pill" id="modal-task-timer" title="Кликните для редактирования">00:00:00</div>
+                <input type="text" id="modal-task-timer-input" class="modal-timer-input" data-i18n="taskModal.timerPlaceholder" placeholder="1h 30m" style="display: none;" autocomplete="off" spellcheck="false" />
             </div>
 
             <!-- НОВАЯ СЕКЦИЯ ВЛОЖЕНИЙ -->
@@ -261,6 +300,10 @@
     <div class="menu-item" data-action="open-card">
         <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
         <span data-i18n="menu.open">Открыть</span>
+    </div>
+    <div class="menu-item" data-action="export-card">
+        <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span data-i18n="menu.exportCard">Экспорт в Markdown</span>
     </div>
     <div class="menu-item" data-action="clear-card-timer">
         <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>

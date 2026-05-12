@@ -1,4 +1,7 @@
-from fastapi import APIRouter, HTTPException, status, UploadFile, File
+from fastapi import APIRouter, HTTPException, status, UploadFile, File, Depends  # Добавили Depends
+from sqlalchemy.ext.asyncio import AsyncSession # Добавили
+from src.db.database import get_session # Добавили
+from src.services.task_service import cleanup_orphaned_attachments # Добавили
 from pydantic import BaseModel
 from typing import Optional
 import os
@@ -8,6 +11,8 @@ from pathlib import Path
 import shutil
 import webbrowser # <--- Добавили для открытия веб-ссылок
 import urllib.parse # <--- Для работы с file://
+from src.core.config import get_vault_history, remove_vault_from_history
+from src.core.config import reorder_vault_history
 
 from urllib.parse import unquote
 
@@ -26,6 +31,14 @@ async def get_vault():
     path = get_active_vault()
     name = Path(path).resolve().name
     return VaultResponse(name=name, path=path)
+
+class ReorderHistoryReq(BaseModel):
+    ordered_paths: list[str]
+
+@router.post("/vault/history/reorder")
+async def reorder_vault_history_endpoint(req: ReorderHistoryReq):
+    reorder_vault_history(req.ordered_paths)
+    return {"success": True}
 
 class SwitchVaultRequest(BaseModel):
     new_path: str
@@ -230,3 +243,72 @@ async def open_link_endpoint(req: OpenLinkReq):
     except Exception as e:
         print(f"[System] Failed to open external link {target}: {e}")
         return {"success": False, "error": str(e)}
+
+@router.post("/cleanup-attachments")
+async def cleanup_attachments_endpoint(db: AsyncSession = Depends(get_session)):
+    """
+    Фоновый эндпоинт для сборки мусора (Garbage Collector).
+    Вызывается фронтендом при закрытии карточки и при запуске приложения.
+    """
+    await cleanup_orphaned_attachments(db)
+    return {"success": True}
+
+
+class DeleteFileReq(BaseModel):
+    path: str
+
+@router.post("/delete-file")
+async def delete_file_endpoint(req: DeleteFileReq):
+    """
+    Мгновенное физическое удаление файла с диска.
+    Используется только при явном нажатии на 'Удалить' во вложениях.
+    """
+    vault_path = Path(get_active_vault())
+    # unquote, так как в пути могут быть %20 вместо пробелов
+    clean_rel_path = unquote(req.path)
+    
+    # Защита от выхода за пределы папки (path traversal)
+    abs_path = (vault_path / clean_rel_path).resolve()
+    
+    if not str(abs_path).startswith(str(vault_path / "attachments")):
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    try:
+        if abs_path.exists() and abs_path.is_file():
+            os.remove(abs_path)
+            print(f"[System] File physically deleted: {abs_path.name}")
+            return {"success": True}
+        else:
+            # Если файла уже нет, считаем задачу выполненной
+            return {"success": True, "info": "File already gone"}
+    except Exception as e:
+        print(f"[System] Failed to delete file {abs_path}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/vault/history")
+async def get_vault_history_endpoint():
+    items = get_vault_history()
+    result = []
+    for item in items:
+        try:
+            if isinstance(item, str):
+                p = item
+                last_opened = None
+            else:
+                p = item.get("path")
+                last_opened = item.get("last_opened")
+                
+            name = Path(p).resolve().name
+            result.append({"name": name, "path": p, "last_opened": last_opened})
+        except Exception:
+            pass
+    return result
+
+
+class RemoveHistoryReq(BaseModel):
+    path: str
+
+@router.post("/vault/history/remove")
+async def remove_vault_history_endpoint(req: RemoveHistoryReq):
+    remove_vault_from_history(req.path)
+    return {"success": True}
