@@ -312,3 +312,65 @@ class RemoveHistoryReq(BaseModel):
 async def remove_vault_history_endpoint(req: RemoveHistoryReq):
     remove_vault_from_history(req.path)
     return {"success": True}
+
+from sqlalchemy import text
+
+@router.get("/search")
+async def global_search(q: str, db: AsyncSession = Depends(get_session)):
+    """Ультра-быстрый глобальный поиск."""
+    if not q or len(q.strip()) < 2:
+        return {"workspaces": [], "columns": [], "tasks": []}
+
+    safe_q = q.strip()
+    like_q = f"%{safe_q}%"
+    
+    # 1. Поиск по вкладкам (workspaces)
+    ws_sql = text("SELECT id, name FROM workspaces WHERE name LIKE :like_q LIMIT 5")
+    ws_res = await db.execute(ws_sql, {"like_q": like_q})
+    workspaces = [{"id": r[0], "name": r[1], "type": "workspace"} for r in ws_res.fetchall()]
+
+    # 2. Поиск по колонкам
+    col_sql = text("""
+        SELECT c.id, c.title, c.workspace_id, w.name 
+        FROM columns c 
+        JOIN workspaces w ON c.workspace_id = w.id 
+        WHERE c.title LIKE :like_q LIMIT 5
+    """)
+    col_res = await db.execute(col_sql, {"like_q": like_q})
+    columns = [{"id": r[0], "title": r[1], "workspace_id": r[2], "workspace_name": r[3], "type": "column"} for r in col_res.fetchall()]
+
+    # 3. FTS5 Поиск по карточкам и их содержимому (включая markdown-ссылки вложений)
+    # Формируем префиксный запрос: 'apple pie' -> '"apple"* "pie"*'
+    safe_words = [w.replace('"', '').replace("'", "") for w in safe_q.split()]
+    fts_query = " ".join([f'"{w}"*' for w in safe_words if w])
+
+    task_sql = text("""
+        SELECT 
+            t.id, 
+            t.title, 
+            t.column_id, 
+            c.title AS col_title, 
+            c.workspace_id, 
+            w.name AS ws_name,
+            snippet(tasks_fts, 1, '<mark>', '</mark>', '...', 10) AS snippet_desc
+        FROM tasks_fts fts
+        JOIN tasks t ON t.id = fts.rowid
+        JOIN columns c ON t.column_id = c.id
+        JOIN workspaces w ON c.workspace_id = w.id
+        WHERE tasks_fts MATCH :fts_q
+        ORDER BY rank
+        LIMIT 30
+    """)
+    
+    try:
+        task_res = await db.execute(task_sql, {"fts_q": fts_query})
+        tasks = [{
+            "id": r[0], "title": r[1], "column_id": r[2], "column_title": r[3], 
+            "workspace_id": r[4], "workspace_name": r[5], "snippet": r[6], "type": "task"
+        } for r in task_res.fetchall()]
+    except Exception as e:
+        print(f"[Search] FTS query failed (likely syntax): {e}")
+        tasks = []
+
+    return {"workspaces": workspaces, "columns": columns, "tasks": tasks}
+

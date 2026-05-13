@@ -5,6 +5,7 @@ const API_BASE = '/api/v1';
 
 const translations = {
     ru: {
+        searchPlaceholder: 'Поиск...',
         settings: 'Настройки', theme: 'Тема', language: 'Язык', about: 'О приложении', workspace: 'Doe Board', cancel: 'Отмена',
         newColumn: '+ Создать колонку', newTask: '+ Новая карточка', subtasks: 'Чек-лист',
         columnModes: { default: 'Стандартный', track_time: 'Учёт времени', completion: 'Результирующий' },
@@ -59,6 +60,7 @@ const translations = {
         alerts: { loadError: 'Не удалось загрузить доску', error: 'Ошибка' }
     },
     en: {
+        searchPlaceholder: 'Search...',
         settings: 'Settings', theme: 'Theme', language: 'Language', about: 'About', workspace: 'Doe Board', cancel: 'Cancel',
         newColumn: '+ Create column', newTask: '+ New card', subtasks: 'Checklist',
         columnModes: { default: 'Standard', track_time: 'Track time', completion: 'Completed' },
@@ -545,149 +547,81 @@ function renderBoard() {
 }
 
 function updateCardAppearance(cardElement, task, columnMode) {
+    // 1. Статус завершения
     if (task.completed_at) cardElement.classList.add('is-completed');
     else cardElement.classList.remove('is-completed');
 
-    cardElement.classList.remove('has-unknown-time');
-
-    // Убиваем старые элементы (наследие старой верстки)
-    Array.from(cardElement.children).forEach(child => {
-        if (child.classList.contains('card-timer') || child.classList.contains('subtask-meta')) {
-            child.remove();
-        }
-    });
-
+    // 2. Подготовка данных
     const subtasks = task.subtasks || [];
     const hasChecklist = subtasks.length > 0;
+    const isTimerColumn = (columnMode === 'track_time');
+    const isCompletionTime = (columnMode === 'completion' && task.total_time_spent !== undefined);
     
-    let isTimer = false;
-    let isCompletionTime = false;
-    
-    if (columnMode === 'track_time' && task.active_timer) {
-        isTimer = true;
-    } else if (columnMode === 'completion' && task.total_time_spent !== undefined && task.total_time_spent !== null) {
-        isCompletionTime = true;
-        if (task.total_time_spent === 0) cardElement.classList.add('has-unknown-time');
-    }
+    cardElement.classList.toggle('has-unknown-time', isCompletionTime && task.total_time_spent === 0);
 
+    // 3. Работа с футером
     let footer = cardElement.querySelector('.card-footer');
-    
-    // Создаем футер, если он нужен
-    if (hasChecklist || isTimer || isCompletionTime) {
-        if (!footer) {
-            footer = document.createElement('div');
-            footer.className = 'card-footer';
-            cardElement.appendChild(footer);
-        }
-        footer.classList.remove('is-empty'); // Восстанавливаем, если он исчезал
+    if (!footer) {
+        footer = document.createElement('div');
+        footer.className = 'card-footer';
+        cardElement.appendChild(footer);
     }
 
-    // Хелпер для мягкого растворения элементов
-    const smoothRemoveElement = (el) => {
-        if (!el || el.classList.contains('meta-exiting')) return;
-        el.classList.add('meta-exiting');
-        setTimeout(() => { if (el.parentNode) el.remove(); }, 300);
-    };
+    // Собираем новый контент в строку
+    let newContent = '';
 
-    if (footer) {
-        // ТОЧЕЧНОЕ ОБНОВЛЕНИЕ ЧЕКЛИСТА
-        let checklistEl = footer.querySelector('.checklist-meta:not(.meta-exiting)');
-        if (hasChecklist) {
-            const total = subtasks.length;
-            const done = subtasks.filter(s => s.completed_at).length;
-            const allDoneClass = done === total ? 'all-done' : '';
-            
-            if (!checklistEl) {
-                checklistEl = document.createElement('div');
-                const branchIcon = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="3" x2="6" y2="15"></line><circle cx="18" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><path d="M18 9a9 9 0 0 1-9 9"></path></svg>`;
-                checklistEl.innerHTML = `${branchIcon}<span></span>`;
-                footer.insertBefore(checklistEl, footer.firstChild);
-            }
-            checklistEl.className = `checklist-meta ${allDoneClass}`;
-            checklistEl.querySelector('span').textContent = `${done}/${total}`;
-        } else if (checklistEl) {
-            smoothRemoveElement(checklistEl);
-        }
+    if (hasChecklist) {
+        const total = subtasks.length;
+        const done = subtasks.filter(s => s.completed_at).length;
+        const allDone = done === total ? 'all-done' : '';
+        newContent += `<div class="checklist-meta ${allDone}"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:4px;"><line x1="6" y1="3" x2="6" y2="15"></line><circle cx="18" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><path d="M18 9a9 9 0 0 1-9 9"></path></svg><span>${done}/${total}</span></div>`;
+    }
 
-        // ТОЧЕЧНОЕ ОБНОВЛЕНИЕ ТАЙМЕРА И ПОТРАЧЕННОГО ВРЕМЕНИ
-        let timerEl = footer.querySelector('.card-timer:not(.meta-exiting)');
-        let totalTimeEl = footer.querySelector('.subtask-meta:not(.meta-exiting)');
+    if (isTimerColumn) {
+        const displayTime = task.active_timer ? formatTime(task) : formatExactTime(task.total_time_spent || 0);
+        newContent += `<div class="card-timer" data-task-id="${task.id}">${displayTime}</div>`;
+    }
 
-        if (isTimer) {
-            if (totalTimeEl) smoothRemoveElement(totalTimeEl);
-            if (!timerEl) {
-                timerEl = document.createElement('div');
-                timerEl.className = 'card-timer';
-                footer.appendChild(timerEl);
-            }
-            timerEl.dataset.taskId = task.id;
-            timerEl.textContent = formatTime(task);
-        } else if (isCompletionTime) {
-            if (timerEl) smoothRemoveElement(timerEl);
-            if (!totalTimeEl) {
-                totalTimeEl = document.createElement('div');
-                totalTimeEl.className = 'subtask-meta';
-                footer.appendChild(totalTimeEl);
-            }
-            totalTimeEl.textContent = `${t('card.timeSpent')} ${formatTotalTime(task.total_time_spent)}`;
-        } else {
-            if (timerEl) smoothRemoveElement(timerEl);
-            if (totalTimeEl) smoothRemoveElement(totalTimeEl);
-        }
+    if (isCompletionTime) {
+        newContent += `<div class="subtask-meta">${t('card.timeSpent')} ${formatTotalTime(task.total_time_spent)}</div>`;
+    }
 
-        // Плавное скрытие всего футера (схлопывание), если в нем не осталось активных элементов
-        const activeChildren = Array.from(footer.children).filter(c => !c.classList.contains('meta-exiting'));
-        if (activeChildren.length === 0) {
-            footer.classList.add('is-empty');
-            setTimeout(() => {
-                // Если за 300мс ничего нового в футер не закинули - стираем из DOM
-                const stillEmpty = Array.from(footer.children).filter(c => !c.classList.contains('meta-exiting')).length === 0;
-                if (stillEmpty && footer.parentNode) {
-                    footer.remove();
-                }
-            }, 300);
-        }
+    // Если контент реально изменился — обновляем мгновенно (Senior UX: без лишних задержек)
+    if (footer.innerHTML !== newContent) {
+        footer.innerHTML = newContent;
     }
 }
 
 function generateCardHtml(task, columnMode) {
-    let timeHtml = '';
     let extraClasses = [];
-    
     if (task.completed_at) extraClasses.push('is-completed');
 
-    if (task.active_timer) {
-        timeHtml = `<div class="card-timer" data-task-id="${task.id}">${formatTime(task)}</div>`;
-    } else if (columnMode === 'completion' && task.total_time_spent !== undefined && task.total_time_spent !== null) {
-        timeHtml = `<div class="subtask-meta">${t('card.timeSpent')} ${formatTotalTime(task.total_time_spent)}</div>`;
-        if (task.total_time_spent === 0) extraClasses.push('has-unknown-time');
-    }
-
+    // 1. Чек-лист
     let checklistHtml = '';
-    // Безопасное чтение
     const subtasks = task.subtasks || [];
     if (subtasks.length > 0) {
         const total = subtasks.length;
         const done = subtasks.filter(s => s.completed_at).length;
-        const allDoneClass = done === total ? 'all-done' : '';
-        // Значок проекта / иерархии (Git Branch)
-        const branchIcon = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="3" x2="6" y2="15"></line><circle cx="18" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><path d="M18 9a9 9 0 0 1-9 9"></path></svg>`;
-        checklistHtml = `
-            <div class="checklist-meta ${allDoneClass}">
-                ${branchIcon}
-                <span>${done}/${total}</span>
-            </div>
-        `;
+        checklistHtml = `<div class="checklist-meta ${done === total ? 'all-done' : ''}"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:4px;"><line x1="6" y1="3" x2="6" y2="15"></line><circle cx="18" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><path d="M18 9a9 9 0 0 1-9 9"></path></svg><span>${done}/${total}</span></div>`;
     }
 
+    // 2. Таймер (активный или остановленный)
+    let timerHtml = '';
+    if (columnMode === 'track_time') {
+        const displayTime = task.active_timer ? formatTime(task) : formatExactTime(task.total_time_spent || 0);
+        timerHtml = `<div class="card-timer" data-task-id="${task.id}">${displayTime}</div>`;
+    }
+
+    // 3. Затраченное время (Completion)
+    let spentTimeHtml = '';
+    if (columnMode === 'completion' && task.total_time_spent !== undefined) {
+        spentTimeHtml = `<div class="subtask-meta">${t('card.timeSpent')} ${formatTotalTime(task.total_time_spent)}</div>`;
+        if (task.total_time_spent === 0) extraClasses.push('has-unknown-time');
+    } 
+
     let footerHtml = '';
-    if (checklistHtml || timeHtml) {
-        footerHtml = `
-            <div class="card-footer">
-                ${checklistHtml}
-                ${timeHtml}
-            </div>
-        `;
+    if (checklistHtml || timerHtml || spentTimeHtml) {
+        footerHtml = `<div class="card-footer">${checklistHtml}${timerHtml}${spentTimeHtml}</div>`;
     }
     
     return `
@@ -2487,57 +2421,52 @@ function startDrag(element, type, e) {
     dragType = type;
     draggedElement = element;
     
-    // Сразу фиксируем текущие координаты мыши для корректного старта физики
     mouseX = e.clientX;
     mouseY = e.clientY;
     lastMouseX = mouseX;
 
-    // Если тащим карточку, запоминаем ID исходной колонки (нужно для API при дропе)
     if (dragType === 'card') {
         draggedElement.dataset.sourceColumnId = draggedElement.closest('.column').dataset.columnId;
     }
 
-    // Глобально отключаем выделение текста и вешаем класс на body для стилизации курсоров
     document.body.style.userSelect = 'none';
     document.body.classList.add(`is-dragging-${dragType}`);
 
     const rect = draggedElement.getBoundingClientRect();
+    
+    // 🔥 SENIOR HACK: Замораживаем высоту футера перед клонированием
+    const sourceFooter = draggedElement.querySelector('.card-footer');
+    if (sourceFooter) {
+        const computedFooterHeight = window.getComputedStyle(sourceFooter).height;
+        sourceFooter.style.maxHeight = computedFooterHeight; // Фиксируем инлайново
+    }
+
     dragClone = draggedElement.cloneNode(true);
 
-    // Жестко фиксируем размеры клона, чтобы его верстка не поплыла после position: fixed
+    // Убираем все служебные классы с клона, чтобы он не дергался
+    dragClone.classList.remove('is-ghost', 'is-calculating', 'is-expanding');
+    dragClone.style.position = 'fixed';
     dragClone.style.width = `${rect.width}px`;
     dragClone.style.height = `${rect.height}px`;
+    dragClone.style.top = '0';
+    dragClone.style.left = '0';
     dragClone.style.margin = '0';
-    dragClone.classList.remove('is-ghost');
     dragClone.classList.add(`${dragType}-drag-clone`);
 
-    // Вычисляем смещение курсора относительно верхнего левого угла элемента
     const offsetX = e.clientX - rect.left;
     const offsetY = e.clientY - rect.top;
-    
-    // Сохраняем офсеты в dataset, чтобы renderPhysics мог их использовать
     dragClone.dataset.offsetX = offsetX;
     dragClone.dataset.offsetY = offsetY;
 
-    // --- ФИКС ПРЫЖКА ИЗ КООРДИНАТЫ 0,0 ---
-    // Мгновенно вычисляем начальную позицию для отрисовки
+    // Мгновенная позиция без вспышек
     const initialX = e.clientX - offsetX;
     const initialY = e.clientY - offsetY;
-    
-    // Коэффициент увеличения (колонки увеличиваем чуть меньше, чем карточки)
     const scale = (dragType === 'column' || dragType === 'tab') ? 1.02 : 1.04;
-    
-    // Применяем transform СРАЗУ. Теперь при appendChild элемент появится 
-    // ровно в том месте, где находится мышь, не дожидаясь следующего кадра.
     dragClone.style.transform = `translate3d(${initialX}px, ${initialY}px, 0) scale(${scale})`;
-    // -------------------------------------
 
     document.body.appendChild(dragClone);
-    
-    // Оригинал становится полупрозрачным "призраком" на своем месте
     draggedElement.classList.add('is-ghost');
 
-    // Запускаем цикл анимации инерции и наклона
     renderPhysics();
 }
 
@@ -2822,15 +2751,45 @@ async function endDrag() {
     }
     
     if (draggedElement) {
-        // 🔥 ФИКС: Мгновенное возвращение цвета без дерганий и фейдов
-        // 1. Временно убиваем все анимации на элементе
+        // 1. Если это карточка, мгновенно перерисовываем её под правила новой колонки,
+        // пока она еще невидима (is-ghost). Это убирает визуальный баг "старых данных".
+        if (dragType === 'card') {
+            const newColumnEl = draggedElement.closest('.column');
+            if (newColumnEl) {
+                const newColumnId = parseInt(newColumnEl.dataset.columnId);
+                const sourceColumnId = parseInt(draggedElement.dataset.sourceColumnId);
+                const taskId = parseInt(draggedElement.dataset.cardId);
+                const targetCol = state.columns.find(c => c.id === newColumnId);
+                const sourceCol = state.columns.find(c => c.id === sourceColumnId);
+
+                if (targetCol && sourceCol && newColumnId !== sourceColumnId) {
+                    const foundTask = sourceCol.tasks.find(t => t.id === taskId);
+                    if (foundTask) {
+                        // Создаем временный объект для мгновенного рендера
+                        let optimisticTask = JSON.parse(JSON.stringify(foundTask));
+                        if (targetCol.mode === 'track_time') {
+                            optimisticTask.completed_at = null;
+                            optimisticTask.active_timer = { start_time: new Date().toISOString() };
+                        } else if (targetCol.mode === 'completion') {
+                            optimisticTask.completed_at = new Date().toISOString();
+                            optimisticTask.active_timer = null;
+                        } else {
+                            optimisticTask.completed_at = null;
+                            optimisticTask.active_timer = null;
+                        }
+                        updateCardAppearance(draggedElement, optimisticTask, targetCol.mode);
+                    }
+                }
+            }
+        }
+
+        // 2. Временно убиваем все анимации на элементе для "тихого" возврата
         draggedElement.style.transition = 'none';
-        // 2. Снимаем класс призрака (цвет меняется на нормальный)
+        // 3. Снимаем класс призрака
         draggedElement.classList.remove('is-ghost');
-        // 3. Запрашиваем offsetWidth. Это заставляет браузер СИНХРОННО перерисовать
-        // элемент прямо сейчас, применив новые цвета без анимации (Force Reflow)
+        // 4. Force Reflow
         void draggedElement.offsetWidth;
-        // 4. Возвращаем стили к дефолтным CSS-настройкам
+        // 5. Возвращаем анимации
         draggedElement.style.transition = '';
 
         const droppedEl = draggedElement;
@@ -2893,31 +2852,6 @@ async function endDrag() {
                     const sourceCol = state.columns.find(c => c.id === sourceColumnId);
 
                     if (newColumnId !== sourceColumnId) {
-                        // --- 1. ОПТИМИСТИЧНОЕ ОБНОВЛЕНИЕ UI (БЕЗ ДЕРГАНИЙ) ---
-                        // Берем копию задачи из стейта, чтобы сымитировать новый режим без поломки DOM
-                        let optimisticTask = null;
-                        if (sourceCol) {
-                            const foundTask = sourceCol.tasks.find(t => t.id === taskId);
-                            if (foundTask) {
-                                optimisticTask = JSON.parse(JSON.stringify(foundTask));
-                            }
-                        }
-                        
-                        if (optimisticTask) {
-                            if (targetCol.mode === 'track_time') {
-                                optimisticTask.completed_at = null;
-                                optimisticTask.active_timer = { start_time: new Date().toISOString() };
-                            } else if (targetCol.mode === 'completion') {
-                                optimisticTask.completed_at = new Date().toISOString();
-                                optimisticTask.active_timer = null;
-                            } else {
-                                optimisticTask.completed_at = null;
-                                optimisticTask.active_timer = null;
-                            }
-                            // Штатно собираем footer до ответа сервера, никакой дерготни!
-                            updateCardAppearance(draggedElement, optimisticTask, targetCol.mode);
-                        }
-
                         // --- 2. ЗАПРОС К API И ФИНАЛЬНОЕ ОБНОВЛЕНИЕ ---
                         const updatedTask = await moveTask(taskId, newColumnId);
                         
@@ -3374,7 +3308,85 @@ document.addEventListener('click', async (e) => {
     }
 });
 
-async function loadTaskIntoModal(taskId, pushToStack = true) {
+function applyHighlight(container, query) {
+    if (!query) return;
+    // Разбиваем запрос на слова, чтобы подсветить каждое вхождение
+    const words = query.trim().split(/\s+/).filter(w => w.length > 0);
+    if (words.length === 0) return;
+
+    const regexWords = words.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+    const regex = new RegExp(`(${regexWords.join('|')})`, 'gi');
+
+    // Находим все текстовые узлы
+    const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null, false);
+    const nodesToProcess = [];
+    
+    let node;
+    while (node = walker.nextNode()) {
+        const parent = node.parentNode;
+        // Игнорируем технические теги и уже подсвеченные элементы
+        if (['CODE', 'MARK', 'TEXTAREA', 'PRE', 'SCRIPT', 'STYLE'].includes(parent.tagName)) continue;
+        if (parent.classList.contains('search-highlight')) continue;
+        
+        if (regex.test(node.nodeValue)) {
+            nodesToProcess.push(node);
+        }
+    }
+
+    // Оборачиваем вхождения
+    nodesToProcess.forEach(textNode => {
+        const parent = textNode.parentNode;
+        if (!parent) return;
+
+        const content = textNode.nodeValue;
+        const fragment = document.createDocumentFragment();
+        let lastIndex = 0;
+
+        content.replace(regex, (match, p1, offset) => {
+            // Текст до совпадения
+            fragment.appendChild(document.createTextNode(content.substring(lastIndex, offset)));
+            
+            // Само совпадение в обертке
+            const span = document.createElement('span');
+            span.className = 'search-highlight';
+            span.textContent = match;
+            fragment.appendChild(span);
+            
+            lastIndex = offset + match.length;
+        });
+
+        // Оставшийся текст после последнего совпадения
+        fragment.appendChild(document.createTextNode(content.substring(lastIndex)));
+        parent.replaceChild(fragment, textNode);
+    });
+
+    // Senior UI UX: Мягкое затухание подсветки через 1.5 секунды
+    const highlights = container.querySelectorAll('.search-highlight');
+    if (highlights.length === 0) return;
+
+    setTimeout(() => {
+        highlights.forEach(h => {
+            if (h.parentNode) {
+                // Теперь CSS подхватит эти изменения плавно, так как нет !important
+                h.style.backgroundColor = 'transparent';
+                h.style.color = 'inherit';
+                
+                // Ждем завершения CSS-анимации (500мс)
+                setTimeout(() => {
+                    if (h.parentNode) {
+                        const txt = document.createTextNode(h.textContent);
+                        h.parentNode.replaceChild(txt, h);
+                        // normalize() склеит соседние текстовые узлы в один
+                        container.normalize();
+                    }
+                }, 550);
+            }
+        });
+    }, 1500);
+}
+
+// <--- ДОБАВЛЕН ТРЕТИЙ ПАРАМЕТР highlightQuery
+async function loadTaskIntoModal(taskId, pushToStack = true, highlightQuery = null) {
     try {
         const res = await fetch(`${API_BASE}/tasks/${taskId}`);
         if (!res.ok) return;
@@ -3387,6 +3399,10 @@ async function loadTaskIntoModal(taskId, pushToStack = true) {
         const subtasksList = document.getElementById('subtasks-list');
         const subtasksCount = document.getElementById('subtasks-count');
         const formContainer = document.getElementById('subtask-form-container');
+
+        // 🚀 Сброс ручного растягивания поля описания от предыдущей открытой карточки
+        const descWrapper = document.querySelector('.description-wrapper');
+        if (descWrapper) descWrapper.style.height = '';
 
         // 1. Хлебные крошки
         if (pushToStack) {
@@ -3430,13 +3446,8 @@ async function loadTaskIntoModal(taskId, pushToStack = true) {
             const createdStr = formatDateTime(task.created_at);
             const updatedStr = formatDateTime(task.updated_at);
             
-            datesMetaEl.innerHTML = `
-                <div>
-                    <span>${t('taskModal.created')}: ${createdStr}</span>
-                    <span class="date-separator">&middot;</span>
-                    <span id="task-updated-text">${t('taskModal.updated')}: ${updatedStr}</span>
-                </div>
-            `;
+            // 🚀 Убрали физическую точку из HTML. Теперь всё безупречно контролирует CSS!
+            datesMetaEl.innerHTML = `<div><span>${t('taskModal.created')}: ${createdStr}</span><span id="task-updated-text">${t('taskModal.updated')}: ${updatedStr}</span></div>`;
         }
         // ----------------------------------------------
 
@@ -3457,11 +3468,23 @@ async function loadTaskIntoModal(taskId, pushToStack = true) {
             const cleanRegex = /(!?)\[[^\]]+\]\(attachments\/[^)]+\)!\s*/g;
             let readModeText = task.description.replace(cleanRegex, '');
             renderDiv.innerHTML = marked.parse(readModeText, { breaks: true });
+            
+            // --- ПОДСВЕТКА ПОИСКА ---
+            if (highlightQuery) {
+                applyHighlight(renderDiv, highlightQuery); // В описании
+                applyHighlight(titleEl, highlightQuery);   // И в главном заголовке тоже
+            }
+            
             enhanceCodeBlocks(renderDiv);
         } else {
             attachmentsCount.textContent = '0';
             attachmentsList.innerHTML = '';
             renderDiv.innerHTML = `<span class="markdown-empty">${t('taskModal.descPlaceholder')}</span>`;
+            
+            // Если описания нет, но мы искали по заголовку
+            if (highlightQuery) {
+                applyHighlight(titleEl, highlightQuery);
+            }
         }
         renderDiv.style.display = 'block';
         inputArea.style.display = 'none';
@@ -3554,7 +3577,14 @@ async function loadTaskIntoModal(taskId, pushToStack = true) {
                         }
                     }
                     
-                    newPill.textContent = updatedTask.active_timer ? formatTime(updatedTask) : formatExactTime(updatedTask.total_time_spent || 0);
+                    const displayTime = updatedTask.active_timer ? formatTime(updatedTask) : formatExactTime(updatedTask.total_time_spent || 0);
+                    newPill.textContent = displayTime;
+                    
+                    // Мгновенно обновляем карточку на самой доске (Senior UI: без ожидания сетевого refresh)
+                    const boardCard = document.querySelector(`.card[data-card-id="${task.id}"]`);
+                    if (boardCard) {
+                        updateCardAppearance(boardCard, updatedTask, col.mode);
+                    }
                     
                     refreshBoard();
                 }
@@ -3784,7 +3814,7 @@ function initTabsScrollbar() {
         if (!wrapper.matches(':hover') && !isDraggingThumb) {
             hideTimeout = setTimeout(() => {
                 scrollbar.classList.remove('visible');
-            }, 1200); // Скроллбар исчезает через 1.2с покоя
+            }, 800); // Синхронизировано с основным скроллбаром (800мс)
         }
     }
 
@@ -5494,14 +5524,392 @@ document.getElementById('new-vault-name').addEventListener('keydown', (e) => {
     }
 });
 
+// ==========================================
+// ЛОГИКА ГЛОБАЛЬНОГО ПОИСКА (FTS5)
+// ==========================================
+function initGlobalSearch() {
+    const input = document.getElementById('global-search-input');
+    const dropdown = document.getElementById('search-dropdown');
+    const content = document.getElementById('search-results-content');
+    const wrapper = document.getElementById('global-search-wrapper');
+
+    if (!input) return;
+
+    // Глобальный Hotkey для фокуса (Cmd+S / Ctrl+S)
+    document.addEventListener('keydown', (e) => {
+        if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+            e.preventDefault(); // Защита от системного "Сохранить страницу"
+            
+            // Если карточка открыта — игнорируем фокус на поиске
+            const taskModal = document.getElementById('task-modal');
+            if (taskModal && taskModal.classList.contains('show')) return;
+            
+            input.focus();
+        }
+    });
+
+    let debounceTimer;
+
+    input.addEventListener('input', () => {
+        clearTimeout(debounceTimer);
+        const query = input.value.trim();
+        
+        if (query.length < 2) {
+            dropdown.classList.remove('show');
+            return;
+        }
+
+        debounceTimer = setTimeout(async () => {
+            try {
+                const res = await fetch(`${API_BASE}/system/search?q=${encodeURIComponent(query)}`);
+                if (!res.ok) throw new Error();
+                const data = await res.json();
+                renderSearchResults(data, query); // <--- ПЕРЕДАЕМ QUERY СЮДА
+            } catch (err) {
+                console.error("Search failed:", err);
+            }
+        }, 250); // Debounce 250ms для снижения нагрузки
+    });
+
+    // Закрытие при потере фокуса
+    document.addEventListener('click', (e) => {
+        if (!wrapper.contains(e.target)) {
+            dropdown.classList.remove('show');
+        }
+    });
+
+    input.addEventListener('focus', () => {
+        if (input.value.trim().length >= 2 && content.innerHTML !== '') {
+            dropdown.classList.add('show');
+        }
+    });
+
+    function renderSearchResults(data, query) {
+        content.innerHTML = '';
+        const hasResults = data.workspaces.length || data.columns.length || data.tasks.length;
+
+        // Вспомогательная функция для подсветки текста в строке результатов
+        const highlightString = (text, q) => {
+            if (!text) return "";
+            if (!q) return escapeHtml(text);
+            const words = q.trim().split(/\s+/).filter(w => w.length > 0);
+            if (words.length === 0) return escapeHtml(text);
+            
+            const regexWords = words.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+            const regex = new RegExp(`(${regexWords.join('|')})`, 'gi');
+            
+            // Используем стандартный тег <mark>, который мы стилизовали в CSS 
+            // под системное выделение Кварцевым Мхом или Еловым Камнем
+            return escapeHtml(text).replace(regex, '<mark>$1</mark>');
+        };
+
+        if (!hasResults) {
+            content.innerHTML = `<div style="padding: 12px; text-align: center; color: var(--text-secondary); font-size: 13px;">Ничего не найдено</div>`;
+            dropdown.classList.add('show');
+            return;
+        }
+
+        const createItem = (titleHtml, meta, descHtml, onClick) => {
+            const div = document.createElement('div');
+            div.className = 'search-result-item';
+            div.innerHTML = `
+                <div class="search-result-title">${titleHtml}</div>
+                <div class="search-result-meta">${meta}</div>
+                ${descHtml ? `<div class="search-result-desc">${descHtml}</div>` : ''}
+            `;
+            div.onclick = () => {
+                dropdown.classList.remove('show');
+                input.value = '';
+                input.blur();
+                onClick();
+            };
+            content.appendChild(div);
+        };
+
+        const wsIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>`;
+        const colIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/></svg>`;
+        const taskIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`;
+
+        data.workspaces.forEach(w => {
+            // Подсвечиваем имя вкладки
+            createItem(highlightString(w.name, query), `${wsIcon} Вкладка`, null, () => navigateToEntity(w.id, null, null));
+        });
+
+        data.columns.forEach(c => {
+            // Подсвечиваем имя колонки
+            createItem(highlightString(c.title, query), `${colIcon} Колонка &middot; ${c.workspace_name}`, null, () => navigateToEntity(c.workspace_id, c.id, null));
+        });
+
+        data.tasks.forEach(t => {
+            // Сниппет уже подсвечен бэкендом (FTS5), поэтому его не трогаем, а заголовок подсвечиваем
+            const desc = (t.snippet && t.snippet.trim()) ? `...${t.snippet}...` : null;
+            createItem(highlightString(t.title, query), `${taskIcon} Карточка &middot; ${t.workspace_name} / ${t.column_title}`, desc, () => navigateToEntity(t.workspace_id, t.column_id, t.id, query));
+        });
+
+        dropdown.classList.add('show');
+    }
+
+    // Супер-роутер: переходит на вкладку -> скроллит к колонке -> открывает карточку
+    async function navigateToEntity(wsId, colId, taskId, highlightQuery = null) {
+        closeAllDropdowns();
+        
+        // 1. Свитч вкладки, если мы не на ней
+        if (wsId && wsId !== state.activeWorkspaceId) {
+            document.querySelectorAll('.board-tab').forEach(t => t.classList.remove('active'));
+            const targetTab = document.querySelector(`.board-tab[data-workspace-id="${wsId}"]`);
+            if (targetTab) {
+                targetTab.classList.add('active');
+                targetTab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            }
+            
+            state.activeWorkspaceId = wsId;
+            updateSettings({ active_workspace_id: wsId }).catch(console.error);
+            
+            // Ждем загрузки доски
+            const columns = await fetchColumns(wsId);
+            state.columns = columns.map(col => ({ ...col, collapsed: col.collapsed || false }));
+            renderBoard();
+        }
+
+        // 2. Скролл до колонки
+        if (colId) {
+            // Даем DOM время на рендер (если был свитч)
+            requestAnimationFrame(() => {
+                const colEl = document.querySelector(`.column[data-column-id="${colId}"]`);
+                if (colEl) {
+                    if (colEl.classList.contains('collapsed') && taskId) {
+                        onExpandColumn(colEl); // Разворачиваем, если нужно показать карточку
+                    }
+                    colEl.scrollIntoView({ behavior: 'smooth', inline: 'center' });
+                    
+                    // 3. Открытие карточки
+                    if (taskId) {
+                        // Подсвечиваем саму карточку
+                        const cardEl = document.querySelector(`.card[data-card-id="${taskId}"]`);
+                        if (cardEl) {
+                            cardEl.style.transition = 'box-shadow 0.3s';
+                            cardEl.style.boxShadow = '0 0 0 2px var(--brand-pine)';
+                            setTimeout(() => cardEl.style.boxShadow = '', 1500);
+                        }
+
+                        modalNavigationStack = []; 
+                        loadTaskIntoModal(taskId, true, highlightQuery); // <--- ПЕРЕДАЕМ QUERY В МОДАЛКУ
+                        document.getElementById('task-modal').classList.add('show');
+                    }
+                }
+            });
+        }
+    }
+}
+
 
 // Запускаем инициализацию (можно поместить вызов внутрь главной IIFE async функции внизу файла)
 initTaskDescriptionLogic();
+
+function initUniversalScrollbars() {
+    const SCROLL_SELECTOR = '.card-list, .markdown-body, .description-input, .task-detail-body, #subtasks-list, #attachments-list, #vault-history-list, .search-dropdown, .board-container, pre';
+
+    const trackY = document.createElement('div');
+    trackY.className = 'doe-floating-scrollbar track-y';
+    const thumbY = document.createElement('div');
+    thumbY.className = 'doe-floating-thumb';
+    trackY.appendChild(thumbY);
+
+    const trackX = document.createElement('div');
+    trackX.className = 'doe-floating-scrollbar track-x';
+    const thumbX = document.createElement('div');
+    thumbX.className = 'doe-floating-thumb';
+    trackX.appendChild(thumbX);
+
+    document.body.appendChild(trackY);
+    document.body.appendChild(trackX);
+
+    let activeElX = null;
+    let activeElY = null;
+    let hideTimeoutX;
+    let hideTimeoutY;
+    let isDraggingX = false;
+    let isDraggingY = false;
+
+    function updateThumbX() {
+        if (!activeElX) return;
+        const rect = activeElX.getBoundingClientRect();
+        const scrollRatio = activeElX.clientWidth / activeElX.scrollWidth;
+        
+        if (scrollRatio >= 1 || activeElX.scrollWidth <= 0) {
+            trackX.classList.remove('visible');
+            return;
+        }
+
+        trackX.style.left = `${rect.left + 4}px`; 
+        trackX.style.top = `${rect.bottom - 8}px`; 
+        trackX.style.width = `${rect.width - 8}px`;
+        trackX.style.height = `6px`;
+
+        const thumbWidth = Math.max(rect.width * scrollRatio, 40);
+        thumbX.style.width = `${thumbWidth}px`;
+        thumbX.style.height = `6px`;
+
+        const maxScrollLeft = activeElX.scrollWidth - activeElX.clientWidth;
+        const scrollPercent = activeElX.scrollLeft / maxScrollLeft;
+        const maxThumbLeft = (rect.width - 8) - thumbWidth;
+
+        thumbX.style.transform = `translateX(${scrollPercent * maxThumbLeft}px)`;
+    }
+
+    function updateThumbY() {
+        if (!activeElY) return;
+        const rect = activeElY.getBoundingClientRect();
+        const scrollRatio = activeElY.clientHeight / activeElY.scrollHeight;
+        
+        if (scrollRatio >= 1 || activeElY.scrollHeight <= 0) {
+            trackY.classList.remove('visible');
+            return;
+        }
+
+        trackY.style.left = `${rect.right - 8}px`; 
+        trackY.style.top = `${rect.top + 4}px`;
+        trackY.style.height = `${rect.height - 8}px`;
+        trackY.style.width = `6px`;
+
+        const thumbHeight = Math.max(rect.height * scrollRatio, 40);
+        thumbY.style.height = `${thumbHeight}px`;
+        thumbY.style.width = `6px`;
+
+        const maxScrollTop = activeElY.scrollHeight - activeElY.clientHeight;
+        const scrollPercent = activeElY.scrollTop / maxScrollTop;
+        const maxThumbTop = (rect.height - 8) - thumbHeight;
+
+        thumbY.style.transform = `translateY(${scrollPercent * maxThumbTop}px)`;
+    }
+
+    function showX(el) {
+        if (el) activeElX = el;
+        if (!activeElX) return;
+        updateThumbX();
+        if (activeElX.clientWidth < activeElX.scrollWidth) trackX.classList.add('visible');
+        clearTimeout(hideTimeoutX);
+        if (!isDraggingX && !trackX.matches(':hover')) {
+            hideTimeoutX = setTimeout(() => trackX.classList.remove('visible'), 800);
+        }
+    }
+
+    function showY(el) {
+        if (el) activeElY = el;
+        if (!activeElY) return;
+        updateThumbY();
+        if (activeElY.clientHeight < activeElY.scrollHeight) trackY.classList.add('visible');
+        clearTimeout(hideTimeoutY);
+        if (!isDraggingY && !trackY.matches(':hover')) {
+            hideTimeoutY = setTimeout(() => trackY.classList.remove('visible'), 800);
+        }
+    }
+
+    // Появляется ТОЛЬКО при реальном скролле (колесо/тачпад)
+    document.addEventListener('scroll', (e) => {
+        if (!e.target || !e.target.matches) return;
+        
+        if (activeElX) updateThumbX();
+        if (activeElY) updateThumbY();
+
+        if (e.target.matches(SCROLL_SELECTOR)) {
+            if (e.target.classList.contains('board-container')) {
+                showX(e.target);
+            } else {
+                showY(e.target);
+                if (e.target.tagName === 'PRE' || e.target.scrollWidth > e.target.clientWidth) {
+                    showX(e.target);
+                }
+            }
+        }
+    }, true);
+
+    // Удерживаем видимость, если мышь наведена на сам скроллбар (чтобы можно было схватить)
+    trackX.addEventListener('mouseenter', () => clearTimeout(hideTimeoutX));
+    trackX.addEventListener('mouseleave', () => {
+        if (!isDraggingX) hideTimeoutX = setTimeout(() => trackX.classList.remove('visible'), 400);
+    });
+
+    trackY.addEventListener('mouseenter', () => clearTimeout(hideTimeoutY));
+    trackY.addEventListener('mouseleave', () => {
+        if (!isDraggingY) hideTimeoutY = setTimeout(() => trackY.classList.remove('visible'), 400);
+    });
+
+    window.addEventListener('resize', () => {
+        updateThumbX();
+        updateThumbY();
+    });
+
+    // --- ДРАГ-Н-ДРОП САМОГО ПОЛЗУНКА ---
+    let startMouseY = 0, startScrollTop = 0;
+    thumbY.addEventListener('mousedown', (e) => {
+        isDraggingY = true;
+        startMouseY = e.clientY;
+        startScrollTop = activeElY.scrollTop;
+        thumbY.classList.add('is-dragging');
+        document.body.style.userSelect = 'none';
+        e.preventDefault(); e.stopPropagation();
+    });
+
+    let startMouseX = 0, startScrollLeft = 0;
+    thumbX.addEventListener('mousedown', (e) => {
+        isDraggingX = true;
+        startMouseX = e.clientX;
+        startScrollLeft = activeElX.scrollLeft;
+        thumbX.classList.add('is-dragging');
+        document.body.style.userSelect = 'none';
+        e.preventDefault(); e.stopPropagation();
+    });
+
+    window.addEventListener('mousemove', (e) => {
+        if (isDraggingY && activeElY) {
+            const deltaY = e.clientY - startMouseY;
+            const rect = activeElY.getBoundingClientRect();
+            const scrollRatio = activeElY.clientHeight / activeElY.scrollHeight;
+            const thumbHeight = Math.max(rect.height * scrollRatio, 40);
+            const maxThumbTop = (rect.height - 8) - thumbHeight;
+            const maxScrollTop = activeElY.scrollHeight - activeElY.clientHeight;
+            
+            if (maxThumbTop > 0) {
+                activeElY.scrollTop = startScrollTop + deltaY * (maxScrollTop / maxThumbTop);
+            }
+        }
+        if (isDraggingX && activeElX) {
+            const deltaX = e.clientX - startMouseX;
+            const rect = activeElX.getBoundingClientRect();
+            const scrollRatio = activeElX.clientWidth / activeElX.scrollWidth;
+            const thumbWidth = Math.max(rect.width * scrollRatio, 40);
+            const maxThumbLeft = (rect.width - 8) - thumbWidth;
+            const maxScrollLeft = activeElX.scrollWidth - activeElX.clientWidth;
+            
+            if (maxThumbLeft > 0) {
+                activeElX.scrollLeft = startScrollLeft + deltaX * (maxScrollLeft / maxThumbLeft);
+            }
+        }
+    });
+
+    window.addEventListener('mouseup', () => {
+        if (isDraggingY) {
+            isDraggingY = false;
+            thumbY.classList.remove('is-dragging');
+            document.body.style.userSelect = '';
+            hideTimeoutY = setTimeout(() => trackY.classList.remove('visible'), 800);
+        }
+        if (isDraggingX) {
+            isDraggingX = false;
+            thumbX.classList.remove('is-dragging');
+            document.body.style.userSelect = '';
+            hideTimeoutX = setTimeout(() => trackX.classList.remove('visible'), 800);
+        }
+    });
+}
 
 (async () => {
     initTooltip();
     initTabsScrollbar();
     initTaskModalDragAndResize();
+    initGlobalSearch();
+    initUniversalScrollbars(); // 🚀 ФИКС: Включаем глобальные плавающие скроллбары
 
     // Проверяем, в каком режиме открыто текущее окно (App или Vault Selector)
     const urlParams = new URLSearchParams(window.location.search);

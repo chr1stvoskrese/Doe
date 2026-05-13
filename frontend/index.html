@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"> 
-    <link rel="stylesheet" href="/static/styles.css">
+    <link rel="stylesheet" href="/static/styles.css?v=searchfix">
     <link rel="stylesheet" href="static/prism.min.css">
     <script src="/static/marked.min.js"></script>
 </head>
@@ -89,12 +89,12 @@
 <!-- ШАПКА -->
 <header class="app-header">
     <div class="header-left-controls">
+        
         <div class="settings-wrapper">
             <button class="icon-btn settings-trigger" aria-label="Настройки">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
             </button>
             <div class="dropdown-menu">
-                <!-- Содержимое меню настроек остается тем же -->
                 <div class="menu-item" data-action="theme">
                     <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
                     <span data-i18n="theme">Тема</span>
@@ -116,10 +116,22 @@
         </div>
         
         <button class="workspace-btn" data-action="switch-workspace">
-            <!-- Добавили класс vault-name-text -->
             <span class="vault-name-text" data-i18n="workspace">Doe Board</span>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
         </button>
+
+        <!-- НОВЫЙ БЛОК ПОИСКА -->
+        <div class="search-wrapper" id="global-search-wrapper">
+            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <input type="text" id="global-search-input" class="search-input" data-i18n="searchPlaceholder" placeholder="Поиск..." autocomplete="off" spellcheck="false">
+            <div class="dropdown-menu search-dropdown" id="search-dropdown">
+                <div class="search-results-content" id="search-results-content">
+                    <!-- Заполняется JS -->
+                </div>
+            </div>
+        </div>
+        <!-- КОНЕЦ НОВОГО БЛОКА -->
+        
     </div>
 
     <!-- КОНТЕЙНЕР ДЛЯ ВКЛАДОК -->

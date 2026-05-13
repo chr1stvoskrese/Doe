@@ -20,6 +20,10 @@ if sys.platform == 'darwin':
         # Это нужно и в разработке, и в билде, чтобы приложение появилось в Dock
         app.setActivationPolicy_(0)
         
+        # 🚀 SENIOR FIX: Мы убрали вмешательство в NSUserDefaults для скроллбаров.
+        # Ошибка была в том, что передача "WhenScrolling" наоборот ВКЛЮЧАЛА
+        # маковский overlay-режим. Теперь всё безупречно рендерится через чистый CSS.
+        
         # МЕНЯЕМ ИКОНКУ КОДОМ ТОЛЬКО В РЕЖИМЕ РАЗРАБОТКИ
         # В собранном .app это не нужно и вызывает "прыжок" размера
         if not getattr(sys, 'frozen', False):
@@ -201,6 +205,7 @@ class WindowAPI:
         
         # Берем последнее созданное окно (надежнее при пересоздании окон)
         window = webview.windows[-1]
+        
         if sys.platform == 'win32':
             import ctypes
             try:
