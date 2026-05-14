@@ -522,10 +522,9 @@ function formatDateTime(isoString) {
     return date.toLocaleDateString(currentLang, options);
 }
 
-// ---------- РЕНДЕРИНГ ДОСКИ ----------
 function renderBoard() {
     const board = document.getElementById('board');
-    const savedScroll = board.scrollLeft; // 🔥 СОХРАНЯЕМ СКРОЛЛ
+    const savedScroll = board.scrollLeft;
 
     board.innerHTML = '';
     const sorted = [...state.columns].sort((a, b) => a.position - b.position);
@@ -537,7 +536,28 @@ function renderBoard() {
     addColBtn.addEventListener('click', onCreateColumn);
     board.appendChild(addColBtn);
     
-    board.scrollLeft = savedScroll; // 🔥 ВОССТАНАВЛИВАЕМ СКРОЛЛ
+    board.scrollLeft = savedScroll;
+
+    // 🔥 ФИКС: Межвкладочный Drag & Drop (Восстановление призрака)
+    // Если мы переключили вкладку туда-сюда во время драга,
+    // заново находим нашу карточку в свежем DOM и делаем её призраком.
+    if (isDragging && draggedElement) {
+        if (dragType === 'card') {
+            const id = draggedElement.dataset.cardId;
+            const newEl = board.querySelector(`.card[data-card-id="${id}"]`);
+            if (newEl) {
+                draggedElement = newEl; // Подменяем сироту на новый узел
+                draggedElement.classList.add('is-ghost');
+            }
+        } else if (dragType === 'column') {
+            const id = draggedElement.dataset.columnId;
+            const newEl = board.querySelector(`.column[data-column-id="${id}"]`);
+            if (newEl) {
+                draggedElement = newEl;
+                draggedElement.classList.add('is-ghost');
+            }
+        }
+    }
 
     // Корректируем ширину свёрнутых колонок после layout
     requestAnimationFrame(() => {
@@ -801,10 +821,11 @@ async function onAddTask(columnId) {
 
     const input = formCard.querySelector('.card-input');
     
-    // Автоматическое изменение высоты textarea
+    // Автоматическое изменение высоты textarea (Фикс вылетающего курсора и скролла)
     const autoResize = () => {
-        input.style.height = 'auto';
-        const sh = input.scrollHeight;
+        const offset = input.offsetHeight - input.clientHeight;
+        input.style.height = '1px';
+        const sh = input.scrollHeight + offset;
         const maxHeight = 120; // Лимит высоты ввода
         if (sh > maxHeight) {
             input.style.height = maxHeight + 'px';
@@ -1054,10 +1075,11 @@ async function onCreateColumn() {
         }, 120);
     };
 
-    // Авто-resize со скроллом при превышении высоты экрана
+    // Авто-resize со скроллом при превышении высоты экрана (Фикс вылетающего курсора)
     const autoResize = () => {
-        input.style.height = 'auto';
-        const sh = input.scrollHeight;
+        const offset = input.offsetHeight - input.clientHeight;
+        input.style.height = '1px';
+        const sh = input.scrollHeight + offset;
         const boardHeight = document.getElementById('board').clientHeight;
         
         const maxAllowedHeight = Math.max(60, boardHeight - 60);
@@ -1822,11 +1844,12 @@ function startColumnRename(columnEl, column) {
     columnEl.setAttribute('draggable', 'false');
     columnEl.classList.add('is-renaming');
 
-    // Авто-resize по содержимому
+    // Авто-resize по содержимому (Фикс сломанного скролла и курсора)
     let lastValidValue = input.value;
     const autoResize = () => {
-        input.style.height = 'auto';
-        const sh = input.scrollHeight;
+        const offset = input.offsetHeight - input.clientHeight;
+        input.style.height = '1px';
+        const sh = input.scrollHeight + offset;
         const boardHeight = document.getElementById('board').clientHeight;
         
         // Здесь есть список и кнопка, вычитаем 140px, чтобы их не выдавило
@@ -1920,8 +1943,9 @@ function startCardRename(cardEl, task) {
         const scrollParent = cardEl.closest('.card-list');
         const currentScroll = scrollParent ? scrollParent.scrollTop : 0;
 
-        input.style.height = 'auto';
-        input.style.height = input.scrollHeight + 'px';
+        const offset = input.offsetHeight - input.clientHeight;
+        input.style.height = '1px';
+        input.style.height = (input.scrollHeight + offset) + 'px';
         
         if (scrollParent) scrollParent.scrollTop = currentScroll;
         
@@ -2064,11 +2088,11 @@ function startModalTaskRename(titleEl) {
     titleEl.replaceWith(input);
     modal.classList.add('is-renaming');
 
-    // Авто-ресайз по высоте
-    // Авто-ресайз по высоте
+    // Авто-ресайз по высоте (Фикс вылетающего курсора)
     const autoResize = () => {
-        input.style.height = 'auto';
-        input.style.height = input.scrollHeight + 'px';
+        const offset = input.offsetHeight - input.clientHeight;
+        input.style.height = '1px';
+        input.style.height = (input.scrollHeight + offset) + 'px';
     };
     input.addEventListener('input', () => {
         autoResize();
@@ -2190,8 +2214,9 @@ function startSubtaskRename(subtaskEl) {
     subtaskEl.classList.add('is-renaming');
 
     const autoResize = () => {
-        input.style.height = 'auto';
-        input.style.height = input.scrollHeight + 'px';
+        const offset = input.offsetHeight - input.clientHeight;
+        input.style.height = '1px';
+        input.style.height = (input.scrollHeight + offset) + 'px';
     };
     input.addEventListener('input', () => {
         if (input.value.trim().length <= 200) {
@@ -2327,6 +2352,22 @@ let isPointerDown = false;
 let potentialDragTarget = null;
 let potentialDragType = null;
 
+// --- НОВЫЕ ПЕРЕМЕННЫЕ ДЛЯ КРОСС-ВКЛАДОЧНОГО DRAG&DROP ---
+let originalWorkspaceId = null;
+let isHoveringTabs = false;
+let draggedTaskObject = null; 
+let currentDragScale = 1;
+let dragCloneWidth = 0;
+let dragCloneHeight = 0;
+let pendingSwitchTabId = null;
+let tabSwitchTimeout = null;
+
+// Переменные для идеальной математики точки хвата
+let originalOffsetX = 0;
+let originalOffsetY = 0;
+let currentOriginX = 0;
+let currentOriginY = 0;
+
 // ==========================================
 // ГЛОБАЛЬНАЯ БЛОКИРОВКА БРАУЗЕРНОГО DND
 // ==========================================
@@ -2342,8 +2383,8 @@ document.addEventListener('pointerdown', (e) => {
     if (e.button !== 0) return; // Только левый клик мыши
 
     // 1. Игнорируем клики по интерактивным элементам (чтобы кнопки и инпуты работали штатно)
-    if (e.target.closest('button, input, textarea, .menu-btn, .card-menu-btn, .tab-close-btn, .column.is-renaming, .board-tab.is-renaming, .card.is-renaming, .card-entering')) return;
-
+    // 🚀 SENIOR FIX: Добавили .description-wrapper, чтобы кастомный DND не ломал нативный ресайзер
+    if (e.target.closest('button, input, textarea, .menu-btn, .card-menu-btn, .tab-close-btn, .column.is-renaming, .board-tab.is-renaming, .card.is-renaming, .card-entering, .description-wrapper')) return;
     // 2. Ищем, на чем именно кликнули
     const vaultHistory = e.target.closest('.vault-history-item');
     const subtask = e.target.closest('.subtask-item');
@@ -2420,6 +2461,27 @@ function startDrag(element, type, e) {
     isDragging = true;
     dragType = type;
     draggedElement = element;
+
+    // 🔥 ФИКС ТАЙМЕРА: Находим объект задачи в текущем стейте, чтобы таймер не замирал
+    if (dragType === 'card') {
+        const taskId = parseInt(element.dataset.cardId);
+        for (const col of state.columns) {
+            const task = col.tasks.find(t => t.id === taskId);
+            if (task) {
+                draggedTaskObject = task;
+                break;
+            }
+        }
+    } else {
+        draggedTaskObject = null;
+    }
+    
+    // Сброс и захват данных для межвкладочного переноса
+    originalWorkspaceId = state.activeWorkspaceId;
+    isHoveringTabs = false;
+    currentDragScale = 1;
+    pendingSwitchTabId = null;
+    clearTimeout(tabSwitchTimeout);
     
     mouseX = e.clientX;
     mouseY = e.clientY;
@@ -2432,18 +2494,24 @@ function startDrag(element, type, e) {
     document.body.style.userSelect = 'none';
     document.body.classList.add(`is-dragging-${dragType}`);
 
+    // Фиксируем оригинальные размеры ЕДИНОЖДЫ
     const rect = draggedElement.getBoundingClientRect();
+    dragCloneWidth = rect.width;
+    dragCloneHeight = rect.height;
+
+    // 🔥 СОХРАНЯЕМ ИСХОДНУЮ ТОЧКУ ХВАТА
+    originalOffsetX = e.clientX - rect.left;
+    originalOffsetY = e.clientY - rect.top;
+    currentOriginX = originalOffsetX;
+    currentOriginY = originalOffsetY;
     
-    // 🔥 SENIOR HACK: Замораживаем высоту футера перед клонированием
     const sourceFooter = draggedElement.querySelector('.card-footer');
     if (sourceFooter) {
         const computedFooterHeight = window.getComputedStyle(sourceFooter).height;
-        sourceFooter.style.maxHeight = computedFooterHeight; // Фиксируем инлайново
+        sourceFooter.style.maxHeight = computedFooterHeight;
     }
 
     dragClone = draggedElement.cloneNode(true);
-
-    // Убираем все служебные классы с клона, чтобы он не дергался
     dragClone.classList.remove('is-ghost', 'is-calculating', 'is-expanding');
     dragClone.style.position = 'fixed';
     dragClone.style.width = `${rect.width}px`;
@@ -2453,16 +2521,9 @@ function startDrag(element, type, e) {
     dragClone.style.margin = '0';
     dragClone.classList.add(`${dragType}-drag-clone`);
 
-    const offsetX = e.clientX - rect.left;
-    const offsetY = e.clientY - rect.top;
-    dragClone.dataset.offsetX = offsetX;
-    dragClone.dataset.offsetY = offsetY;
-
-    // Мгновенная позиция без вспышек
-    const initialX = e.clientX - offsetX;
-    const initialY = e.clientY - offsetY;
-    const scale = (dragType === 'column' || dragType === 'tab') ? 1.02 : 1.04;
-    dragClone.style.transform = `translate3d(${initialX}px, ${initialY}px, 0) scale(${scale})`;
+    // 🔥 Сбрасываем origin в 0, чтобы полностью контролировать матрицу через translate3d
+    dragClone.style.transformOrigin = '0 0'; 
+    dragClone.style.transform = `translate3d(${mouseX}px, ${mouseY}px, 0) scale(1) translate3d(${-currentOriginX}px, ${-currentOriginY}px, 0)`;
 
     document.body.appendChild(dragClone);
     draggedElement.classList.add('is-ghost');
@@ -2471,19 +2532,47 @@ function startDrag(element, type, e) {
 }
 
 function performHitTest() {
-    // Стреляем "лазером" от курсора вглубь экрана
-    // (Летающие клоны игнорируются, так как у них в CSS прописан pointer-events: none)
     const elemUnderMouse = document.elementFromPoint(mouseX, mouseY);
     if (!elemUnderMouse) return;
 
+    // --- ЛОГИКА МИНИАТЮР И МОРГАНИЯ ВКЛАДОК ---
+    const tabsWrapper = elemUnderMouse.closest('#tabs-wrapper');
+    if (tabsWrapper && (dragType === 'card' || dragType === 'column')) {
+        isHoveringTabs = true;
+        const hoverTab = elemUnderMouse.closest('.board-tab:not(.active)');
+
+        if (hoverTab) {
+            const tabId = parseInt(hoverTab.dataset.workspaceId);
+            if (pendingSwitchTabId !== tabId) {
+                clearTimeout(tabSwitchTimeout);
+                pendingSwitchTabId = tabId;
+
+                document.querySelectorAll('.board-tab.is-blinking').forEach(el => el.classList.remove('is-blinking'));
+                hoverTab.classList.add('is-blinking');
+
+                tabSwitchTimeout = setTimeout(async () => {
+                    hoverTab.classList.remove('is-blinking');
+                    await switchToWorkspaceDuringDrag(tabId);
+                }, 600); 
+            }
+        } else {
+            clearTimeout(tabSwitchTimeout);
+            pendingSwitchTabId = null;
+            document.querySelectorAll('.board-tab.is-blinking').forEach(el => el.classList.remove('is-blinking'));
+        }
+        return; 
+    } else {
+        isHoveringTabs = false;
+        clearTimeout(tabSwitchTimeout);
+        pendingSwitchTabId = null;
+        document.querySelectorAll('.board-tab.is-blinking').forEach(el => el.classList.remove('is-blinking'));
+    }
+
     // 1. ВКЛАДКИ
     if (dragType === 'tab') {
-        // Ищем настоящую вкладку под курсором (игнорируем оригинал-призрак)
         const hoverTab = elemUnderMouse.closest('.board-tab:not(.is-ghost)');
-        
         if (hoverTab && hoverTab !== draggedElement && hoverTab.closest('#tabs-container')) {
             const rect = hoverTab.getBoundingClientRect();
-            // Строгая проверка левой/правой половины с предохранителем от дребезга
             if (mouseX > rect.left + rect.width / 2) {
                 if (hoverTab.nextElementSibling !== draggedElement) hoverTab.after(draggedElement);
             } else {
@@ -2491,24 +2580,33 @@ function performHitTest() {
             }
         }
     }
-    // 2. КОЛОНКИ
+    // 2. КОЛОНКИ (С поддержкой пустой доски)
     else if (dragType === 'column') {
         const hoverCol = elemUnderMouse.closest('.column:not(.is-ghost)');
+        const board = document.getElementById('board');
+        const boardContainer = elemUnderMouse.closest('.board-container');
         
-        if (hoverCol && hoverCol !== draggedElement && hoverCol.closest('#board')) {
+        if (hoverCol && hoverCol !== draggedElement) {
             const rect = hoverCol.getBoundingClientRect();
             if (mouseX > rect.left + rect.width / 2) {
                 if (hoverCol.nextElementSibling !== draggedElement) hoverCol.after(draggedElement);
             } else {
                 if (hoverCol.previousElementSibling !== draggedElement) hoverCol.before(draggedElement);
             }
+        } 
+        // 🔥 ФИКС: Если мы над контейнером доски, но не над колонкой (доска пустая или навели мимо)
+        else if (boardContainer && board && !board.contains(draggedElement)) {
+            const addBtn = board.querySelector('.new-column-btn');
+            if (addBtn) {
+                board.insertBefore(draggedElement, addBtn);
+            } else {
+                board.appendChild(draggedElement);
+            }
         }
     }
     // 3. КАРТОЧКИ
     else if (dragType === 'card') {
         const hoverCard = elemUnderMouse.closest('.card:not(.is-ghost)');
-        
-        // Сценарий А: Навели ровно на другую карточку
         if (hoverCard && hoverCard !== draggedElement) {
             const rect = hoverCard.getBoundingClientRect();
             if (mouseY > rect.top + rect.height / 2) {
@@ -2517,31 +2615,26 @@ function performHitTest() {
                 if (hoverCard.previousElementSibling !== draggedElement) hoverCard.before(draggedElement);
             }
         } 
-        // Сценарий Б: Навели на пустое место в колонке (в начало списка, в конец или в пустую колонку)
         else {
             const hoverCol = elemUnderMouse.closest('.column:not(.is-ghost)');
             if (hoverCol) {
                 const cardList = hoverCol.querySelector('.card-list');
                 if (cardList && !cardList.contains(draggedElement)) {
-                    // Если мышь выше первой карточки — кидаем в самый верх
                     const firstCard = cardList.firstElementChild;
                     if (firstCard && mouseY < firstCard.getBoundingClientRect().top) {
                         cardList.prepend(draggedElement);
                     } else {
-                        // Иначе кидаем в самый низ
                         cardList.appendChild(draggedElement);
                     }
                 }
             }
         }
     }
-
     // 4. ПОДЗАДАЧИ
     else if (dragType === 'subtask') {
         const hoverSub = elemUnderMouse.closest('.subtask-item:not(.is-ghost)');
         if (hoverSub && hoverSub !== draggedElement && hoverSub.closest('#subtasks-list')) {
             const rect = hoverSub.getBoundingClientRect();
-            // Сортировка по вертикали
             if (mouseY > rect.top + rect.height / 2) {
                 if (hoverSub.nextElementSibling !== draggedElement) hoverSub.after(draggedElement);
             } else {
@@ -2575,41 +2668,79 @@ function performHitTest() {
     }
 }
 
+// Фоновая смена вкладки без убийства текущего DND
+async function switchToWorkspaceDuringDrag(wsId) {
+    document.querySelectorAll('.board-tab').forEach(t => t.classList.remove('active'));
+    const targetTab = document.querySelector(`.board-tab[data-workspace-id="${wsId}"]`);
+    if (targetTab) {
+        targetTab.classList.add('active');
+        targetTab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+
+    state.activeWorkspaceId = wsId;
+    updateSettings({ active_workspace_id: wsId }).catch(() => {});
+
+    try {
+        const columns = await fetchColumns(wsId);
+        state.columns = columns.map(col => ({ ...col, collapsed: col.collapsed || false }));
+        renderBoard(); 
+        // ВНИМАНИЕ: draggedElement сейчас "вырван" из DOM из-за очистки доски.
+        // Он безопасно лежит в памяти. Как только мышь опустится с вкладок на новую доску, 
+        // performHitTest() подхватит его и автоматически "вживит" (appendChild) в новый DOM!
+    } catch (err) {
+        console.error('Ошибка смены вкладки при драге:', err);
+    }
+}
+
 function handleEdgePanning() {
     if (!isDragging) return false;
 
     let container = null;
-    let axis = 'x'; // По умолчанию горизонтальный скролл
-    let scrollZone = 60; // Зона активации от края
-    let maxSpeed = 16;   // Максимальная скорость
+    let axis = 'x'; 
+    let scrollZone = 80; 
+    let maxSpeed = 20;
 
-    // 1. ОПРЕДЕЛЯЕМ КОНТЕЙНЕР И ОСЬ В ЗАВИСИМОСТИ ОТ ТОГО, ЧТО ТАЩИМ
-    if (dragType === 'tab') {
+    // --- ПРИОРИТЕТ 1: СКРОЛЛ ВКЛАДОК ПРИ НАВЕДЕНИИ МИНИАТЮРЫ ---
+    if (isHoveringTabs && (dragType === 'card' || dragType === 'column')) {
         container = document.getElementById('tabs-container');
         axis = 'x';
-    } else if (dragType === 'column') {
+        scrollZone = 60;
+        maxSpeed = 15;
+    }
+    // --- ПРИОРИТЕТ 2: СКРОЛЛ ВКЛАДОК ПРИ ПЕРЕТАСКИВАНИИ САМОЙ ВКЛАДКИ ---
+    else if (dragType === 'tab') {
+        container = document.getElementById('tabs-container');
+        axis = 'x';
+    } 
+    // --- ПРИОРИТЕТ 3: СКРОЛЛ ДОСКИ ПРИ ТАСКАНИИ КОЛОНКИ ---
+    else if (dragType === 'column') {
         container = document.querySelector('.board-container');
         axis = 'x';
-        scrollZone = 100;
-        maxSpeed = 22;
-    } else if (dragType === 'vault-history') {
-        container = document.getElementById('vault-history-list');
-        axis = 'y'; // Вертикальный скролл для истории
-    } else if (dragType === 'subtask' || dragType === 'attachment') {
-        container = document.querySelector('.task-detail-body');
-        axis = 'y'; // Вертикальный скролл в модалке карточки
-    } else if (dragType === 'card') {
-        // Умный выбор для карточки: скроллим колонку (Y) или саму доску (X)
+        scrollZone = 120; // Большая зона для больших объектов
+        maxSpeed = 25;
+    } 
+    // --- ПРИОРИТЕТ 4: УМНЫЙ СКРОЛЛ КАРТОЧКИ (ДОСКА ИЛИ КОЛОНКА) ---
+    else if (dragType === 'card') {
         const hoverCol = document.elementFromPoint(mouseX, mouseY)?.closest('.column:not(.is-ghost)');
+        // Если мы внутри колонки - скроллим её по вертикали
         if (hoverCol) {
             container = hoverCol.querySelector('.card-list');
             axis = 'y';
+            scrollZone = 60;
         } else {
+            // Если между колонками - скроллим всю доску по горизонтали
             container = document.querySelector('.board-container');
             axis = 'x';
-            scrollZone = 100;
-            maxSpeed = 22;
+            scrollZone = 120;
+            maxSpeed = 25;
         }
+    }
+    else if (dragType === 'vault-history') {
+        container = document.getElementById('vault-history-list');
+        axis = 'y';
+    } else if (dragType === 'subtask' || dragType === 'attachment') {
+        container = document.querySelector('.task-detail-body');
+        axis = 'y';
     }
 
     if (!container) return false;
@@ -2617,7 +2748,6 @@ function handleEdgePanning() {
     const rect = container.getBoundingClientRect();
     let speed = 0;
 
-    // 2. ГОРИЗОНТАЛЬНЫЙ СКРОЛЛ (X)
     if (axis === 'x') {
         if (mouseX > rect.right - scrollZone) {
             const intensity = Math.max(0, Math.min((mouseX - (rect.right - scrollZone)) / scrollZone, 1));
@@ -2631,13 +2761,14 @@ function handleEdgePanning() {
             const prevScroll = container.scrollLeft;
             container.scrollLeft += speed;
             if (container.scrollLeft !== prevScroll) {
-                if (dragType === 'tab' && window.updateTabsScrollbar) window.updateTabsScrollbar();
+                // Обновляем кастомный скроллбар вкладок, если скроллили их
+                if (container.id === 'tabs-container' && window.updateTabsScrollbar) {
+                    window.updateTabsScrollbar();
+                }
                 return true;
             }
         }
-    } 
-    // 3. ВЕРТИКАЛЬНЫЙ СКРОЛЛ (Y)
-    else if (axis === 'y') {
+    } else if (axis === 'y') {
         if (mouseY > rect.bottom - scrollZone) {
             const intensity = Math.max(0, Math.min((mouseY - (rect.bottom - scrollZone)) / scrollZone, 1));
             speed = Math.pow(intensity, 2) * maxSpeed;
@@ -2649,9 +2780,7 @@ function handleEdgePanning() {
         if (speed !== 0) {
             const prevScroll = container.scrollTop;
             container.scrollTop += speed;
-            if (container.scrollTop !== prevScroll) {
-                return true;
-            }
+            return container.scrollTop !== prevScroll;
         }
     }
 
@@ -2666,83 +2795,164 @@ function renderPhysics() {
     const deltaX = mouseX - lastMouseX;
     lastMouseX = mouseX;
     
-    // Добавляем 'attachment' к лимиту наклона как у подзадач
     const maxRotation = (dragType === 'tab' || dragType === 'column') ? 3 : (dragType === 'vault-history' ? 5 : 12); 
     targetRotation = Math.max(-maxRotation, Math.min(maxRotation, deltaX * 0.4));
     currentRotation += (targetRotation - currentRotation) * 0.15;
 
-    const x = mouseX - parseFloat(dragClone.dataset.offsetX);
-    const y = mouseY - parseFloat(dragClone.dataset.offsetY);
+    let targetScale = (dragType === 'column' || dragType === 'tab') ? 1.02 : 1.04;
     
-    // Добавляем 'attachment' в список типов, которые чуть-чуть увеличиваются (scale 1.04)
-    const scale = (dragType === 'column' || dragType === 'tab') ? 1.02 : 1.04;
+    // По умолчанию цель - вернуть элемент точно в место, где мы его схватили
+    let targetOriginX = originalOffsetX;
+    let targetOriginY = originalOffsetY;
+
+    if (isHoveringTabs) {
+        targetScale = 0.20; 
+        dragClone.style.opacity = '0.7'; 
+        // 🔥 СТРОГО ПРАВЫЙ ВЕРХНИЙ УГОЛ: Меняем цель сжатия на правый верхний край элемента
+        targetOriginX = dragCloneWidth;
+        targetOriginY = 0;
+    } else {
+        dragClone.style.opacity = '1';
+    }
+
+    // Плавно интерполируем масштаб и смещение оси координат
+    currentDragScale += (targetScale - currentDragScale) * 0.15;
+    currentOriginX += (targetOriginX - currentOriginX) * 0.15;
+    currentOriginY += (targetOriginY - currentOriginY) * 0.15;
+
+    // 🔥 МАТРИЧНАЯ МАГИЯ (Double Translate):
+    // 1. Двигаем 0,0 элемента к курсору мыши.
+    // 2. Вращаем и масштабируем.
+    // 3. Откатываем назад на вычисленное смещение.
+    // Итог: курсор ВСЕГДА приклеен к нужной точке с точностью до пикселя при любом масштабе.
+    dragClone.style.transform = `translate3d(${mouseX}px, ${mouseY}px, 0) rotate(${currentRotation}deg) scale(${currentDragScale}) translate3d(${-currentOriginX}px, ${-currentOriginY}px, 0)`;
     
-    dragClone.style.transform = `translate3d(${x}px, ${y}px, 0) rotate(${currentRotation}deg) scale(${scale})`;
-    
-    if (didScroll) performHitTest();
+    if (didScroll || isHoveringTabs) performHitTest(); 
     rafId = requestAnimationFrame(renderPhysics);
 }
 
 async function endDrag() {
     isDragging = false;
     cancelAnimationFrame(rafId);
+    clearTimeout(tabSwitchTimeout);
+    document.querySelectorAll('.board-tab.is-blinking').forEach(el => el.classList.remove('is-blinking'));
     
     document.body.classList.remove(`is-dragging-${dragType}`);
     document.body.style.userSelect = '';
 
-    if (dragType === 'subtask') {
-            const currentSubtasks = Array.from(document.querySelectorAll('#subtasks-list .subtask-item:not(.subtask-drag-clone)'));
-            const orderedIds = currentSubtasks.map(s => parseInt(s.dataset.subtaskId));
-            
-            try {
-                // Используем тот же универсальный эндпоинт реордера задач
-                await saveTasksOrder(orderedIds);
-                // Обновляем доску на фоне, чтобы позиции синхронизировались в стейте
-                // refreshBoard(); 
-            } catch (error) {
-                console.error("Ошибка сохранения порядка подзадач", error);
+    // --- ЛОГИКА ОТМЕНЫ (Если бросили мимо доски или на вкладках) ---
+    let isInvalidDrop = false;
+    if (dragType === 'card' && !draggedElement.closest('.column')) isInvalidDrop = true;
+    if (dragType === 'column' && !draggedElement.closest('.board')) isInvalidDrop = true;
+
+    if (isInvalidDrop && (dragType === 'card' || dragType === 'column')) {
+        (async () => {
+            // 1. Если вкладка была изменена, мгновенно переключаем интерфейс обратно
+            if (state.activeWorkspaceId !== originalWorkspaceId) {
+                state.activeWorkspaceId = originalWorkspaceId;
+                document.querySelectorAll('.board-tab').forEach(t => t.classList.remove('active'));
+                const tTab = document.querySelector(`.board-tab[data-workspace-id="${originalWorkspaceId}"]`);
+                if (tTab) {
+                    tTab.classList.add('active');
+                    tTab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                }
+                updateSettings({ active_workspace_id: originalWorkspaceId }).catch(() => {});
+                
+                try {
+                    const columns = await fetchColumns(originalWorkspaceId);
+                    state.columns = columns.map(col => ({ ...col, collapsed: col.collapsed || false }));
+                    renderBoard(); // Перерисовываем родную доску со старыми колонками
+                    
+                    // Заново находим DOM-узел нашей карточки/колонки после перерисовки
+                    if (dragType === 'card') {
+                        draggedElement = document.querySelector(`.card[data-card-id="${draggedElement.dataset.cardId}"]`);
+                    } if (dragType === 'column') {
+                        const currentColumns = Array.from(document.querySelectorAll('#board .column:not(.column-drag-clone)'));
+                        const orderedIds = currentColumns.map(col => parseInt(col.dataset.columnId));
+                        const colId = parseInt(draggedElement.dataset.columnId);
+                        
+                        // 🔥 ГЛАВНЫЙ МОМЕНТ: Если ID активного воркспейса изменился, сохраняем привязку колонки
+                        if (state.activeWorkspaceId !== originalWorkspaceId) {
+                            try { 
+                                // Отправляем на бэкенд новый workspace_id. 
+                                // Схема ColumnUpdate уже поддерживает это поле.
+                                await updateColumn(colId, { workspace_id: state.activeWorkspaceId }); 
+                            } 
+                            catch (e) { console.error("Не удалось сменить вкладку для колонки:", e); }
+                        }
+
+                        state.columns.forEach(c => {
+                            const pos = orderedIds.indexOf(c.id);
+                            if (pos !== -1) c.position = pos;
+                        });
+                        state.columns.sort((a, b) => a.position - b.position);
+
+                        try { await saveColumnsOrder(orderedIds); } catch (e) {}
+                    }
+                    if (draggedElement) draggedElement.classList.add('is-ghost');
+                } catch (e) {}
             }
+
+            // 2. Ищем целевые координаты (куда лететь клону)
+            let targetRect = null;
+            if (draggedElement && document.body.contains(draggedElement)) {
+                targetRect = draggedElement.getBoundingClientRect();
+            }
+
+            // 3. Анимируем возвращение клона на родное место
+            if (dragClone) {
+                dragClone.style.transition = 'all 0.35s cubic-bezier(0.2, 0.8, 0.2, 1)';
+                if (targetRect) {
+                    // Раскручиваем Double Translate обратно в плоские координаты
+                    dragClone.style.transform = `translate3d(${targetRect.left}px, ${targetRect.top}px, 0) rotate(0deg) scale(1) translate3d(0px, 0px, 0)`;
+                    dragClone.style.opacity = '1';
+                } else {
+                    // Фолбэк: если место почему-то не найдено, просто улетаем вверх
+                    dragClone.style.transform = `translate3d(${mouseX}px, -100px, 0) scale(0) translate3d(0px, 0px, 0)`;
+                    dragClone.style.opacity = '0';
+                }
+            }
+
+            // 4. Очистка после приземления
+            setTimeout(() => {
+                if (dragClone) dragClone.remove();
+                dragClone = null;
+                if (draggedElement) draggedElement.classList.remove('is-ghost');
+                dragType = null;
+                draggedElement = null;
+            }, 350);
+        })();
+        return; // Завершаем функцию: в базу ничего не сохраняем
+    }
+
+    if (dragType === 'subtask') {
+        const currentSubtasks = Array.from(document.querySelectorAll('#subtasks-list .subtask-item:not(.subtask-drag-clone)'));
+        const orderedIds = currentSubtasks.map(s => parseInt(s.dataset.subtaskId));
+        try { await saveTasksOrder(orderedIds); } catch (e) { console.error(e); }
     }
 
     if (dragType === 'attachment') {
-        // Собираем новый порядок прямо из DOM элементов
         const currentAttachments = Array.from(document.querySelectorAll('#attachments-list .attachment-item:not(.attachment-drag-clone)'));
         const orderedPaths = currentAttachments.map(el => el.dataset.path);
-        
         const taskId = document.getElementById('task-modal').dataset.taskId;
-        
         try {
-            // Тихо отправляем новый массив в БД (Markdown не трогаем!)
             await updateTask(taskId, { attachments_order: orderedPaths });
-            
-            // Обновляем локальный стейт, чтобы при переоткрытии порядок сохранился
             for (let col of state.columns) {
                 let task = col.tasks.find(t => t.id == parseInt(taskId));
-                if (task) {
-                    task.attachments_order = orderedPaths;
-                    break;
-                }
+                if (task) { task.attachments_order = orderedPaths; break; }
             }
-        } catch (error) {
-            console.error("Ошибка сохранения порядка вложений", error);
-        }
+        } catch (e) { console.error(e); }
     }
 
     if (dragType === 'vault-history') {
-        // Собираем текущий порядок путей из DOM
         const currentItems = Array.from(document.querySelectorAll('#vault-history-list .vault-history-item:not(.vault-history-drag-clone)'));
         const orderedPaths = currentItems.map(el => el.dataset.path);
-        
         try {
-            // Тихо отправляем новый порядок в API
             await fetch(`${API_BASE}/system/vault/history/reorder`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ ordered_paths: orderedPaths })
             });
-        } catch (error) {
-            console.error("Ошибка сохранения порядка истории", error);
-        }
+        } catch (e) { console.error(e); }
     }
     
     if (dragClone) {
@@ -2751,8 +2961,6 @@ async function endDrag() {
     }
     
     if (draggedElement) {
-        // 1. Если это карточка, мгновенно перерисовываем её под правила новой колонки,
-        // пока она еще невидима (is-ghost). Это убирает визуальный баг "старых данных".
         if (dragType === 'card') {
             const newColumnEl = draggedElement.closest('.column');
             if (newColumnEl) {
@@ -2762,77 +2970,74 @@ async function endDrag() {
                 const targetCol = state.columns.find(c => c.id === newColumnId);
                 const sourceCol = state.columns.find(c => c.id === sourceColumnId);
 
-                if (targetCol && sourceCol && newColumnId !== sourceColumnId) {
-                    const foundTask = sourceCol.tasks.find(t => t.id === taskId);
-                    if (foundTask) {
-                        // Создаем временный объект для мгновенного рендера
-                        let optimisticTask = JSON.parse(JSON.stringify(foundTask));
-                        if (targetCol.mode === 'track_time') {
-                            optimisticTask.completed_at = null;
-                            optimisticTask.active_timer = { start_time: new Date().toISOString() };
-                        } else if (targetCol.mode === 'completion') {
-                            optimisticTask.completed_at = new Date().toISOString();
-                            optimisticTask.active_timer = null;
-                        } else {
-                            optimisticTask.completed_at = null;
-                            optimisticTask.active_timer = null;
-                        }
-                        updateCardAppearance(draggedElement, optimisticTask, targetCol.mode);
+                if (targetCol && newColumnId !== sourceColumnId) {
+                    let optimisticTask = null;
+                    if (sourceCol) {
+                        const foundTask = sourceCol.tasks.find(t => t.id === taskId);
+                        if (foundTask) optimisticTask = JSON.parse(JSON.stringify(foundTask));
                     }
+                    if (!optimisticTask) optimisticTask = { id: taskId, title: draggedElement.querySelector('.card-title').textContent };
+
+                    if (targetCol.mode === 'track_time') {
+                        optimisticTask.completed_at = null;
+                        optimisticTask.active_timer = { start_time: new Date().toISOString() };
+                    } else if (targetCol.mode === 'completion') {
+                        optimisticTask.completed_at = new Date().toISOString();
+                        optimisticTask.active_timer = null;
+                    } else {
+                        optimisticTask.completed_at = null;
+                        optimisticTask.active_timer = null;
+                    }
+                    updateCardAppearance(draggedElement, optimisticTask, targetCol.mode);
                 }
             }
         }
 
-        // 2. Временно убиваем все анимации на элементе для "тихого" возврата
         draggedElement.style.transition = 'none';
-        // 3. Снимаем класс призрака
         draggedElement.classList.remove('is-ghost');
-        // 4. Force Reflow
         void draggedElement.offsetWidth;
-        // 5. Возвращаем анимации
         draggedElement.style.transition = '';
 
         const droppedEl = draggedElement;
         const rect = droppedEl.getBoundingClientRect();
         
-        // Проверяем: если мышь РЕАЛЬНО находится над вкладкой в момент отпускания
         if (mouseX >= rect.left && mouseX <= rect.right && mouseY >= rect.top && mouseY <= rect.bottom) {
-            droppedEl.classList.add('is-dropped-hover'); // Вешаем фейковый ховер
-            
+            droppedEl.classList.add('is-dropped-hover');
             const cleanupHover = () => {
                 droppedEl.classList.remove('is-dropped-hover');
                 document.removeEventListener('pointermove', cleanupHover);
             };
-            
-            // Даем браузеру 50мс на применение настоящего CSS :hover,
-            // а затем по первому же движению мыши снимаем наш "костыль".
-            setTimeout(() => {
-                document.addEventListener('pointermove', cleanupHover);
-            }, 50);
+            setTimeout(() => document.addEventListener('pointermove', cleanupHover), 50);
         }
         
-        // --- Логика сохранения порядка ВКЛАДОК ---
         if (dragType === 'tab') {
             const currentTabs = Array.from(document.querySelectorAll('#tabs-container .board-tab'));
             const orderedIds = currentTabs.map(tab => parseInt(tab.dataset.workspaceId));
             state.workspaces.forEach(ws => { ws.position = orderedIds.indexOf(ws.id); });
             state.workspaces.sort((a, b) => a.position - b.position);
             if (window.updateTabsScrollbar) window.updateTabsScrollbar();
-            try { await saveWorkspacesOrder(orderedIds); } 
-            catch (error) { console.error("Ошибка сохранения", error); }
+            try { await saveWorkspacesOrder(orderedIds); } catch (e) {}
         }
 
-        // --- Логика сохранения порядка КОЛОНОК ---
         if (dragType === 'column') {
-            const currentColumns = Array.from(document.querySelectorAll('#board .column'));
+            const currentColumns = Array.from(document.querySelectorAll('#board .column:not(.column-drag-clone)'));
             const orderedIds = currentColumns.map(col => parseInt(col.dataset.columnId));
-            state.columns.forEach(col => { col.position = orderedIds.indexOf(col.id); });
+            const colId = parseInt(draggedElement.dataset.columnId);
+            
+            if (state.activeWorkspaceId !== originalWorkspaceId) {
+                try { await updateColumn(colId, { workspace_id: state.activeWorkspaceId }); } 
+                catch (e) { console.error(e); }
+            }
+
+            state.columns.forEach(c => {
+                const pos = orderedIds.indexOf(c.id);
+                if (pos !== -1) c.position = pos;
+            });
             state.columns.sort((a, b) => a.position - b.position);
-            try { await saveColumnsOrder(orderedIds); } 
-            catch (error) { console.error("Ошибка сохранения", error); }
+
+            try { await saveColumnsOrder(orderedIds); } catch (e) {}
         }
 
-        // --- Логика сохранения порядка КАРТОЧЕК ---
         if (dragType === 'card') {
             const newColumnEl = draggedElement.closest('.column');
             if (newColumnEl) {
@@ -2843,8 +3048,10 @@ async function endDrag() {
                 const currentCards = Array.from(newColumnEl.querySelectorAll('.card:not(.card-drag-clone)'));
                 const orderedIds = currentCards.map(c => parseInt(c.dataset.cardId));
 
-                const sourceColumnEl = document.querySelector(`.column[data-column-id="${sourceColumnId}"]`);
-                if (sourceColumnEl) updateColumnCount(sourceColumnEl);
+                if (state.activeWorkspaceId === originalWorkspaceId) {
+                    const sourceColumnEl = document.querySelector(`.column[data-column-id="${sourceColumnId}"]`);
+                    if (sourceColumnEl) updateColumnCount(sourceColumnEl);
+                }
                 updateColumnCount(newColumnEl);
 
                 try {
@@ -2852,23 +3059,22 @@ async function endDrag() {
                     const sourceCol = state.columns.find(c => c.id === sourceColumnId);
 
                     if (newColumnId !== sourceColumnId) {
-                        // --- 2. ЗАПРОС К API И ФИНАЛЬНОЕ ОБНОВЛЕНИЕ ---
                         const updatedTask = await moveTask(taskId, newColumnId);
-                        
                         let taskForUI = updatedTask;
+                        
                         if (sourceCol && targetCol) {
                             const taskIndex = sourceCol.tasks.findIndex(t => t.id == taskId);
                             if (taskIndex !== -1) {
-                                const[movedTask] = sourceCol.tasks.splice(taskIndex, 1);
+                                const [movedTask] = sourceCol.tasks.splice(taskIndex, 1);
                                 movedTask.column_id = newColumnId; 
                                 movedTask.completed_at = updatedTask.completed_at;
                                 movedTask.active_timer = updatedTask.active_timer; 
                                 movedTask.total_time_spent = updatedTask.total_time_spent;
                                 targetCol.tasks.push(movedTask);
-                                
-                                // Берем объект из стейта (с сохраненными подзадачами)
                                 taskForUI = movedTask;
                             }
+                        } else if (!sourceCol && targetCol) {
+                            targetCol.tasks.push(updatedTask);
                         }
                         
                         updateCardAppearance(draggedElement, taskForUI, targetCol.mode);
@@ -3404,6 +3610,15 @@ async function loadTaskIntoModal(taskId, pushToStack = true, highlightQuery = nu
         const descWrapper = document.querySelector('.description-wrapper');
         if (descWrapper) descWrapper.style.height = '';
 
+        // 🚀 Сбрасываем позиции внутренних скроллов, чтобы новая карточка открывалась сверху,
+        // а не на месте, где скроллилась прошлая.
+        const bodyEl = document.querySelector('.task-detail-body');
+        if (bodyEl) bodyEl.scrollTop = 0;
+        const renderDivEl = document.getElementById('task-desc-render');
+        if (renderDivEl) renderDivEl.scrollTop = 0;
+        const inputAreaEl = document.getElementById('task-desc-input');
+        if (inputAreaEl) inputAreaEl.scrollTop = 0;
+
         // 1. Хлебные крошки
         if (pushToStack) {
             // --- ПОЛНОЕ ВОССТАНОВЛЕНИЕ ИСТОРИИ (Рекурсивный подъем до корня) ---
@@ -3643,8 +3858,11 @@ function renderBreadcrumbs() {
 }
 
 function updateTimers() {
-    // 1. Обновляем все таймеры на самой доске
+    // 1. Обновляем все таймеры на самой доске (в существующих колонках)
     document.querySelectorAll('.card-timer').forEach(el => {
+        // Пропускаем таймеры внутри летящего клона (обновим их отдельно ниже)
+        if (el.closest('.card-drag-clone')) return;
+
         const taskId = el.dataset.taskId;
         for (const col of state.columns) {
             const task = col.tasks.find(t => t.id == taskId);
@@ -3655,18 +3873,43 @@ function updateTimers() {
         }
     });
 
-    // 2. Обновляем таймер внутри модалки (если она открыта)
+    // 🔥 2. ОБНОВЛЯЕМ ТАЙМЕР В ЛЕТЯЩЕЙ КАРТОЧКЕ (Drag Clone)
+    // Это гарантирует, что время тикает при переходе между вкладками
+    if (isDragging && dragType === 'card' && draggedTaskObject?.active_timer) {
+        const newTime = formatTime(draggedTaskObject);
+        
+        // Обновляем текст в клоне, который видит пользователь
+        if (dragClone) {
+            const timerEl = dragClone.querySelector('.card-timer');
+            if (timerEl) timerEl.textContent = newTime;
+        }
+        // Обновляем текст в "призраке", который лежит на доске (если он есть)
+        if (draggedElement) {
+            const timerEl = draggedElement.querySelector('.card-timer');
+            if (timerEl) timerEl.textContent = newTime;
+        }
+    }
+
+    // 3. Обновляем таймер внутри модалки (если она открыта)
     const modalTimerPill = document.getElementById('modal-task-timer');
     if (modalTimerPill && modalTimerPill.dataset.taskId && modalTimerPill.style.display !== 'none') {
         const taskId = modalTimerPill.dataset.taskId;
+        
+        // Сначала ищем в текущей доске
+        let task = null;
         for (const col of state.columns) {
-            const task = col.tasks.find(t => t.id == taskId);
-            if (task) {
-                if (task.active_timer) {
-                    modalTimerPill.textContent = formatTime(task);
-                }
-                break;
-            }
+            task = col.tasks.find(t => t.id == taskId);
+            if (task) break;
+        }
+        
+        // Если не нашли на доске (например, карточка из другой вкладки), 
+        // проверяем, не её ли мы сейчас тащим
+        if (!task && draggedTaskObject && draggedTaskObject.id == taskId) {
+            task = draggedTaskObject;
+        }
+
+        if (task && task.active_timer) {
+            modalTimerPill.textContent = formatTime(task);
         }
     }
 }
@@ -3798,7 +4041,11 @@ function initTabsScrollbar() {
         
         // Вычисляем позицию
         const maxScrollLeft = container.scrollWidth - container.clientWidth;
-        const scrollPercent = container.scrollLeft / maxScrollLeft;
+        let scrollPercent = container.scrollLeft / maxScrollLeft;
+        
+        // ФИКС ИНЕРЦИИ: Защита от вылета при резиновом скролле macOS
+        scrollPercent = Math.max(0, Math.min(1, scrollPercent));
+        
         const maxThumbLeft = container.clientWidth - thumbWidth;
         
         thumb.style.transform = `translateX(${scrollPercent * maxThumbLeft}px)`;
@@ -4130,9 +4377,10 @@ async function onAddSubtask() {
         const scrollParent = formItem.closest('.task-detail-body');
         const currentScroll = scrollParent ? scrollParent.scrollTop : 0;
 
-        // Плавно пересчитываем высоту, не схлопывая элемент в 0
-        input.style.height = 'auto'; 
-        input.style.height = input.scrollHeight + 'px';
+        // Идеальный расчет высоты: сбрасываем до 1px, замеряем с учетом бордеров
+        const offset = input.offsetHeight - input.clientHeight;
+        input.style.height = '1px'; 
+        input.style.height = (input.scrollHeight + offset) + 'px';
         
         // Восстанавливаем скролл, чтобы интерфейс не прыгал
         if (scrollParent) scrollParent.scrollTop = currentScroll;
@@ -4564,7 +4812,7 @@ function initTaskDescriptionLogic() {
                 }
             }
             
-            exitEditingUI(newDesc, extracted);
+        exitEditingUI(newDesc, extracted);
         } catch (err) {
             console.error("Critical sync error:", err);
             exitEditingUI(newDesc, null);
@@ -4600,8 +4848,6 @@ function initTaskDescriptionLogic() {
         inputArea.style.display = 'none';
         renderDiv.style.display = 'block';
     };
-
-    descWrapper.addEventListener('mousedown', (e) => e.stopPropagation());
 
     renderDiv.addEventListener('mousedown', (e) => {
         if (e.target.tagName === 'A') return;
@@ -5706,210 +5952,11 @@ function initGlobalSearch() {
 // Запускаем инициализацию (можно поместить вызов внутрь главной IIFE async функции внизу файла)
 initTaskDescriptionLogic();
 
-function initUniversalScrollbars() {
-    const SCROLL_SELECTOR = '.card-list, .markdown-body, .description-input, .task-detail-body, #subtasks-list, #attachments-list, #vault-history-list, .search-dropdown, .board-container, pre';
-
-    const trackY = document.createElement('div');
-    trackY.className = 'doe-floating-scrollbar track-y';
-    const thumbY = document.createElement('div');
-    thumbY.className = 'doe-floating-thumb';
-    trackY.appendChild(thumbY);
-
-    const trackX = document.createElement('div');
-    trackX.className = 'doe-floating-scrollbar track-x';
-    const thumbX = document.createElement('div');
-    thumbX.className = 'doe-floating-thumb';
-    trackX.appendChild(thumbX);
-
-    document.body.appendChild(trackY);
-    document.body.appendChild(trackX);
-
-    let activeElX = null;
-    let activeElY = null;
-    let hideTimeoutX;
-    let hideTimeoutY;
-    let isDraggingX = false;
-    let isDraggingY = false;
-
-    function updateThumbX() {
-        if (!activeElX) return;
-        const rect = activeElX.getBoundingClientRect();
-        const scrollRatio = activeElX.clientWidth / activeElX.scrollWidth;
-        
-        if (scrollRatio >= 1 || activeElX.scrollWidth <= 0) {
-            trackX.classList.remove('visible');
-            return;
-        }
-
-        trackX.style.left = `${rect.left + 4}px`; 
-        trackX.style.top = `${rect.bottom - 8}px`; 
-        trackX.style.width = `${rect.width - 8}px`;
-        trackX.style.height = `6px`;
-
-        const thumbWidth = Math.max(rect.width * scrollRatio, 40);
-        thumbX.style.width = `${thumbWidth}px`;
-        thumbX.style.height = `6px`;
-
-        const maxScrollLeft = activeElX.scrollWidth - activeElX.clientWidth;
-        const scrollPercent = activeElX.scrollLeft / maxScrollLeft;
-        const maxThumbLeft = (rect.width - 8) - thumbWidth;
-
-        thumbX.style.transform = `translateX(${scrollPercent * maxThumbLeft}px)`;
-    }
-
-    function updateThumbY() {
-        if (!activeElY) return;
-        const rect = activeElY.getBoundingClientRect();
-        const scrollRatio = activeElY.clientHeight / activeElY.scrollHeight;
-        
-        if (scrollRatio >= 1 || activeElY.scrollHeight <= 0) {
-            trackY.classList.remove('visible');
-            return;
-        }
-
-        trackY.style.left = `${rect.right - 8}px`; 
-        trackY.style.top = `${rect.top + 4}px`;
-        trackY.style.height = `${rect.height - 8}px`;
-        trackY.style.width = `6px`;
-
-        const thumbHeight = Math.max(rect.height * scrollRatio, 40);
-        thumbY.style.height = `${thumbHeight}px`;
-        thumbY.style.width = `6px`;
-
-        const maxScrollTop = activeElY.scrollHeight - activeElY.clientHeight;
-        const scrollPercent = activeElY.scrollTop / maxScrollTop;
-        const maxThumbTop = (rect.height - 8) - thumbHeight;
-
-        thumbY.style.transform = `translateY(${scrollPercent * maxThumbTop}px)`;
-    }
-
-    function showX(el) {
-        if (el) activeElX = el;
-        if (!activeElX) return;
-        updateThumbX();
-        if (activeElX.clientWidth < activeElX.scrollWidth) trackX.classList.add('visible');
-        clearTimeout(hideTimeoutX);
-        if (!isDraggingX && !trackX.matches(':hover')) {
-            hideTimeoutX = setTimeout(() => trackX.classList.remove('visible'), 800);
-        }
-    }
-
-    function showY(el) {
-        if (el) activeElY = el;
-        if (!activeElY) return;
-        updateThumbY();
-        if (activeElY.clientHeight < activeElY.scrollHeight) trackY.classList.add('visible');
-        clearTimeout(hideTimeoutY);
-        if (!isDraggingY && !trackY.matches(':hover')) {
-            hideTimeoutY = setTimeout(() => trackY.classList.remove('visible'), 800);
-        }
-    }
-
-    // Появляется ТОЛЬКО при реальном скролле (колесо/тачпад)
-    document.addEventListener('scroll', (e) => {
-        if (!e.target || !e.target.matches) return;
-        
-        if (activeElX) updateThumbX();
-        if (activeElY) updateThumbY();
-
-        if (e.target.matches(SCROLL_SELECTOR)) {
-            if (e.target.classList.contains('board-container')) {
-                showX(e.target);
-            } else {
-                showY(e.target);
-                if (e.target.tagName === 'PRE' || e.target.scrollWidth > e.target.clientWidth) {
-                    showX(e.target);
-                }
-            }
-        }
-    }, true);
-
-    // Удерживаем видимость, если мышь наведена на сам скроллбар (чтобы можно было схватить)
-    trackX.addEventListener('mouseenter', () => clearTimeout(hideTimeoutX));
-    trackX.addEventListener('mouseleave', () => {
-        if (!isDraggingX) hideTimeoutX = setTimeout(() => trackX.classList.remove('visible'), 400);
-    });
-
-    trackY.addEventListener('mouseenter', () => clearTimeout(hideTimeoutY));
-    trackY.addEventListener('mouseleave', () => {
-        if (!isDraggingY) hideTimeoutY = setTimeout(() => trackY.classList.remove('visible'), 400);
-    });
-
-    window.addEventListener('resize', () => {
-        updateThumbX();
-        updateThumbY();
-    });
-
-    // --- ДРАГ-Н-ДРОП САМОГО ПОЛЗУНКА ---
-    let startMouseY = 0, startScrollTop = 0;
-    thumbY.addEventListener('mousedown', (e) => {
-        isDraggingY = true;
-        startMouseY = e.clientY;
-        startScrollTop = activeElY.scrollTop;
-        thumbY.classList.add('is-dragging');
-        document.body.style.userSelect = 'none';
-        e.preventDefault(); e.stopPropagation();
-    });
-
-    let startMouseX = 0, startScrollLeft = 0;
-    thumbX.addEventListener('mousedown', (e) => {
-        isDraggingX = true;
-        startMouseX = e.clientX;
-        startScrollLeft = activeElX.scrollLeft;
-        thumbX.classList.add('is-dragging');
-        document.body.style.userSelect = 'none';
-        e.preventDefault(); e.stopPropagation();
-    });
-
-    window.addEventListener('mousemove', (e) => {
-        if (isDraggingY && activeElY) {
-            const deltaY = e.clientY - startMouseY;
-            const rect = activeElY.getBoundingClientRect();
-            const scrollRatio = activeElY.clientHeight / activeElY.scrollHeight;
-            const thumbHeight = Math.max(rect.height * scrollRatio, 40);
-            const maxThumbTop = (rect.height - 8) - thumbHeight;
-            const maxScrollTop = activeElY.scrollHeight - activeElY.clientHeight;
-            
-            if (maxThumbTop > 0) {
-                activeElY.scrollTop = startScrollTop + deltaY * (maxScrollTop / maxThumbTop);
-            }
-        }
-        if (isDraggingX && activeElX) {
-            const deltaX = e.clientX - startMouseX;
-            const rect = activeElX.getBoundingClientRect();
-            const scrollRatio = activeElX.clientWidth / activeElX.scrollWidth;
-            const thumbWidth = Math.max(rect.width * scrollRatio, 40);
-            const maxThumbLeft = (rect.width - 8) - thumbWidth;
-            const maxScrollLeft = activeElX.scrollWidth - activeElX.clientWidth;
-            
-            if (maxThumbLeft > 0) {
-                activeElX.scrollLeft = startScrollLeft + deltaX * (maxScrollLeft / maxThumbLeft);
-            }
-        }
-    });
-
-    window.addEventListener('mouseup', () => {
-        if (isDraggingY) {
-            isDraggingY = false;
-            thumbY.classList.remove('is-dragging');
-            document.body.style.userSelect = '';
-            hideTimeoutY = setTimeout(() => trackY.classList.remove('visible'), 800);
-        }
-        if (isDraggingX) {
-            isDraggingX = false;
-            thumbX.classList.remove('is-dragging');
-            document.body.style.userSelect = '';
-            hideTimeoutX = setTimeout(() => trackX.classList.remove('visible'), 800);
-        }
-    });
-}
-
 (async () => {
     initTooltip();
     initTabsScrollbar();
     initTaskModalDragAndResize();
     initGlobalSearch();
-    initUniversalScrollbars(); // 🚀 ФИКС: Включаем глобальные плавающие скроллбары
 
     // Проверяем, в каком режиме открыто текущее окно (App или Vault Selector)
     const urlParams = new URLSearchParams(window.location.search);

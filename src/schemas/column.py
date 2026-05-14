@@ -31,6 +31,7 @@ class ColumnUpdate(BaseModel):
     mode: Optional[ColumnMode] = None
     position: Optional[float] = None
     collapsed: Optional[bool] = None
+    workspace_id: Optional[int] = None
 
 
 class ColumnResponse(ColumnBase):

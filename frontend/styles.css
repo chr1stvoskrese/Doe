@@ -29,9 +29,7 @@
 }
 
 /* ==========================================
-   ГЛОБАЛЬНЫЕ СТИЛИ СКРОЛЛБАРА (ВЕЗДЕ)
-   WKWebView (macOS) FIX: используем переменные + JS-имитацию hover,
-   так как :hover на ::-webkit-scrollbar-thumb в WKWebView не работает.
+   ГЛОБАЛЬНЫЕ СТИЛИ СКРОЛЛБАРА (macOS Native WebKit Fix)
    ========================================== */
 
 :root {
@@ -44,70 +42,76 @@
     --scrollbar-thumb-hover: rgba(137, 160, 133, 0.55);
 }
 
-.card-list,
-.markdown-body,
-.description-input,
-.task-detail-body,
-#subtasks-list,
-#attachments-list,
-#vault-history-list,
-.search-dropdown,
-.board-container,
-.tabs-container {
-    overflow: auto; /* Стандартное поведение, WebKit сам прекрасно справится */
+#subtasks-list, #attachments-list {
+    overflow: visible !important;
 }
 
-/* 🚀 УБИВАЕМ ВСЕ СИСТЕМНЫЕ СКРОЛЛБАРЫ ВО ВСЕХ БРАУЗЕРАХ НАСМЕРТЬ */
+.card-list, .task-detail-body, .markdown-body, .description-input {
+    contain: content; 
+}
+
+/* 1. ПОЛНОСТЬЮ СКРЫВАЕМ скроллбары для структурных элементов (Доска, списки) */
+html::-webkit-scrollbar, 
+body::-webkit-scrollbar,
 .card-list::-webkit-scrollbar,
-.markdown-body::-webkit-scrollbar,
-.description-input::-webkit-scrollbar,
-.task-detail-body::-webkit-scrollbar,
-#subtasks-list::-webkit-scrollbar,
-#attachments-list::-webkit-scrollbar,
-#vault-history-list::-webkit-scrollbar,
 .search-dropdown::-webkit-scrollbar,
 .board-container::-webkit-scrollbar,
-pre::-webkit-scrollbar {
+.tabs-container::-webkit-scrollbar {
     display: none !important;
 }
 
-.doe-floating-scrollbar {
-    position: fixed;
+/* 2. НАЗНАЧАЕМ КАСТОМНЫЕ скроллбары для контента (Модалка, Описание, Код, Инпуты). 
+   WebKit отключит системные скроллы macOS и применит эти. */
+.task-detail-body::-webkit-scrollbar,
+.markdown-body::-webkit-scrollbar,
+.description-input::-webkit-scrollbar,
+#vault-history-list::-webkit-scrollbar,
+pre::-webkit-scrollbar,
+.column-input::-webkit-scrollbar,
+.column-title-input::-webkit-scrollbar,
+.card-input::-webkit-scrollbar,
+.subtask-inline-input::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.task-detail-body::-webkit-scrollbar-track,
+.markdown-body::-webkit-scrollbar-track,
+.description-input::-webkit-scrollbar-track,
+#vault-history-list::-webkit-scrollbar-track,
+pre::-webkit-scrollbar-track,
+.column-input::-webkit-scrollbar-track,
+.column-title-input::-webkit-scrollbar-track,
+.card-input::-webkit-scrollbar-track,
+.subtask-inline-input::-webkit-scrollbar-track {
     background: transparent;
     border-radius: 4px;
-    pointer-events: none; /* Пропускаем клики сквозь прозрачную зону */
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.3s ease, visibility 0.3s ease;
-    z-index: 9999999; /* Поверх ВСЕГО, включая модалки */
 }
 
-.doe-floating-scrollbar.visible {
-    opacity: 1;
-    visibility: visible;
-    pointer-events: auto; /* Включаем взаимодействие, когда скроллбар виден */
-}
-
-.doe-floating-thumb {
-    position: absolute;
-    top: 0; 
-    left: 0;
+.task-detail-body::-webkit-scrollbar-thumb,
+.markdown-body::-webkit-scrollbar-thumb,
+.description-input::-webkit-scrollbar-thumb,
+#vault-history-list::-webkit-scrollbar-thumb,
+pre::-webkit-scrollbar-thumb,
+.column-input::-webkit-scrollbar-thumb,
+.column-title-input::-webkit-scrollbar-thumb,
+.card-input::-webkit-scrollbar-thumb,
+.subtask-inline-input::-webkit-scrollbar-thumb {
     background: var(--scrollbar-thumb);
     border-radius: 4px;
-    cursor: pointer;
-    transition: background 0.2s ease;
-    will-change: transform;
 }
 
-.doe-floating-thumb:hover,
-.doe-floating-thumb.is-dragging {
+/* Псевдокласс :hover для скроллбара работает в WKWebView, если скроллбар задан жестко */
+.task-detail-body::-webkit-scrollbar-thumb:hover,
+.markdown-body::-webkit-scrollbar-thumb:hover,
+.description-input::-webkit-scrollbar-thumb:hover,
+#vault-history-list::-webkit-scrollbar-thumb:hover,
+pre::-webkit-scrollbar-thumb:hover,
+.column-input::-webkit-scrollbar-thumb:hover,
+.column-title-input::-webkit-scrollbar-thumb:hover,
+.card-input::-webkit-scrollbar-thumb:hover,
+.subtask-inline-input::-webkit-scrollbar-thumb:hover {
     background: var(--scrollbar-thumb-hover);
-}
-
-/* Окно (html/body) всё ещё должно быть железно без скроллов */
-html::-webkit-scrollbar, 
-body::-webkit-scrollbar {
-    display: none !important;
 }
 
 /* Блокируем ВСЕ анимации и переходы на момент начальной загрузки приложения */
@@ -278,6 +282,7 @@ body {
 }
 
 /* РАЗРЕШАЕМ ВЫДЕЛЕНИЕ В ОПИСАНИИ И ИНПУТАХ */
+.description-wrapper, /* <--- ФИКС РЕСАЙЗА: Разрешаем выделение самому контейнеру */
 .markdown-body, 
 .markdown-body *, 
 .description-input, 
@@ -2532,9 +2537,11 @@ body[class*="is-dragging-"] .board-tab.active:not(.is-ghost):not(.tab-drag-clone
 
 /* 2. Блокировка карточек (Cards) и подзадач при Drag & Drop */ 
 body.is-dragging-card .card:not(.card-drag-clone),
-body.is-dragging-subtask .subtask-item:not(.subtask-drag-clone) { 
+body.is-dragging-subtask .subtask-item:not(.subtask-drag-clone),
+body.is-dragging-attachment .attachment-item:not(.attachment-drag-clone) { 
     transform: none !important; 
     box-shadow: var(--shadow-card) !important; 
+    transition: none !important;
 }
 
 /* 3. Блокировка свёрнутых колонок (Collapsed Columns) */
@@ -2834,20 +2841,24 @@ body[class*="is-dragging-"] .board-tab:not(.active) {
    МОДАЛЬНОЕ ОКНО КАРТОЧКИ И MARKDOWN
    ========================================== */
 
-/* Фиксированная геометрия для окна карточки */
 .task-detail-card {
     width: 680px;               
     height: 75vh;               
-    max-height: 92vh;           /* Позволяем растягивать почти на весь экран */
-    max-width: 95vw;            /* Защита от вылета по ширине */
-    min-height: 400px;          /* Текущий минимум */
-    min-width: 400px;           /* Добавляем минимальную ширину */
+    max-height: 92vh;
+    max-width: 95vw;
+    min-height: 400px;
+    min-width: 400px;
     display: flex;
     flex-direction: column;
     
     /* 🚀 МАГИЯ РЕСАЙЗА */
-    resize: both;               /* Включает нативный ползунок в правом нижнем углу */
-    overflow: hidden;           /* Обязательно для работы resize */
+    resize: both;
+    overflow: hidden;
+    /* Отсекаем любой overscroll-импульс на уровне самой модалки —
+       страховка от WKWebView, который иногда "просачивает" инерцию
+       к .modal-overlay и визуально выезжает за границы карточки. */
+    overscroll-behavior: contain;
+    contain: paint;
 }
 
 /* 🚀 МАГИЯ ДРАГА (Курсоры) для всего окна модалки */
@@ -2870,16 +2881,6 @@ body[class*="is-dragging-"] .board-tab:not(.active) {
     cursor: grab;
 }
 
-/* Обертка получает автоматический курсор, чтобы заработала иконка ресайза */
-.description-wrapper {
-    cursor: auto;
-}
-
-/* А текстовый курсор оставляем только самому тексту и инпуту */
-.markdown-body, .description-input {
-    cursor: text;
-}
-
 .task-detail-card .modal-header {
     user-select: none;
     align-items: flex-start; /* Чтобы крестик оставался сверху при многострочном тексте */
@@ -2891,110 +2892,24 @@ body.is-dragging-modal * {
     cursor: grabbing !important;
 }
 
-/* Тело модалки, которое не тянется само, а отдает место потомкам */
 .task-detail-body {
     flex: 1;
     display: flex;
     flex-direction: column;
-    padding: 16px !important; /* Отступ 16px, описание будет на одной линии с кнопками и заголовком */
+    padding: 16px !important;
     overflow-y: auto;
     overflow-x: hidden;
+    overscroll-behavior: contain;
+    /* ФИКС: Изолируем контекст наложения, чтобы внутренние скроллы не "дергали" родителя */
+    contain: content; 
+    scrollbar-gutter: stable;
+    -webkit-overflow-scrolling: touch; /* Включаем плавную нативную инерцию для Mac */
 }
 
-.description-wrapper {
-    flex: none;                 
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    height: 300px;              
-    min-height: 150px;          
-    max-height: 80vh;           
-    resize: vertical;           
-    overflow: hidden;           
-    border: 1px solid var(--border-light);
-    border-radius: 10px;
-    padding-bottom: 14px;       
-    /* Убрали кривой padding-right: 4px */
-    background: var(--brand-pale) !important;
-    transition: border-color 0.2s;
-    margin-bottom: 16px;        
-}
-
-/* Меняем цвет рамки, когда внутри активно поле ввода */
-.description-wrapper:has(.description-input:focus) {
-    border-color: rgba(74, 90, 72, 0.3); /* Цвет --brand-pine с прозрачностью */
-}
-
-[data-theme="dark"] .description-wrapper {
-    background: rgba(137, 160, 133, 0.12) !important; /* Цвет для темной темы */
-}
-[data-theme="dark"] .description-wrapper:has(.description-input:focus) {
-    border-color: rgba(137, 160, 133, 0.4);
-}
-
-.markdown-body, 
-.description-input {
-    width: 100%;
-    height: 100% !important;   
-    overflow-y: auto;          /* Возвращаем стандартное поведение скролла */
-    overflow-x: hidden;        
-    overflow-wrap: break-word; 
-    word-wrap: break-word;     
-    word-break: break-word;    
-    padding: 12px 12px 0 12px !important; /* Строгая симметрия внутри поля ввода */
-    font-size: 15px;
-    background: transparent;
-    border: none;
-    outline: none;
-    box-sizing: border-box;
-}
-
-/* Возвращаем инпуту его специфичные настройки шрифта */
-.description-input {
-    display: none;
-    font-family: var(--font-main);
-    line-height: 1.2 !important;
-    color: var(--text-primary);
-    resize: none;              
-    white-space: pre-wrap;     /* ДОБАВЛЕНО: Сохраняем нажатия Enter, но ломаем длинные строки */
-}
-
-/* 1. Цвет выделения в режиме редактирования (textarea) */
-.description-input::selection {
-    background: #C3C6BC;
-    color: var(--text-primary);
-}
-
-/* 2. Цвет выделения в режиме чтения (Markdown), чтобы контент не "синел" при копировании */
-.markdown-body::selection,
-.markdown-body *::selection {
-    background: #C3C6BC;
-    color: var(--text-primary);
-}
-
-/* 3. Поддержка Тёмной темы (Spruce Stone Selection) */
-[data-theme="dark"] .description-input::selection,
-[data-theme="dark"] .markdown-body::selection,
-[data-theme="dark"] .markdown-body *::selection {
-    background: #5C635A !important;
-    color: #FFFFFF !important;
-}
-
-.description-input::placeholder {
-    color: var(--text-secondary);
-    opacity: 0.5;
-    font-family: var(--font-main); /* Плейсхолдер обычным шрифтом */
-}
-
-/* Режим чтения (Markdown) */
-.markdown-body {
-    flex: 1;
-    width: 100%;
-    overflow-y: auto;           
-    padding: 12px; 
-    font-size: 15px;
-    line-height: 1.2; 
-    user-select: text !important;
+/* Аналогично для описания */
+.markdown-body, .description-input {
+    contain: content;
+    -webkit-overflow-scrolling: touch;
 }
 
 /* ДОБАВЛЕНО: Принудительный перенос внутри всех тегов текста */
@@ -3012,21 +2927,6 @@ body.is-dragging-modal * {
     white-space: pre !important;
     word-break: normal !important;
     overflow-wrap: normal !important;
-}
-
-/* ЦВЕТ ВЫДЕЛЕНИЯ (Selection) для всего блока описания */
-.description-input::selection,
-.markdown-body::selection,
-.markdown-body *::selection {
-    background: #C3C6BC;
-    color: var(--text-primary);
-}
-
-[data-theme="dark"] .description-input::selection,
-[data-theme="dark"] .markdown-body::selection,
-[data-theme="dark"] .markdown-body *::selection {
-    background: #41493E;
-    color: var(--text-primary);
 }
 
 /* 4. Пройдемся по остальным инпутам, где был разброс */
@@ -3174,8 +3074,13 @@ body.is-dragging-modal * {
   background: var(--brand-pale) !important;
   border: 1px solid var(--border-light) !important;
   box-shadow: none !important;
-  overflow: auto !important;
-  isolation: isolate;
+  
+  /* 🔥 ФИКС ЧЕРТОВЩИНЫ СО СКРОЛЛОМ: 
+     Отключаем вертикальный скролл внутри pre и убираем изоляцию.
+     Это исправляет баг WebKit, когда фон отрывается от текста при скролле. */
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  transform: translateZ(0); 
 }
 
 [data-theme="dark"] .markdown-body pre {
@@ -3276,6 +3181,106 @@ body.is-dragging-modal * {
     resize: none !important; /* Отключаем штатный ресайз */
 }
 
+/* ==========================================
+   ОПИСАНИЕ КАРТОЧКИ — СКРОЛЛ С НУЛЯ
+   ========================================== */
+
+.description-wrapper {
+    flex: none; /* <-- ВОЗВРАЩЕНО: Запрещает Flexbox-контейнеру подавлять ручной ресайз */
+    position: relative; /* <-- ВОЗВРАЩЕНО: Фиксирует контекст для вложенных элементов */
+    display: flex;
+    flex-direction: column;
+    height: 300px;
+    min-height: 150px;
+    max-height: 80vh;
+    resize: vertical;
+    overflow: hidden; /* <--- ФИКС РЕСАЙЗА: hidden включает ресайз, но не перекрывает уголок скроллбаром */
+    border: 1px solid var(--border-light);
+    border-radius: 10px;
+    background: var(--brand-pale) !important;
+    transition: border-color 0.2s;
+    margin-bottom: 16px;
+    cursor: auto;
+    padding-bottom: 16px; /* Физически защищаем уголок от перекрытия текстом и скроллом */
+}
+
+/* 🚀 ФИКС РЕСАЙЗА: Явно стилизуем нативный уголок изменения размера.
+   Это гарантирует его кликабельность и создает эстетичный "Apple-like" зацеп. */
+.description-wrapper::-webkit-resizer {
+    background-color: transparent;
+    background-image: url('data:image/svg+xml;utf8,<svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 2L2 10M10 6L6 10" stroke="%23828A80" stroke-width="1.5" stroke-linecap="round"/></svg>');
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+[data-theme="dark"] .description-wrapper::-webkit-resizer {
+    background-image: url('data:image/svg+xml;utf8,<svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 2L2 10M10 6L6 10" stroke="%238B9088" stroke-width="1.5" stroke-linecap="round"/></svg>');
+}
+
+.description-wrapper:has(.description-input:focus) {
+    border-color: rgba(74, 90, 72, 0.3);
+}
+
+[data-theme="dark"] .description-wrapper {
+    background: rgba(137, 160, 133, 0.12) !important;
+}
+[data-theme="dark"] .description-wrapper:has(.description-input:focus) {
+    border-color: rgba(137, 160, 133, 0.4);
+}
+
+.markdown-body,
+.description-input {
+    position: relative; /* Убираем absolute, браузер корректно считает hit-box */
+    flex: 1;            /* Растягиваем на всю доступную высоту контейнера */
+    width: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    word-break: break-word;
+    padding: 12px;
+    font-size: 15px;
+    background: transparent;
+    border: none;
+    outline: none;
+    box-sizing: border-box;
+    cursor: text;
+}
+
+.markdown-body {
+    line-height: 1.2;
+    user-select: text !important;
+}
+
+.description-input {
+    display: none;
+    font-family: var(--font-main);
+    line-height: 1.2;
+    color: var(--text-primary);
+    resize: none;
+    white-space: pre-wrap;
+}
+
+.description-input::placeholder {
+    color: var(--text-secondary);
+    opacity: 0.5;
+    font-family: var(--font-main);
+}
+
+/* Выделение текста внутри описания (одно правило вместо семи) */
+.markdown-body::selection,
+.markdown-body *::selection,
+.description-input::selection {
+    background: #C3C6BC;
+    color: var(--text-primary);
+}
+[data-theme="dark"] .markdown-body::selection,
+[data-theme="dark"] .markdown-body *::selection,
+[data-theme="dark"] .description-input::selection {
+    background: #5C635A !important;
+    color: #FFFFFF !important;
+}
+
 /* Секции контента (Вложения и Подзадачи) */
 .attachments-section,
 .subtasks-section {
@@ -3346,23 +3351,32 @@ body.is-dragging-modal * {
     display: flex;
     flex-direction: column;
     gap: 4px;
+    
+    /* 🔥 ФИКС ТЕНЕЙ (Как в истории хранилищ):
+       Глобальный overflow: auto режет тени. Делаем контейнер видимым 
+       и добавляем зону для отрисовки тени (padding), компенсируя сдвиг (margin). */
+    overflow: visible !important;
+    padding: 8px;
+    margin: -8px;
 }
 
 .subtask-item {
     display: flex;
-    align-items: center; /* БЫЛО: flex-start */
+    align-items: center;
     gap: 12px;
     padding: 10px 12px;
     border-radius: 12px;
+    
+    /* Возвращаем родной фон и легкую тень карточки */
     background: var(--surface-card);
     border: 1px solid var(--border-light);
     margin-bottom: 4px;
     box-shadow: var(--shadow-card);
+    
     transition: transform var(--transition-apple), 
                 box-shadow var(--transition-apple), 
                 background-color var(--transition-apple),
                 border-color var(--transition-apple);
-    will-change: transform, box-shadow;
     cursor: grab;
 }
 
@@ -3398,8 +3412,8 @@ body.is-dragging-modal * {
 }
 
 .subtask-item.is-done { 
-    background: #F7F6F3; /* Точно как .card.is-completed */
-    box-shadow: var(--shadow-card); /* Оставляем легкую тень как у карточек */
+    background: #F7F6F3; 
+    box-shadow: none;
 }
 
 .subtask-item.is-done:hover { 
@@ -3409,8 +3423,6 @@ body.is-dragging-modal * {
 
 /* 5. Темная тема (Dark Mode Support) */
 [data-theme="dark"] .subtask-item {
-    /* Переменные уже подтянутся сами из :root, 
-       но мы гарантируем, что тени будут глубокими */
     box-shadow: var(--shadow-card); 
 }
 
@@ -3619,32 +3631,32 @@ body.is-dragging-modal * {
 /* Клон подзадачи в полете: полная копия обычной карточки */
 .subtask-drag-clone {
     position: fixed !important;
-    top: 0 !important;                     /* 🔥 ФИКС: Жесткая привязка для translate3d */
-    left: 0 !important;                    /* 🔥 ФИКС: Жесткая привязка для translate3d */
-    transform-origin: top left !important; /* 🔥 ГЛАВНЫЙ ФИКС: Точка масштабирования scale() */
-    z-index: 99999 !important;
+    top: 0 !important;
+    left: 0 !important;
+    transform-origin: top left !important;
+    z-index: 99999999 !important; /* 🔥 ФИКС: Гарантированно выше модалки (8 девяток) */
     pointer-events: none !important;
     margin: 0 !important;
     
-    /* Цвета и границы как у карточек (авто-поддержка темной темы) */
     background: var(--surface-card) !important;
     border: 1px solid var(--border-light) !important;
     border-radius: 12px !important;
     box-shadow: var(--shadow-drag) !important;
-    
-    /* Убираем прозрачность */
     opacity: 1 !important; 
 
-    /* Сохраняем внутреннюю геометрию подзадачи */
     display: flex !important;
-    align-items: center !important;        /* 🔥 ФИКС: Возвращаем center вместо flex-start */
+    align-items: center !important;
     padding: 10px 12px !important;
     gap: 12px !important;
 
-    /* Максимальная оптимизация для 60 FPS */
     transition: none !important;
     contain: layout style paint !important;
     will-change: transform !important;
+    
+    /* 🚀 ФИКС СЛОЕВ И ТЕНЕЙ: Убиваем 3D-контекст от .subtask-item, из-за которого клон падал за модалку в WKWebView */
+    transform-style: flat !important;
+    backface-visibility: visible !important;
+    -webkit-backface-visibility: visible !important;
 }
 
 /* Курсоры */
@@ -3908,30 +3920,32 @@ body.is-dragging-attachment .attachment-item {
 /* Клон вложения, который летит за мышкой */
 .attachment-drag-clone {
     position: fixed !important;
-    top: 0 !important;                     /* 🔥 ФИКС */
-    left: 0 !important;                    /* 🔥 ФИКС */
-    transform-origin: top left !important; /* 🔥 ФИКС */
-    z-index: 99999 !important;
+    top: 0 !important;
+    left: 0 !important;
+    transform-origin: top left !important;
+    z-index: 99999999 !important; /* 🔥 ФИКС: Гарантированно выше модалки (8 девяток) */
     pointer-events: none !important;
     margin: 0 !important;
     
-    /* Стилизация под карточку в полете */
     background: var(--surface-card) !important;
     border: 1px solid var(--border-light) !important;
     border-radius: 12px !important;
     box-shadow: var(--shadow-drag) !important;
     opacity: 1 !important; 
 
-    /* Сохраняем геометрию как у подзадач */
     display: flex !important;
     align-items: center !important;
     padding: 10px 12px !important;
     gap: 12px !important;
     
-    /* Ускорение отрисовки */
     transition: none !important;
     will-change: transform !important;
     contain: layout style paint !important;
+    
+    /* 🚀 ФИКС СЛОЕВ И ТЕНЕЙ: Убиваем 3D-контекст от .subtask-item, из-за которого клон падал за модалку в WKWebView */
+    transform-style: flat !important;
+    backface-visibility: visible !important;
+    -webkit-backface-visibility: visible !important;
 }
 
 .attachment-drag-clone * {
@@ -4794,3 +4808,25 @@ body.is-dragging-vault-history * {
 .card.has-unknown-time:not(:has(.checklist-meta)):not(:hover):not(.has-open-menu) .card-footer {
     display: none !important;
 }
+
+/* ==========================================
+   АНИМАЦИЯ МОРГАНИЯ ВКЛАДОК ПРИ DRAG & DROP
+   ========================================== */
+@keyframes tab-blink {
+    0%, 100% { background: transparent; }
+    50% { background: rgba(74, 90, 72, 0.2); }
+}
+
+@keyframes tab-blink-dark {
+    0%, 100% { background: transparent; }
+    50% { background: rgba(255, 255, 255, 0.15); }
+}
+
+.board-tab.is-blinking {
+    animation: tab-blink 0.3s ease-in-out 2 !important;
+}
+
+[data-theme="dark"] .board-tab.is-blinking {
+    animation: tab-blink-dark 0.3s ease-in-out 2 !important;
+}
+
