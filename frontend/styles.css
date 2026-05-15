@@ -4384,6 +4384,13 @@ body.is-dragging-attachment .attachment-item:not(.attachment-drag-clone) {
     gap: 12px;
 }
 
+/* Скрываем контейнер (и его margin), если крошек нет. 
+   Тогда отступ над описанием будет равен ровно 16px от padding родителя,
+   идеально совпадая с боковыми отступами. */
+.task-header-meta:has(#task-breadcrumbs:empty) {
+    display: none;
+}
+
 .task-breadcrumbs {
     display: flex;
     flex-wrap: wrap; 
@@ -4761,7 +4768,7 @@ body.is-dragging-vault-history * {
     align-items: center;
     justify-content: flex-end; /* Прижимаем к правому краю */
     gap: 8px;
-    margin-top: -8px; /* Подтягиваем ближе к описанию */
+    margin-top: 0; /* Убрали отрицательный отступ, чтобы снизу описания были честные 16px */
     margin-bottom: 16px;
 }
 

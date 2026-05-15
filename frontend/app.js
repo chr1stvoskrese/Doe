@@ -4486,9 +4486,12 @@ function generateSubtaskHtml(sub, parentMode = 'default') {
                 <button class="subtask-eye-btn ${eyeClass}" title="Показывать на доске как карточку">${currentEyeSvg}</button>
                 <button class="subtask-detach-btn" title="${t('detachSubtask')}">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                        <polyline points="16 17 21 12 16 7"></polyline>
-                        <line x1="21" y1="12" x2="9" y2="12"></line>
+                        <path d="m18.84 12.25 1.72-1.71h-.01a5.001 5.001 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                        <path d="m5.17 11.67-1.71 1.71a5.001 5.001 0 0 0 7.07 7.07l1.71-1.71"></path>
+                        <line x1="8" y1="2" x2="8" y2="5"></line>
+                        <line x1="2" y1="8" x2="5" y2="8"></line>
+                        <line x1="16" y1="22" x2="16" y2="19"></line>
+                        <line x1="22" y1="16" x2="19" y2="16"></line>
                     </svg>
                 </button>
             </div>
@@ -4765,6 +4768,14 @@ function bindSubtaskEvents(el, sub, parentId, parentMode = 'default') {
     // 3. ОТКРЫТИЕ (Expand)
     el.querySelector('.subtask-open-btn').onclick = (e) => {
         e.stopPropagation();
+
+        // 🔥 СЕНЬОР-ФИКС: Если подзадача не вынесена на доску (глазик выключен),
+        // просто открываем её поверх в модалке без смены контекста и вкладок.
+        // Бэкенд всё еще помнит её колонку, чтобы восстановить карточку при включении глазика.
+        if (!sub.is_visible_on_board) {
+            loadTaskIntoModal(sub.id, true);
+            return;
+        }
         
         // 🚀 Узнаем контекст подзадачи (в какой вкладке и колонке она физически лежит)
         fetch(`${API_BASE}/tasks/${sub.id}/context`)
