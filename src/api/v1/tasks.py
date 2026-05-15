@@ -68,7 +68,7 @@ async def clear_task_timer_endpoint(task_id: int, db: AsyncSession = Depends(get
 @router.post("/{task_id}/export")
 async def export_task_endpoint(task_id: int, req: TaskExportReq, db: AsyncSession = Depends(get_session)):
     try:
-        result = await task_service.export_task_to_markdown(db, task_id, req.export_path)
+        result = await task_service.export_task_to_markdown(db, task_id, req.export_path, req.include_attachments)
         return result
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -88,5 +88,12 @@ async def set_task_time_endpoint(task_id: int, req: TaskSetTimeReq, db: AsyncSes
     try:
         task = await task_service.set_task_time(db, task_id, req.total_seconds)
         return task
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+@router.get("/{task_id}/context")
+async def get_task_context_endpoint(task_id: int, db: AsyncSession = Depends(get_session)):
+    try:
+        return await task_service.get_task_context(db, task_id)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))

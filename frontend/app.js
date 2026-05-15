@@ -8,6 +8,29 @@ const translations = {
         searchPlaceholder: 'Поиск...',
         settings: 'Настройки', theme: 'Тема', language: 'Язык', about: 'О приложении', workspace: 'Doe Board', cancel: 'Отмена',
         newColumn: '+ Создать колонку', newTask: '+ Новая карточка', subtasks: 'Чек-лист',
+        menu: { 
+            mode: 'Режим колонки', collapse: 'Свернуть колонку', rename: 'Переименовать', 
+            delete: 'Удалить', clear: 'Очистить', open: 'Открыть', 
+            deleteCard: 'Удалить карточку', clearTimer: 'Очистить таймер',
+            exportCard: 'Экспорт в Markdown', attachmentsSettings: 'Хранилище вложений',
+            copyCardLink: 'Скопировать ссылку'
+        },
+        copied: 'Скопировано!',
+        modals: { 
+            themeTitle: 'Тема оформления', light: 'Светлая', dark: 'Тёмная', 
+            langTitle: 'Выберите язык', aboutTitle: 'О приложении', 
+            aboutDesc: 'Aesthetic. Local-first. Kanban sanctuary.',
+            attTitle: 'Хранилище вложений', 
+            attLocalTitle: 'Внутри хранилища',
+            attLocalDesc: 'Файлы переносятся вместе с доской (По умолчанию)',
+            attExternalTitle: 'Внешняя папка',
+            attSelectBtn: 'Выбрать папку...',
+            attWarning: 'При использовании внешней папки файлы не будут копироваться на флешку автоматически при переносе хранилища.',
+            exportTitle: 'Экспорт карточки', exportIncludeAtt: 'Экспортировать с вложениями', btnExport: 'Экспортировать'
+        },
+        copyLink: 'Копировать ссылку',
+        detachSubtask: 'Отвязать от чек-листа (сделать независимой)',
+        cyclicError: 'Нельзя привязать! Возникнет бесконечный цикл.',
         columnModes: { default: 'Стандартный', track_time: 'Учёт времени', completion: 'Результирующий' },
         defaultWorkspace: 'Начальная вкладка',
         attachments: 'Вложения', addAttachment: '+ Добавить вложение...',
@@ -25,17 +48,6 @@ const translations = {
             recent: 'История хранилищ',
             recentEmpty: 'Ранее открытые хранилища появятся здесь'
         },
-        menu: { 
-            mode: 'Режим колонки', collapse: 'Свернуть колонку', rename: 'Переименовать', 
-            delete: 'Удалить', clear: 'Очистить', open: 'Открыть', 
-            deleteCard: 'Удалить карточку', clearTimer: 'Очистить таймер',
-            exportCard: 'Экспорт в Markdown'
-        },
-        modals: { 
-            themeTitle: 'Тема оформления', light: 'Светлая', dark: 'Тёмная', 
-            langTitle: 'Выберите язык', aboutTitle: 'О приложении', 
-            aboutDesc: 'Aesthetic. Local-first. Kanban sanctuary.' 
-        },
         card: { timeSpent: 'Времени потрачено:', unknownTime: 'неизвестно' },
         taskModal: {
             descPlaceholder: 'Кликните, чтобы добавить описание...',
@@ -44,7 +56,7 @@ const translations = {
             timerPlaceholder: '1ч 30м',
             created: 'Создано',
             updated: 'Изменено',
-            uploading: (name) => `[⏳ Сохраняем ${name} в Vault...]`,
+            uploading: (name) => `[⏳ Сохраняем ${name} in Vault...]`,
             uploadError: (name) => `[❌ Ошибка сохранения: ${name}]`,
             uploadNetworkError: (name) => `[❌ Ошибка сети: ${name}]`
         },
@@ -63,6 +75,26 @@ const translations = {
         searchPlaceholder: 'Search...',
         settings: 'Settings', theme: 'Theme', language: 'Language', about: 'About', workspace: 'Doe Board', cancel: 'Cancel',
         newColumn: '+ Create column', newTask: '+ New card', subtasks: 'Checklist',
+        menu: { 
+            mode: 'Column mode', collapse: 'Collapse column', rename: 'Rename', 
+            delete: 'Delete', clear: 'Clear', open: 'Open', 
+            deleteCard: 'Delete card', clearTimer: 'Clear timer',
+            exportCard: 'Export to Markdown', attachmentsSettings: 'Attachments Storage',
+            copyCardLink: 'Copy link'
+        },
+        copied: 'Copied!',
+        modals: { 
+            themeTitle: 'Theme', light: 'Light', dark: 'Dark', 
+            langTitle: 'Select language', aboutTitle: 'About', 
+            aboutDesc: 'Aesthetic. Local-first. Kanban sanctuary.',
+            attTitle: 'Attachments Storage', 
+            attLocalTitle: 'Inside vault',
+            attLocalDesc: 'Files move together with the board (Default)',
+            attExternalTitle: 'External folder',
+            attSelectBtn: 'Choose folder...',
+            attWarning: 'When using an external folder, files will not copy automatically if you move the vault to a USB drive.',
+            exportTitle: 'Export Card', exportIncludeAtt: 'Export with attachments', btnExport: 'Export'
+        },
         columnModes: { default: 'Standard', track_time: 'Track time', completion: 'Completed' },
         defaultWorkspace: 'Main Board',
         attachments: 'Attachments', addAttachment: '+ Add attachment...',
@@ -79,17 +111,6 @@ const translations = {
             errorInvalid: 'Folder is not a valid Doe Vault',
             recent: 'Recent Vaults',
             recentEmpty: 'Previously opened vaults will appear here'
-        },
-        menu: { 
-            mode: 'Column mode', collapse: 'Collapse column', rename: 'Rename', 
-            delete: 'Delete', clear: 'Clear', open: 'Open', 
-            deleteCard: 'Delete card', clearTimer: 'Clear timer',
-            exportCard: 'Export to Markdown'
-        },
-        modals: { 
-            themeTitle: 'Theme', light: 'Light', dark: 'Dark', 
-            langTitle: 'Select language', aboutTitle: 'About', 
-            aboutDesc: 'Aesthetic. Local-first. Kanban sanctuary.' 
         },
         card: { timeSpent: 'Time spent:', unknownTime: 'unknown' },
         taskModal: {
@@ -3176,6 +3197,40 @@ document.addEventListener('click', async (e) => {
         }
     }
 
+    // ОТВЯЗКА КАРТОЧКИ (ПРЯМО ИЗ МОДАЛКИ)
+    const detachModalBtn = target.closest('.modal-detach');
+    if (detachModalBtn) {
+        e.stopPropagation();
+        const modal = document.getElementById('task-modal');
+        const taskId = parseInt(modal.dataset.taskId);
+        
+        // Красивая анимация исчезновения самой кнопки
+        detachModalBtn.style.transition = 'all 0.2s ease-in';
+        detachModalBtn.style.opacity = '0';
+        detachModalBtn.style.transform = 'translateY(-10px)';
+        
+        setTimeout(() => {
+            detachModalBtn.style.display = 'none';
+            detachModalBtn.style.opacity = '1';
+            detachModalBtn.style.transform = 'none';
+        }, 200);
+
+        try {
+            updateTask(taskId, { parent_id: null }).then(() => {
+                bumpModalUpdatedDate();
+                refreshBoard(); // Карточка моментально появится на доске
+                
+                // Перестраиваем хлебные крошки: карточка теперь корень, очищаем стек
+                modalNavigationStack = [{ id: taskId, title: document.getElementById('task-modal-title').textContent }];
+                renderBreadcrumbs();
+            });
+        } catch (err) {
+            console.error("Ошибка отвязки из модалки:", err);
+            detachModalBtn.style.display = 'flex';
+        }
+        return;
+    }
+
     // ЭКСПОРТ ИЗ МОДАЛКИ КАРТОЧКИ
     const exportModalBtn = target.closest('.modal-export');
     if (exportModalBtn) {
@@ -3184,25 +3239,37 @@ document.addEventListener('click', async (e) => {
         const taskId = parseInt(modal.dataset.taskId);
         
         if (window.pywebview && window.pywebview.api && window.pywebview.api.choose_directory) {
-            const exportDir = await window.pywebview.api.choose_directory();
-            if (exportDir) {
-                exportModalBtn.style.opacity = '0.5'; // Эффект загрузки
-                fetch(`${API_BASE}/tasks/${taskId}/export`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ export_path: exportDir })
-                }).then(res => {
-                    if (res.ok) {
+            // Сначала показываем модалку выбора (с чекбоксом "Копировать папку вложений"),
+            // и только после подтверждения открываем нативный диалог выбора папки.
+            const exportModal = document.getElementById('export-modal');
+            exportModal.dataset.taskId = taskId;
+            exportModal.classList.add('show');
+            
+            const confirmBtn = document.getElementById('btn-confirm-export');
+            // Снимаем старые обработчики (хак через замену узла)
+            const newConfirmBtn = confirmBtn.cloneNode(true);
+            confirmBtn.replaceWith(newConfirmBtn);
+            
+            newConfirmBtn.onclick = async () => {
+                const includeAtt = document.getElementById('export-include-att').checked;
+                exportModal.classList.remove('show');
+                
+                const exportDir = await window.pywebview.api.choose_directory();
+                if (exportDir) {
+                    exportModalBtn.style.opacity = '0.5'; // Эффект загрузки на иконке кнопки экспорта
+                    fetch(`${API_BASE}/tasks/${taskId}/export`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ export_path: exportDir, include_attachments: includeAtt })
+                    }).then(res => {
                         exportModalBtn.style.opacity = '1';
-                    } else {
-                        alert(t('alerts.error'));
+                        if (!res.ok) alert(t('alerts.error'));
+                    }).catch(err => {
                         exportModalBtn.style.opacity = '1';
-                    }
-                }).catch(err => {
-                    console.error(err);
-                    exportModalBtn.style.opacity = '1';
-                });
-            }
+                        console.error(err);
+                    });
+                }
+            };
         } else {
             alert('Экспорт в Markdown работает только в десктопном приложении Doe.');
         }
@@ -3363,20 +3430,70 @@ document.addEventListener('click', async (e) => {
                         updateCardAppearance(cardEl, updatedTask, col.mode);
                     });
                 }
+                else if (action === 'copy-card-link') {
+                    // 🚀 ФИКС: Учитываем, что при открытом меню карточка находится в режиме редактирования (textarea)
+                    const titleNode = cardEl.querySelector('.card-title') || cardEl.querySelector('.card-title-input');
+                    const taskTitle = (titleNode.value !== undefined ? titleNode.value : titleNode.textContent).trim();
+                    const link = `[${taskTitle}](doe://task/${taskId})`;
+                    
+                    try {
+                        // 🚀 БРОНЕБОЙНОЕ КОПИРОВАНИЕ (Работает во всех WebView и браузерах)
+                        if (navigator.clipboard && window.isSecureContext) {
+                            await navigator.clipboard.writeText(link);
+                        } else {
+                            const textArea = document.createElement("textarea");
+                            textArea.value = link;
+                            textArea.style.position = "fixed";
+                            textArea.style.opacity = "0";
+                            document.body.appendChild(textArea);
+                            textArea.focus();
+                            textArea.select();
+                            document.execCommand('copy');
+                            textArea.remove();
+                        }
+
+                        // Меняем текст прямо в меню для визуальной обратной связи
+                        const span = menuItem.querySelector('span[data-i18n]') || menuItem.querySelector('span');
+                        const oldText = span.textContent;
+                        span.textContent = t('copied');
+                        span.style.color = 'var(--success-done)';
+                        
+                        setTimeout(() => {
+                            span.textContent = oldText;
+                            span.style.color = '';
+                            closeAllDropdowns();
+                        }, 1000);
+                        return; // Выходим, чтобы меню не закрылось мгновенно
+                    } catch (err) {
+                        console.error("Failed to copy link: ", err);
+                    }
+                }
                 else if (action === 'export-card') {
                     if (window.pywebview && window.pywebview.api && window.pywebview.api.choose_directory) {
-                        const exportDir = await window.pywebview.api.choose_directory();
-                        if (exportDir) {
-                            fetch(`${API_BASE}/tasks/${taskId}/export`, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ export_path: exportDir })
-                            }).then(res => {
-                                if (!res.ok) {
-                                    alert(t('alerts.error'));
-                                }
-                            }).catch(err => console.error(err));
-                        }
+                        const exportModal = document.getElementById('export-modal');
+                        exportModal.dataset.taskId = taskId;
+                        exportModal.classList.add('show');
+                        
+                        const confirmBtn = document.getElementById('btn-confirm-export');
+                        // Снимаем старые обработчики (хак через замену узла)
+                        const newConfirmBtn = confirmBtn.cloneNode(true);
+                        confirmBtn.replaceWith(newConfirmBtn);
+                        
+                        newConfirmBtn.onclick = async () => {
+                            const includeAtt = document.getElementById('export-include-att').checked;
+                            exportModal.classList.remove('show');
+                            
+                            const exportDir = await window.pywebview.api.choose_directory();
+                            if (exportDir) {
+                                fetch(`${API_BASE}/tasks/${taskId}/export`, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ export_path: exportDir, include_attachments: includeAtt })
+                                }).then(res => {
+                                    if (!res.ok) alert(t('alerts.error'));
+                                }).catch(err => console.error(err));
+                            }
+                        };
                     } else {
                         alert('Экспорт в Markdown работает только в десктопном приложении Doe.');
                     }
@@ -3411,6 +3528,25 @@ document.addEventListener('click', async (e) => {
         }
         else if (action === 'change-lang') {
             document.getElementById('lang-modal').classList.add('show');
+            closeAllDropdowns();
+        }
+        else if (action === 'attachments-settings') {
+            fetchSettings().then(data => {
+                const pathBox = document.getElementById('att-path-display');
+                const itemLocal = document.getElementById('setting-item-local');
+                const itemExternal = document.getElementById('setting-item-external');
+
+                if (data.global_attachments_path) {
+                    pathBox.textContent = data.global_attachments_path; // Показываем реальный путь
+                    itemLocal.classList.remove('active');
+                    itemExternal.classList.add('active');
+                } else {
+                    pathBox.textContent = t('modals.attSelectBtn'); // "Выбрать папку..."
+                    itemLocal.classList.add('active');
+                    itemExternal.classList.remove('active');
+                }
+                document.getElementById('att-settings-modal').classList.add('show');
+            }).catch(console.error);
             closeAllDropdowns();
         }
         else if (action === 'about') {
@@ -3655,6 +3791,13 @@ async function loadTaskIntoModal(taskId, pushToStack = true, highlightQuery = nu
         modal.dataset.columnId = task.column_id;
         titleEl.textContent = task.title;
         
+        // Показываем кнопку отвязки только если у карточки есть родитель
+        const detachBtn = modal.querySelector('.modal-detach');
+        if (detachBtn) {
+            detachBtn.style.display = task.parent_id ? 'flex' : 'none';
+            detachBtn.title = t('detachSubtask');
+        }
+
         // --- Рендер дат создания и изменения ---
         const datesMetaEl = document.getElementById('task-dates-meta');
         if (datesMetaEl) {
@@ -3680,7 +3823,7 @@ async function loadTaskIntoModal(taskId, pushToStack = true, highlightQuery = nu
             attachmentsList.innerHTML = '';
             extracted.forEach(att => attachmentsList.appendChild(createAttachmentElement(att)));
 
-            const cleanRegex = /(!?)\[[^\]]+\]\(attachments\/[^)]+\)!\s*/g;
+            const cleanRegex = /(!?)\[[^\]]+\]\(doe\/[^)]+\)!\s*/g;
             let readModeText = task.description.replace(cleanRegex, '');
             renderDiv.innerHTML = marked.parse(readModeText, { breaks: true });
             
@@ -4338,8 +4481,17 @@ function generateSubtaskHtml(sub, parentMode = 'default') {
                 ${checkIcon}
             </div>
             
-            <!-- ГЛАЗИК ТЕПЕРЬ ЗДЕСЬ (Сразу после чекбокса) -->
-            <button class="subtask-eye-btn ${eyeClass}" title="Показывать на доске как карточку">${currentEyeSvg}</button>
+            <!-- Группируем левые кнопки точно так же, как правые -->
+            <div class="subtask-left-actions">
+                <button class="subtask-eye-btn ${eyeClass}" title="Показывать на доске как карточку">${currentEyeSvg}</button>
+                <button class="subtask-detach-btn" title="${t('detachSubtask')}">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                        <polyline points="16 17 21 12 16 7"></polyline>
+                        <line x1="21" y1="12" x2="9" y2="12"></line>
+                    </svg>
+                </button>
+            </div>
             
             <div class="subtask-title">${escapeHtml(sub.title)}</div>
             
@@ -4417,6 +4569,55 @@ async function onAddSubtask() {
     const submit = async () => {
         const title = input.value.trim();
         if (!title) { cancel(); return; }
+
+        // --- МАГИЯ: ВСТАВКА ССЫЛКИ КАК ПОДЗАДАЧИ ---
+        const linkMatch = title.match(/^\[(.*?)\]\(doe:\/\/task\/(\d+)\)$/) || title.match(/^doe:\/\/task\/(\d+)$/);
+        if (linkMatch) {
+            const linkedTaskId = parseInt(linkMatch[2] || linkMatch[1]);
+            
+            // Если пытаются привязать задачу саму к себе
+            if (linkedTaskId === parentId) {
+                formItem.classList.add('is-error');
+                setTimeout(() => formItem.classList.remove('is-error'), 400);
+                input.focus();
+                return;
+            }
+
+            if (isResolved) return;
+            isResolved = true;
+            input.disabled = true;
+
+            try {
+                // Превращаем существующую задачу в подзадачу текущей
+                await updateTask(linkedTaskId, { 
+                    parent_id: parentId, 
+                    is_visible_on_board: true // Автоматически включаем глазик
+                });
+                
+                bumpModalUpdatedDate();
+                formItem.remove();
+                renderSubtaskAddButton(container);
+                
+                // Перезагружаем модалку, чтобы отобразить новую структуру
+                await loadTaskIntoModal(parentId, false);
+                refreshBoard();
+                return;
+            } catch (err) {
+                isResolved = false;
+                input.disabled = false;
+                formItem.classList.add('is-error');
+                
+                // Если бэкенд отбил запрос из-за циклической зависимости
+                if (err.message && err.message.includes('404')) {
+                     alert(t('cyclicError'));
+                }
+                
+                setTimeout(() => formItem.classList.remove('is-error'), 400);
+                input.focus({ preventScroll: true });
+                return;
+            }
+        }
+        // ------------------------------------------
 
         if (title.length > 200) {
             if (!formItem.querySelector('.card-error-hint')) {
@@ -4564,7 +4765,22 @@ function bindSubtaskEvents(el, sub, parentId, parentMode = 'default') {
     // 3. ОТКРЫТИЕ (Expand)
     el.querySelector('.subtask-open-btn').onclick = (e) => {
         e.stopPropagation();
-        loadTaskIntoModal(sub.id, true);
+        
+        // 🚀 Узнаем контекст подзадачи (в какой вкладке и колонке она физически лежит)
+        fetch(`${API_BASE}/tasks/${sub.id}/context`)
+            .then(res => res.json())
+            .then(context => {
+                // Используем наш глобальный навигатор:
+                // Он сам переключит вкладку, проскроллит к колонке,
+                // подсветит карточку на фоне и загрузит её в модалку.
+                // Параметр keepStack=true гарантирует, что хлебные крошки сохранятся!
+                window.navigateToEntityGlobal(context.workspace_id, context.column_id, sub.id, null, true);
+            })
+            .catch(err => {
+                console.error("Не удалось найти контекст задачи", err);
+                // Фолбэк, если бэкенд вдруг не ответил — просто открываем поверх
+                loadTaskIntoModal(sub.id, true);
+            });
     };
 
     // 4. ГЛАЗИК (Видимость на доске)
@@ -4608,6 +4824,32 @@ function bindSubtaskEvents(el, sub, parentId, parentMode = 'default') {
             refreshBoard();
         }).catch(console.error);
     };
+
+    // 5. ОТВЯЗКА (Сделать корневой задачей)
+    const detachBtn = el.querySelector('.subtask-detach-btn');
+    if (detachBtn) {
+        detachBtn.onclick = async (e) => {
+            e.stopPropagation();
+            el.style.transition = 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)';
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(-10px) scale(0.95)';
+            
+            setTimeout(() => {
+                if (el.parentNode) el.remove();
+                const countEl = document.getElementById('subtasks-count');
+                countEl.textContent = Math.max(0, parseInt(countEl.textContent) - 1);
+            }, 250);
+
+            try {
+                // Отвязываем от родителя. Карточка остается на доске как самостоятельная.
+                await updateTask(sub.id, { parent_id: null });
+                bumpModalUpdatedDate();
+                refreshBoard();
+            } catch(err) {
+                console.error("Ошибка при отвязке задачи:", err);
+            }
+        };
+    }
 }
 
 function initTaskDescriptionLogic() {
@@ -4837,7 +5079,7 @@ function initTaskDescriptionLogic() {
         }
 
         if (content.trim()) {
-            const cleanRegex = /(!?)\[[^\]]+\]\(attachments\/[^)]+\)!\s*/g;
+            const cleanRegex = /(!?)\[[^\]]+\]\(doe\/[^)]+\)!\s*/g;
             const cleanContent = content.replace(cleanRegex, '');
             renderDiv.innerHTML = marked.parse(cleanContent, { breaks: true });
             enhanceCodeBlocks(renderDiv);
@@ -4871,12 +5113,28 @@ function initTaskDescriptionLogic() {
             const href = link.getAttribute('href');
             if (!href) return;
 
-            if (href.startsWith('attachments/')) {
+            if (href.startsWith('doe/')) {
                 fetch(`${API_BASE}/system/open-file`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({path: decodeURIComponent(href)})
                 });
+                return;
+            }
+
+            // --- МАГИЯ КРОСС-ССЫЛОК ---
+            if (href.startsWith('doe://task/')) {
+                const targetTaskId = parseInt(href.split('/').pop());
+                
+                // Узнаем, где живет эта карточка
+                fetch(`${API_BASE}/tasks/${targetTaskId}/context`)
+                    .then(res => res.json())
+                    .then(context => {
+                        // Добавляем true в конце, чтобы сохранить хлебные крошки!
+                        window.navigateToEntityGlobal(context.workspace_id, context.column_id, targetTaskId, null, true);
+                    })
+                    .catch(err => console.error("Не удалось найти карточку", err));
+                
                 return;
             }
             
@@ -5174,6 +5432,25 @@ document.addEventListener('keydown', async (e) => {
 
         if (title) {
             input.disabled = true;
+
+            // МАГИЯ ССЫЛКИ ДЛЯ БЫСТРОГО ДОБАВЛЕНИЯ
+            const linkMatch = title.match(/^\[(.*?)\]\(doe:\/\/task\/(\d+)\)$/) || title.match(/^doe:\/\/task\/(\d+)$/);
+            if (linkMatch) {
+                const linkedTaskId = parseInt(linkMatch[2] || linkMatch[1]);
+                try {
+                    await updateTask(linkedTaskId, { parent_id: parentId, is_visible_on_board: true });
+                    input.value = '';
+                    await loadTaskIntoModal(parentId, false); 
+                    refreshBoard(); 
+                } catch (err) {
+                    alert(t('cyclicError'));
+                } finally {
+                    input.disabled = false;
+                    input.focus();
+                }
+                return;
+            }
+
             try {
                 // Создаем задачу, передавая parent_id
                 const res = await fetch(`${API_BASE}/tasks/`, {
@@ -5202,7 +5479,7 @@ document.addEventListener('keydown', async (e) => {
 });
 
 function extractAttachments(desc, savedOrder = []) {
-    const regex = /(!?)\[([^\]]+)\]\((attachments\/[^)]+)\)(!?)/g;
+    const regex = /(!?)\[([^\]]+)\]\((doe\/[^)]+)\)(!?)/g;
     let match;
     const attachments = [];
     
@@ -5878,76 +6155,177 @@ function initGlobalSearch() {
 
         data.workspaces.forEach(w => {
             // Подсвечиваем имя вкладки
-            createItem(highlightString(w.name, query), `${wsIcon} Вкладка`, null, () => navigateToEntity(w.id, null, null));
+            createItem(highlightString(w.name, query), `${wsIcon} Вкладка`, null, () => window.navigateToEntityGlobal(w.id, null, null));
         });
 
         data.columns.forEach(c => {
             // Подсвечиваем имя колонки
-            createItem(highlightString(c.title, query), `${colIcon} Колонка &middot; ${c.workspace_name}`, null, () => navigateToEntity(c.workspace_id, c.id, null));
+            createItem(highlightString(c.title, query), `${colIcon} Колонка &middot; ${c.workspace_name}`, null, () => window.navigateToEntityGlobal(c.workspace_id, c.id, null));
         });
 
         data.tasks.forEach(t => {
             // Сниппет уже подсвечен бэкендом (FTS5), поэтому его не трогаем, а заголовок подсвечиваем
             const desc = (t.snippet && t.snippet.trim()) ? `...${t.snippet}...` : null;
-            createItem(highlightString(t.title, query), `${taskIcon} Карточка &middot; ${t.workspace_name} / ${t.column_title}`, desc, () => navigateToEntity(t.workspace_id, t.column_id, t.id, query));
+            createItem(highlightString(t.title, query), `${taskIcon} Карточка &middot; ${t.workspace_name} / ${t.column_title}`, desc, () => window.navigateToEntityGlobal(t.workspace_id, t.column_id, t.id, query));
         });
 
         dropdown.classList.add('show');
     }
-
-    // Супер-роутер: переходит на вкладку -> скроллит к колонке -> открывает карточку
-    async function navigateToEntity(wsId, colId, taskId, highlightQuery = null) {
-        closeAllDropdowns();
-        
-        // 1. Свитч вкладки, если мы не на ней
-        if (wsId && wsId !== state.activeWorkspaceId) {
-            document.querySelectorAll('.board-tab').forEach(t => t.classList.remove('active'));
-            const targetTab = document.querySelector(`.board-tab[data-workspace-id="${wsId}"]`);
-            if (targetTab) {
-                targetTab.classList.add('active');
-                targetTab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-            }
-            
-            state.activeWorkspaceId = wsId;
-            updateSettings({ active_workspace_id: wsId }).catch(console.error);
-            
-            // Ждем загрузки доски
-            const columns = await fetchColumns(wsId);
-            state.columns = columns.map(col => ({ ...col, collapsed: col.collapsed || false }));
-            renderBoard();
-        }
-
-        // 2. Скролл до колонки
-        if (colId) {
-            // Даем DOM время на рендер (если был свитч)
-            requestAnimationFrame(() => {
-                const colEl = document.querySelector(`.column[data-column-id="${colId}"]`);
-                if (colEl) {
-                    if (colEl.classList.contains('collapsed') && taskId) {
-                        onExpandColumn(colEl); // Разворачиваем, если нужно показать карточку
-                    }
-                    colEl.scrollIntoView({ behavior: 'smooth', inline: 'center' });
-                    
-                    // 3. Открытие карточки
-                    if (taskId) {
-                        // Подсвечиваем саму карточку
-                        const cardEl = document.querySelector(`.card[data-card-id="${taskId}"]`);
-                        if (cardEl) {
-                            cardEl.style.transition = 'box-shadow 0.3s';
-                            cardEl.style.boxShadow = '0 0 0 2px var(--brand-pine)';
-                            setTimeout(() => cardEl.style.boxShadow = '', 1500);
-                        }
-
-                        modalNavigationStack = []; 
-                        loadTaskIntoModal(taskId, true, highlightQuery); // <--- ПЕРЕДАЕМ QUERY В МОДАЛКУ
-                        document.getElementById('task-modal').classList.add('show');
-                    }
-                }
-            });
-        }
-    }
 }
 
+// Супер-роутер: переходит на вкладку -> скроллит к колонке -> открывает карточку
+window.navigateToEntityGlobal = async function(wsId, colId, taskId, highlightQuery = null, keepStack = false) {
+    closeAllDropdowns();
+    
+    // 1. Свитч вкладки, если мы не на ней
+    if (wsId && wsId !== state.activeWorkspaceId) {
+        document.querySelectorAll('.board-tab').forEach(t => t.classList.remove('active'));
+        const targetTab = document.querySelector(`.board-tab[data-workspace-id="${wsId}"]`);
+        if (targetTab) {
+            targetTab.classList.add('active');
+            targetTab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        }
+        
+        state.activeWorkspaceId = wsId;
+        updateSettings({ active_workspace_id: wsId }).catch(console.error);
+        
+        // Ждем загрузки доски
+        const columns = await fetchColumns(wsId);
+        state.columns = columns.map(col => ({ ...col, collapsed: col.collapsed || false }));
+        renderBoard();
+    }
+
+    // 2. Скролл до колонки
+    if (colId) {
+        // Даем DOM время на рендер (если был свитч)
+        requestAnimationFrame(() => {
+            const colEl = document.querySelector(`.column[data-column-id="${colId}"]`);
+            if (colEl) {
+                if (colEl.classList.contains('collapsed') && taskId) {
+                    onExpandColumn(colEl); // Разворачиваем, если нужно показать карточку
+                }
+                colEl.scrollIntoView({ behavior: 'smooth', inline: 'center' });
+                
+                // 3. Открытие карточки
+                if (taskId) {
+                    // Подсвечиваем саму карточку
+                    const cardEl = document.querySelector(`.card[data-card-id="${taskId}"]`);
+                    if (cardEl) {
+                        cardEl.style.transition = 'box-shadow 0.3s';
+                        cardEl.style.boxShadow = '0 0 0 2px var(--brand-pine)';
+                        setTimeout(() => cardEl.style.boxShadow = '', 1500);
+                    }
+
+                    if (!keepStack) {
+                        modalNavigationStack = []; 
+                    }
+                    loadTaskIntoModal(taskId, true, highlightQuery);
+                    document.getElementById('task-modal').classList.add('show');
+                }
+            }
+        });
+    }
+};
+
+
+window.chooseCustomAttFolder = async () => {
+    if (!window.pywebview || !window.pywebview.api) return;
+    const path = await window.pywebview.api.choose_directory();
+    if (path) {
+        try {
+            // Эффект загрузки (блокируем UI пока файлы мигрируют)
+            document.getElementById('setting-item-external').style.opacity = '0.5';
+            
+            await fetch(`${API_BASE}/system/settings`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ global_attachments_path: path, reset_attachments: false })
+            });
+            
+            // Обновляем UI
+            document.getElementById('att-path-display').textContent = path;
+            document.getElementById('setting-item-local').classList.remove('active');
+            document.getElementById('setting-item-external').classList.add('active');
+        } catch (e) { 
+            console.error(e); 
+        } finally {
+            document.getElementById('setting-item-external').style.opacity = '1';
+        }
+    }
+};
+
+window.resetAttFolder = async () => {
+    // Если уже локально, ничего не делаем
+    if (document.getElementById('setting-item-local').classList.contains('active')) return;
+
+    try {
+        // Эффект загрузки
+        document.getElementById('setting-item-local').style.opacity = '0.5';
+
+        await fetch(`${API_BASE}/system/settings`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ reset_attachments: true })
+        });
+        
+        // Обновляем UI
+        document.getElementById('att-path-display').textContent = t('modals.attSelectBtn');
+        document.getElementById('setting-item-external').classList.remove('active');
+        document.getElementById('setting-item-local').classList.add('active');
+    } catch (e) { 
+        console.error(e); 
+    } finally {
+        document.getElementById('setting-item-local').style.opacity = '1';
+    }
+};
+
+// ==========================================
+// ГЛОБАЛЬНЫЙ ОБРАБОТЧИК КНОПОК КОПИРОВАНИЯ ССЫЛОК (Для модалки)
+// ==========================================
+document.addEventListener('click', async (e) => {
+    const copyBtn = e.target.closest('.modal-copy-link');
+    if (copyBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const modal = document.getElementById('task-modal');
+        const taskId = modal.dataset.taskId;
+        // 🚀 ФИКС: Учитываем, что заголовок модалки тоже может быть в режиме редактирования (textarea)
+        const titleNode = document.getElementById('task-modal-title') || document.querySelector('.task-modal-title-input');
+        const taskTitle = (titleNode.value !== undefined ? titleNode.value : titleNode.textContent).trim();
+
+        const link = `[${taskTitle}](doe://task/${taskId})`;
+
+        try {
+            // 🚀 БРОНЕБОЙНОЕ КОПИРОВАНИЕ
+            if (navigator.clipboard && window.isSecureContext) {
+                await navigator.clipboard.writeText(link);
+            } else {
+                const textArea = document.createElement("textarea");
+                textArea.value = link;
+                textArea.style.position = "fixed";
+                textArea.style.opacity = "0";
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                document.execCommand('copy');
+                textArea.remove();
+            }
+            
+            // Анимация успешного копирования (меняем на галочку)
+            const originalHtml = copyBtn.innerHTML;
+            copyBtn.classList.add('copied');
+            copyBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+            
+            setTimeout(() => {
+                copyBtn.innerHTML = originalHtml;
+                copyBtn.classList.remove('copied');
+            }, 2000);
+        } catch (err) {
+            console.error("Failed to copy link: ", err);
+        }
+    }
+});
 
 // Запускаем инициализацию (можно поместить вызов внутрь главной IIFE async функции внизу файла)
 initTaskDescriptionLogic();

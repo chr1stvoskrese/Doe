@@ -7,45 +7,52 @@ import os
 import shutil
 from pathlib import Path
 from urllib.parse import unquote
-from src.core.config import get_active_vault
+from src.core.config import get_active_vault, get_attachments_dir, get_ui_settings
 
 from datetime import datetime, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
-from sqlalchemy.orm.attributes import set_committed_value # <--- ДОБАВИТЬ ЭТО
+from sqlalchemy.orm.attributes import set_committed_value
 
 from src.db.models import TaskModel, ColumnModel, TimerSessionModel, ColumnMode
 from src.schemas.task import TaskCreate, TaskUpdate, TimerSessionResponse
 
 
-# --- ДОБАВЬТЕ ФУНКЦИЮ СБОРЩИКА МУСОРА ГДЕ-ТО В ФАЙЛЕ ---
 async def cleanup_orphaned_attachments(db: AsyncSession):
     """
     Сканирует все задачи. Находит все ссылки на вложения. 
     Удаляет файлы из папки attachments, на которые больше нет ссылок.
     """
+    # 🔥 SENIOR FIX: ЗАЩИТА ОТ УДАЛЕНИЯ ФАЙЛОВ ДРУГИХ ХРАНИЛИЩ
+    # Если юзер использует общую глобальную папку для всех хранилищ, 
+    # мы НЕ МОЖЕМ безопасно чистить мусор, так как текущая БД ничего не знает 
+    # о файлах, привязанных к другим БД.
+    settings = get_ui_settings()
+    if settings.get("global_attachments_path"):
+        print("[Garbage Collector] Skipped: Global attachments path is active. Safety lock engaged.")
+        return
+
     result = await db.execute(select(TaskModel.description).where(TaskModel.description.isnot(None)))
     descriptions = result.scalars().all()
     
     used_files = set()
-    # Регулярка захватывает все пути "attachments/имяфайла.ext" из Markdown ссылок
-    pattern = re.compile(r'\]\((attachments/[^\)]+)\)')
+    # Регулярка захватывает все пути "doe/имяфайла.ext" из Markdown ссылок
+    pattern = re.compile(r'\]\((doe/[^\)]+)\)')
     
     for desc in descriptions:
         matches = pattern.findall(desc)
         for match in matches:
             used_files.add(unquote(match))
         
-    vault_path = Path(get_active_vault())
-    att_dir = vault_path / "attachments"
+    att_dir = get_attachments_dir()
     
     if not att_dir.exists():
         return
         
     for file_path in att_dir.iterdir():
         if file_path.is_file():
-            rel_path = f"attachments/{file_path.name}"
+            rel_path = f"doe/{file_path.name}"
             # Если файла нет в текстах описаний — уничтожаем
             if rel_path not in used_files:
                 try:
@@ -127,6 +134,19 @@ async def create_task(db: AsyncSession, task_in: TaskCreate) -> TaskModel:
     _calculate_task_time(db_task)
     return db_task
 
+async def get_task_context(db: AsyncSession, task_id: int) -> dict:
+    """Получает полные координаты задачи для навигации по внутренней ссылке"""
+    query = (
+        select(TaskModel.id, TaskModel.column_id, ColumnModel.workspace_id)
+        .join(ColumnModel, TaskModel.column_id == ColumnModel.id)
+        .where(TaskModel.id == task_id)
+    )
+    res = await db.execute(query)
+    row = res.first()
+    if not row:
+        raise ValueError("Task not found")
+    return {"task_id": row[0], "column_id": row[1], "workspace_id": row[2]}
+
 async def update_task(db: AsyncSession, task_id: int, task_in: TaskUpdate) -> TaskModel:
     result = await db.execute(
         select(TaskModel)
@@ -138,6 +158,16 @@ async def update_task(db: AsyncSession, task_id: int, task_in: TaskUpdate) -> Ta
         raise ValueError("Задача не найдена")
 
     update_data = task_in.dict(exclude_unset=True)
+    
+    # ЗАЩИТА ОТ ЦИКЛИЧЕСКИХ ЗАВИСИМОСТЕЙ (Senior Архитектура)
+    if "parent_id" in update_data and update_data["parent_id"] is not None:
+        new_parent_id = update_data["parent_id"]
+        if new_parent_id == task_id:
+            raise ValueError("Задача не может быть подзадачей самой себя")
+        # Проверяем, не пытаемся ли мы засунуть задачу внутрь её собственного потомка
+        child_ids = await _get_all_child_ids(db, task_id)
+        if new_parent_id in child_ids:
+            raise ValueError("Обнаружена циклическая зависимость: нельзя сделать задачу подзадачей её собственного потомка")
     
     # Загружаем колонку, чтобы знать ее режим
     col_res = await db.execute(select(ColumnModel).where(ColumnModel.id == task.column_id))
@@ -384,7 +414,7 @@ async def get_task_with_details(db: AsyncSession, task_id: int) -> TaskModel:
         
     return task
 
-async def export_task_to_markdown(db: AsyncSession, task_id: int, export_base_path: str) -> dict:
+async def export_task_to_markdown(db: AsyncSession, task_id: int, export_base_path: str, include_attachments: bool = True) -> dict:
     """
     Экспортирует карточку и её вложения в формат Obsidian.
     Создает папку с названием карточки, внутри Markdown-файл и папку attachments.
@@ -412,11 +442,14 @@ async def export_task_to_markdown(db: AsyncSession, task_id: int, export_base_pa
     md_file_path = export_dir / f"{safe_title}.md"
     attachments_export_dir = export_dir / "attachments"
 
-    # 3. Подготавливаем содержимое Markdown (в стиле Obsidian)
+    # 3. Подготавливаем содержимое Markdown (в стиле Obsidian).
+    # При экспорте конвертируем внутренние ссылки doe/ обратно в attachments/,
+    # чтобы экспортированная папка имела привычную структуру Obsidian-style.
     md_content = f"# {task.title}\n\n"
     
     if task.description:
-        md_content += task.description + "\n\n"
+        exported_description = task.description.replace("(doe/", "(attachments/")
+        md_content += exported_description + "\n\n"
 
     # Добавляем подзадачи как Markdown чек-лист
     if task.subtasks:
@@ -427,20 +460,23 @@ async def export_task_to_markdown(db: AsyncSession, task_id: int, export_base_pa
             md_content += f"- [{checked}] {sub.title}\n"
         md_content += "\n"
 
-    # 4. Ищем вложения в описании, чтобы их скопировать
+    # 4. Ищем вложения в описании, чтобы их скопировать.
+    # Регулярка ловит внутренние ссылки doe/ — это формат, в котором они 
+    # лежат в БД. Папку на диске при копировании называем "attachments".
     if task.description:
-        vault_path = Path(get_active_vault())
-        pattern = re.compile(r'\]\((attachments/[^\)]+)\)')
+        att_dir = get_attachments_dir()
+        pattern = re.compile(r'\]\((doe/[^\)]+)\)')
         matches = pattern.findall(task.description)
         
-        if matches:
+        if matches and include_attachments:
             attachments_export_dir.mkdir(exist_ok=True)
             for match in matches:
-                decoded_path = unquote(match) # e.g. "attachments/file.png"
-                src_file = vault_path / decoded_path
+                decoded_path = unquote(match) # e.g. "doe/file.png"
+                filename = decoded_path.replace("doe/", "", 1)
+                src_file = att_dir / filename
                 
                 if src_file.exists() and src_file.is_file():
-                    dst_file = export_dir / decoded_path
+                    dst_file = attachments_export_dir / filename
                     try:
                         shutil.copy2(src_file, dst_file)
                     except Exception as e:

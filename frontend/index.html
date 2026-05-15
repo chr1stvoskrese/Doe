@@ -104,6 +104,10 @@
                     <span data-i18n="language">Язык</span>
                 </div>
                 <div class="menu-divider"></div>
+                <div class="menu-item" data-action="attachments-settings">
+                    <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                    <span data-i18n="menu.attachmentsSettings">Хранилище вложений</span>
+                </div>
                 <div class="menu-item" data-action="about">
                   <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <circle cx="12" cy="12" r="10"></circle>
@@ -214,6 +218,73 @@
     </div>
 </div>
 
+<!-- 📁 МОДАЛКА НАСТРОЕК ВЛОЖЕНИЙ -->
+<div class="modal-overlay" id="att-settings-modal">
+    <div class="modal-card" style="width: 360px;"> <!-- Чуть шире для эстетики настроек -->
+        <div class="modal-header">
+            <span class="modal-title" data-i18n="modals.attTitle">Хранилище вложений</span>
+            <button class="modal-close" aria-label="Закрыть">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+        </div>
+        <div class="modal-body" style="padding: 16px; gap: 12px;">
+            
+            <div class="settings-group-card">
+                <!-- Опция 1: Локально -->
+                <div class="setting-row" id="setting-item-local" onclick="resetAttFolder()">
+                    <div class="setting-icon-box">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+                    </div>
+                    <div class="setting-text-box">
+                        <div class="setting-title" data-i18n="modals.attLocalTitle">Внутри хранилища</div>
+                        <div class="setting-desc" data-i18n="modals.attLocalDesc">Файлы переносятся вместе с доской (По умолчанию)</div>
+                    </div>
+                    <div class="setting-check">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+                    </div>
+                </div>
+
+                <!-- Опция 2: Внешняя папка -->
+                <div class="setting-row" id="setting-item-external" onclick="chooseCustomAttFolder()">
+                    <div class="setting-icon-box">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    </div>
+                    <div class="setting-text-box">
+                        <div class="setting-title" data-i18n="modals.attExternalTitle">Внешняя папка</div>
+                        <!-- УБРАЛИ data-i18n, теперь текстом управляет только JS -->
+                        <div class="setting-desc" id="att-path-display">Выбрать папку...</div>
+                    </div>
+                    <div class="setting-check">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+                    </div>
+                </div>
+            </div>
+
+            <div class="setting-hint" data-i18n="modals.attWarning">
+                При использовании внешней папки файлы не будут копироваться на флешку автоматически при переносе хранилища.
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- 📦 МОДАЛКА ЭКСПОРТА КАРТОЧКИ -->
+<div class="modal-overlay" id="export-modal">
+    <div class="modal-card confirm-card">
+        <div class="confirm-body">
+            <h3 class="confirm-title" data-i18n="modals.exportTitle">Экспорт карточки</h3>
+            <div style="margin-top: 16px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                <input type="checkbox" id="export-include-att" checked style="width: 16px; height: 16px; accent-color: var(--brand-pine); flex-shrink: 0; cursor: pointer;">
+                <label for="export-include-att" style="font-size: 13px; color: var(--text-primary); cursor: pointer; user-select: none;" data-i18n="modals.exportIncludeAtt">Экспортировать с вложениями</label>
+            </div>
+        </div>
+        <div class="confirm-actions">
+            <button class="confirm-btn cancel-btn" onclick="document.getElementById('export-modal').classList.remove('show')" data-i18n="cancel">Отмена</button>
+            <button class="confirm-btn vault-submit-btn" style="color: white;" id="btn-confirm-export" data-i18n="modals.btnExport">Экспортировать</button>
+        </div>
+    </div>
+</div>
+
 <!-- 📝 МОДАЛКА ОТКРЫТИЯ КАРТОЧКИ -->
 <div class="modal-overlay" id="task-modal">
     <div class="modal-card task-detail-card">
@@ -232,6 +303,16 @@
                 <div id="task-dates-meta" class="task-modal-dates"></div>
             </div>
             <div class="modal-header-actions">
+                <button class="modal-detach" aria-label="Отвязать карточку" style="display: none;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                        <polyline points="16 17 21 12 16 7"></polyline>
+                        <line x1="21" y1="12" x2="9" y2="12"></line>
+                    </svg>
+                </button>
+                <button class="modal-copy-link" aria-label="Копировать ссылку">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                </button>
                 <button class="modal-export" aria-label="Экспорт">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                 </button>
@@ -312,6 +393,10 @@
     <div class="menu-item" data-action="open-card">
         <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
         <span data-i18n="menu.open">Открыть</span>
+    </div>
+    <div class="menu-item" data-action="copy-card-link">
+        <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+        <span data-i18n="menu.copyCardLink">Скопировать ссылку</span>
     </div>
     <div class="menu-item" data-action="export-card">
         <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>

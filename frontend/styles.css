@@ -1191,7 +1191,9 @@ body {
 /* Кнопки в шапке модалки (закрыть, развернуть, экспорт) в стиле эстетичных кнопок */
 .modal-close,
 .modal-maximize,
-.modal-export {
+.modal-export,
+.modal-copy-link,
+.modal-detach {
     background: transparent;
     border: none;
     cursor: pointer;
@@ -1203,29 +1205,37 @@ body {
     height: 28px;
     padding: 0;
     margin: 0;
-    border-radius: 8px; /* Красивое скругление, как в чек-листе */
-    transition: all 0.2s ease; /* Плавная анимация как у subtask-open-btn */
+    border-radius: 8px; 
+    transition: all 0.2s ease; 
 }
 
 /* Жестко фиксируем одинаковый размер самих иконок */
 .modal-close svg,
 .modal-maximize svg,
-.modal-export svg {
+.modal-export svg,
+.modal-copy-link svg,
+.modal-detach svg {
     width: 16px !important;
     height: 16px !important;
 }
 
 .modal-close:hover,
 .modal-maximize:hover,
-.modal-export:hover {
+.modal-export:hover,
+.modal-copy-link:hover,
+.modal-detach:hover {
     background: rgba(0, 0, 0, 0.05);
     color: var(--text-primary);
 }
 
+.modal-copy-link.copied { color: var(--success-done); }
+
 /* Темная тема для кнопок */
 [data-theme="dark"] .modal-close:hover,
 [data-theme="dark"] .modal-maximize:hover,
-[data-theme="dark"] .modal-export:hover {
+[data-theme="dark"] .modal-export:hover,
+[data-theme="dark"] .modal-copy-link:hover,
+[data-theme="dark"] .modal-detach:hover {
     background: rgba(255, 255, 255, 0.08);
 }
 
@@ -1797,6 +1807,30 @@ body.is-dragging-card .column-header {
     height: 0 !important;
     margin-top: -12px !important; /* Ровно компенсирует gap родительского списка (12px) */
 }
+
+.att-path-box {
+    background: rgba(0, 0, 0, 0.04);
+    padding: 12px;
+    border-radius: 8px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-primary);
+    word-break: break-all;
+    margin-bottom: 12px;
+    text-align: center;
+    border: 1px dashed var(--border-light);
+}
+[data-theme="dark"] .att-path-box { background: rgba(255, 255, 255, 0.06); }
+.att-warning {
+    margin-top: 16px;
+    font-size: 11px;
+    color: #D35446;
+    line-height: 1.45;
+    background: rgba(211, 84, 70, 0.08);
+    padding: 12px;
+    border-radius: 8px;
+}
+[data-theme="dark"] .att-warning { color: #D65A4B; background: rgba(214, 90, 75, 0.15); }
 
 /* Модальное окно подтверждения (Confirm) */
 .confirm-card {
@@ -2601,9 +2635,81 @@ body[class*="is-dragging-"] .board-tab:not(.active) {
     margin-left: 14px;
     display: flex;
     align-items: center;
+    gap: 2px; /* Зазор между кнопкой меню и кнопкой копирования */
     flex-shrink: 0;
-    /* Senior UI: приподнимаем кнопку, чтобы она была на одной оси с первой строкой текста */
-    margin-top: -2px;
+    margin-top: -4px;
+    margin-bottom: -4px;
+}
+
+.card-copy-btn {
+    background: transparent;
+    border: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    cursor: pointer;
+    opacity: 0;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    pointer-events: auto;
+}
+
+.card:hover .card-copy-btn { opacity: 1; }
+.card-copy-btn:hover { background: rgba(0, 0, 0, 0.06); color: var(--text-primary); }
+[data-theme="dark"] .card-copy-btn:hover { background: rgba(255, 255, 255, 0.08); }
+.card-copy-btn.copied { color: var(--success-done); }
+
+/* Контейнер для левых кнопок (Глазик + Отвязка) */
+.subtask-left-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px; /* Идеальный зазор между кнопками, как у кнопок корзины справа */
+    flex-shrink: 0;
+    margin-left: -4px; /* Чуть подтягиваем всю группу ближе к чекбоксу */
+}
+
+/* Кнопка отвязки подзадачи */
+.subtask-detach-btn {
+    opacity: 1; 
+    background: transparent;
+    border: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    
+    /* Удалили отрицательные отступы, теперь всё контролирует Flexbox */
+    margin: 0 !important; 
+}
+
+.subtask-eye-btn {
+    margin: 0 !important; /* Полностью сбрасываем старые костыли */
+}
+
+.subtask-item:not(.is-board-agent) .subtask-detach-btn {
+    display: none !important; /* Прячем кнопку разрыва связи, если глазик выключен */
+}
+
+/* УБРАЛИ .subtask-item:hover .subtask-detach-btn { opacity: 1; } */
+.subtask-detach-btn:hover { background: rgba(0, 0, 0, 0.06); color: var(--text-primary); }
+[data-theme="dark"] .subtask-detach-btn:hover { background: rgba(255, 255, 255, 0.08); color: var(--text-primary); }
+
+/* 📦 МОДАЛКА ЭКСПОРТА КАРТОЧКИ
+   Поднимаем z-index выше, чем у .modal-overlay (9999999), 
+   потому что эта модалка вызывается ПОВЕРХ уже открытой карточки задачи. 
+   Без этого правила #task-modal перекрывает её из-за более позднего 
+   расположения в DOM при одинаковом z-index. */
+#export-modal {
+    z-index: 99999999;
 }
 
 .card-menu-btn {
@@ -3509,11 +3615,7 @@ body.is-dragging-modal * {
     cursor: pointer;
     transition: all 0.2s ease;
     flex-shrink: 0;
-    
-    /* Идеальная симметрия: компенсируем внутренние "пустые" пиксели кнопки 
-       и стандартный gap родителя (12px). Теперь отступы вокруг иконки одинаковые! */
-    margin-left: -8px !important;
-    margin-right: -8px !important;
+    margin: 0 !important; /* Убираем старые костыли, теперь всё ровно через Flexbox gap */
 }
 
 /* Выключенный глазик делаем чуть прозрачным, чтобы не "кричал" */
@@ -4830,3 +4932,134 @@ body.is-dragging-vault-history * {
     animation: tab-blink-dark 0.3s ease-in-out 2 !important;
 }
 
+
+/* ==========================================
+   AESTHETIC SETTINGS MODAL (Apple Style)
+   ========================================== */
+.settings-group-card {
+    background: rgba(0, 0, 0, 0.02);
+    border: 1px solid var(--border-light);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+[data-theme="dark"] .settings-group-card {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.setting-row {
+    display: flex;
+    align-items: center;
+    padding: 14px 16px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.setting-row:hover {
+    background: rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="dark"] .setting-row:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.setting-row {
+    position: relative; /* Для позиционирования линии */
+    display: flex;
+    align-items: center;
+    padding: 14px 16px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+/* Рисуем идеальную линию у всех строк, кроме последней */
+.setting-row:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;    /* Линия идёт от самого левого края карточки (Apple-style full-width separator) */
+    right: 0;   /* Дотягиваем ровно до правого края карточки */
+    height: 1px;
+    background: var(--border-light);
+}
+
+.setting-row:hover {
+    background: rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="dark"] .setting-row:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.setting-icon-box {
+    width: 20px;
+    height: 20px;
+    color: var(--text-secondary);
+    margin-right: 12px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.setting-icon-box svg {
+    width: 100%;
+    height: 100%;
+}
+
+.setting-text-box {
+    flex: 1;
+    min-width: 0;
+}
+
+.setting-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 2px;
+}
+
+.setting-desc {
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+    white-space: normal;      /* Разрешаем перенос строк */
+    word-break: break-word;   /* Если путь слишком длинный, переносим по буквам */
+    padding-right: 8px;       /* Чтобы текст не прилипал к галочке */
+}
+
+/* Галочка выбора */
+.setting-check {
+    width: 16px;
+    height: 16px;
+    color: var(--brand-pine);
+    opacity: 0;
+    transform: scale(0.8);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    margin-left: 12px;
+}
+
+[data-theme="dark"] .setting-check {
+    color: #89A085;
+}
+
+.setting-row.active .setting-check {
+    opacity: 1;
+    transform: scale(1);
+}
+
+/* Активная строка имеет чуть более яркую иконку */
+.setting-row.active .setting-icon-box {
+    color: var(--brand-pine);
+}
+[data-theme="dark"] .setting-row.active .setting-icon-box {
+    color: #89A085;
+}
+
+.setting-hint {
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+    padding: 0 4px;
+    opacity: 0.8;
+}

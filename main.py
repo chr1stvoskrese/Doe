@@ -13,7 +13,7 @@ from src.api.v1 import columns, tasks, system, workspaces
 from src.db.database import init_dev_database, close_database
 from fastapi import Response
 
-from src.core.config import get_active_vault
+from src.core.config import get_active_vault, get_attachments_dir
 
 
 
@@ -38,14 +38,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/attachments/{file_path:path}")
+@app.get("/doe/{file_path:path}")
 async def serve_attachment(file_path: str):
     """
-    Раздает файлы из папки attachments активного хранилища.
+    Раздает файлы из папки doe (локальной или глобальной).
     Это необходимо, чтобы Markdown мог рендерить теги <img> с относительными путями.
+    Папка называется "doe", потому что концептуально файлы принадлежат приложению Doe.
     """
-    vault_path = Path(get_active_vault())
-    full_path = vault_path / "attachments" / file_path
+    attachments_dir = get_attachments_dir()
+    full_path = attachments_dir / file_path
     
     if full_path.exists() and full_path.is_file():
         return FileResponse(full_path)

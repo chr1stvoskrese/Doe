@@ -17,7 +17,7 @@ from src.core.config import reorder_vault_history
 from urllib.parse import unquote
 
 from src.db.database import switch_vault
-from src.core.config import get_active_vault, get_ui_settings, set_ui_settings
+from src.core.config import get_active_vault, get_ui_settings, set_ui_settings, get_attachments_dir
 
 router = APIRouter(prefix="/system", tags=["system"])
 
@@ -85,29 +85,89 @@ class SettingsUpdate(BaseModel):
     theme: Optional[str] = None
     language: Optional[str] = None
     active_workspace_id: Optional[int] = None
+    global_attachments_path: Optional[str] = None
+    reset_attachments: Optional[bool] = False
 
 class SettingsResponse(BaseModel):
     theme: str
     language: str
     active_workspace_id: Optional[int] = None
+    global_attachments_path: Optional[str] = None
 
 @router.get("/settings", response_model=SettingsResponse)
 async def get_settings_endpoint():
     return SettingsResponse(**get_ui_settings())
 
+from src.db.models import TaskModel
+from sqlalchemy import select
+from urllib.parse import unquote
+import re
+
 @router.put("/settings", response_model=SettingsResponse)
-async def update_settings_endpoint(settings: SettingsUpdate):
+async def update_settings_endpoint(settings: SettingsUpdate, db: AsyncSession = Depends(get_session)):
+    # 1. Запоминаем СТАРУЮ папку вложений и её тип
+    old_att_dir = get_attachments_dir()
+    old_settings = get_ui_settings()
+    was_global = bool(old_settings.get("global_attachments_path"))
+
+    # 2. Применяем новые настройки
     set_ui_settings(
         theme=settings.theme, 
         language=settings.language,
-        active_workspace_id=settings.active_workspace_id
+        active_workspace_id=settings.active_workspace_id,
+        global_attachments_path=settings.global_attachments_path,
+        reset_attachments=settings.reset_attachments
     )
+
+    # 3. Узнаем НОВУЮ папку вложений
+    new_att_dir = get_attachments_dir()
+
+    # 4. 🔥 УМНАЯ МИГРАЦИЯ ФАЙЛОВ
+    if old_att_dir != new_att_dir and old_att_dir.exists() and old_att_dir.is_dir():
+        new_att_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Если мы уходим из глобальной папки в локальную, нужно забрать ТОЛЬКО СВОИ файлы
+        allowed_files = None
+        if was_global and settings.reset_attachments:
+            allowed_files = set()
+            result = await db.execute(select(TaskModel.description).where(TaskModel.description.isnot(None)))
+            descriptions = result.scalars().all()
+            pattern = re.compile(r'\]\((doe/[^\)]+)\)')
+            for desc in descriptions:
+                matches = pattern.findall(desc)
+                for match in matches:
+                    # Извлекаем чистое имя файла: "doe/img.png" -> "img.png"
+                    clean_name = unquote(match).replace("doe/", "", 1)
+                    allowed_files.add(clean_name)
+
+        # Перенос файлов
+        for item in old_att_dir.iterdir():
+            if item.is_file():
+                # Если фильтр включен, пропускаем чужие файлы
+                if allowed_files is not None and item.name not in allowed_files:
+                    continue
+
+                target_file = new_att_dir / item.name
+                if not target_file.exists():
+                    try:
+                        shutil.move(str(item), str(target_file))
+                    except Exception as e:
+                        print(f"[System] Failed to move attachment {item.name}: {e}")
+
+        # Очищаем старую папку, только если мы уходим из ЛОКАЛЬНОЙ,
+        # глобальную папку удалять опасно, вдруг там файлы других хранилищ.
+        if not was_global:
+            try:
+                if not any(old_att_dir.iterdir()):
+                    old_att_dir.rmdir()
+            except Exception:
+                pass
+
     return SettingsResponse(**get_ui_settings())
 
 @router.post("/upload")
 async def upload_file(file: UploadFile = File(...)):
-    vault_path = Path(get_active_vault())
-    attachments_dir = vault_path / "attachments"
+    attachments_dir = get_attachments_dir()
     attachments_dir.mkdir(parents=True, exist_ok=True)
     
     file_path = attachments_dir / file.filename
@@ -119,15 +179,14 @@ async def upload_file(file: UploadFile = File(...)):
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
         
-    return {"path": f"attachments/{file_path.name}", "name": file_path.name}
+    return {"path": f"doe/{file_path.name}", "name": file_path.name}
 
 class ImportFileReq(BaseModel):
     absolute_path: str
 
 @router.post("/import-file")
 async def import_file(req: ImportFileReq):
-    vault_path = Path(get_active_vault())
-    attachments_dir = vault_path / "attachments"
+    attachments_dir = get_attachments_dir()
     attachments_dir.mkdir(parents=True, exist_ok=True)
     
     src_path = Path(req.absolute_path)
@@ -141,18 +200,18 @@ async def import_file(req: ImportFileReq):
         counter += 1
         
     shutil.copy2(src_path, file_path)
-    return {"path": f"attachments/{file_path.name}", "name": file_path.name}
+    return {"path": f"doe/{file_path.name}", "name": file_path.name}
 
 class OpenFileReq(BaseModel):
     path: str
 
 @router.post("/open-file")
 async def open_file_endpoint(req: OpenFileReq):
-    vault_path = Path(get_active_vault())
-    abs_path = vault_path / req.path
+    filename = req.path.replace("doe/", "", 1)
+    abs_path = get_attachments_dir() / filename
     
     if not abs_path.exists():
-        raise HTTPException(status_code=404, detail="File not found in vault")
+        raise HTTPException(status_code=404, detail="File not found")
         
     try:
         if sys.platform == 'darwin':
@@ -168,18 +227,19 @@ class ValidateAttachmentsReq(BaseModel):
 
 @router.post("/validate-attachments")
 async def validate_attachments(req: ValidateAttachmentsReq):
-    vault_path = Path(get_active_vault())
+    att_dir = get_attachments_dir()
     result = {}
     
     for p in req.paths:
         try:
             decoded_path = unquote(p)
-            abs_path = vault_path / decoded_path
+            filename = decoded_path.replace("doe/", "", 1)
+            abs_path = att_dir / filename
             
             if abs_path.exists() and abs_path.is_file():
                 result[p] = {"exists": True, "real_name": abs_path.name}
             else:
-                result[p] = {"exists": False, "real_name": Path(decoded_path).name}
+                result[p] = {"exists": False, "real_name": filename}
         except Exception:
             result[p] = {"exists": False, "real_name": "Unknown"}
             
@@ -263,14 +323,14 @@ async def delete_file_endpoint(req: DeleteFileReq):
     Мгновенное физическое удаление файла с диска.
     Используется только при явном нажатии на 'Удалить' во вложениях.
     """
-    vault_path = Path(get_active_vault())
-    # unquote, так как в пути могут быть %20 вместо пробелов
+    att_dir = get_attachments_dir()
     clean_rel_path = unquote(req.path)
+    filename = clean_rel_path.replace("doe/", "", 1)
     
     # Защита от выхода за пределы папки (path traversal)
-    abs_path = (vault_path / clean_rel_path).resolve()
+    abs_path = (att_dir / filename).resolve()
     
-    if not str(abs_path).startswith(str(vault_path / "attachments")):
+    if not str(abs_path).startswith(str(att_dir.resolve())):
         raise HTTPException(status_code=403, detail="Access denied")
 
     try:

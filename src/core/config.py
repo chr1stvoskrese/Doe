@@ -65,6 +65,16 @@ def get_vault_history() -> list[str]:
     data = _load_config()
     return data.get("vault_history", [])
 
+def get_attachments_dir() -> Path:
+    data = _load_config()
+    custom_path = data.get("global_attachments_path")
+    # Если путь задан и папка физически существует - используем её
+    if custom_path and os.path.exists(custom_path):
+        return Path(custom_path)
+    # Иначе фолбэк на стандартную локальную папку внутри хранилища.
+    # Папка называется "doe" — это файлы, принадлежащие приложению.
+    return Path(get_active_vault()) / "doe"
+
 def get_ui_settings() -> dict:
     data = _load_config()
     vault_path = get_active_vault()
@@ -72,13 +82,19 @@ def get_ui_settings() -> dict:
     return {
         "theme": data.get("theme", "light"),
         "language": data.get("language", "ru"),
-        "active_workspace_id": active_workspaces.get(vault_path)
+        "active_workspace_id": active_workspaces.get(vault_path),
+        "global_attachments_path": data.get("global_attachments_path")
     }
 
-def set_ui_settings(theme: str = None, language: str = None, active_workspace_id: int = None) -> None:
+def set_ui_settings(theme: str = None, language: str = None, active_workspace_id: int = None, global_attachments_path: str = None, reset_attachments: bool = False) -> None:
     data = _load_config()
     if theme is not None: data["theme"] = theme
     if language is not None: data["language"] = language
+    
+    if reset_attachments:
+        data.pop("global_attachments_path", None)
+    elif global_attachments_path is not None:
+        data["global_attachments_path"] = global_attachments_path
         
     if active_workspace_id is not None:
         vault_path = get_active_vault()

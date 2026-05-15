@@ -37,6 +37,7 @@ class TaskMove(BaseModel):
 class TaskExportReq(BaseModel):
     """Схема для запроса экспорта карточки."""
     export_path: str = Field(..., description="Абсолютный путь к папке для экспорта")
+    include_attachments: bool = Field(True, description="Копировать ли физически папку вложений")
 
 
 class TimerSessionResponse(BaseModel):
