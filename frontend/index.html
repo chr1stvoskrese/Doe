@@ -479,13 +479,38 @@
 
             <!-- Вкладка "Точная дата" -->
             <div id="notify-absolute" class="notify-tab-content">
-                <input type="datetime-local" id="notify-datetime" class="column-input" style="width: 100%; text-align: center; cursor: pointer;">
+                <div class="column-input datepicker-trigger" id="datepicker-trigger"></div>
             </div>
 
             <div class="confirm-actions" style="padding: 16px 0 0 0;">
                 <button class="confirm-btn cancel-btn" onclick="document.getElementById('notify-modal').classList.remove('show')" data-i18n="cancel">Отмена</button>
                 <button class="confirm-btn vault-submit-btn" style="color: white;" id="btn-confirm-notify" data-i18n="modals.btnSet">Установить</button>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- 📅 ГЛОБАЛЬНЫЙ КАСТОМНЫЙ КАЛЕНДАРЬ -->
+<div class="dropdown-menu datepicker-dropdown" id="datepicker-dropdown">
+    <div class="datepicker-header">
+        <div style="display: flex; gap: 2px;">
+            <button class="icon-btn" id="dp-prev-year"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="11 17 6 12 11 7"></polyline><polyline points="18 17 13 12 18 7"></polyline></svg></button>
+            <button class="icon-btn" id="dp-prev"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
+        </div>
+        <div class="datepicker-current-month" id="dp-month-year"></div>
+        <div style="display: flex; gap: 2px;">
+            <button class="icon-btn" id="dp-next"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
+            <button class="icon-btn" id="dp-next-year"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="13 17 18 12 13 7"></polyline><polyline points="6 17 11 12 6 7"></polyline></svg></button>
+        </div>
+    </div>
+    <div class="datepicker-grid-header" id="dp-weekdays"></div>
+    <div class="datepicker-grid" id="dp-grid"></div>
+    <div class="datepicker-time-row">
+        <span class="time-label" id="dp-time-label">Время:</span>
+        <div class="time-inputs">
+            <input type="number" class="time-input" id="dp-hour" min="0" max="23">
+            <span>:</span>
+            <input type="number" class="time-input" id="dp-minute" min="0" max="59">
         </div>
     </div>
 </div>
@@ -503,6 +528,6 @@
 
 <script src="static/prism.min.js"></script>
 <script src="static/marked.min.js"></script>
-<script src="/static/app.js"></script>
+<script src="/static/app.js?v=historyfix"></script>
 </body>
 </html>

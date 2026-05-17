@@ -420,10 +420,46 @@ body {
 }
 .search-result-item:hover { background: rgba(0, 0, 0, 0.04); }
 
-.search-result-title { font-size: 13px; font-weight: 600; color: var(--text-primary); }
-.search-result-meta { font-size: 11px; color: var(--text-secondary); display: flex; align-items: center; gap: 4px; }
-.search-result-meta svg { width: 12px; height: 12px; opacity: 0.7; }
-.search-result-desc { font-size: 12px; color: var(--text-secondary); line-height: 1.4; }
+.search-result-title { 
+    font-size: 13px; 
+    font-weight: 600; 
+    color: var(--text-primary);
+    /* Перенос длинных слов и обрезка по 2 строкам с многоточием */
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+    line-height: 1.4;
+}
+.search-result-meta { 
+    font-size: 11px; 
+    color: var(--text-secondary); 
+    display: flex; 
+    align-items: center; 
+    gap: 4px;
+    /* Мета (Карточка · Вкладка / Колонка) — одна строка с многоточием */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+}
+.search-result-meta svg { width: 12px; height: 12px; opacity: 0.7; flex-shrink: 0; }
+.search-result-desc { 
+    font-size: 12px; 
+    color: var(--text-secondary); 
+    line-height: 1.4;
+    /* Сниппет — перенос длинных слов, максимум 3 строки */
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    overflow: hidden;
+}
 
 /* Унифицированная подсветка поиска (Абсолютная копия выделения курсором) */
 .search-result-item mark,
@@ -520,8 +556,6 @@ body {
     padding: 0 0 16px 24px; /* Уменьшили нижний паддинг до 16px для соосности со скроллом */
     overflow-x: auto;           
     overflow-y: hidden;
-    /* Режим "скроллбар-отступ": резервирует место под скролл, чтобы контент не прыгал */
-    scrollbar-gutter: stable; 
 }
 
 /* Внутренний контейнер доски */
@@ -1340,62 +1374,15 @@ select.column-input {
     background-image: url('data:image/svg+xml;utf8,<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="%23828A80" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>');
     background-repeat: no-repeat;
     background-position: right 12px center;
+    padding-left: 32px;
     padding-right: 32px;
+    text-align: center;
+    text-align-last: center; /* ФИКС: Принудительное центрирование select в WebKit/Blink */
 }
 [data-theme="dark"] select.column-input {
     background-image: url('data:image/svg+xml;utf8,<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="%238B9088" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>');
 }
 
-/* Эстетичный календарь (datetime-local) */
-input[type="datetime-local"] {
-    accent-color: var(--brand-pine); /* Убивает синий цвет внутри самого поп-апа календаря */
-}
-
-/* Убиваем синий фон у выделенного сегмента даты/времени в самом поле */
-input[type="datetime-local"]::-webkit-datetime-edit-month-field:focus,
-input[type="datetime-local"]::-webkit-datetime-edit-day-field:focus,
-input[type="datetime-local"]::-webkit-datetime-edit-year-field:focus,
-input[type="datetime-local"]::-webkit-datetime-edit-hour-field:focus,
-input[type="datetime-local"]::-webkit-datetime-edit-minute-field:focus {
-    background-color: #C3C6BC;
-    color: var(--text-primary);
-    border-radius: 4px;
-}
-
-[data-theme="dark"] input[type="datetime-local"] {
-    accent-color: #89A085;
-}
-
-[data-theme="dark"] input[type="datetime-local"]::-webkit-datetime-edit-month-field:focus,
-[data-theme="dark"] input[type="datetime-local"]::-webkit-datetime-edit-day-field:focus,
-[data-theme="dark"] input[type="datetime-local"]::-webkit-datetime-edit-year-field:focus,
-[data-theme="dark"] input[type="datetime-local"]::-webkit-datetime-edit-hour-field:focus,
-[data-theme="dark"] input[type="datetime-local"]::-webkit-datetime-edit-minute-field:focus {
-    background-color: #5C635A;
-    color: #FFFFFF;
-}
-
-input[type="datetime-local"]::-webkit-calendar-picker-indicator {
-    cursor: pointer;
-    opacity: 0.5;
-    transition: opacity 0.2s ease, transform 0.2s ease, background-color 0.2s ease;
-    padding: 4px;
-    border-radius: 6px;
-}
-input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
-    opacity: 1;
-    background-color: rgba(0, 0, 0, 0.05);
-}
-input[type="datetime-local"]::-webkit-calendar-picker-indicator:active {
-    transform: scale(0.9);
-}
-[data-theme="dark"] input[type="datetime-local"]::-webkit-calendar-picker-indicator {
-    filter: invert(1) opacity(0.8);
-}
-[data-theme="dark"] input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-    filter: invert(1) opacity(1);
-}
 
 /* --- ПОЛНОЭКРАННЫЙ РЕЖИМ КАРТОЧКИ --- */
 .task-detail-card.maximized {
@@ -4068,7 +4055,8 @@ body.is-dragging-subtask .subtask-item {
     transition: all 0.2s ease;
 }
 
-.subtask-delete-btn {
+.subtask-delete-btn,
+.subtask-open-btn {
     transition: opacity 0.2s ease, background 0.2s ease, color 0.2s ease !important;
     transform: translateZ(0);
 }
@@ -4261,30 +4249,37 @@ body.is-dragging-attachment .attachment-item:not(.attachment-drag-clone) {
 }
 
 /* ==========================================
-   СТИЛИ ПОТЕРЯННЫХ ВЛОЖЕНИЙ
+   СТИЛИ ПОТЕРЯННЫХ ВЛОЖЕНИЙ И ХРАНИЛИЩ
    ========================================== */
 
 /* Красный цвет для иконки вопроса */
-.attachment-item .subtask-checkbox.missing {
+.attachment-item .subtask-checkbox.missing,
+.vault-history-item .subtask-checkbox.missing {
     cursor: pointer; /* Подсказываем, что можно кликнуть */
 }
-.attachment-item .subtask-checkbox.missing svg {
+.attachment-item .subtask-checkbox.missing svg,
+.vault-history-item .subtask-checkbox.missing svg {
     color: #D35446 !important;
     opacity: 1 !important;
 }
 
-/* Перечеркнутый полупрозрачный текст для потерянного файла */
-.attachment-item .subtask-title.missing-text {
+/* Перечеркнутый полупрозрачный текст для потерянного файла/хранилища */
+.attachment-item .subtask-title.missing-text,
+.vault-history-name.missing-text,
+.vault-history-path.missing-text {
     color: var(--text-secondary);
     text-decoration: line-through;
     opacity: 0.7;
 }
 
 /* Темная тема */
-[data-theme="dark"] .attachment-item .subtask-checkbox.missing svg {
+[data-theme="dark"] .attachment-item .subtask-checkbox.missing svg,
+[data-theme="dark"] .vault-history-item .subtask-checkbox.missing svg {
     color: #D65A4B !important;
 }
-[data-theme="dark"] .attachment-item .subtask-title.missing-text {
+[data-theme="dark"] .attachment-item .subtask-title.missing-text,
+[data-theme="dark"] .vault-history-name.missing-text,
+[data-theme="dark"] .vault-history-path.missing-text {
     color: rgba(255, 255, 255, 0.4);
 }
 
@@ -4857,6 +4852,13 @@ body.is-dragging-attachment .attachment-item:not(.attachment-drag-clone) {
     cursor: grabbing !important;
 }
 
+/* Не показываем кулак при простом клике на потерянное хранилище.
+   Селектор отключается, когда стартует реальный драг (body получает класс is-dragging-vault-history),
+   и тогда глобальный кулак возвращается. */
+body:not(.is-dragging-vault-history) .vault-history-item.is-missing:active {
+    cursor: pointer !important;
+}
+
 .vault-history-meta {
     display: flex;
     align-items: center;
@@ -4899,6 +4901,12 @@ body.is-dragging-vault-history * {
     font-family: var(--font-main);
     font-size: 14px;
     letter-spacing: -0.01em;
+    
+    /* Обрезка слишком длинного названия с троеточием */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
 }
 
 /* Изменили класс с .subtask-title на .vault-history-path, чтобы убить переименование */
@@ -4958,8 +4966,9 @@ body.is-dragging-vault-history * {
     pointer-events: none !important;
 }
 
-/* 🔥 ИСПРАВЛЕНО: Принудительно показываем корзину во время перетаскивания */
-.vault-history-drag-clone .subtask-delete-btn {
+/* 🔥 ИСПРАВЛЕНО: Принудительно показываем кнопки действий во время перетаскивания */
+.vault-history-drag-clone .subtask-delete-btn,
+.vault-history-drag-clone .subtask-open-btn {
     opacity: 1 !important;
     color: var(--text-secondary) !important;
 }
@@ -5155,27 +5164,6 @@ body.is-dragging-vault-history * {
     display: none !important;
 }
 
-/* ==========================================
-   АНИМАЦИЯ МОРГАНИЯ ВКЛАДОК ПРИ DRAG & DROP
-   ========================================== */
-@keyframes tab-blink {
-    0%, 100% { background: transparent; }
-    50% { background: rgba(74, 90, 72, 0.2); }
-}
-
-@keyframes tab-blink-dark {
-    0%, 100% { background: transparent; }
-    50% { background: rgba(255, 255, 255, 0.15); }
-}
-
-.board-tab.is-blinking {
-    animation: tab-blink 0.3s ease-in-out 2 !important;
-}
-
-[data-theme="dark"] .board-tab.is-blinking {
-    animation: tab-blink-dark 0.3s ease-in-out 2 !important;
-}
-
 
 /* ==========================================
    AESTHETIC SETTINGS MODAL (Apple Style)
@@ -5328,9 +5316,9 @@ body.is-dragging-vault-history * {
 
 .board-scrollbar {
     position: absolute;
-    bottom: 4px;
-    left: 24px;
-    right: 24px;
+    bottom: 0;
+    left: 0;
+    right: 0;
     height: 4px;
     background: transparent;
     border-radius: 4px;
@@ -5425,4 +5413,196 @@ body.is-dragging-vault-history * {
     font-size: 12px;
     color: var(--text-secondary);
     line-height: 1.3;
+}
+
+/* ==========================================
+   КАСТОМНЫЙ КАЛЕНДАРЬ БЕЗ КОМПРОМИССОВ (DATEPICKER)
+   ========================================== */
+.custom-datepicker-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.datepicker-trigger {
+    width: 100%;
+    text-align: center;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.2s, border-color 0.2s;
+    line-height: 20px;
+}
+
+.datepicker-trigger:hover {
+    background: rgba(0, 0, 0, 0.03);
+}
+
+[data-theme="dark"] .datepicker-trigger:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.datepicker-dropdown {
+    position: fixed !important;
+    z-index: 2147483647 !important; /* Абсолютный максимум поверх всех модалок */
+    margin: 0 !important;
+    width: 210px; /* Ужали до компактных размеров */
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px; /* Убрали лишний воздух */
+    /* Базовая анимация (направление переопределяется через JS) */
+    transform: translateX(-50%) scale(0.96);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.2s;
+}
+
+.datepicker-dropdown.show {
+    transform: translateX(-50%) scale(1) !important;
+    opacity: 1;
+    visibility: visible;
+}
+
+.datepicker-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 2px;
+}
+
+/* Переопределяем глобальный размер icon-btn специально для календаря */
+.datepicker-header .icon-btn {
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+}
+
+.datepicker-current-month {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.datepicker-grid-header {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    text-align: center;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 2px;
+}
+
+.datepicker-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 1px; /* Сетка почти вплотную */
+}
+
+.dp-cell {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px; /* Мелкий, аккуратный шрифт */
+    font-weight: 500;
+    color: var(--text-primary);
+    border-radius: 4px;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.1s, color 0.1s;
+}
+
+.dp-cell:hover:not(.empty) {
+    background: rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="dark"] .dp-cell:hover:not(.empty) {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.dp-cell.empty {
+    opacity: 0.3;
+    pointer-events: none;
+}
+
+/* Сегодняшний день */
+.dp-cell.today {
+    color: var(--brand-pine);
+    font-weight: 700;
+    background: var(--brand-pale);
+}
+
+/* Выбранный день */
+.dp-cell.selected {
+    background: var(--brand-pine) !important;
+    color: white !important;
+    font-weight: 600;
+}
+
+[data-theme="dark"] .dp-cell.today {
+    color: #A7C0A2;
+    background: rgba(137, 160, 133, 0.15);
+}
+
+[data-theme="dark"] .dp-cell.selected {
+    background: #89A085 !important;
+    color: #161815 !important;
+}
+
+.datepicker-time-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 4px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border-light);
+}
+
+.time-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.time-inputs {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.time-input {
+    width: 32px;
+    background: rgba(0, 0, 0, 0.04);
+    border: 1px solid transparent;
+    border-radius: 4px;
+    padding: 2px 4px;
+    text-align: center;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-primary);
+    outline: none;
+    transition: all 0.2s;
+}
+
+.time-input:focus {
+    background: var(--surface-card);
+    border-color: rgba(74, 90, 72, 0.4);
+}
+
+[data-theme="dark"] .time-input {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+[data-theme="dark"] .time-input:focus {
+    background: var(--surface-card);
+    border-color: rgba(137, 160, 133, 0.4);
+}
+
+/* Убираем стрелочки у полей времени */
+.time-input::-webkit-inner-spin-button,
+.time-input::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
 }

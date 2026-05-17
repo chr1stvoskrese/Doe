@@ -126,3 +126,24 @@ def reorder_vault_history(ordered_paths: list[str]) -> None:
     data["vault_history"] = new_history
     _save_config(data)
 
+def relink_vault_history(old_path: str, new_path: str) -> None:
+    data = _load_config()
+    history = data.get("vault_history", [])
+    
+    new_history = []
+    for item in history:
+        if isinstance(item, str):
+            if item == old_path:
+                new_history.append({"path": new_path, "last_opened": None})
+            else:
+                new_history.append(item)
+        elif isinstance(item, dict):
+            if item.get("path") == old_path:
+                item["path"] = new_path
+                new_history.append(item)
+            else:
+                new_history.append(item)
+                
+    data["vault_history"] = new_history
+    _save_config(data)
+

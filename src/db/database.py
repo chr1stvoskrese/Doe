@@ -23,38 +23,97 @@ else:
     # Если мы в src/db/database.py, то корень проекта на 3 уровня выше
     BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
+
+def _backup_filename(db_path: Path) -> Path:
+    """Имя аварийного бэкапа для данной БД: например 'My Vault.backup.db'."""
+    return db_path.with_suffix(".backup.db")
+
+
+def _is_backup_file(p: Path) -> bool:
+    """Распознаём бэкап независимо от имени хранилища."""
+    return p.name.endswith(".backup.db")
+
+
+def _resolve_db_path(vault_path: str) -> Path:
+    """
+    Возвращает путь к рабочему файлу БД для данного хранилища.
+    
+    Философия: Файл .db — независимая сущность. 
+    Мы не привязываемся к его имени и никогда его не переименовываем.
+    Папка хранилища — лишь контейнер.
+    """
+    vault_dir = Path(vault_path)
+    
+    # 1. Ищем все .db файлы в папке, исключая аварийные бэкапы (*.backup.db)
+    candidates = [f for f in vault_dir.glob("*.db") if not _is_backup_file(f)]
+    
+    if candidates:
+        # Если находим файлы, берем самый свежий по времени изменения.
+        # Мы НЕ ПЕРЕИМЕНОВЫВАЕМ его. Пользователь может назвать его как угодно,
+        # перенести из другой папки или использовать копию из облака (например, "MyData (Конфликт).db").
+        target_db = max(candidates, key=lambda p: p.stat().st_mtime)
+        print(f"[Database] Found existing database file: {target_db.name}")
+        return target_db
+
+    # 2. Если файлов нет (создание абсолютно нового хранилища), 
+    # даем ему эстетичное базовое имя, совпадающее с именем папки.
+    # Alembic создаст этот файл при инициализации.
+    vault_name = vault_dir.name
+    new_db_target = vault_dir / f"{vault_name}.db"
+    print(f"[Database] No existing DB found. Targeting new file: {new_db_target.name}")
+    return new_db_target
+
+
 def get_database_url(vault_path: str) -> str:
-    db_file = os.path.join(vault_path, "board.db")
-    return f"sqlite+aiosqlite:///{db_file}"
+    db_file = _resolve_db_path(vault_path)
+    # SQLite-URL с абсолютным путём корректно работает с пробелами и кириллицей.
+    # POSIX-разделители безопасны и на Windows.
+    return f"sqlite+aiosqlite:///{db_file.as_posix()}"
+
 
 def run_migrations(vault_path: str):
     alembic_ini_path = BASE_DIR / "alembic.ini"
     alembic_scripts_path = BASE_DIR / "alembic"
-    
-    db_file = os.path.join(vault_path, "board.db")
-    
-    # === SENIOR HACK: AUTO-BACKUP ===
-    # Перед тем как Alembic начнет трогать базу, делаем её копию
-    if os.path.exists(db_file):
-        backup_file = os.path.join(vault_path, "board.backup.db")
+
+    db_file = _resolve_db_path(vault_path)
+    backup_file = _backup_filename(db_file)
+
+    # === АВАРИЙНЫЙ БЭКАП ===
+    # Создаём временную копию ТОЛЬКО на время миграций.
+    # Если миграции пройдут успешно — копия будет удалена.
+    # Если упадут — копия останется как точка восстановления.
+    backup_created = False
+    if db_file.exists():
         try:
             shutil.copy2(db_file, backup_file)
-            print(f"[Database] Backup created at {backup_file}")
+            backup_created = True
+            print(f"[Database] Pre-migration safety backup created: {backup_file.name}")
         except Exception as e:
-            print(f"[Database] Failed to create backup: {e}")
-    # ================================
+            print(f"[Database] Failed to create safety backup: {e}")
 
-    sync_url = f"sqlite:///{db_file}"
+    # Собираем URL для синхронного Alembic.
+    # Экранируем '%', чтобы ConfigParser в Alembic не пытался его интерполировать.
+    sync_url = f"sqlite:///{db_file.as_posix()}".replace("%", "%%")
 
     alembic_cfg = Config(str(alembic_ini_path))
     alembic_cfg.set_main_option("script_location", str(alembic_scripts_path))
     alembic_cfg.set_main_option("sqlalchemy.url", sync_url)
 
-    # Выполняем миграцию
-    command.upgrade(alembic_cfg, "head")
-    
-    # (Опционально) Если миграция прошла успешно, бэкап можно удалить,
-    # но лучше оставлять 1 последний бэкап на всякий случай.
+    try:
+        command.upgrade(alembic_cfg, "head")
+    except Exception as e:
+        # Миграция упала — НЕ удаляем бэкап, оставляем его пользователю
+        if backup_created:
+            print(f"[Database] ❌ MIGRATION FAILED! Safety backup preserved at: {backup_file}")
+        raise
+
+    # Миграция прошла успешно — папку не засоряем, чистим за собой
+    if backup_created and backup_file.exists():
+        try:
+            backup_file.unlink()
+            print(f"[Database] Migration successful — safety backup removed")
+        except Exception as e:
+            print(f"[Database] Could not remove safety backup: {e}")
 
 async def init_database(vault_path: str):
     global _engine, _session_factory
@@ -66,6 +125,17 @@ async def init_database(vault_path: str):
     # 2. Инициализируем async движок приложения
     database_url = get_database_url(vault_path)
     _engine = create_async_engine(database_url, echo=False)
+    
+    # Регистрируем кастомную SQL-функцию LOWER_RU для регистронезависимого поиска
+    # на любых языках (включая кириллицу). Штатный SQLite LOWER() умеет только ASCII.
+    from sqlalchemy import event
+    
+    @event.listens_for(_engine.sync_engine, "connect")
+    def _register_unicode_lower(dbapi_conn, conn_record):
+        def lower_ru(s):
+            return s.lower() if s is not None else None
+        dbapi_conn.create_function("LOWER_RU", 1, lower_ru, deterministic=True)
+    
     _session_factory = async_sessionmaker(_engine, class_=AsyncSession, expire_on_commit=False)
     
     # ВНИМАНИЕ: Base.metadata.create_all УБРАНО! Теперь всем рулит Alembic.

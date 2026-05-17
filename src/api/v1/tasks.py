@@ -104,12 +104,10 @@ async def schedule_notification_endpoint(task_id: int, req: TaskNotifyReq):
         executable = sys.executable
         
         if getattr(sys, 'frozen', False):
-            # В собранном приложении (PyInstaller) executable - это сам наш бинарник
-            args = [executable, "--notify", str(req.delay_seconds), req.title, req.message]
+            args = [executable, "--notify", str(req.delay_seconds), req.title, req.message, str(task_id)]
         else:
-            # В режиме разработки нужно явно указать интерпретатору файл wrapper.py
             wrapper_path = os.path.abspath(sys.argv[0])
-            args = [executable, wrapper_path, "--notify", str(req.delay_seconds), req.title, req.message]
+            args = [executable, wrapper_path, "--notify", str(req.delay_seconds), req.title, req.message, str(task_id)]
         
         # Порождаем полностью отсоединённый процесс, который выживет после закрытия основного приложения
         if sys.platform == 'win32':

@@ -144,6 +144,48 @@ const translations = {
     }
 };
 
+const dpLocales = {
+    ru: {
+        months: ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'],
+        days: ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'],
+        time: 'Время'
+    },
+    en: {
+        months: ['January','February','March','April','May','June','July','August','September','October','November','December'],
+        days: ['Mo','Tu','We','Th','Fr','Sa','Su'],
+        time: 'Time'
+    }
+};
+
+// Эстетичные внутрипрограммные уведомления
+let toastTimeout;
+window.showToast = (title, message, isError = false) => {
+    const toast = document.getElementById('app-toast');
+    if (!toast) return;
+
+    const titleEl = document.getElementById('app-toast-title');
+    const msgEl = document.getElementById('app-toast-message');
+    const iconEl = document.querySelector('.app-toast-icon');
+
+    titleEl.textContent = title;
+    msgEl.textContent = message;
+
+    if (isError) {
+        iconEl.style.color = '#D35446';
+        iconEl.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>`;
+    } else {
+        iconEl.style.color = 'var(--success-done)';
+        iconEl.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>`;
+    }
+
+    toast.classList.remove('show');
+    void toast.offsetWidth; // Сбрасываем CSS-анимацию
+    toast.classList.add('show');
+
+    clearTimeout(toastTimeout);
+    toastTimeout = setTimeout(() => toast.classList.remove('show'), 3500);
+};
+
 // Глобальная защита: запрещаем браузеру открывать файлы при случайном перетаскивании мимо зоны
 window.addEventListener('dragover', (e) => e.preventDefault());
 window.addEventListener('drop', (e) => e.preventDefault());
@@ -332,7 +374,12 @@ async function deleteWorkspaceAPI(id) {
 }
 
 async function fetchVault() {
-    const res = await fetch(`${API_BASE}/system/vault`);
+    const res = await fetch(`${API_BASE}/system/vault?t=${Date.now()}`, {
+        headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+        }
+    });
     if (!res.ok) throw new Error('Error fetch vault');
     return res.json();
 }
@@ -480,7 +527,12 @@ async function moveTask(taskId, targetColumnId) {
 }
 
 async function fetchSettings() {
-    const res = await fetch(`${API_BASE}/system/settings`);
+    const res = await fetch(`${API_BASE}/system/settings?t=${Date.now()}`, {
+        headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+        }
+    });
     if (!res.ok) throw new Error('Error fetch settings');
     return res.json();
 }
@@ -604,6 +656,7 @@ function renderBoard() {
     requestAnimationFrame(() => {
         adjustCollapsedColumnWidths();
         clampExpandedTitles();
+        if (window.updateBoardScrollbar) window.updateBoardScrollbar();
     });
 }
 
@@ -1687,7 +1740,7 @@ async function handleColumnMenu(action, columnEl, menuItem) {
         clearColumn(columnId).catch(async e => {
             console.error("Очистка колонки не удалась:", e);
             await refreshBoard(); // Если ошибка - откатываем UI
-            alert(t('alerts.error'));
+            window.showToast(t('alerts.error'), 'Не удалось очистить колонку', true);
         });
 
         // 4. Удаляем карточки из DOM после завершения анимации растворения
@@ -1732,7 +1785,7 @@ async function handleColumnMenu(action, columnEl, menuItem) {
         deleteColumn(columnId).catch(async e => {
             console.error("Delete column failed:", e);
             await refreshBoard();
-            alert(t('alerts.error'));
+            window.showToast(t('alerts.error'), 'Не удалось удалить колонку', true);
         });
 
         // 5. Запускаем анимации на следующем кадре (чтобы браузер успел отрисовать DOM)
@@ -2595,18 +2648,13 @@ function performHitTest() {
                 clearTimeout(tabSwitchTimeout);
                 pendingSwitchTabId = tabId;
 
-                document.querySelectorAll('.board-tab.is-blinking').forEach(el => el.classList.remove('is-blinking'));
-                hoverTab.classList.add('is-blinking');
-
                 tabSwitchTimeout = setTimeout(async () => {
-                    hoverTab.classList.remove('is-blinking');
                     await switchToWorkspaceDuringDrag(tabId);
                 }, 600); 
             }
         } else {
             clearTimeout(tabSwitchTimeout);
             pendingSwitchTabId = null;
-            document.querySelectorAll('.board-tab.is-blinking').forEach(el => el.classList.remove('is-blinking'));
         }
         return; 
     } else {
@@ -2883,7 +2931,6 @@ async function endDrag() {
     isDragging = false;
     cancelAnimationFrame(rafId);
     clearTimeout(tabSwitchTimeout);
-    document.querySelectorAll('.board-tab.is-blinking').forEach(el => el.classList.remove('is-blinking'));
     
     document.body.classList.remove(`is-dragging-${dragType}`);
     document.body.style.userSelect = '';
@@ -3286,14 +3333,19 @@ document.addEventListener('click', async (e) => {
                         body: JSON.stringify({ export_path: exportDir, include_attachments: includeAtt })
                     }).then(res => {
                         exportModalBtn.style.opacity = '1';
-                        if (!res.ok) alert(t('alerts.error'));
+                        if (!res.ok) {
+                            window.showToast(t('alerts.error'), 'Ошибка при экспорте', true);
+                        } else {
+                            window.showToast('Экспорт завершён', 'Карточка успешно сохранена');
+                        }
                     }).catch(err => {
                         exportModalBtn.style.opacity = '1';
                         console.error(err);
+                        window.showToast(t('alerts.error'), 'Сетевая ошибка при экспорте', true);
                     });
                 }
             } else {
-                alert('Экспорт в Markdown работает только в десктопном приложении Doe.');
+                window.showToast(t('alerts.error'), 'Экспорт работает только в десктопном приложении Doe', true);
             }
         };
         return;
@@ -3533,12 +3585,19 @@ document.addEventListener('click', async (e) => {
                                     headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify({ export_path: exportDir, include_attachments: includeAtt })
                                 }).then(res => {
-                                    if (!res.ok) alert(t('alerts.error'));
-                                }).catch(err => console.error(err));
+                                    if (!res.ok) {
+                                        window.showToast(t('alerts.error'), 'Ошибка при экспорте', true);
+                                    } else {
+                                        window.showToast('Экспорт завершён', 'Карточка успешно сохранена');
+                                    }
+                                }).catch(err => {
+                                    console.error(err);
+                                    window.showToast(t('alerts.error'), 'Сетевая ошибка при экспорте', true);
+                                });
                             }
                         };
                     } else {
-                        alert('Экспорт в Markdown работает только в десктопном приложении Doe.');
+                        window.showToast(t('alerts.error'), 'Экспорт работает только в десктопном приложении Doe', true);
                     }
                 }
                 else if (action === 'notify-card') {
@@ -4340,6 +4399,125 @@ function initTabsScrollbar() {
 }
 
 
+function initBoardScrollbar() {
+    const wrapper = document.getElementById('board-wrapper');
+    const container = document.querySelector('.board-container');
+    const scrollbar = document.getElementById('board-scrollbar');
+    const thumb = document.getElementById('board-thumb');
+    const board = document.getElementById('board');
+
+    if (!wrapper || !container || !scrollbar || !thumb) return;
+
+    let hideTimeout;
+    let isDraggingThumb = false;
+    let startX = 0;
+    let startScrollLeft = 0;
+
+    function updateThumb() {
+        const scrollRatio = container.clientWidth / container.scrollWidth;
+        if (scrollRatio >= 1) {
+            scrollbar.classList.remove('visible');
+            return;
+        }
+
+        // Ширина дорожки = реальная ширина DOM-элемента скроллбара
+        // (учитывает left:24px / right:24px из CSS)
+        const trackWidth = scrollbar.clientWidth;
+        const thumbWidth = Math.max(trackWidth * scrollRatio, 40); // минимум 40px
+        thumb.style.width = `${thumbWidth}px`;
+
+        const maxScrollLeft = container.scrollWidth - container.clientWidth;
+        let scrollPercent = container.scrollLeft / maxScrollLeft;
+
+        // Защита от вылета при инерционном скролле macOS
+        scrollPercent = Math.max(0, Math.min(1, scrollPercent));
+
+        const maxThumbLeft = trackWidth - thumbWidth;
+        thumb.style.transform = `translateX(${scrollPercent * maxThumbLeft}px)`;
+    }
+
+    function showScrollbar() {
+        const scrollRatio = container.clientWidth / container.scrollWidth;
+        if (scrollRatio < 1) {
+            scrollbar.classList.add('visible');
+        }
+
+        clearTimeout(hideTimeout);
+        if (!wrapper.matches(':hover') && !isDraggingThumb) {
+            hideTimeout = setTimeout(() => {
+                scrollbar.classList.remove('visible');
+            }, 800);
+        }
+    }
+
+    container.addEventListener('scroll', () => {
+        updateThumb();
+        showScrollbar();
+    });
+
+    wrapper.addEventListener('mouseenter', showScrollbar);
+    wrapper.addEventListener('mouseleave', () => {
+        if (!isDraggingThumb) {
+            clearTimeout(hideTimeout);
+            hideTimeout = setTimeout(() => {
+                scrollbar.classList.remove('visible');
+            }, 400);
+        }
+    });
+
+    window.addEventListener('resize', updateThumb);
+    window.updateBoardScrollbar = updateThumb;
+
+    // 🚀 Автоматическое обновление при изменении ширины доски
+    // (добавление/удаление/сворачивание колонок, ресайз окна и т.д.)
+    if (board && window.ResizeObserver) {
+        const ro = new ResizeObserver(() => updateThumb());
+        ro.observe(board);
+    }
+
+    // --- Перетаскивание ползунка мышкой ---
+    thumb.addEventListener('mousedown', (e) => {
+        isDraggingThumb = true;
+        startX = e.clientX;
+        startScrollLeft = container.scrollLeft;
+        thumb.classList.add('is-dragging');
+        document.body.style.userSelect = 'none';
+        e.preventDefault();
+        e.stopPropagation();
+    });
+
+    window.addEventListener('mousemove', (e) => {
+        if (!isDraggingThumb) return;
+        const deltaX = e.clientX - startX;
+
+        const trackWidth = scrollbar.clientWidth;
+        const scrollRatio = container.clientWidth / container.scrollWidth;
+        const thumbWidth = Math.max(trackWidth * scrollRatio, 40);
+        const maxThumbLeft = trackWidth - thumbWidth;
+        const maxScrollLeft = container.scrollWidth - container.clientWidth;
+
+        if (maxThumbLeft > 0) {
+            const scrollPerPixel = maxScrollLeft / maxThumbLeft;
+            container.scrollLeft = startScrollLeft + deltaX * scrollPerPixel;
+        }
+    });
+
+    window.addEventListener('mouseup', () => {
+        if (isDraggingThumb) {
+            isDraggingThumb = false;
+            thumb.classList.remove('is-dragging');
+            document.body.style.userSelect = '';
+
+            if (!wrapper.matches(':hover')) {
+                hideTimeout = setTimeout(() => {
+                    scrollbar.classList.remove('visible');
+                }, 1200);
+            }
+        }
+    });
+}
+
+
 function initTooltip() {
     const tooltip = document.createElement('div');
     tooltip.id = 'tooltip';
@@ -4383,16 +4561,17 @@ function initTooltip() {
     document.addEventListener('mouseover', (e) => {
         if (typeof isDragging !== 'undefined' && isDragging) return;
 
-        // Добавили .vault-name-text в список отслеживаемых
-        const titleEl = e.target.closest('.column-title, .tab-name, .breadcrumb-item, .vault-name-text');
+        // Добавили .vault-name-text и .vault-history-name в список отслеживаемых
+        const titleEl = e.target.closest('.column-title, .tab-name, .breadcrumb-item, .vault-name-text, .vault-history-name');
         if (!titleEl) return;
 
         let isActuallyClamped = false;
         
-        // Добавили проверку для названия хранилища
+        // Добавили проверку для названия хранилища (и в шапке, и в истории)
         if (titleEl.classList.contains('tab-name') || 
             titleEl.classList.contains('breadcrumb-item') || 
-            titleEl.classList.contains('vault-name-text')) {
+            titleEl.classList.contains('vault-name-text') ||
+            titleEl.classList.contains('vault-history-name')) {
             
             // Если текст заканчивается на троеточие (с защитой от пробелов) или физически не влезает
             isActuallyClamped = titleEl.textContent.trim().endsWith('…') || titleEl.scrollWidth > titleEl.clientWidth;
@@ -4439,8 +4618,8 @@ function initTooltip() {
     });
 
     document.addEventListener('mouseout', (e) => {
-        // ДОБАВИЛИ .vault-name-text в список. Теперь тултип поймет, что пора исчезать
-        const titleEl = e.target.closest('.column-title, .tab-name, .breadcrumb-item, .vault-name-text');
+        // ДОБАВИЛИ .vault-name-text и .vault-history-name в список. Теперь тултип поймет, что пора исчезать
+        const titleEl = e.target.closest('.column-title, .tab-name, .breadcrumb-item, .vault-name-text, .vault-history-name');
         if (titleEl && titleEl === activeTitle) {
             activeTitle = null;
             tooltip.classList.remove('visible');
@@ -5864,7 +6043,13 @@ async function showVaultScreen() {
 
 async function fetchVaultHistory() {
     try {
-        const res = await fetch(`${API_BASE}/system/vault/history`);
+        // Добавлен cache-buster и заголовки, чтобы браузер не отдавал старое состояние папок
+        const res = await fetch(`${API_BASE}/system/vault/history?t=${Date.now()}`, {
+            headers: {
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
+            }
+        });
         if (res.ok) return await res.json();
     } catch (e) { console.error(e); }
     return [];
@@ -5887,43 +6072,101 @@ async function renderVaultHistory() {
 
     const folderIcon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>`;
     const trashIcon = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
+    const revealIcon = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`;
+    const missingIcon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>`;
 
     history.forEach(item => {
         const div = document.createElement('div');
-        div.className = 'subtask-item vault-history-item';
+        const isMissing = item.exists === false;
+        div.className = `subtask-item vault-history-item${isMissing ? ' is-missing' : ''}`;
         div.dataset.path = item.path;
         
-        // Форматируем дату (функция formatDateTime уже есть в коде и сама учитывает язык)
+        // Форматируем дату
         let dateStr = '';
         if (item.last_opened) {
             dateStr = formatDateTime(item.last_opened);
         } else {
-            // Если это старое хранилище, открывавшееся до появления этой функции в коде
             dateStr = currentLang === 'ru' ? 'Ранее' : 'Earlier';
         }
 
+        const missingTooltip = currentLang === 'ru' ? 'Хранилище не найдено. Нажмите, чтобы перепривязать' : 'Vault not found. Click to relink';
+
         div.innerHTML = `
-            <div class="subtask-checkbox" style="border:none; color: var(--brand-pine); opacity: 0.8; cursor: inherit;">
-                ${folderIcon}
+            <div class="subtask-checkbox ${isMissing ? 'missing' : ''}" style="border:none; color: var(--brand-pine); opacity: 0.8; cursor: inherit;" ${isMissing ? `title="${missingTooltip}"` : ''}>
+                ${isMissing ? missingIcon : folderIcon}
             </div>
             <div class="vault-history-info">
-                <div class="vault-history-name">${escapeHtml(item.name)}</div>
+                <div class="vault-history-name ${isMissing ? 'missing-text' : ''}" data-full-title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</div>
                 <div class="vault-history-meta">
-                    <div class="vault-history-path" title="${escapeHtml(item.path)}">${escapeHtml(item.path)}</div>
+                    <div class="vault-history-path ${isMissing ? 'missing-text' : ''}" title="${escapeHtml(item.path)}">${escapeHtml(item.path)}</div>
                     <!-- Теперь блок даты есть в DOM всегда, поэтому он без проблем копируется в Drag&Drop клон -->
                     <div class="vault-history-date" data-timestamp="${item.last_opened || ''}">${dateStr}</div>
                 </div>
             </div>
             <div class="subtask-actions">
+                <button class="subtask-open-btn vault-hist-reveal" title="${currentLang === 'ru' ? 'Показать в папке' : 'Reveal in folder'}" style="${isMissing ? 'display: none;' : ''}">${revealIcon}</button>
                 <button class="subtask-delete-btn vault-hist-del" title="${t('menu.delete')}">${trashIcon}</button>
             </div>
         `;
 
+        // Единый безопасный обработчик "Показать в папке"
+        div.querySelector('.vault-hist-reveal').addEventListener('click', async (e) => {
+            e.stopPropagation();
+            try {
+                if (window.pywebview && window.pywebview.api && window.pywebview.api.reveal_local_path) {
+                    await window.pywebview.api.reveal_local_path(item.path);
+                } else {
+                    await fetch(`${API_BASE}/system/reveal-folder`, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({path: item.path})
+                    });
+                }
+            } catch (err) {
+                console.error("Failed to reveal folder:", err);
+            }
+        });
+
         // В обработчике КЛИКА нужно блокировать открытие, если мы только что бросили элемент
         div.addEventListener('click', async (e) => {
-            if (window._isAfterDrag) return; // <--- ЗАЩИТА ОТ СЛУЧАЙНОГО ОТКРЫТИЯ ПРИ БРОСКЕ
+            if (window._isAfterDrag) return; 
             if (e.target.closest('.vault-hist-del')) return;
+            if (e.target.closest('.vault-hist-reveal')) return;
             
+            // 🔥 СЕНЬОР ФИКС: Читаем статус прямо из DOM (он мог измениться фоновым поллером)
+            const currentlyMissing = div.querySelector('.subtask-checkbox').classList.contains('missing');
+            
+            // --- ЛОГИКА ПЕРЕПРИВЯЗКИ ---
+            if (currentlyMissing) {
+                try {
+                    let newPath = null;
+                    if (window.pywebview && window.pywebview.api && window.pywebview.api.choose_directory) {
+                        newPath = await window.pywebview.api.choose_directory();
+                    }
+                    if (!newPath) return;
+
+                    const res = await fetch(`${API_BASE}/system/vault/history/relink`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ old_path: item.path, new_path: newPath })
+                    });
+
+                    if (res.ok) {
+                        renderVaultHistory(); // Перерисовываем список, чтобы снять статус "потерянного"
+                    } else {
+                        // Трясем карточку, если папка не является хранилищем или уже есть в списке
+                        div.classList.remove('is-error');
+                        void div.offsetWidth;
+                        div.classList.add('is-error');
+                        setTimeout(() => div.classList.remove('is-error'), 400);
+                    }
+                } catch (err) {
+                    console.error(err);
+                }
+                return;
+            }
+
+            // --- ОБЫЧНАЯ ЛОГИКА ОТКРЫТИЯ ---
             try {
                 // Эффект загрузки (затемняем интерфейс)
                 div.style.opacity = '0.5';
@@ -5946,7 +6189,10 @@ async function renderVaultHistory() {
                     div.style.opacity = '1';
                     div.style.pointerEvents = 'auto';
                     div.classList.add('is-error');
-                    setTimeout(() => div.classList.remove('is-error'), 400);
+                    setTimeout(() => {
+                        div.classList.remove('is-error');
+                        renderVaultHistory(); 
+                    }, 400);
                 }
             } catch (err) {
                 console.error(err);
@@ -6123,7 +6369,7 @@ window.confirmVaultCreate = async () => {
 
     } catch (err) {
         console.error(err);
-        alert(t('alerts.error'));
+        window.showToast(t('alerts.error'), 'Не удалось создать хранилище', true);
     }
 };
 
@@ -6200,11 +6446,15 @@ function initGlobalSearch() {
 
     function renderSearchResults(data, query) {
         content.innerHTML = '';
+        const isTagSearch = data.search_mode === 'tags';
         const hasResults = data.workspaces.length || data.columns.length || data.tasks.length;
 
         // Вспомогательная функция для подсветки текста в строке результатов
         const highlightString = (text, q) => {
             if (!text) return "";
+            // В тэг-режиме не подсвечиваем заголовки — пользователь ищет карточки по тегам,
+            // а не куски текста "tags" в названиях
+            if (isTagSearch) return escapeHtml(text);
             if (!q) return escapeHtml(text);
             const words = q.trim().split(/\s+/).filter(w => w.length > 0);
             if (words.length === 0) return escapeHtml(text);
@@ -6212,13 +6462,25 @@ function initGlobalSearch() {
             const regexWords = words.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
             const regex = new RegExp(`(${regexWords.join('|')})`, 'gi');
             
-            // Используем стандартный тег <mark>, который мы стилизовали в CSS 
-            // под системное выделение Кварцевым Мхом или Еловым Камнем
-            return escapeHtml(text).replace(regex, '<mark>$1</mark>');
+            // Разбиваем оригинальный текст на куски, экранируем каждый кусок ОТДЕЛЬНО
+            // Это спасает от поломки HTML сущностей (когда поиск буквы "t" ломал "&lt;")
+            const parts = text.split(regex);
+            return parts.map((part, i) => {
+                // split с группой захвата возвращает совпадения на нечетных индексах
+                if (i % 2 !== 0) {
+                    return `<mark>${escapeHtml(part)}</mark>`;
+                }
+                return escapeHtml(part);
+            }).join('');
         };
 
         if (!hasResults) {
-            content.innerHTML = `<div style="padding: 12px; text-align: center; color: var(--text-secondary); font-size: 13px;">Ничего не найдено</div>`;
+            let emptyMsg = 'Ничего не найдено';
+            if (isTagSearch && data.tags && data.tags.length) {
+                const tagList = data.tags.map(t => `#${escapeHtml(t)}`).join(', ');
+                emptyMsg = `Карточек с тегами ${tagList} не найдено`;
+            }
+            content.innerHTML = `<div style="padding: 12px; text-align: center; color: var(--text-secondary); font-size: 13px;">${emptyMsg}</div>`;
             dropdown.classList.add('show');
             return;
         }
@@ -6255,17 +6517,29 @@ function initGlobalSearch() {
         });
 
         data.tasks.forEach(t => {
-            // Сниппет уже подсвечен бэкендом (FTS5), поэтому его не трогаем, а заголовок подсвечиваем
-            const desc = (t.snippet && t.snippet.trim()) ? `...${t.snippet}...` : null;
-            createItem(highlightString(t.title, query), `${taskIcon} Карточка &middot; ${t.workspace_name} / ${t.column_title}`, desc, () => window.navigateToEntityGlobal(t.workspace_id, t.column_id, t.id, query));
+            let desc = null;
+            // В тэг-режиме сниппеты не показываем — пользователь хочет просто список карточек,
+            // а не куски найденного текста
+            if (!isTagSearch && t.snippet && t.snippet.trim()) {
+                // Экранируем всё, НО возвращаем обратно теги <mark> и </mark>, 
+                // которые прислал бэкенд из FTS5 (иначе они сломают вёрстку, если в тексте были символы < и >)
+                const safeSnippet = escapeHtml(t.snippet)
+                    .replace(/&lt;mark&gt;/gi, '<mark>')
+                    .replace(/&lt;\/mark&gt;/gi, '</mark>');
+                desc = `...${safeSnippet}...`;
+            }
+            
+            // При клике на тэг-карточку query НЕ передаём, чтобы внутри карточки 
+            // не подсвечивались буквы из слова "tags"
+            createItem(highlightString(t.title, query), `${taskIcon} Карточка &middot; ${t.workspace_name} / ${t.column_title}`, desc, () => window.navigateToEntityGlobal(t.workspace_id, t.column_id, t.id, isTagSearch ? null : query));
         });
 
         dropdown.classList.add('show');
     }
 }
 
-// Супер-роутер: переходит на вкладку -> скроллит к колонке -> открывает карточку
-window.navigateToEntityGlobal = async function(wsId, colId, taskId, highlightQuery = null, keepStack = false) {
+// Супер-роутер: переходит на вкладку -> скроллит к колонке -> (опционально) открывает карточку
+window.navigateToEntityGlobal = async function(wsId, colId, taskId, highlightQuery = null, keepStack = false, openModal = true) {
     closeAllDropdowns();
     
     // 1. Свитч вкладки, если мы не на ней
@@ -6297,9 +6571,9 @@ window.navigateToEntityGlobal = async function(wsId, colId, taskId, highlightQue
                 }
                 colEl.scrollIntoView({ behavior: 'smooth', inline: 'center' });
                 
-                // 3. Открытие карточки
+                // 3. Обработка карточки
                 if (taskId) {
-                    // Подсвечиваем саму карточку
+                    // Подсвечиваем саму карточку (миниатюру на доске)
                     const cardEl = document.querySelector(`.card[data-card-id="${taskId}"]`);
                     if (cardEl) {
                         cardEl.style.transition = 'box-shadow 0.3s';
@@ -6307,8 +6581,10 @@ window.navigateToEntityGlobal = async function(wsId, colId, taskId, highlightQue
                         setTimeout(() => cardEl.style.boxShadow = '', 1500);
                     }
 
-                    loadTaskIntoModal(taskId, true, highlightQuery);
-                    document.getElementById('task-modal').classList.add('show');
+                    if (openModal) {
+                        loadTaskIntoModal(taskId, true, highlightQuery);
+                        document.getElementById('task-modal').classList.add('show');
+                    }
                 }
             }
         });
@@ -6368,21 +6644,199 @@ window.resetAttFolder = async () => {
 };
 
 // ==========================================
-// ЛОГИКА УВЕДОМЛЕНИЙ (NOTIFICATIONS)
+// ЛОГИКА УВЕДОМЛЕНИЙ И КАСТОМНОГО КАЛЕНДАРЯ
 // ==========================================
+
+// Глобальное состояние пикера
+let dpCurrentDate = new Date();
+let dpSelectedDate = new Date();
+
+function renderDatePicker() {
+    const locale = dpLocales[currentLang];
+    document.getElementById('dp-time-label').textContent = locale.time;
+    
+    // Отрисовка дней недели
+    const weekdaysEl = document.getElementById('dp-weekdays');
+    weekdaysEl.innerHTML = locale.days.map(d => `<span>${d}</span>`).join('');
+
+    const year = dpCurrentDate.getFullYear();
+    const month = dpCurrentDate.getMonth();
+    
+    document.getElementById('dp-month-year').textContent = `${locale.months[month]} ${year}`;
+    
+    const grid = document.getElementById('dp-grid');
+    grid.innerHTML = '';
+
+    const firstDay = new Date(year, month, 1).getDay();
+    const startDay = firstDay === 0 ? 6 : firstDay - 1; // Пн - 0, Вс - 6
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const daysInPrevMonth = new Date(year, month, 0).getDate();
+
+    const today = new Date();
+    
+    // Предыдущий месяц
+    for (let i = 0; i < startDay; i++) {
+        const d = daysInPrevMonth - startDay + i + 1;
+        const div = document.createElement('div');
+        div.className = 'dp-cell empty';
+        div.textContent = d;
+        grid.appendChild(div);
+    }
+
+    // Текущий месяц
+    for (let i = 1; i <= daysInMonth; i++) {
+        const div = document.createElement('div');
+        div.className = 'dp-cell';
+        div.textContent = i;
+        
+        // Проверка на "Сегодня"
+        if (year === today.getFullYear() && month === today.getMonth() && i === today.getDate()) {
+            div.classList.add('today');
+        }
+        
+        // Проверка на "Выбрано"
+        if (year === dpSelectedDate.getFullYear() && month === dpSelectedDate.getMonth() && i === dpSelectedDate.getDate()) {
+            div.classList.add('selected');
+        }
+
+        div.onclick = (e) => {
+            e.stopPropagation();
+            dpSelectedDate.setFullYear(year, month, i);
+            renderDatePicker();
+            updateDatePickerTrigger();
+        };
+        grid.appendChild(div);
+    }
+
+    // Следующий месяц (добиваем сетку)
+    const totalCells = startDay + daysInMonth;
+    const remaining = Math.ceil(totalCells / 7) * 7 - totalCells;
+    for (let i = 1; i <= remaining; i++) {
+        const div = document.createElement('div');
+        div.className = 'dp-cell empty';
+        div.textContent = i;
+        grid.appendChild(div);
+    }
+}
+
+function updateDatePickerTrigger() {
+    const trigger = document.getElementById('datepicker-trigger');
+    const timeStr = dpSelectedDate.toLocaleTimeString(currentLang, {hour: '2-digit', minute: '2-digit'});
+    const dateStr = dpSelectedDate.toLocaleDateString(currentLang, {day: 'numeric', month: 'short', year: 'numeric'});
+    trigger.textContent = `${dateStr}, ${timeStr}`;
+}
+
+// Привязка обработчиков для пикера (выполняется один раз)
+document.addEventListener('DOMContentLoaded', () => {
+    // --- Переключение месяцев ---
+    document.getElementById('dp-prev').onclick = (e) => {
+        e.stopPropagation();
+        dpCurrentDate.setMonth(dpCurrentDate.getMonth() - 1);
+        renderDatePicker();
+    };
+    document.getElementById('dp-next').onclick = (e) => {
+        e.stopPropagation();
+        dpCurrentDate.setMonth(dpCurrentDate.getMonth() + 1);
+        renderDatePicker();
+    };
+
+    // --- Переключение годов ---
+    document.getElementById('dp-prev-year').onclick = (e) => {
+        e.stopPropagation();
+        dpCurrentDate.setFullYear(dpCurrentDate.getFullYear() - 1);
+        renderDatePicker();
+    };
+    document.getElementById('dp-next-year').onclick = (e) => {
+        e.stopPropagation();
+        dpCurrentDate.setFullYear(dpCurrentDate.getFullYear() + 1);
+        renderDatePicker();
+    };
+
+    document.getElementById('datepicker-trigger').onclick = (e) => {
+        e.stopPropagation();
+        closeAllDropdowns(); // Закроет всё лишнее
+        
+        const trigger = e.currentTarget;
+        const rect = trigger.getBoundingClientRect();
+        const dropdown = document.getElementById('datepicker-dropdown');
+        
+        // Измеряем реальную высоту календаря (в скрытом виде)
+        dropdown.style.visibility = 'hidden';
+        dropdown.style.display = 'flex';
+        dropdown.classList.add('show');
+        const dropHeight = dropdown.offsetHeight;
+        dropdown.classList.remove('show');
+        dropdown.style.visibility = '';
+        dropdown.style.display = '';
+
+        let topPos = rect.bottom + 8;
+        let transformOrigin = 'top center';
+        
+        // Smart Collision: Если не влезает снизу - открываем наверх!
+        if (topPos + dropHeight > window.innerHeight - 10) {
+            topPos = rect.top - dropHeight - 8;
+            transformOrigin = 'bottom center';
+        }
+        
+        dropdown.style.top = `${topPos}px`;
+        dropdown.style.left = `${rect.left + (rect.width / 2)}px`;
+        dropdown.style.transformOrigin = transformOrigin;
+        
+        // Обязательный forced reflow перед добавлением класса анимации
+        void dropdown.offsetWidth;
+        
+        dropdown.classList.add('show');
+    };
+
+    // Запрет закрытия при клике внутри пикера
+    document.getElementById('datepicker-dropdown').onclick = (e) => {
+        e.stopPropagation();
+    };
+
+    // Инпуты времени
+    const hInput = document.getElementById('dp-hour');
+    const mInput = document.getElementById('dp-minute');
+
+    const handleTimeChange = () => {
+        let h = parseInt(hInput.value) || 0;
+        let m = parseInt(mInput.value) || 0;
+        if (h < 0) h = 0; if (h > 23) h = 23;
+        if (m < 0) m = 0; if (m > 59) m = 59;
+        
+        hInput.value = h.toString().padStart(2, '0');
+        mInput.value = m.toString().padStart(2, '0');
+        
+        dpSelectedDate.setHours(h, m, 0, 0);
+        updateDatePickerTrigger();
+    };
+
+    hInput.addEventListener('blur', handleTimeChange);
+    mInput.addEventListener('blur', handleTimeChange);
+    
+    hInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleTimeChange(); });
+    mInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleTimeChange(); });
+});
+
 function openNotifyModal(taskId, taskTitle) {
     const modal = document.getElementById('notify-modal');
     modal.dataset.taskId = taskId;
     modal.dataset.taskTitle = taskTitle;
     
-    // Сброс инпутов (ставим дату на текущую + 1 час)
-    const dtInput = document.getElementById('notify-datetime');
-    const now = new Date();
-    now.setHours(now.getHours() + 1);
-    now.setMinutes(now.getMinutes() - now.getTimezoneOffset()); // Сдвиг таймзоны для datetime-local
-    dtInput.value = now.toISOString().slice(0, 16);
-    
+    // Сброс инпутов "Через"
     document.getElementById('notify-amount').value = 15;
+    
+    // Сброс Кастомного Календаря на "Сейчас + 1 час"
+    dpSelectedDate = new Date();
+    dpSelectedDate.setHours(dpSelectedDate.getHours() + 1);
+    dpSelectedDate.setSeconds(0);
+    dpSelectedDate.setMilliseconds(0);
+    dpCurrentDate = new Date(dpSelectedDate);
+    
+    document.getElementById('dp-hour').value = dpSelectedDate.getHours().toString().padStart(2, '0');
+    document.getElementById('dp-minute').value = dpSelectedDate.getMinutes().toString().padStart(2, '0');
+    
+    renderDatePicker();
+    updateDatePickerTrigger();
     
     // Логика вкладок Segmented Control
     const btns = modal.querySelectorAll('.segmented-btn');
@@ -6416,41 +6870,22 @@ function openNotifyModal(taskId, taskTitle) {
             delaySeconds = amount * multiplier;
             timeText = currentLang === 'ru' ? `через ${amount} ${unitText}` : `in ${amount} ${unitText}`;
         } else {
-            const dtValue = document.getElementById('notify-datetime').value;
-            const targetTime = new Date(dtValue).getTime();
+            const targetTime = dpSelectedDate.getTime();
             const nowTime = new Date().getTime();
             
             delaySeconds = Math.floor((targetTime - nowTime) / 1000);
             
-            const d = new Date(dtValue);
-            const timeStr = d.toLocaleTimeString(currentLang, {hour: '2-digit', minute: '2-digit'});
-            const dateStr = d.toLocaleDateString(currentLang, {day: 'numeric', month: 'short'});
+            const timeStr = dpSelectedDate.toLocaleTimeString(currentLang, {hour: '2-digit', minute: '2-digit'});
+            const dateStr = dpSelectedDate.toLocaleDateString(currentLang, {day: 'numeric', month: 'short'});
             timeText = currentLang === 'ru' ? `${dateStr} в ${timeStr}` : `on ${dateStr} at ${timeStr}`;
         }
         
-        // --- ДОБАВЛЯЕМ В ЛЮБОЕ МЕСТО КОРНЯ ФАЙЛА (можно перед openNotifyModal) ---
-let toastTimeout = null;
-window.showToast = function(title, message) {
-    const toast = document.getElementById('app-toast');
-    document.getElementById('app-toast-title').textContent = title;
-    document.getElementById('app-toast-message').textContent = message;
-    
-    toast.classList.remove('show');
-    clearTimeout(toastTimeout);
-    
-    // Перезапуск CSS анимации
-    void toast.offsetWidth;
-    
-    toast.classList.add('show');
-    
-    toastTimeout = setTimeout(() => {
-        toast.classList.remove('show');
-    }, 2000); // Скроется через 2 секунды
-};
-// --------------------------------------------------------------------------
-
         if (delaySeconds <= 0) {
-            alert(currentLang === 'ru' ? 'Укажите время в будущем' : 'Please specify a future time');
+            window.showToast(
+                t('alerts.error'), 
+                currentLang === 'ru' ? 'Укажите время в будущем' : 'Please specify a future time', 
+                true
+            );
             return;
         }
         
@@ -6458,22 +6893,29 @@ window.showToast = function(title, message) {
         newConfirmBtn.disabled = true;
         
         try {
-            // 1. Красивое ВНУТРИПРОГРАММНОЕ уведомление о постановке таймера
+            const notificationMsg = currentLang === 'ru' 
+                ? `Вы просили напомнить о карточке: "${taskTitle}"` 
+                : `Reminder for card: "${taskTitle}"`;
+
+            // 2. Само отложенное СИСТЕМНОЕ ОС-уведомление для задачи
+            const res = await fetch(`${API_BASE}/tasks/${taskId}/notify`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    delay_seconds: delaySeconds,
+                    title: 'Doe',
+                    message: notificationMsg
+                })
+            });
+            
+            if (!res.ok) throw new Error('Network response was not ok');
+
+            // 1. Красивое ВНУТРИПРОГРАММНОЕ уведомление о постановке таймера (теперь не вызывает краш)
             window.showToast(
                 currentLang === 'ru' ? 'Напоминание установлено' : 'Reminder set',
                 `"${taskTitle}" сработает ${timeText}`
             );
 
-            // 2. Само отложенное СИСТЕМНОЕ ОС-уведомление для задачи
-            await fetch(`${API_BASE}/tasks/${taskId}/notify`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    delay_seconds: delaySeconds,
-                    title: 'Doe Reminder',
-                    message: taskTitle
-                })
-            });
             modal.classList.remove('show');
             
             // Мигание зеленой галочкой у кнопки модалки (если открыта карточка)
@@ -6484,7 +6926,7 @@ window.showToast = function(title, message) {
             }
         } catch (e) {
             console.error(e);
-            alert(t('alerts.error'));
+            window.showToast(t('alerts.error'), 'Не удалось установить напоминание', true);
         } finally {
             newConfirmBtn.style.opacity = '1';
             newConfirmBtn.disabled = false;
@@ -6542,6 +6984,7 @@ initTaskDescriptionLogic();
 (async () => {
     initTooltip();
     initTabsScrollbar();
+    initBoardScrollbar();
     initTaskModalDragAndResize();
     initGlobalSearch();
 
@@ -6550,24 +6993,52 @@ initTaskDescriptionLogic();
     const isVaultMode = urlParams.get('mode') === 'vault';
 
     // 1. Первичная настройка темы/языка из кэша (чтобы не моргало)
-    try {
-        applyLanguage(localStorage.getItem('doe-lang') || 'ru', false);
-        applyTheme(localStorage.getItem('doe-theme') || 'light', false);
-    } catch (e) {}
+        try {
+            applyLanguage(localStorage.getItem('doe-lang') || 'ru', false);
+            applyTheme(localStorage.getItem('doe-theme') || 'light', false);
+        } catch (e) {}
 
-    // Глобальные лисенеры вешаем в любом случае
-    setInterval(updateTimers, 250);
-    window.addEventListener('resize', () => {
-        requestAnimationFrame(() => {
-            clampExpandedTitles();
-            adjustCollapsedColumnWidths();
+        // Глобальные лисенеры вешаем в любом случае
+        setInterval(updateTimers, 250);
+        
+        // 🌟 МОСТ С ОПЕРАЦИОННОЙ СИСТЕМОЙ: Слушаем клики по системным уведомлениям
+        setInterval(async () => {
+            try {
+                const res = await fetch(`${API_BASE}/system/pending-highlights`);
+                if (!res.ok) return;
+                const data = await res.json();
+                
+                if (data.task_id) {
+                    // Запрашиваем контекст, чтобы знать в какой вкладке эта карточка
+                    const ctxRes = await fetch(`${API_BASE}/tasks/${data.task_id}/context`);
+                    if (!ctxRes.ok) return;
+                    
+                    const context = await ctxRes.json();
+                    
+                    // Закрываем модалку карточки, если она открыта, чтобы юзер увидел доску
+                    const taskModal = document.getElementById('task-modal');
+                    if (taskModal && taskModal.classList.contains('show')) {
+                        taskModal.classList.remove('show');
+                    }
+                    
+                    // Используем наш роутер: он переключит вкладку, доскроллит 
+                    // и подсветит миниатюру карточки на доске (последний параметр false = не открывать модалку)
+                    window.navigateToEntityGlobal(context.workspace_id, context.column_id, data.task_id, null, true, false);
+                }
+            } catch (e) {}
+        }, 1000); // Опрашиваем раз в секунду
+
+        window.addEventListener('resize', () => {
+            requestAnimationFrame(() => {
+                clampExpandedTitles();
+                adjustCollapsedColumnWidths();
+            });
         });
-    });
 
     // Если это окно выбора хранилища — загружаем настройки, историю и показываем занавес
     if (isVaultMode) {
         document.getElementById('vault-screen').classList.remove('hidden', 'content-hidden');
-        
+
         try {
             // Даже на экране входа мы запрашиваем глобальные настройки (тема/язык)
             const settingsData = await fetchSettings().catch(() => ({}));
@@ -6576,7 +7047,48 @@ initTaskDescriptionLogic();
         } catch (e) { console.error("Settings load failed in vault mode", e); }
 
         renderVaultHistory();
-        
+
+        // 🔥 СЕНЬОР ФИКС: Живая синхронизация с файловой системой ОС (Background Poller)
+        // Динамически обновляет DOM без перерисовки всего списка (не ломает фокусы и ховеры)
+        setInterval(async () => {
+            try {
+                const history = await fetchVaultHistory();
+                history.forEach(item => {
+                    // Экранируем слэши (особенно важно для путей Windows)
+                    const safePath = item.path.replace(/\\/g, '\\\\');
+                    const el = document.querySelector(`.vault-history-item[data-path="${safePath}"]`);
+                    
+                    if (el) {
+                        const isMissing = item.exists === false;
+                        const checkbox = el.querySelector('.subtask-checkbox');
+                        const nameEl = el.querySelector('.vault-history-name');
+                        const pathEl = el.querySelector('.vault-history-path');
+                        const revealBtn = el.querySelector('.vault-hist-reveal');
+
+                        if (isMissing && !checkbox.classList.contains('missing')) {
+                            // Хранилище пропало (удалили или переименовали в ОС)
+                            checkbox.classList.add('missing');
+                            el.classList.add('is-missing');
+                            checkbox.title = currentLang === 'ru' ? 'Хранилище не найдено. Нажмите, чтобы перепривязать' : 'Vault not found. Click to relink';
+                            checkbox.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>`;
+                            nameEl.classList.add('missing-text');
+                            pathEl.classList.add('missing-text');
+                            if (revealBtn) revealBtn.style.display = 'none';
+                        } else if (!isMissing && checkbox.classList.contains('missing')) {
+                            // Хранилище появилось (восстановили из корзины в ОС)
+                            checkbox.classList.remove('missing');
+                            el.classList.remove('is-missing');
+                            checkbox.removeAttribute('title');
+                            checkbox.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>`;
+                            nameEl.classList.remove('missing-text');
+                            pathEl.classList.remove('missing-text');
+                            if (revealBtn) revealBtn.style.display = '';
+                        }
+                    }
+                });
+            } catch (e) {}
+        }, 1500); // Опрос раз в 1.5 секунды абсолютно не нагружает железо, но дает идеальный отклик
+
         document.body.classList.remove('preload');
         setTimeout(triggerReveal, 50);
         return; 

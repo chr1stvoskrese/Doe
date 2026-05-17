@@ -12,47 +12,109 @@ import time
 if len(sys.argv) >= 5 and sys.argv[1] == "--notify":
     try:
         delay = int(sys.argv[2])
-        title = sys.argv[3].replace('"', '\\"')
-        message = sys.argv[4].replace('"', '\\"')
+        title = sys.argv[3]
+        message = sys.argv[4]
+        task_id = sys.argv[5] if len(sys.argv) >= 6 else None
         
         time.sleep(delay)
         
         if sys.platform == 'darwin':
             try:
-                # Используем нативный API macOS. 
-                # Так как мы не вызываем setActivationPolicy_(0), в Dock ничего не появится.
-                # А иконка уведомления в собранном приложении автоматически подтянется из Doe.app
                 import AppKit
+                import objc
+                import urllib.request
+                import json
+                import os
+                import subprocess
+                
+                class NotificationDelegate(AppKit.NSObject):
+                    def userNotificationCenter_shouldPresentNotification_(self, center, notification):
+                        return True
+                        
+                    def userNotificationCenter_didActivateNotification_(self, center, notification):
+                        # Срабатывает при клике на уведомление или кнопку "Показать"
+                        t_id = notification.userInfo().get("task_id") if notification.userInfo() else None
+                        if t_id:
+                            try:
+                                # Дергаем наш локальный FastAPI сервер
+                                req = urllib.request.Request(
+                                    "http://127.0.0.1:8000/api/v1/system/highlight-task",
+                                    data=json.dumps({"task_id": int(t_id)}).encode('utf-8'),
+                                    headers={'Content-Type': 'application/json'}
+                                )
+                                urllib.request.urlopen(req, timeout=1)
+                            except Exception:
+                                # Если сервер не ответил (приложение закрыто) - запускаем приложение!
+                                subprocess.call(['open', '-b', 'com.aesthetic.doe'])
+                        os._exit(0) # Убиваем фоновый процесс после обработки
+
                 notification = AppKit.NSUserNotification.alloc().init()
                 notification.setTitle_(title)
                 notification.setInformativeText_(message)
+                notification.setSoundName_(AppKit.NSUserNotificationDefaultSoundName)
+                
+                # Добавляем кнопку "Показать"
+                notification.setActionButtonTitle_("Показать")
+                notification.setHasActionButton_(True)
+                
+                if task_id:
+                    notification.setUserInfo_({"task_id": task_id})
                 
                 center = AppKit.NSUserNotificationCenter.defaultUserNotificationCenter()
+                delegate = NotificationDelegate.alloc().init()
+                center.setDelegate_(delegate)
                 center.deliverNotification_(notification)
                 
-                # 🔥 КРИТИЧЕСКИЙ ФИКС: Даем демону уведомлений macOS время забрать пуш,
-                # прежде чем наш фоновый процесс закроется.
-                time.sleep(2)
+                # Держим процесс живым максимум 1 час (чтобы дождаться клика)
+                run_loop = AppKit.NSRunLoop.currentRunLoop()
+                timeout = AppKit.NSDate.dateWithTimeIntervalSinceNow_(3600.0)
+                run_loop.runUntilDate_(timeout)
+                
             except Exception as e:
-                # Фолбэк на случай проблем с AppKit
-                import subprocess
-                subprocess.run(['osascript', '-e', f'display notification "{message}" with title "{title}"'])
+                safe_title = title.replace('"', '\\"')
+                safe_message = message.replace('"', '\\"')
+                subprocess.run(['osascript', '-e', f'display notification "{safe_message}" with title "{safe_title}" sound name "Default"'])
+                
         elif sys.platform == 'win32':
+            safe_title = title.replace("'", "''")
+            safe_message = message.replace("'", "''")
+            t_id_str = str(task_id) if task_id else "null"
+            
             ps_script = f"""
             Add-Type -AssemblyName System.Windows.Forms;
             $notify = New-Object System.Windows.Forms.NotifyIcon;
             $notify.Icon = [System.Drawing.SystemIcons]::Information;
-            $notify.BalloonTipTitle = '{title}';
-            $notify.BalloonTipText = '{message}';
+            $notify.BalloonTipTitle = '{safe_title}';
+            $notify.BalloonTipText = '{safe_message}';
             $notify.Visible = $True;
+            
+            $action = {{
+                try {{
+                    if ('{t_id_str}' -ne 'null') {{
+                        $body = '{{"task_id": {t_id_str}}}'
+                        Invoke-WebRequest -Uri 'http://127.0.0.1:8000/api/v1/system/highlight-task' -Method POST -Body $body -ContentType 'application/json' -UseBasicParsing | Out-Null
+                    }}
+                }} catch {{ 
+                    # Если приложение закрыто, пробуем его запустить
+                    Start-Process "Doe.exe" -ErrorAction SilentlyContinue
+                }}
+                $notify.Visible = $False;
+                [System.Windows.Forms.Application]::ExitThread();
+            }}
+            
+            $notify.add_BalloonTipClicked($action);
+            $notify.add_BalloonTipClosed({{ $notify.Visible = $False; [System.Windows.Forms.Application]::ExitThread(); }});
+            
             $notify.ShowBalloonTip(10000);
-            Start-Sleep -Seconds 10;
+            [System.Windows.Forms.Application]::Run();
             """
+            import os
             os.system(f'powershell -WindowStyle Hidden -Command "{ps_script}"')
-    except Exception as e:
+    except Exception:
         pass
-    os._exit(0) # Жестко убиваем фоновый процесс, чтобы он не грузил дальше FastAPI
-# ==========================================
+    import os
+    os._exit(0)
+
 
 # ==========================================
 # 🍎 МГНОВЕННЫЙ ФИКС ИКОНКИ ДЛЯ MACOS (SENIOR UI/UX HACK)
@@ -250,6 +312,25 @@ class WindowAPI:
             return True
         except Exception as e:
             print(f"[System] Failed to open path: {e}")
+            return False
+
+    def reveal_local_path(self, path):
+        """Открывает родительскую папку и выделяет в ней целевой файл/папку"""
+        print(f"[System] Revealing path: {path}")
+        try:
+            clean_path = path.replace('file://', '')
+            import urllib.parse
+            clean_path = urllib.parse.unquote(clean_path)
+            
+            if sys.platform == 'darwin':
+                # Флаг -R (Reveal) открывает Finder и выделяет элемент
+                subprocess.call(['open', '-R', clean_path])
+            elif sys.platform == 'win32':
+                # Флаг /select открывает Проводник и выделяет элемент
+                subprocess.call(['explorer', f'/select,{clean_path}'])
+            return True
+        except Exception as e:
+            print(f"[System] Failed to reveal path: {e}")
             return False
 
     def reveal_window(self):
