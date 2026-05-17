@@ -59,6 +59,17 @@ def remove_vault_from_history(vault_path: str) -> None:
             cleaned.append(item)
             
     data["vault_history"] = cleaned
+    
+    # Если удаляемое хранилище = активному, стираем active_vault
+    # и привязку активной вкладки именно для этого пути. Иначе при следующем
+    # запуске приложение увидит "active_vault" в конфиге, откроет главное окно
+    # и init_dev_database() молча пересоздаст удалённую папку как пустое хранилище.
+    if data.get("active_vault") == vault_path:
+        data.pop("active_vault", None)
+        active_ws = data.get("active_workspaces", {})
+        if vault_path in active_ws:
+            active_ws.pop(vault_path, None)
+    
     _save_config(data)
 
 def get_vault_history() -> list[str]:

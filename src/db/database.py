@@ -10,7 +10,14 @@ from alembic.config import Config
 from alembic import command
 
 from .models import Base
-from src.core.config import get_active_vault, set_active_vault, get_ui_settings
+from src.core.config import (
+    get_active_vault,
+    set_active_vault,
+    get_ui_settings,
+    _load_config,
+    _save_config,
+    DEFAULT_VAULT,
+)
 import shutil
 
 _engine = None
@@ -187,6 +194,23 @@ async def close_database():
 async def init_dev_database():
     vault_path = get_active_vault()
     dev_vault = Path(vault_path)
+    
+    # 🛡 Защита от воскрешения удалённого хранилища.
+    # Если active_vault указывает на несуществующую папку (юзер удалил её
+    # через Finder/Explorer или вынес флешку), НЕ создаём её обратно.
+    # Чистим протухший указатель в конфиге и откатываемся на DEFAULT_VAULT
+    # как нейтральный плейсхолдер — реальное хранилище пользователь выберет
+    # на экране Vault, который теперь откроет wrapper.py (т.к. active_vault пуст).
+    if not dev_vault.exists():
+        config_data = _load_config()
+        if config_data.get("active_vault") == str(dev_vault):
+            config_data.pop("active_vault", None)
+            active_ws = config_data.get("active_workspaces", {})
+            active_ws.pop(str(dev_vault), None)
+            _save_config(config_data)
+            print(f"[Database] Stale active_vault cleared: {dev_vault}")
+        dev_vault = Path(DEFAULT_VAULT)
+    
     dev_vault.mkdir(parents=True, exist_ok=True)
     await init_database(str(dev_vault))
     return dev_vault
