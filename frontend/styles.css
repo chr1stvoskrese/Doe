@@ -1,6 +1,7 @@
 /* ---------- ПАЛИТРА И ПЕРЕМЕННЫЕ (UI Kit) ---------- */
 /* Определяем глобальные переменные для светлой темы оформления */
 :root {
+    color-scheme: light;                /* Сообщаем браузеру использовать светлый системный UI */
     --bg-canvas: #F4F3EF;               /* Цвет самого нижнего слоя (фон за доской) */
     --bg-board: #EBEAE3;                /* Цвет фона контейнера доски и колонок */
     --surface-card: #FFFFFF;            /* Цвет поверхности карточек (белый для контраста) */
@@ -50,12 +51,10 @@
     contain: content; 
 }
 
-/* 1. ПОЛНОСТЬЮ СКРЫВАЕМ скроллбары для структурных элементов (Доска, списки) */
+/* 1. ПОЛНОСТЬЮ СКРЫВАЕМ скроллбары только там, где они не нужны или мешают */
 html::-webkit-scrollbar, 
 body::-webkit-scrollbar,
-.card-list::-webkit-scrollbar,
 .search-dropdown::-webkit-scrollbar,
-.board-container::-webkit-scrollbar,
 .tabs-container::-webkit-scrollbar {
     display: none !important;
 }
@@ -67,12 +66,56 @@ body::-webkit-scrollbar,
 .description-input::-webkit-scrollbar,
 #vault-history-list::-webkit-scrollbar,
 pre::-webkit-scrollbar,
+.vault-history-list::-webkit-scrollbar,
 .column-input::-webkit-scrollbar,
 .column-title-input::-webkit-scrollbar,
 .card-input::-webkit-scrollbar,
-.subtask-inline-input::-webkit-scrollbar {
+.subtask-inline-input::-webkit-scrollbar,
+.task-graph-breadcrumbs::-webkit-scrollbar {
     width: 6px;
     height: 6px;
+}
+
+.task-detail-body::-webkit-scrollbar-track,
+.markdown-body::-webkit-scrollbar-track,
+.description-input::-webkit-scrollbar-track,
+#vault-history-list::-webkit-scrollbar-track,
+pre::-webkit-scrollbar-track,
+.column-input::-webkit-scrollbar-track,
+.column-title-input::-webkit-scrollbar-track,
+.card-input::-webkit-scrollbar-track,
+.subtask-inline-input::-webkit-scrollbar-track,
+.task-graph-breadcrumbs::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 4px;
+}
+
+.task-detail-body::-webkit-scrollbar-thumb,
+.markdown-body::-webkit-scrollbar-thumb,
+.description-input::-webkit-scrollbar-thumb,
+.vault-history-list::-webkit-scrollbar-thumb,
+#vault-history-list::-webkit-scrollbar-thumb,
+pre::-webkit-scrollbar-thumb,
+.column-input::-webkit-scrollbar-thumb,
+.column-title-input::-webkit-scrollbar-thumb,
+.card-input::-webkit-scrollbar-thumb,
+.subtask-inline-input::-webkit-scrollbar-thumb,
+.task-graph-breadcrumbs::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 4px;
+}
+
+.task-detail-body::-webkit-scrollbar-thumb:hover,
+.markdown-body::-webkit-scrollbar-thumb:hover,
+.description-input::-webkit-scrollbar-thumb:hover,
+#vault-history-list::-webkit-scrollbar-thumb:hover,
+pre::-webkit-scrollbar-thumb:hover,
+.column-input::-webkit-scrollbar-thumb:hover,
+.column-title-input::-webkit-scrollbar-thumb:hover,
+.card-input::-webkit-scrollbar-thumb:hover,
+.subtask-inline-input::-webkit-scrollbar-thumb:hover,
+.task-graph-breadcrumbs::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover);
 }
 
 .task-detail-body::-webkit-scrollbar-track,
@@ -180,6 +223,7 @@ svg, img {
 
 /* Переопределяем переменные для темной темы */
 [data-theme="dark"] {
+    color-scheme: dark;                 /* МАГИЯ: Переключает нативный календарь браузера в тёмный режим */
     --bg-canvas: #161815;               /* Темный фон за доской */
     --bg-board: #1C1E1B;                /* Темный фон колонок */
     --surface-card: #232521;            /* Темная поверхность карточки */
@@ -473,10 +517,11 @@ body {
 /* Основной контейнер, где живут колонки */
 .board-container {
     flex: 1;                    
-    /* Снизу 24px, слева 24px — в точности как gap между колонками */
-    padding: 0 0 24px 24px;
+    padding: 0 0 16px 24px; /* Уменьшили нижний паддинг до 16px для соосности со скроллом */
     overflow-x: auto;           
-    overflow-y: hidden;         
+    overflow-y: hidden;
+    /* Режим "скроллбар-отступ": резервирует место под скролл, чтобы контент не прыгал */
+    scrollbar-gutter: stable; 
 }
 
 /* Внутренний контейнер доски */
@@ -1193,7 +1238,8 @@ body {
 .modal-maximize,
 .modal-export,
 .modal-copy-link,
-.modal-detach {
+.modal-detach,
+.modal-notify {
     background: transparent;
     border: none;
     cursor: pointer;
@@ -1214,7 +1260,8 @@ body {
 .modal-maximize svg,
 .modal-export svg,
 .modal-copy-link svg,
-.modal-detach svg {
+.modal-detach svg,
+.modal-notify svg {
     width: 16px !important;
     height: 16px !important;
 }
@@ -1223,7 +1270,8 @@ body {
 .modal-maximize:hover,
 .modal-export:hover,
 .modal-copy-link:hover,
-.modal-detach:hover {
+.modal-detach:hover,
+.modal-notify:hover {
     background: rgba(0, 0, 0, 0.05);
     color: var(--text-primary);
 }
@@ -1235,8 +1283,118 @@ body {
 [data-theme="dark"] .modal-maximize:hover,
 [data-theme="dark"] .modal-export:hover,
 [data-theme="dark"] .modal-copy-link:hover,
-[data-theme="dark"] .modal-detach:hover {
+[data-theme="dark"] .modal-detach:hover,
+[data-theme="dark"] .modal-notify:hover {
     background: rgba(255, 255, 255, 0.08);
+}
+
+/* ==========================================
+   СТИЛИ ДЛЯ МОДАЛКИ УВЕДОМЛЕНИЙ (Segmented Control)
+   ========================================== */
+.segmented-control {
+    display: flex;
+    background: rgba(0, 0, 0, 0.04);
+    padding: 2px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+}
+[data-theme="dark"] .segmented-control { background: rgba(255, 255, 255, 0.06); }
+
+.segmented-btn {
+    flex: 1;
+    text-align: center;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.segmented-btn.active {
+    background: var(--surface-card);
+    color: var(--text-primary);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.notify-tab-content { display: none; }
+.notify-tab-content.active { display: block; }
+
+.notify-input-group {
+    display: flex;
+    gap: 8px;
+}
+
+/* Скрываем стрелочки у input type=number для эстетики */
+input[type=number]::-webkit-inner-spin-button, 
+input[type=number]::-webkit-outer-spin-button { 
+  -webkit-appearance: none; 
+  margin: 0; 
+}
+
+/* Стилизация select под Apple */
+select.column-input {
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url('data:image/svg+xml;utf8,<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="%23828A80" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>');
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 32px;
+}
+[data-theme="dark"] select.column-input {
+    background-image: url('data:image/svg+xml;utf8,<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="%238B9088" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>');
+}
+
+/* Эстетичный календарь (datetime-local) */
+input[type="datetime-local"] {
+    accent-color: var(--brand-pine); /* Убивает синий цвет внутри самого поп-апа календаря */
+}
+
+/* Убиваем синий фон у выделенного сегмента даты/времени в самом поле */
+input[type="datetime-local"]::-webkit-datetime-edit-month-field:focus,
+input[type="datetime-local"]::-webkit-datetime-edit-day-field:focus,
+input[type="datetime-local"]::-webkit-datetime-edit-year-field:focus,
+input[type="datetime-local"]::-webkit-datetime-edit-hour-field:focus,
+input[type="datetime-local"]::-webkit-datetime-edit-minute-field:focus {
+    background-color: #C3C6BC;
+    color: var(--text-primary);
+    border-radius: 4px;
+}
+
+[data-theme="dark"] input[type="datetime-local"] {
+    accent-color: #89A085;
+}
+
+[data-theme="dark"] input[type="datetime-local"]::-webkit-datetime-edit-month-field:focus,
+[data-theme="dark"] input[type="datetime-local"]::-webkit-datetime-edit-day-field:focus,
+[data-theme="dark"] input[type="datetime-local"]::-webkit-datetime-edit-year-field:focus,
+[data-theme="dark"] input[type="datetime-local"]::-webkit-datetime-edit-hour-field:focus,
+[data-theme="dark"] input[type="datetime-local"]::-webkit-datetime-edit-minute-field:focus {
+    background-color: #5C635A;
+    color: #FFFFFF;
+}
+
+input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.5;
+    transition: opacity 0.2s ease, transform 0.2s ease, background-color 0.2s ease;
+    padding: 4px;
+    border-radius: 6px;
+}
+input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+    background-color: rgba(0, 0, 0, 0.05);
+}
+input[type="datetime-local"]::-webkit-calendar-picker-indicator:active {
+    transform: scale(0.9);
+}
+[data-theme="dark"] input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+    filter: invert(1) opacity(0.8);
+}
+[data-theme="dark"] input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    filter: invert(1) opacity(1);
 }
 
 /* --- ПОЛНОЭКРАННЫЙ РЕЖИМ КАРТОЧКИ --- */
@@ -1679,7 +1837,7 @@ body.is-dragging-card .column-header {
     line-height: 1.5;
     box-shadow: var(--shadow-menu);
     border: 1px solid var(--border-light);
-    z-index: 10000;             /* Выше всех элементов */
+    z-index: 2147483647;        /* ФИКС: Абсолютный максимум, всегда поверх модалок (z-index: 9999999) и летящих клонов */
     pointer-events: none;       /* Тултип не мешает мышке */
     opacity: 0;                 /* Скрыт */
     visibility: hidden;
@@ -1870,6 +2028,12 @@ body.is-dragging-card .column-header {
     display: flex;
     gap: 8px;
     padding: 8px 16px 16px;
+}
+
+/* Вертикальное расположение для умной отвязки */
+.confirm-actions.stacked {
+    flex-direction: column;
+    gap: 4px;
 }
 
 /* Кнопка внутри конфирма */
@@ -2703,12 +2867,10 @@ body[class*="is-dragging-"] .board-tab:not(.active) {
 .subtask-detach-btn:hover { background: rgba(0, 0, 0, 0.06); color: var(--text-primary); }
 [data-theme="dark"] .subtask-detach-btn:hover { background: rgba(255, 255, 255, 0.08); color: var(--text-primary); }
 
-/* 📦 МОДАЛКА ЭКСПОРТА КАРТОЧКИ
+/* 📦 МОДАЛКИ ПОВЕРХ КАРТОЧКИ (Экспорт и Уведомления)
    Поднимаем z-index выше, чем у .modal-overlay (9999999), 
-   потому что эта модалка вызывается ПОВЕРХ уже открытой карточки задачи. 
-   Без этого правила #task-modal перекрывает её из-за более позднего 
-   расположения в DOM при одинаковом z-index. */
-#export-modal {
+   потому что они вызываются ПОВЕРХ уже открытой карточки задачи. */
+#export-modal, #notify-modal {
     z-index: 99999999;
 }
 
@@ -3842,19 +4004,39 @@ body.is-dragging-subtask .subtask-item {
 
 /* Текст ошибки внутри подзадачи */
 .subtask-item .card-error-hint {
-    margin-top: 6px;
+    /* Senior UI Fix: Используем технику схлопывания через max-height и нулевые маржины по умолчанию */
+    margin-top: 0;
     font-size: 11px;
     color: #D35446;
     font-weight: 600;
     opacity: 0;
+    max-height: 0;
+    overflow: hidden;
     transform: translateY(-4px);
-    transition: all 0.2s ease;
+    /* Анимируем только те свойства, которые влияют на визуальный вес, чтобы избежать скачков геометрии */
+    transition: opacity 0.2s ease, transform 0.2s ease, margin-top 0.2s ease, max-height 0.2s ease;
+    pointer-events: none;
 }
 
-/* Показ ошибки */
+/* Показ ошибки (сохраняем пунктир, меняем цвет и трясем) */
 .subtask-item.is-error {
-    border-color: #D35446 !important;
+    border-color: #D35446 !important; 
+    background: rgba(211, 84, 70, 0.03) !important;
     animation: column-shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+/* Разворачиваем подсказку только когда активен класс ошибки */
+.subtask-item.is-error .card-error-hint {
+    opacity: 1;
+    max-height: 40px; /* Достаточно для двух строк ошибки */
+    margin-top: 6px;
+    transform: translateY(0);
+}
+
+/* Тёмная тема */
+[data-theme="dark"] .subtask-item.is-error {
+    border-color: #D65A4B !important;
+    background: rgba(214, 90, 75, 0.05) !important;
 }
 
 .subtask-item.is-error .card-error-hint {
@@ -4373,43 +4555,86 @@ body.is-dragging-attachment .attachment-item:not(.attachment-drag-clone) {
     background: var(--surface-card); /* Скрывает уезжающий наверх ярлычок */
 }
 
-/* ==========================================
-   МЕТА-ИНФОРМАЦИЯ: ХЛЕБНЫЕ КРОШКИ И ДАТЫ
-   ========================================== */
-.task-header-meta {
+/* ========================================== МЕТА-ИНФОРМАЦИЯ: ГРАФОВЫЕ ХЛЕБНЫЕ КРОШКИ И ДАТЫ ========================================== */ 
+.task-header-meta { display: flex; flex-direction: column; margin-bottom: 16px; gap: 12px; }
+
+.task-header-meta:has(#task-breadcrumbs:empty) { display: none; }
+
+.task-breadcrumbs { width: 100%; }
+
+.task-graph-breadcrumbs {
+    display: flex;
+    flex-direction: column;
+    gap: 8px; /* Чуть больше воздуха между отдельными путями */
+    background: var(--brand-pale);
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--border-light);
+    max-height: 130px; /* Ограничение примерно на 5 строк (каждая строка ~24px) */
+    overflow-y: auto;  /* Вертикальный скролл при переполнении */
+    overflow-x: hidden; /* Строгий запрет на горизонтальный скролл */
+    overscroll-behavior: contain;
+}
+
+[data-theme="dark"] .task-graph-breadcrumbs {
+    background: rgba(137, 160, 133, 0.08);
+}
+
+.breadcrumb-path {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    margin-bottom: 16px;
-    gap: 12px;
+    flex-wrap: wrap; /* Перенос на новые строки */
+    gap: 6px 0px;    /* Вертикальный зазор 6px, горизонтальный контролируется внутри нод */
+    font-size: 12px;
 }
 
-/* Скрываем контейнер (и его margin), если крошек нет. 
-   Тогда отступ над описанием будет равен ровно 16px от padding родителя,
-   идеально совпадая с боковыми отступами. */
-.task-header-meta:has(#task-breadcrumbs:empty) {
-    display: none;
-}
-
-.task-breadcrumbs {
-    display: flex;
-    flex-wrap: wrap; 
+/* Обертка для неразрывности элемента и его стрелочки при переносе строки */
+.breadcrumb-node {
+    display: inline-flex;
     align-items: center;
-    gap: 6px 8px; 
-    font-size: 13px;
-    color: var(--text-secondary);
-    flex: 1;
-    min-width: 0;
+    gap: 6px;
+    padding-right: 6px; /* Зазор после стрелочки (или до следующего элемента) */
 }
 
-.breadcrumb-item {
-    cursor: pointer;
-    transition: color 0.2s ease;
+.breadcrumb-item { 
+    cursor: pointer; 
+    transition: color 0.15s ease, background 0.15s ease; 
+    color: var(--text-secondary); 
+    padding: 2px 6px;
+    border-radius: 6px;
+    background: transparent;
+    font-weight: 500;
+} 
+
+.breadcrumb-item:hover { 
+    color: var(--brand-pine); 
+    background: rgba(0, 0, 0, 0.04);
+} 
+
+[data-theme="dark"] .breadcrumb-item:hover {
+    color: #FFFFFF;
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.breadcrumb-item.active { 
+    color: var(--text-primary); 
+    font-weight: 600; 
+    cursor: default; 
+    background: rgba(0, 0, 0, 0.03);
+}
+
+[data-theme="dark"] .breadcrumb-item.active {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.breadcrumb-separator { 
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.3; 
+    flex-shrink: 0; 
     color: var(--text-secondary);
 }
-.breadcrumb-item:hover { color: var(--brand-pine); }
-.breadcrumb-item.active { color: var(--text-primary); font-weight: 500; pointer-events: none; }
-.breadcrumb-separator { opacity: 0.3; font-size: 11px; flex-shrink: 0; }
 
 /* Обертка для заголовка и выезжающих дат */
 .modal-title-group {
@@ -4541,7 +4766,8 @@ body.is-dragging-attachment .attachment-item:not(.attachment-drag-clone) {
     flex-direction: column;
     gap: 8px; /* <--- ВМЕСТО MARGIN-BOTTOM */
     
-    overflow-y: auto;
+    /* Senior Fix: возвращаем скролл, перекрывая overflow: visible !important из .subtasks-list */
+    overflow-y: auto !important; 
     overflow-x: hidden;
     flex: 1;
     
@@ -4551,6 +4777,17 @@ body.is-dragging-attachment .attachment-item:not(.attachment-drag-clone) {
     margin-right: -18px;
     padding-top: 16px; 
     padding-bottom: 32px; 
+    
+    /* 🔥 ФИКС НАЛЕЗАНИЯ И ОТСТУПОВ (Компенсация margin: -8px от класса .subtasks-list) */
+    margin-top: 0;
+    margin-bottom: 0;
+    
+    /* Плавный скролл для macOS */
+    -webkit-overflow-scrolling: touch;
+    
+    /* 🚀 Мягкое размытие (затухание) сверху и снизу при скролле истории */
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0px, black 16px, black calc(100% - 32px), transparent 100%);
+    mask-image: linear-gradient(to bottom, transparent 0px, black 16px, black calc(100% - 32px), transparent 100%);
 }
 
 .vault-history-item {
@@ -5069,4 +5306,123 @@ body.is-dragging-vault-history * {
     line-height: 1.4;
     padding: 0 4px;
     opacity: 0.8;
+}
+
+/* ==========================================
+   КАСТОМНЫЙ СКРОЛЛБАР ДОСКИ (по паттерну вкладок)
+   ========================================== */
+
+.board-wrapper {
+    flex: 1;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+}
+
+/* Прячем нативный горизонтальный скроллбар у .board-container — рулим своим */
+.board-container::-webkit-scrollbar {
+    display: none !important;
+}
+
+.board-scrollbar {
+    position: absolute;
+    bottom: 4px;
+    left: 24px;
+    right: 24px;
+    height: 4px;
+    background: transparent;
+    border-radius: 4px;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.4s ease, visibility 0.4s ease;
+    pointer-events: none;
+    z-index: 10;
+}
+
+.board-scrollbar.visible {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+.board-scrollbar-thumb {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    background: var(--scrollbar-thumb);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    will-change: transform;
+}
+
+.board-scrollbar-thumb:hover,
+.board-scrollbar-thumb.is-dragging {
+    background: var(--scrollbar-thumb-hover);
+}
+
+/* ==========================================
+   ВНУТРИПРОГРАММНЫЕ УВЕДОМЛЕНИЯ (APPLE TOAST)
+   ========================================== */
+.app-toast {
+    position: fixed;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px) scale(0.95);
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+    padding: 12px 20px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    z-index: 2147483647; /* Поверх вообще всего */
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.app-toast.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(0) scale(1);
+}
+
+[data-theme="dark"] .app-toast {
+    background: rgba(35, 37, 33, 0.85);
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+}
+
+.app-toast-icon {
+    color: var(--success-done);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.app-toast-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.app-toast-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
+}
+
+.app-toast-message {
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.3;
 }

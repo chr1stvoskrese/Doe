@@ -95,27 +95,22 @@ async def create_task(db: AsyncSession, task_in: TaskCreate) -> TaskModel:
     db_task = TaskModel(
         title=task_in.title,
         column_id=task_in.column_id,
-        parent_id=task_in.parent_id,
         position=position,
     )
-    db.add(db_task)
     
-    # --- НОВОЕ: Обновляем дату родителя при создании подзадачи ---
-    if task_in.parent_id:
-        parent_res = await db.execute(select(TaskModel).where(TaskModel.id == task_in.parent_id))
-        parent_task = parent_res.scalar_one_or_none()
-        if parent_task:
-            parent_task.updated_at = datetime.utcnow()
-    # -----------------------------------------------------------
+    if task_in.parent_ids:
+        parents_res = await db.execute(select(TaskModel).where(TaskModel.id.in_(task_in.parent_ids)))
+        db_task.parents = parents_res.scalars().all()
+        for p in db_task.parents:
+            p.updated_at = datetime.utcnow()
 
+    db.add(db_task)
     await db.commit()
     await db.refresh(db_task)
 
-    # Получаем данные колонки, чтобы проверить её режим
     result = await db.execute(select(ColumnModel).where(ColumnModel.id == task_in.column_id))
     column = result.scalar_one()
 
-    # 1. Если создаем в режиме таймера — запускаем таймер
     if column.mode == ColumnMode.TRACK_TIME:
         new_session = TimerSessionModel(
             task_id=db_task.id,
@@ -125,17 +120,15 @@ async def create_task(db: AsyncSession, task_in: TaskCreate) -> TaskModel:
         db.add(new_session)
         await db.commit()
 
-    # 2. ИСПРАВЛЕНИЕ: Если создаем в режиме завершения — помечаем как выполненную
     if column.mode == ColumnMode.COMPLETION:
         db_task.completed_at = datetime.utcnow()
         await db.commit()
 
-    await db.refresh(db_task, attribute_names=['timer_sessions'])
+    await db.refresh(db_task, attribute_names=['timer_sessions', 'parents'])
     _calculate_task_time(db_task)
     return db_task
 
 async def get_task_context(db: AsyncSession, task_id: int) -> dict:
-    """Получает полные координаты задачи для навигации по внутренней ссылке"""
     query = (
         select(TaskModel.id, TaskModel.column_id, ColumnModel.workspace_id)
         .join(ColumnModel, TaskModel.column_id == ColumnModel.id)
@@ -150,7 +143,7 @@ async def get_task_context(db: AsyncSession, task_id: int) -> dict:
 async def update_task(db: AsyncSession, task_id: int, task_in: TaskUpdate) -> TaskModel:
     result = await db.execute(
         select(TaskModel)
-        .options(selectinload(TaskModel.timer_sessions))
+        .options(selectinload(TaskModel.timer_sessions), selectinload(TaskModel.parents))
         .where(TaskModel.id == task_id)
     )
     task = result.scalar_one_or_none()
@@ -158,42 +151,39 @@ async def update_task(db: AsyncSession, task_id: int, task_in: TaskUpdate) -> Ta
         raise ValueError("Задача не найдена")
 
     update_data = task_in.dict(exclude_unset=True)
-    
-    # ЗАЩИТА ОТ ЦИКЛИЧЕСКИХ ЗАВИСИМОСТЕЙ (Senior Архитектура)
-    if "parent_id" in update_data and update_data["parent_id"] is not None:
-        new_parent_id = update_data["parent_id"]
-        if new_parent_id == task_id:
-            raise ValueError("Задача не может быть подзадачей самой себя")
-        # Проверяем, не пытаемся ли мы засунуть задачу внутрь её собственного потомка
-        child_ids = await _get_all_child_ids(db, task_id)
-        if new_parent_id in child_ids:
-            raise ValueError("Обнаружена циклическая зависимость: нельзя сделать задачу подзадачей её собственного потомка")
-    
-    # Загружаем колонку, чтобы знать ее режим
+
+    # ОБНОВЛЕНИЕ ГРАФОВЫХ СВЯЗЕЙ С ПРОВЕРКОЙ НА ЦИКЛЫ
+    if "parent_ids" in update_data:
+        new_parent_ids = update_data.pop("parent_ids")
+        if new_parent_ids is not None:
+            if task_id in new_parent_ids:
+                raise ValueError("Задача не может быть подзадачей самой себя")
+            
+            child_ids = await _get_all_child_ids(db, task_id)
+            for pid in new_parent_ids:
+                if pid in child_ids:
+                    raise ValueError("Обнаружена циклическая зависимость")
+                    
+            parents_res = await db.execute(select(TaskModel).where(TaskModel.id.in_(new_parent_ids)))
+            task.parents = parents_res.scalars().all()
+            for p in task.parents:
+                p.updated_at = datetime.utcnow()
+
     col_res = await db.execute(select(ColumnModel).where(ColumnModel.id == task.column_id))
     col = col_res.scalar_one()
 
-    # ОПРЕДЕЛЯЕМ, является ли задача активной на доске 
-    # (корневая задача ИЛИ подзадача с включенным глазиком)
     is_visible = update_data.get("is_visible_on_board", task.is_visible_on_board)
-    is_active_on_board = task.parent_id is None or is_visible
+    is_active_on_board = not task.parents or is_visible
 
-    # ПРАВИЛО 1: Строгая синхронизация статуса завершенности с режимом колонки
-    # Применяется ТОЛЬКО если карточка "на доске"
     if is_active_on_board:
         if col.mode == ColumnMode.COMPLETION:
-            # Блокируем попытку снять галочку
             if "completed_at" in update_data and update_data["completed_at"] is None:
                 update_data.pop("completed_at")
-            # Ставим галочку, если её нет
             if task.completed_at is None and "completed_at" not in update_data:
                 update_data["completed_at"] = datetime.utcnow()
         else:
-            # Если колонка обычная (Не результирующая)
-            # Блокируем попытку поставить галочку (защита API)
             if "completed_at" in update_data and update_data["completed_at"] is not None:
                 update_data.pop("completed_at")
-            # СНИМАЕМ галочку, если она стояла (например, юзер поставил её, пока глазик был выключен)
             if task.completed_at is not None and "completed_at" not in update_data:
                 update_data["completed_at"] = None
 
@@ -203,25 +193,61 @@ async def update_task(db: AsyncSession, task_id: int, task_in: TaskUpdate) -> Ta
     await db.commit()
     await db.refresh(task)
     _calculate_task_time(task)
-    
     return task
 
-async def _get_all_child_ids(db: AsyncSession, task_id: int) -> list[int]:
-    """Рекурсивно собирает ID всех дочерних задач любой вложенности."""
-    ids = [task_id]
-    res = await db.execute(select(TaskModel.id).where(TaskModel.parent_id == task_id))
-    child_ids = res.scalars().all()
-    for cid in child_ids:
-        ids.extend(await _get_all_child_ids(db, cid))
-    return ids
+async def _get_all_child_ids(db: AsyncSession, task_id: int, visited: set = None) -> list[int]:
+    """Безопасный DFS обход графа для поиска всех потомков."""
+    if visited is None:
+        visited = set()
+    if task_id in visited:
+        return []
+    visited.add(task_id)
+    
+    res = await db.execute(
+        select(TaskModel).options(selectinload(TaskModel.subtasks)).where(TaskModel.id == task_id)
+    )
+    task = res.scalar_one_or_none()
+    if task:
+        for sub in task.subtasks:
+            await _get_all_child_ids(db, sub.id, visited)
+            
+    return list(visited)
+
+async def get_task_paths(db: AsyncSession, task_id: int) -> list[list[dict]]:
+    """Строит все пути от корней до данной задачи (для хлебных крошек)."""
+    paths = []
+    
+    async def dfs(current_id, current_path):
+        res = await db.execute(
+            select(TaskModel).options(selectinload(TaskModel.parents)).where(TaskModel.id == current_id)
+        )
+        task = res.scalar_one_or_none()
+        if not task:
+            return
+            
+        node = {"id": task.id, "title": task.title}
+        new_path = [node] + current_path
+        
+        if not task.parents:
+            paths.append(new_path)
+        else:
+            for p in task.parents:
+                # Защита от бесконечного цикла
+                if p.id not in [n["id"] for n in current_path]:
+                    await dfs(p.id, new_path)
+                    
+    await dfs(task_id, [])
+    return paths
 
 async def delete_task(db: AsyncSession, task_id: int) -> list[int]:
-    result = await db.execute(select(TaskModel).where(TaskModel.id == task_id))
+    result = await db.execute(
+        select(TaskModel)
+        .options(selectinload(TaskModel.parents))
+        .where(TaskModel.id == task_id)
+    )
     task = result.scalar_one_or_none()
     if not task:
         raise ValueError("Задача не найдена")
-
-    parent_id = task.parent_id
 
     # Собираем все ID (самой задачи и всех её потомков) ДО удаления
     deleted_ids = await _get_all_child_ids(db, task_id)
@@ -229,12 +255,9 @@ async def delete_task(db: AsyncSession, task_id: int) -> list[int]:
     # Каскад в БД автоматически уничтожит все подзадачи
     await db.delete(task)
     
-    # Обновляем дату родителя при удалении подзадачи
-    if parent_id:
-        parent_res = await db.execute(select(TaskModel).where(TaskModel.id == parent_id))
-        parent_task = parent_res.scalar_one_or_none()
-        if parent_task:
-            parent_task.updated_at = datetime.utcnow()
+    # Обновляем даты всех родителей при удалении подзадачи
+    for p in task.parents:
+        p.updated_at = datetime.utcnow()
 
     await db.commit()
     
@@ -299,7 +322,7 @@ async def move_task(db: AsyncSession, task_id: int, target_column_id: int) -> Ta
         res = await db.execute(
             select(TaskModel)
             .options(selectinload(TaskModel.timer_sessions))
-            .where(TaskModel.parent_id == parent_id)
+            .where(TaskModel.parents.any(id=parent_id))
         )
         subs = res.scalars().all()
         for s in subs:
@@ -392,10 +415,11 @@ async def get_task_with_details(db: AsyncSession, task_id: int) -> TaskModel:
     result = await db.execute(
         select(TaskModel)
         .options(
-            # Загружаем задачу, её подзадачи и их таймеры (1 уровень вложенности)
             selectinload(TaskModel.subtasks).selectinload(TaskModel.timer_sessions),
+            selectinload(TaskModel.subtasks).selectinload(TaskModel.parents), # <--- ЗАГРУЖАЕМ РОДИТЕЛЕЙ ПОДЗАДАЧ
             selectinload(TaskModel.timer_sessions),
-            selectinload(TaskModel.column)
+            selectinload(TaskModel.column),
+            selectinload(TaskModel.parents) # Нужно для Pydantic parent_ids
         )
         .where(TaskModel.id == task_id)
     )

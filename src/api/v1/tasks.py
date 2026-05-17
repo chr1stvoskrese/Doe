@@ -1,4 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from typing import List, Dict, Any
+import sys
+import os
+import subprocess
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.database import get_session
@@ -12,6 +16,7 @@ from src.schemas.task import (
     TaskReorder,
     TaskExportReq,
     TaskSetTimeReq,
+    TaskNotifyReq,
 )
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
@@ -32,7 +37,9 @@ async def update_task(task_id: int, task_in: TaskUpdate, db: AsyncSession = Depe
         task = await task_service.update_task(db, task_id, task_in)
         return task
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        # Семантически верный статус для ошибок бизнес-логики (циклы)
+        status_code = 400 if "цикл" in str(e).lower() or "зависимост" in str(e).lower() or "самой себя" in str(e).lower() else 404
+        raise HTTPException(status_code=status_code, detail=str(e))
 
 
 @router.delete("/{task_id}", status_code=status.HTTP_200_OK)
@@ -91,9 +98,41 @@ async def set_task_time_endpoint(task_id: int, req: TaskSetTimeReq, db: AsyncSes
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
+@router.post("/{task_id}/notify")
+async def schedule_notification_endpoint(task_id: int, req: TaskNotifyReq):
+    try:
+        executable = sys.executable
+        
+        if getattr(sys, 'frozen', False):
+            # В собранном приложении (PyInstaller) executable - это сам наш бинарник
+            args = [executable, "--notify", str(req.delay_seconds), req.title, req.message]
+        else:
+            # В режиме разработки нужно явно указать интерпретатору файл wrapper.py
+            wrapper_path = os.path.abspath(sys.argv[0])
+            args = [executable, wrapper_path, "--notify", str(req.delay_seconds), req.title, req.message]
+        
+        # Порождаем полностью отсоединённый процесс, который выживет после закрытия основного приложения
+        if sys.platform == 'win32':
+            # CREATE_NO_WINDOW | DETACHED_PROCESS
+            subprocess.Popen(args, creationflags=0x08000000 | 0x00000008)
+        else:
+            # macOS / Linux
+            subprocess.Popen(args, start_new_session=True)
+            
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.get("/{task_id}/context")
 async def get_task_context_endpoint(task_id: int, db: AsyncSession = Depends(get_session)):
     try:
         return await task_service.get_task_context(db, task_id)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
+
+@router.get("/{task_id}/paths", response_model=List[List[Dict[str, Any]]])
+async def get_task_paths_endpoint(task_id: int, db: AsyncSession = Depends(get_session)):
+    try:
+        return await task_service.get_task_paths(db, task_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

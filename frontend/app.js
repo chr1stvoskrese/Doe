@@ -1,6 +1,5 @@
 // ---------- ГЛОБАЛЬНОЕ СОСТОЯНИЕ ----------
 let state = { columns: [], workspaces: [], activeWorkspaceId: null };
-let modalNavigationStack = [];
 const API_BASE = '/api/v1';
 
 const translations = {
@@ -13,10 +12,11 @@ const translations = {
             delete: 'Удалить', clear: 'Очистить', open: 'Открыть', 
             deleteCard: 'Удалить карточку', clearTimer: 'Очистить таймер',
             exportCard: 'Экспорт в Markdown', attachmentsSettings: 'Хранилище вложений',
-            copyCardLink: 'Скопировать ссылку'
+            copyCardLink: 'Скопировать ссылку', notify: 'Напомнить'
         },
         copied: 'Скопировано!',
         modals: { 
+            notifyTitle: 'Напомнить', notifyRelative: 'Через', notifyAbsolute: 'В точное время', btnSet: 'Установить',
             themeTitle: 'Тема оформления', light: 'Светлая', dark: 'Тёмная', 
             langTitle: 'Выберите язык', aboutTitle: 'О приложении', 
             aboutDesc: 'Aesthetic. Local-first. Kanban sanctuary.',
@@ -26,7 +26,9 @@ const translations = {
             attExternalTitle: 'Внешняя папка',
             attSelectBtn: 'Выбрать папку...',
             attWarning: 'При использовании внешней папки файлы не будут копироваться на флешку автоматически при переносе хранилища.',
-            exportTitle: 'Экспорт карточки', exportIncludeAtt: 'Экспортировать с вложениями', btnExport: 'Экспортировать'
+            exportTitle: 'Экспорт карточки', exportIncludeAtt: 'Экспортировать с вложениями', btnExport: 'Экспортировать',
+            detachTitle: 'Отвязать карточку?', detachDesc: 'Эта карточка привязана к нескольким карточкам.',
+            detachCurrent: 'Только от текущей карточки', detachAll: 'От всех карточек (сделать независимой)'
         },
         copyLink: 'Копировать ссылку',
         detachSubtask: 'Отвязать от чек-листа (сделать независимой)',
@@ -61,7 +63,8 @@ const translations = {
             uploadNetworkError: (name) => `[❌ Ошибка сети: ${name}]`
         },
         timeUnits: { y: 'л', w: 'н', d: 'д', h: 'ч', m: 'м', s: 'с' },
-        prompts: { 
+        timeUnitsFull: { s: 'секунд', m: 'минут', h: 'часов', d: 'дней', w: 'недель', mo: 'месяцев', y: 'лет' },
+        prompts: {
             taskTitle: 'Название карточки:', columnTitle: 'Название колонки:', renameColumn: 'Новое название:', 
             deleteConfirmTitle: 'Удалить колонку?', deleteConfirmDesc: 'Все карточки внутри будут потеряны.',
             clearConfirmTitle: 'Очистить колонку?', clearConfirmDesc: 'Все карточки внутри будут удалены безвозвратно.',
@@ -80,10 +83,11 @@ const translations = {
             delete: 'Delete', clear: 'Clear', open: 'Open', 
             deleteCard: 'Delete card', clearTimer: 'Clear timer',
             exportCard: 'Export to Markdown', attachmentsSettings: 'Attachments Storage',
-            copyCardLink: 'Copy link'
+            copyCardLink: 'Copy link', notify: 'Remind me'
         },
         copied: 'Copied!',
         modals: { 
+            notifyTitle: 'Remind me', notifyRelative: 'In', notifyAbsolute: 'At exact time', btnSet: 'Set',
             themeTitle: 'Theme', light: 'Light', dark: 'Dark', 
             langTitle: 'Select language', aboutTitle: 'About', 
             aboutDesc: 'Aesthetic. Local-first. Kanban sanctuary.',
@@ -93,7 +97,9 @@ const translations = {
             attExternalTitle: 'External folder',
             attSelectBtn: 'Choose folder...',
             attWarning: 'When using an external folder, files will not copy automatically if you move the vault to a USB drive.',
-            exportTitle: 'Export Card', exportIncludeAtt: 'Export with attachments', btnExport: 'Export'
+            exportTitle: 'Export Card', exportIncludeAtt: 'Export with attachments', btnExport: 'Export',
+            detachTitle: 'Detach card?', detachDesc: 'This card is attached to multiple cards.',
+            detachCurrent: 'Only from current card', detachAll: 'From all cards (make independent)'
         },
         columnModes: { default: 'Standard', track_time: 'Track time', completion: 'Completed' },
         defaultWorkspace: 'Main Board',
@@ -125,7 +131,8 @@ const translations = {
             uploadNetworkError: (name) => `[❌ Network error: ${name}]`
         },
         timeUnits: { y: 'y', w: 'w', d: 'd', h: 'h', m: 'm', s: 's' },
-        prompts: { 
+        timeUnitsFull: { s: 'seconds', m: 'minutes', h: 'hours', d: 'days', w: 'weeks', mo: 'months', y: 'years' },
+        prompts: {
             taskTitle: 'Card title:', columnTitle: 'Column title:', renameColumn: 'New name:', 
             deleteConfirmTitle: 'Delete column?', deleteConfirmDesc: 'All cards inside will be lost.',
             clearConfirmTitle: 'Clear column?', clearConfirmDesc: 'All cards inside will be permanently deleted.',
@@ -142,7 +149,16 @@ window.addEventListener('dragover', (e) => e.preventDefault());
 window.addEventListener('drop', (e) => e.preventDefault());
 
 let currentLang = 'ru';
-let activeConfirmResolve = null; // Добавили эту строку
+let activeConfirmResolve = null; 
+let activeDetachResolve = null; // Для модалки отвязки
+
+function showDetachModal() {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('detach-modal');
+        activeDetachResolve = resolve;
+        modal.classList.add('show');
+    });
+}
 
 // --- НОВЫЕ ФУНКЦИИ ПРИМЕНЕНИЯ ТЕМЫ И ЯЗЫКА ---
 function applyTheme(theme, saveToBackend = false) {
@@ -170,7 +186,7 @@ function applyTheme(theme, saveToBackend = false) {
 function formatExactTime(seconds) {
     if (!seconds) return "00:00:00";
     
-    const MAX_SECONDS = 31536000000; // 1000 лет
+    const MAX_SECONDS = 31536000000;
     if (seconds >= MAX_SECONDS) {
         return currentLang === 'ru' ? '1000+ лет' : '1000+ y';
     }
@@ -445,7 +461,11 @@ async function createTask(title, columnId) {
 }
 async function updateTask(id, data) {
     const res = await fetch(`${API_BASE}/tasks/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-    if (!res.ok) throw new Error('Error'); return res.json();
+    if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.detail || `HTTP Error ${res.status}`);
+    }
+    return res.json();
 }
 
 async function deleteTask(id) { 
@@ -844,9 +864,11 @@ async function onAddTask(columnId) {
     
     // Автоматическое изменение высоты textarea (Фикс вылетающего курсора и скролла)
     const autoResize = () => {
-        const offset = input.offsetHeight - input.clientHeight;
+        // Идеальная математика высоты для border-box без скачков
+        const computed = window.getComputedStyle(input);
+        const borders = parseFloat(computed.borderTopWidth) + parseFloat(computed.borderBottomWidth);
         input.style.height = '1px';
-        const sh = input.scrollHeight + offset;
+        const sh = input.scrollHeight + borders;
         const maxHeight = 120; // Лимит высоты ввода
         if (sh > maxHeight) {
             input.style.height = maxHeight + 'px';
@@ -1098,9 +1120,11 @@ async function onCreateColumn() {
 
     // Авто-resize со скроллом при превышении высоты экрана (Фикс вылетающего курсора)
     const autoResize = () => {
-        const offset = input.offsetHeight - input.clientHeight;
+        // Идеальная математика высоты для border-box без скачков
+        const computed = window.getComputedStyle(input);
+        const borders = parseFloat(computed.borderTopWidth) + parseFloat(computed.borderBottomWidth);
         input.style.height = '1px';
-        const sh = input.scrollHeight + offset;
+        const sh = input.scrollHeight + borders;
         const boardHeight = document.getElementById('board').clientHeight;
         
         const maxAllowedHeight = Math.max(60, boardHeight - 60);
@@ -1868,9 +1892,11 @@ function startColumnRename(columnEl, column) {
     // Авто-resize по содержимому (Фикс сломанного скролла и курсора)
     let lastValidValue = input.value;
     const autoResize = () => {
-        const offset = input.offsetHeight - input.clientHeight;
+        // Идеальная математика высоты для border-box без скачков
+        const computed = window.getComputedStyle(input);
+        const borders = parseFloat(computed.borderTopWidth) + parseFloat(computed.borderBottomWidth);
         input.style.height = '1px';
-        const sh = input.scrollHeight + offset;
+        const sh = input.scrollHeight + borders;
         const boardHeight = document.getElementById('board').clientHeight;
         
         // Здесь есть список и кнопка, вычитаем 140px, чтобы их не выдавило
@@ -2190,11 +2216,8 @@ function startModalTaskRename(titleEl) {
                 }
                 refreshBoard(); // Чтобы название карточки обновилось и на фоне
                 
-                // Обновляем хлебные крошки внутри модалки
-                if (modalNavigationStack.length > 0) {
-                    modalNavigationStack[modalNavigationStack.length - 1].title = newTitle;
-                    renderBreadcrumbs();
-                }
+                // Обновляем графовые крошки внутри модалки
+                renderGraphBreadcrumbs(taskId);
             } catch (e) {
                 console.error("Ошибка при переименовании задачи", e);
                 restore(originalTitle);
@@ -2293,6 +2316,10 @@ function startSubtaskRename(subtaskEl) {
         if (newTitle && newTitle !== originalTitle) {
             try {
                 await updateTask(subtaskId, { title: newTitle });
+                // Обновляем локальный объект, чтобы модалка не рассинхронизировалась
+                sub.title = newTitle; 
+                // Обязательно обновляем фон доски (т.к. подзадача может быть вынесена туда как карточка)
+                refreshBoard(); 
             } catch (e) {
                 console.error("Ошибка при переименовании подзадачи", e);
                 restore(originalTitle);
@@ -3216,13 +3243,12 @@ document.addEventListener('click', async (e) => {
         }, 200);
 
         try {
-            updateTask(taskId, { parent_id: null }).then(() => {
+            updateTask(taskId, { parent_ids: [], is_visible_on_board: true }).then(() => {
                 bumpModalUpdatedDate();
                 refreshBoard(); // Карточка моментально появится на доске
                 
-                // Перестраиваем хлебные крошки: карточка теперь корень, очищаем стек
-                modalNavigationStack = [{ id: taskId, title: document.getElementById('task-modal-title').textContent }];
-                renderBreadcrumbs();
+                // Перерисовываем пути с сервера (теперь это будет просто пустой граф)
+                renderGraphBreadcrumbs(taskId);
             });
         } catch (err) {
             console.error("Ошибка отвязки из модалки:", err);
@@ -3237,23 +3263,20 @@ document.addEventListener('click', async (e) => {
         e.stopPropagation();
         const modal = document.getElementById('task-modal');
         const taskId = parseInt(modal.dataset.taskId);
+        const exportModal = document.getElementById('export-modal');
+        exportModal.dataset.taskId = taskId;
+        exportModal.classList.add('show');
         
-        if (window.pywebview && window.pywebview.api && window.pywebview.api.choose_directory) {
-            // Сначала показываем модалку выбора (с чекбоксом "Копировать папку вложений"),
-            // и только после подтверждения открываем нативный диалог выбора папки.
-            const exportModal = document.getElementById('export-modal');
-            exportModal.dataset.taskId = taskId;
-            exportModal.classList.add('show');
+        const confirmBtn = document.getElementById('btn-confirm-export');
+        // Снимаем старые обработчики (хак через замену узла)
+        const newConfirmBtn = confirmBtn.cloneNode(true);
+        confirmBtn.replaceWith(newConfirmBtn);
+        
+        newConfirmBtn.onclick = async () => {
+            const includeAtt = document.getElementById('export-include-att').checked;
+            exportModal.classList.remove('show');
             
-            const confirmBtn = document.getElementById('btn-confirm-export');
-            // Снимаем старые обработчики (хак через замену узла)
-            const newConfirmBtn = confirmBtn.cloneNode(true);
-            confirmBtn.replaceWith(newConfirmBtn);
-            
-            newConfirmBtn.onclick = async () => {
-                const includeAtt = document.getElementById('export-include-att').checked;
-                exportModal.classList.remove('show');
-                
+            if (window.pywebview && window.pywebview.api && window.pywebview.api.choose_directory) {
                 const exportDir = await window.pywebview.api.choose_directory();
                 if (exportDir) {
                     exportModalBtn.style.opacity = '0.5'; // Эффект загрузки на иконке кнопки экспорта
@@ -3269,10 +3292,25 @@ document.addEventListener('click', async (e) => {
                         console.error(err);
                     });
                 }
-            };
-        } else {
-            alert('Экспорт в Markdown работает только в десктопном приложении Doe.');
-        }
+            } else {
+                alert('Экспорт в Markdown работает только в десктопном приложении Doe.');
+            }
+        };
+        return;
+    }
+
+    // УВЕДОМЛЕНИЕ ИЗ МОДАЛКИ КАРТОЧКИ
+    const notifyModalBtn = target.closest('.modal-notify');
+    if (notifyModalBtn) {
+        e.stopPropagation();
+        const modal = document.getElementById('task-modal');
+        const taskId = parseInt(modal.dataset.taskId);
+        
+        // Бронебойное чтение заголовка (учитывает режим редактирования)
+        const titleNode = document.getElementById('task-modal-title') || document.querySelector('.task-modal-title-input');
+        const taskTitle = (titleNode.value !== undefined ? titleNode.value : titleNode.textContent).trim();
+        
+        openNotifyModal(taskId, taskTitle);
         return;
     }
 
@@ -3285,6 +3323,23 @@ document.addEventListener('click', async (e) => {
     if (target.closest('[data-action="confirm-delete"]')) {
         if (activeConfirmResolve) { activeConfirmResolve(true); activeConfirmResolve = null; }
         document.getElementById('confirm-modal').classList.remove('show');
+        return;
+    }
+    
+    // ОБРАБОТКА КНОПОК УМНОЙ ОТВЯЗКИ
+    if (target.closest('[data-action="detach-cancel"]')) {
+        if (activeDetachResolve) { activeDetachResolve(null); activeDetachResolve = null; }
+        document.getElementById('detach-modal').classList.remove('show');
+        return;
+    }
+    if (target.closest('[data-action="detach-current"]')) {
+        if (activeDetachResolve) { activeDetachResolve('current'); activeDetachResolve = null; }
+        document.getElementById('detach-modal').classList.remove('show');
+        return;
+    }
+    if (target.closest('[data-action="detach-all"]')) {
+        if (activeDetachResolve) { activeDetachResolve('all'); activeDetachResolve = null; }
+        document.getElementById('detach-modal').classList.remove('show');
         return;
     }
 
@@ -3378,12 +3433,9 @@ document.addEventListener('click', async (e) => {
 
                 if (action === 'open-card') {
                     const taskId = parseInt(activeCardId);
-                    modalNavigationStack = []; // Сбрасываем историю, так как открываем карточку с доски
                     
-                    // Вызываем новую функцию загрузки (мы её создадим в шаге 3)
-                    loadTaskIntoModal(taskId); 
+                    loadTaskIntoModal(taskId, true); 
                     
-                    // Показываем саму модалку
                     document.getElementById('task-modal').classList.add('show');
                 }
                 else if (action === 'delete-card') {
@@ -3452,18 +3504,9 @@ document.addEventListener('click', async (e) => {
                             textArea.remove();
                         }
 
-                        // Меняем текст прямо в меню для визуальной обратной связи
-                        const span = menuItem.querySelector('span[data-i18n]') || menuItem.querySelector('span');
-                        const oldText = span.textContent;
-                        span.textContent = t('copied');
-                        span.style.color = 'var(--success-done)';
-                        
-                        setTimeout(() => {
-                            span.textContent = oldText;
-                            span.style.color = '';
-                            closeAllDropdowns();
-                        }, 1000);
-                        return; // Выходим, чтобы меню не закрылось мгновенно
+                        // Senior UX: Копируем и мгновенно закрываем меню без опасных таймеров
+                        closeAllDropdowns();
+                        return;
                     } catch (err) {
                         console.error("Failed to copy link: ", err);
                     }
@@ -3497,6 +3540,13 @@ document.addEventListener('click', async (e) => {
                     } else {
                         alert('Экспорт в Markdown работает только в десктопном приложении Doe.');
                     }
+                }
+                else if (action === 'notify-card') {
+                    // Бронебойное чтение заголовка (учитывает режим редактирования)
+                    const titleNode = cardEl.querySelector('.card-title') || cardEl.querySelector('.card-title-input');
+                    const taskTitle = (titleNode.value !== undefined ? titleNode.value : titleNode.textContent).trim();
+                    
+                    openNotifyModal(taskId, taskTitle);
                 }
             }
             closeAllDropdowns();
@@ -3594,6 +3644,10 @@ document.addEventListener('click', async (e) => {
         if (activeConfirmResolve && (target.id === 'confirm-modal' || target.closest('#confirm-modal'))) {
             activeConfirmResolve(false);
             activeConfirmResolve = null;
+        }
+        if (activeDetachResolve && (target.id === 'detach-modal' || target.closest('#detach-modal'))) {
+            activeDetachResolve(null);
+            activeDetachResolve = null;
         }
         
         // --- СБРОС ГЕОМЕТРИИ И FULLSCREEN СТАТУСА ПРИ ЗАКРЫТИИ ---
@@ -3755,46 +3809,18 @@ async function loadTaskIntoModal(taskId, pushToStack = true, highlightQuery = nu
         const inputAreaEl = document.getElementById('task-desc-input');
         if (inputAreaEl) inputAreaEl.scrollTop = 0;
 
-        // 1. Хлебные крошки
-        if (pushToStack) {
-            // --- ПОЛНОЕ ВОССТАНОВЛЕНИЕ ИСТОРИИ (Рекурсивный подъем до корня) ---
-            if (modalNavigationStack.length === 0 && task.parent_id) {
-                let currentParentId = task.parent_id;
-                const ancestry = [];
-                
-                // Поднимаемся вверх, пока не кончатся родители
-                while (currentParentId) {
-                    try {
-                        const pRes = await fetch(`${API_BASE}/tasks/${currentParentId}`);
-                        if (!pRes.ok) break;
-                        const pTask = await pRes.json();
-                        // Кладем в начало массива (unshift), чтобы корень был первым
-                        ancestry.unshift({ id: pTask.id, title: pTask.title });
-                        currentParentId = pTask.parent_id;
-                    } catch (e) {
-                        break;
-                    }
-                }
-                // Присваиваем найденную цепочку стеку
-                modalNavigationStack = [...ancestry];
-            }
-
-            const lastInStack = modalNavigationStack[modalNavigationStack.length - 1];
-            if (!lastInStack || lastInStack.id !== task.id) {
-                modalNavigationStack.push({ id: task.id, title: task.title });
-            }
-        }
-        renderBreadcrumbs();
+        // 1. Рисуем графовые хлебные крошки параллельно (backend сам вычислит все пути)
+        renderGraphBreadcrumbs(task.id);
 
         // 2. Основные данные
         modal.dataset.taskId = task.id;
         modal.dataset.columnId = task.column_id;
         titleEl.textContent = task.title;
         
-        // Показываем кнопку отвязки только если у карточки есть родитель
+        // Показываем кнопку отвязки только если у карточки есть хотя бы один родитель
         const detachBtn = modal.querySelector('.modal-detach');
         if (detachBtn) {
-            detachBtn.style.display = task.parent_id ? 'flex' : 'none';
+            detachBtn.style.display = (task.parent_ids && task.parent_ids.length > 0) ? 'flex' : 'none';
             detachBtn.title = t('detachSubtask');
         }
 
@@ -3972,32 +3998,71 @@ async function loadTaskIntoModal(taskId, pushToStack = true, highlightQuery = nu
     }
 }
 
-// ФУНКЦИЯ 2: Рисует кликабельный путь наверху модалки
-function renderBreadcrumbs() {
+// ФУНКЦИЯ 2: Рисует сложный граф путей сверху модалки (с лимитом 15 символов)
+async function renderGraphBreadcrumbs(taskId) {
     const container = document.getElementById('task-breadcrumbs');
-    if (modalNavigationStack.length <= 1) {
-        container.innerHTML = ''; // Если мы на верхнем уровне, крошки не нужны
-        return;
+    container.innerHTML = '';
+    
+    try {
+        const res = await fetch(`${API_BASE}/tasks/${taskId}/paths`);
+        if (!res.ok) return;
+        const paths = await res.json();
+        
+        if (paths.length === 0 || (paths.length === 1 && paths[0].length === 1)) {
+            return;
+        }
+
+        let html = '<div class="task-graph-breadcrumbs">';
+        paths.forEach(path => {
+            html += '<div class="breadcrumb-path">';
+            path.forEach((node, index) => {
+                const isLast = index === path.length - 1;
+                
+                // Senior UI Truncate: лимит 15 символов
+                const rawTitle = node.title || "";
+                const displayTitle = rawTitle.length > 15 
+                    ? rawTitle.substring(0, 14) + '…' 
+                    : rawTitle;
+
+                // Обертка node, чтобы карточка и её стрелочка не разрывались при переносе строки
+                html += `<div class="breadcrumb-node">`;
+                
+                // Важно: записываем ОРИГИНАЛЬНЫЙ заголовок в data-full-title для тултипа (он уже подхватывается нашим initTooltip)
+                html += `<span class="breadcrumb-item ${isLast ? 'active' : ''}" 
+                               data-id="${node.id}" 
+                               data-full-title="${escapeHtml(rawTitle)}">${escapeHtml(displayTitle)}</span>`;
+                
+                if (!isLast) {
+                    html += '<span class="breadcrumb-separator"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg></span>';
+                }
+                
+                html += `</div>`;
+            });
+            html += '</div>';
+        });
+        html += '</div>';
+        
+        container.innerHTML = html;
+
+        container.querySelectorAll('.breadcrumb-item:not(.active)').forEach(el => {
+            el.onclick = () => {
+                const id = parseInt(el.dataset.id);
+                // Подтягиваем контекст задачи (workspace_id, column_id) и вызываем супер-роутер
+                fetch(`${API_BASE}/tasks/${id}/context`)
+                    .then(res => res.json())
+                    .then(context => {
+                        window.navigateToEntityGlobal(context.workspace_id, context.column_id, id, null, true);
+                    })
+                    .catch(err => {
+                        console.error("Не удалось найти контекст задачи", err);
+                        // Фолбэк на простое открытие
+                        loadTaskIntoModal(id, true);
+                    });
+            };
+        });
+    } catch (e) {
+        console.error("Failed to render graph breadcrumbs", e);
     }
-
-    container.innerHTML = modalNavigationStack.map((item, index) => {
-        const isLast = index === modalNavigationStack.length - 1;
-        return `
-            <span class="breadcrumb-item ${isLast ? 'active' : ''}" data-index="${index}" data-full-title="${escapeHtml(item.title)}">${escapeHtml(item.title)}</span>
-            ${!isLast ? '<span class="breadcrumb-separator">/</span>' : ''}
-        `;
-    }).join('');
-
-    // Клик по крошке возвращает нас назад по стеку
-    container.querySelectorAll('.breadcrumb-item').forEach(el => {
-        el.onclick = () => {
-            const index = parseInt(el.dataset.index);
-            if (index === modalNavigationStack.length - 1) return;
-            
-            modalNavigationStack = modalNavigationStack.slice(0, index + 1);
-            loadTaskIntoModal(modalNavigationStack[index].id, false);
-        };
-    });
 }
 
 function updateTimers() {
@@ -4329,8 +4394,8 @@ function initTooltip() {
             titleEl.classList.contains('breadcrumb-item') || 
             titleEl.classList.contains('vault-name-text')) {
             
-            // Если текст заканчивается на троеточие или физически не влезает
-            isActuallyClamped = titleEl.textContent.endsWith('…') || titleEl.scrollWidth > titleEl.clientWidth;
+            // Если текст заканчивается на троеточие (с защитой от пробелов) или физически не влезает
+            isActuallyClamped = titleEl.textContent.trim().endsWith('…') || titleEl.scrollWidth > titleEl.clientWidth;
         } else if (titleEl.closest('.column.collapsed')) {
             isActuallyClamped = titleEl.dataset.clamped === 'true';
         } else {
@@ -4382,12 +4447,17 @@ function initTooltip() {
         }
     });
 
-    document.addEventListener('mousedown', () => {
+    const hideTooltip = () => {
         if (activeTitle) {
             activeTitle = null;
             tooltip.classList.remove('visible');
         }
-    });
+    };
+    
+    document.addEventListener('mousedown', hideTooltip);
+    
+    // Senior UX: Защита от залипания тултипа в воздухе при инерционном скролле на тачпаде Mac/Win
+    document.addEventListener('wheel', hideTooltip, { passive: true });
 }
 
 // Выносим показ окна на самый верхний уровень, ДО любых await!
@@ -4542,10 +4612,12 @@ async function onAddSubtask() {
     };
 
     input.addEventListener('input', () => {
-        if (input.value.trim().length <= 200) {
-            formItem.classList.remove('is-error');
-            const hint = formItem.querySelector('.card-error-hint');
-            if (hint) hint.remove();
+        // Senior UX Fix: При любом вводе текста мы СРАЗУ убираем класс ошибки и удаляем элемент подсказки.
+        // Это заставляет Flexbox мгновенно пересчитать высоту контейнера до вызова autoResize.
+        formItem.classList.remove('is-error');
+        const hint = formItem.querySelector('.card-error-hint');
+        if (hint) {
+            hint.remove();
         }
         autoResize();
     });
@@ -4573,16 +4645,26 @@ async function onAddSubtask() {
         const title = input.value.trim();
         if (!title) { cancel(); return; }
 
-        // --- МАГИЯ: ВСТАВКА ССЫЛКИ КАК ПОДЗАДАЧИ ---
+        // МАГИЯ ССЫЛКИ ДЛЯ БЫСТРОГО ДОБАВЛЕНИЯ
         const linkMatch = title.match(/^\[(.*?)\]\(doe:\/\/task\/(\d+)\)$/) || title.match(/^doe:\/\/task\/(\d+)$/);
         if (linkMatch) {
             const linkedTaskId = parseInt(linkMatch[2] || linkMatch[1]);
             
-            // Если пытаются привязать задачу саму к себе
-            if (linkedTaskId === parentId) {
+            // Проверка 1: Сама на себя
+            // Проверка 2: Уже есть в списке (дубликат)
+            const isDuplicate = !!subtasksList.querySelector(`.subtask-item[data-subtask-id="${linkedTaskId}"]`);
+
+            if (linkedTaskId === parentId || isDuplicate) {
+                // Senior UX: Разблокируем ввод и вызываем визуальный фидбек
+                input.disabled = false; 
+                formItem.classList.remove('is-error');
+                void formItem.offsetWidth; // Магия: заставляем браузер перезапустить анимацию тряски
                 formItem.classList.add('is-error');
+                
+                // Очищаем класс ошибки после завершения анимации (400мс)
                 setTimeout(() => formItem.classList.remove('is-error'), 400);
-                input.focus();
+
+                input.focus({ preventScroll: true });
                 return;
             }
 
@@ -4591,10 +4673,19 @@ async function onAddSubtask() {
             input.disabled = true;
 
             try {
-                // Превращаем существующую задачу в подзадачу текущей
+                // Подтягиваем старых родителей и добавляем нового (Множественные связи)
+                const linkedTaskRes = await fetch(`${API_BASE}/tasks/${linkedTaskId}`);
+                if (!linkedTaskRes.ok) throw new Error("Task not found"); // Перехватываем 404
+                
+                const linkedTask = await linkedTaskRes.json();
+                
+                // Страховка (fallback на []), если массив вдруг не пришел
+                const safeOldParents = Array.isArray(linkedTask.parent_ids) ? linkedTask.parent_ids : [];
+                const newParents = [...new Set([...safeOldParents, parentId])];
+                
                 await updateTask(linkedTaskId, { 
-                    parent_id: parentId, 
-                    is_visible_on_board: true // Автоматически включаем глазик
+                    parent_ids: newParents, 
+                    is_visible_on_board: true 
                 });
                 
                 bumpModalUpdatedDate();
@@ -4608,12 +4699,24 @@ async function onAddSubtask() {
             } catch (err) {
                 isResolved = false;
                 input.disabled = false;
-                formItem.classList.add('is-error');
                 
-                // Если бэкенд отбил запрос из-за циклической зависимости
-                if (err.message && err.message.includes('404')) {
-                     alert(t('cyclicError'));
+                // Эстетичный показ ошибки вместо системного alert
+                let hint = formItem.querySelector('.card-error-hint');
+                if (!hint) {
+                    hint = document.createElement('div');
+                    hint.className = 'card-error-hint';
+                    formItem.appendChild(hint);
                 }
+                
+                if (err.message && (err.message.includes('цикл') || err.message.includes('самой себя'))) {
+                     hint.textContent = t('cyclicError');
+                } else {
+                     hint.textContent = t('alerts.error');
+                }
+
+                formItem.classList.remove('is-error');
+                void formItem.offsetWidth; // Магия: заставляем браузер перезапустить анимацию тряски
+                formItem.classList.add('is-error');
                 
                 setTimeout(() => formItem.classList.remove('is-error'), 400);
                 input.focus({ preventScroll: true });
@@ -4645,7 +4748,7 @@ async function onAddSubtask() {
             const res = await fetch(`${API_BASE}/tasks/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ title, column_id: columnId, parent_id: parentId })
+                body: JSON.stringify({ title, column_id: columnId, parent_ids: [parentId] })
             });
 
             if (!res.ok) throw new Error();
@@ -4729,6 +4832,10 @@ function bindSubtaskEvents(el, sub, parentId, parentMode = 'default') {
     // 2. УДАЛЕНИЕ (Корзина)
     el.querySelector('.subtask-delete-btn').onclick = async (e) => {
         e.stopPropagation();
+
+        const parents = sub.parent_ids || [];
+
+        // 1. Визуальное удаление
         el.style.transition = 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)';
         el.style.opacity = '0';
         el.style.transform = 'translateX(30px) scale(0.95)';
@@ -4740,28 +4847,39 @@ function bindSubtaskEvents(el, sub, parentId, parentMode = 'default') {
         }, 250);
 
         try {
-            const data = await deleteTask(sub.id);
-            
-            bumpModalUpdatedDate();
-            
-            const deletedIds = data.deleted_ids || [];
-            
-            // Если у этой подзадачи были свои подзадачи или она была на доске - вычищаем всё!
-            deletedIds.forEach(id => {
-                const boardCard = document.querySelector(`.card[data-card-id="${id}"]`);
-                if (boardCard) {
-                    animateCardDeletion(boardCard);
-                }
+            if (parents.length > 1) {
+                // Если у подзадачи есть другие родители — просто отвязываем её от текущего (не удаляя глобально)
+                const newParentIds = parents.filter(id => id !== parentId);
+                await updateTask(sub.id, { parent_ids: newParentIds });
                 
-                // Вычищаем из локального стейта
-                for (let col of state.columns) {
-                    const taskIndex = col.tasks.findIndex(t => t.id === id);
-                    if (taskIndex !== -1) col.tasks.splice(taskIndex, 1);
-                }
-            });
-            refreshBoard(); // Обновляем индикатор 1/10
+                bumpModalUpdatedDate();
+                sub.parent_ids = newParentIds; // Обновляем локально
+                refreshBoard();
+            } else {
+                // Если это был последний родитель — удаляем задачу безвозвратно
+                const data = await deleteTask(sub.id);
+                
+                bumpModalUpdatedDate();
+                
+                const deletedIds = data.deleted_ids || [];
+                
+                // Если задача была вынесена на доску или имела подзадачи — вычищаем их с доски
+                deletedIds.forEach(id => {
+                    const boardCard = document.querySelector(`.card[data-card-id="${id}"]`);
+                    if (boardCard) {
+                        animateCardDeletion(boardCard);
+                    }
+                    
+                    // Вычищаем из локального стейта
+                    for (let col of state.columns) {
+                        const taskIndex = col.tasks.findIndex(t => t.id === id);
+                        if (taskIndex !== -1) col.tasks.splice(taskIndex, 1);
+                    }
+                });
+                refreshBoard(); 
+            }
         } catch(err) {
-            console.error("Ошибка при глубоком удалении:", err);
+            console.error("Ошибка при удалении пункта:", err);
         }
     };
 
@@ -4841,6 +4959,17 @@ function bindSubtaskEvents(el, sub, parentId, parentMode = 'default') {
     if (detachBtn) {
         detachBtn.onclick = async (e) => {
             e.stopPropagation();
+
+            let parents = sub.parent_ids || [];
+            let detachType = 'all';
+
+            // Если карточка привязана более чем к одному родителю — показываем умную модалку
+            if (parents.length > 1) {
+                detachType = await showDetachModal();
+                if (!detachType) return; // Нажали Отмена или кликнули вне модалки
+            }
+
+            // Визуальное удаление
             el.style.transition = 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)';
             el.style.opacity = '0';
             el.style.transform = 'translateY(-10px) scale(0.95)';
@@ -4852,8 +4981,16 @@ function bindSubtaskEvents(el, sub, parentId, parentMode = 'default') {
             }, 250);
 
             try {
-                // Отвязываем от родителя. Карточка остается на доске как самостоятельная.
-                await updateTask(sub.id, { parent_id: null });
+                let newParentIds = [];
+                if (detachType === 'current') {
+                    // Удаляем только текущего родителя
+                    newParentIds = parents.filter(id => id !== parentId);
+                } else if (detachType === 'all') {
+                    // Очищаем массив, делая карточку полностью сиротой
+                    newParentIds = [];
+                }
+
+                await updateTask(sub.id, { parent_ids: newParentIds, is_visible_on_board: true });
                 bumpModalUpdatedDate();
                 refreshBoard();
             } catch(err) {
@@ -5135,6 +5272,9 @@ function initTaskDescriptionLogic() {
 
             // --- МАГИЯ КРОСС-ССЫЛОК ---
             if (href.startsWith('doe://task/')) {
+                e.preventDefault();
+                e.stopPropagation(); // Senior Fix: Жестко гасим всплытие
+                
                 const targetTaskId = parseInt(href.split('/').pop());
                 
                 // Узнаем, где живет эта карточка
@@ -5432,63 +5572,6 @@ function initTaskModalDragAndResize() {
     taskModal.addEventListener('pointerdown', onPointerDown);
 }
 
-// Слушатель для инпута подзадач внутри модалки
-document.addEventListener('keydown', async (e) => {
-    if (e.target.id === 'subtask-quick-add' && e.key === 'Enter') {
-        const input = e.target;
-        const title = input.value.trim();
-        const modal = document.getElementById('task-modal');
-        const parentId = parseInt(modal.dataset.taskId);
-        const columnId = parseInt(modal.dataset.columnId);
-
-        if (title) {
-            input.disabled = true;
-
-            // МАГИЯ ССЫЛКИ ДЛЯ БЫСТРОГО ДОБАВЛЕНИЯ
-            const linkMatch = title.match(/^\[(.*?)\]\(doe:\/\/task\/(\d+)\)$/) || title.match(/^doe:\/\/task\/(\d+)$/);
-            if (linkMatch) {
-                const linkedTaskId = parseInt(linkMatch[2] || linkMatch[1]);
-                try {
-                    await updateTask(linkedTaskId, { parent_id: parentId, is_visible_on_board: true });
-                    input.value = '';
-                    await loadTaskIntoModal(parentId, false); 
-                    refreshBoard(); 
-                } catch (err) {
-                    alert(t('cyclicError'));
-                } finally {
-                    input.disabled = false;
-                    input.focus();
-                }
-                return;
-            }
-
-            try {
-                // Создаем задачу, передавая parent_id
-                const res = await fetch(`${API_BASE}/tasks/`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        title, 
-                        column_id: columnId, 
-                        parent_id: parentId 
-                    })
-                });
-                if (res.ok) {
-                    input.value = '';
-                    // Перезагружаем текущую карточку, чтобы увидеть новую подзадачу
-                    await loadTaskIntoModal(parentId, false); 
-                    refreshBoard(); 
-                }
-            } catch (err) {
-                console.error(err);
-            } finally {
-                input.disabled = false;
-                input.focus();
-            }
-        }
-    }
-});
-
 function extractAttachments(desc, savedOrder = []) {
     const regex = /(!?)\[([^\]]+)\]\((doe\/[^)]+)\)(!?)/g;
     let match;
@@ -5677,10 +5760,8 @@ function replaceBrokenAttachment(att, newData) {
     const isEditMode = renderDiv.style.display === 'none';
 
     const encodedNewPath = encodeURI(newData.path);
-    // Восстанавливаем стандартную ссылку
     const newMarkdown = `[${newData.name}](${encodedNewPath})`;
     
-    // Заменяем старый битый кусок текста (att.fullMatch) на новую ссылку
     inputArea.value = inputArea.value.replace(att.fullMatch, newMarkdown);
     
     if (isEditMode) {
@@ -5998,7 +6079,6 @@ window.handleVaultAction = async (actionType) => {
     }
 };
 
-// Отмена создания (возврат к карточкам)
 window.cancelVaultCreate = () => {
     document.getElementById('vault-actions-cards').style.display = 'flex';
     document.getElementById('vault-create-form').style.display = 'none';
@@ -6227,9 +6307,6 @@ window.navigateToEntityGlobal = async function(wsId, colId, taskId, highlightQue
                         setTimeout(() => cardEl.style.boxShadow = '', 1500);
                     }
 
-                    if (!keepStack) {
-                        modalNavigationStack = []; 
-                    }
                     loadTaskIntoModal(taskId, true, highlightQuery);
                     document.getElementById('task-modal').classList.add('show');
                 }
@@ -6291,6 +6368,133 @@ window.resetAttFolder = async () => {
 };
 
 // ==========================================
+// ЛОГИКА УВЕДОМЛЕНИЙ (NOTIFICATIONS)
+// ==========================================
+function openNotifyModal(taskId, taskTitle) {
+    const modal = document.getElementById('notify-modal');
+    modal.dataset.taskId = taskId;
+    modal.dataset.taskTitle = taskTitle;
+    
+    // Сброс инпутов (ставим дату на текущую + 1 час)
+    const dtInput = document.getElementById('notify-datetime');
+    const now = new Date();
+    now.setHours(now.getHours() + 1);
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset()); // Сдвиг таймзоны для datetime-local
+    dtInput.value = now.toISOString().slice(0, 16);
+    
+    document.getElementById('notify-amount').value = 15;
+    
+    // Логика вкладок Segmented Control
+    const btns = modal.querySelectorAll('.segmented-btn');
+    const contents = modal.querySelectorAll('.notify-tab-content');
+    
+    btns.forEach(btn => {
+        btn.onclick = () => {
+            btns.forEach(b => b.classList.remove('active'));
+            contents.forEach(c => c.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById(btn.dataset.target).classList.add('active');
+        };
+    });
+    
+    // Кнопка подтверждения
+    const confirmBtn = document.getElementById('btn-confirm-notify');
+    const newConfirmBtn = confirmBtn.cloneNode(true);
+    confirmBtn.replaceWith(newConfirmBtn);
+    
+    newConfirmBtn.onclick = async () => {
+        let delaySeconds = 0;
+        let timeText = ''; // Текст для подтверждающего уведомления
+        const isRelative = modal.querySelector('.segmented-btn.active').dataset.target === 'notify-relative';
+        
+        if (isRelative) {
+            const amount = parseInt(document.getElementById('notify-amount').value) || 0;
+            const unitSelect = document.getElementById('notify-unit');
+            const multiplier = parseInt(unitSelect.value) || 60;
+            const unitText = unitSelect.options[unitSelect.selectedIndex].text;
+            
+            delaySeconds = amount * multiplier;
+            timeText = currentLang === 'ru' ? `через ${amount} ${unitText}` : `in ${amount} ${unitText}`;
+        } else {
+            const dtValue = document.getElementById('notify-datetime').value;
+            const targetTime = new Date(dtValue).getTime();
+            const nowTime = new Date().getTime();
+            
+            delaySeconds = Math.floor((targetTime - nowTime) / 1000);
+            
+            const d = new Date(dtValue);
+            const timeStr = d.toLocaleTimeString(currentLang, {hour: '2-digit', minute: '2-digit'});
+            const dateStr = d.toLocaleDateString(currentLang, {day: 'numeric', month: 'short'});
+            timeText = currentLang === 'ru' ? `${dateStr} в ${timeStr}` : `on ${dateStr} at ${timeStr}`;
+        }
+        
+        // --- ДОБАВЛЯЕМ В ЛЮБОЕ МЕСТО КОРНЯ ФАЙЛА (можно перед openNotifyModal) ---
+let toastTimeout = null;
+window.showToast = function(title, message) {
+    const toast = document.getElementById('app-toast');
+    document.getElementById('app-toast-title').textContent = title;
+    document.getElementById('app-toast-message').textContent = message;
+    
+    toast.classList.remove('show');
+    clearTimeout(toastTimeout);
+    
+    // Перезапуск CSS анимации
+    void toast.offsetWidth;
+    
+    toast.classList.add('show');
+    
+    toastTimeout = setTimeout(() => {
+        toast.classList.remove('show');
+    }, 2000); // Скроется через 2 секунды
+};
+// --------------------------------------------------------------------------
+
+        if (delaySeconds <= 0) {
+            alert(currentLang === 'ru' ? 'Укажите время в будущем' : 'Please specify a future time');
+            return;
+        }
+        
+        newConfirmBtn.style.opacity = '0.5';
+        newConfirmBtn.disabled = true;
+        
+        try {
+            // 1. Красивое ВНУТРИПРОГРАММНОЕ уведомление о постановке таймера
+            window.showToast(
+                currentLang === 'ru' ? 'Напоминание установлено' : 'Reminder set',
+                `"${taskTitle}" сработает ${timeText}`
+            );
+
+            // 2. Само отложенное СИСТЕМНОЕ ОС-уведомление для задачи
+            await fetch(`${API_BASE}/tasks/${taskId}/notify`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    delay_seconds: delaySeconds,
+                    title: 'Doe Reminder',
+                    message: taskTitle
+                })
+            });
+            modal.classList.remove('show');
+            
+            // Мигание зеленой галочкой у кнопки модалки (если открыта карточка)
+            const bellBtn = document.querySelector('.modal-notify');
+            if (bellBtn) {
+                bellBtn.style.color = 'var(--success-done)';
+                setTimeout(() => bellBtn.style.color = '', 2000);
+            }
+        } catch (e) {
+            console.error(e);
+            alert(t('alerts.error'));
+        } finally {
+            newConfirmBtn.style.opacity = '1';
+            newConfirmBtn.disabled = false;
+        }
+    };
+    
+    modal.classList.add('show');
+}
+
+// ==========================================
 // ГЛОБАЛЬНЫЙ ОБРАБОТЧИК КНОПОК КОПИРОВАНИЯ ССЫЛОК (Для модалки)
 // ==========================================
 document.addEventListener('click', async (e) => {
@@ -6323,15 +6527,9 @@ document.addEventListener('click', async (e) => {
                 textArea.remove();
             }
             
-            // Анимация успешного копирования (меняем на галочку)
-            const originalHtml = copyBtn.innerHTML;
+            // Анимация успешного копирования (короткая вспышка цвета без смены HTML)
             copyBtn.classList.add('copied');
-            copyBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
-            
-            setTimeout(() => {
-                copyBtn.innerHTML = originalHtml;
-                copyBtn.classList.remove('copied');
-            }, 2000);
+            setTimeout(() => copyBtn.classList.remove('copied'), 600);
         } catch (err) {
             console.error("Failed to copy link: ", err);
         }
@@ -6388,6 +6586,15 @@ initTaskDescriptionLogic();
     document.getElementById('vault-screen').classList.add('hidden', 'content-hidden');
 
     try {
+        // 🌟 ЗАПРОС РАЗРЕШЕНИЙ НА УВЕДОМЛЕНИЯ ПРИ ПЕРВОМ ЗАПУСКЕ
+        if (!localStorage.getItem('doe-notif-requested')) {
+            localStorage.setItem('doe-notif-requested', 'true');
+            // Web API запрос (если поддерживается)
+            if (window.Notification && Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+                Notification.requestPermission();
+            }
+        }
+
         // 2. Загружаем системные данные и ВКЛАДКИ в первую очередь
         const [settingsData, vaultData, workspacesData] = await Promise.all([
             fetchSettings().catch(() => ({})),

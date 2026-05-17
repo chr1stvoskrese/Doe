@@ -15,15 +15,14 @@ class TaskBase(BaseModel):
 class TaskCreate(TaskBase):
     """Данные для создания новой задачи."""
     column_id: int = Field(..., description="ID колонки, в которой создаётся задача")
-    parent_id: Optional[int] = Field(None, description="ID родительской задачи, если это подзадача")
-
+    parent_ids: List[int] = Field(default=[], description="Список ID родительских задач")
 
 class TaskUpdate(BaseModel):
     """Данные для обновления задачи (все поля необязательные)."""
     title: Optional[str] = Field(None, min_length=1, max_length=200)
     description: Optional[str] = None
     column_id: Optional[int] = None
-    parent_id: Optional[int] = None
+    parent_ids: Optional[List[int]] = None
     position: Optional[float] = None
     attachments_order: Optional[List[str]] = None
     completed_at: Optional[datetime] = None
@@ -61,7 +60,7 @@ class TaskCreateResponse(TaskBase):
     column_id: int
     description: Optional[str] = None
     attachments_order: List[str] = []
-    parent_id: Optional[int]
+    parent_ids: List[int] = []
     position: float
     created_at: datetime
     updated_at: datetime
@@ -76,6 +75,12 @@ class TaskCreateResponse(TaskBase):
 class TaskSetTimeReq(BaseModel):
     """Схема для ручной установки потраченного времени."""
     total_seconds: int = Field(..., description="Новое общее время в секундах", ge=0)
+
+class TaskNotifyReq(BaseModel):
+    """Схема для создания отложенного системного уведомления."""
+    delay_seconds: int = Field(..., description="Через сколько секунд показать уведомление", ge=1)
+    title: str = Field(..., description="Заголовок уведомления")
+    message: str = Field(..., description="Текст уведомления")
     
 
 class TaskResponse(TaskBase):
@@ -84,7 +89,7 @@ class TaskResponse(TaskBase):
     column_id: int
     description: Optional[str] = None
     attachments_order: List[str] = []
-    parent_id: Optional[int]
+    parent_ids: List[int] = []
     position: float
     created_at: datetime
     updated_at: datetime
@@ -102,3 +107,4 @@ class TaskReorder(BaseModel):
     ordered_ids: List[int]
 
 TaskResponse.model_rebuild()
+

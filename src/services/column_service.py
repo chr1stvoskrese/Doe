@@ -27,16 +27,17 @@ async def get_columns_with_tasks(db: AsyncSession, workspace_id: int):
 
     response_columns = []
     for col in columns:
-        # Тянем только ТОП-ЛЕВЕЛ задачи (у которых нет родителя)
+        # Тянем только ТОП-ЛЕВЕЛ задачи (у которых нет родителей) или те, что вынесены на доску
         tasks_stmt = (
             select(TaskModel)
             .where(
                 TaskModel.column_id == col.id, 
-                or_(TaskModel.parent_id == None, TaskModel.is_visible_on_board == True)
+                or_(~TaskModel.parents.any(), TaskModel.is_visible_on_board == True)
             )
             .options(
                 selectinload(TaskModel.timer_sessions),
-                selectinload(TaskModel.subtasks)
+                selectinload(TaskModel.subtasks),
+                selectinload(TaskModel.parents) # Нужно для Pydantic parent_ids
             )
             .order_by(TaskModel.position)
         )
@@ -56,7 +57,7 @@ async def get_columns_with_tasks(db: AsyncSession, workspace_id: int):
                         description=sub.description,
                         attachments_order=sub.attachments_order,
                         column_id=sub.column_id,
-                        parent_id=sub.parent_id,
+                        parent_ids=sub.parent_ids,
                         position=sub.position,
                         created_at=sub.created_at,
                         updated_at=sub.updated_at,
@@ -89,7 +90,7 @@ async def get_columns_with_tasks(db: AsyncSession, workspace_id: int):
                 title=task.title,
                 description=task.description,
                 column_id=task.column_id,
-                parent_id=task.parent_id,
+                parent_ids=task.parent_ids,
                 position=task.position,
                 created_at=task.created_at,
                 updated_at=task.updated_at,

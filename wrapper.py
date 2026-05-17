@@ -1,6 +1,58 @@
 import sys
 import subprocess
 import os
+import time
+
+# ==========================================
+# 🔔 SENIOR HACK: ФОНОВЫЙ УВЕДОМИТЕЛЬ (ОБРАБОТКА --notify)
+# ==========================================
+# ВАЖНО: Этот блок ДОЛЖЕН БЫТЬ ДО инициализации AppKit и setActivationPolicy.
+# Иначе macOS будет думать, что запускается полноценное GUI-приложение, 
+# и начнет прыгать пустой иконкой в Dock.
+if len(sys.argv) >= 5 and sys.argv[1] == "--notify":
+    try:
+        delay = int(sys.argv[2])
+        title = sys.argv[3].replace('"', '\\"')
+        message = sys.argv[4].replace('"', '\\"')
+        
+        time.sleep(delay)
+        
+        if sys.platform == 'darwin':
+            try:
+                # Используем нативный API macOS. 
+                # Так как мы не вызываем setActivationPolicy_(0), в Dock ничего не появится.
+                # А иконка уведомления в собранном приложении автоматически подтянется из Doe.app
+                import AppKit
+                notification = AppKit.NSUserNotification.alloc().init()
+                notification.setTitle_(title)
+                notification.setInformativeText_(message)
+                
+                center = AppKit.NSUserNotificationCenter.defaultUserNotificationCenter()
+                center.deliverNotification_(notification)
+                
+                # 🔥 КРИТИЧЕСКИЙ ФИКС: Даем демону уведомлений macOS время забрать пуш,
+                # прежде чем наш фоновый процесс закроется.
+                time.sleep(2)
+            except Exception as e:
+                # Фолбэк на случай проблем с AppKit
+                import subprocess
+                subprocess.run(['osascript', '-e', f'display notification "{message}" with title "{title}"'])
+        elif sys.platform == 'win32':
+            ps_script = f"""
+            Add-Type -AssemblyName System.Windows.Forms;
+            $notify = New-Object System.Windows.Forms.NotifyIcon;
+            $notify.Icon = [System.Drawing.SystemIcons]::Information;
+            $notify.BalloonTipTitle = '{title}';
+            $notify.BalloonTipText = '{message}';
+            $notify.Visible = $True;
+            $notify.ShowBalloonTip(10000);
+            Start-Sleep -Seconds 10;
+            """
+            os.system(f'powershell -WindowStyle Hidden -Command "{ps_script}"')
+    except Exception as e:
+        pass
+    os._exit(0) # Жестко убиваем фоновый процесс, чтобы он не грузил дальше FastAPI
+# ==========================================
 
 # ==========================================
 # 🍎 МГНОВЕННЫЙ ФИКС ИКОНКИ ДЛЯ MACOS (SENIOR UI/UX HACK)
@@ -61,6 +113,8 @@ if sys.platform == 'darwin':
 import traceback
 import time
 from datetime import datetime
+import sys
+import os
 
 # ОПРЕДЕЛЯЕМ ПАПКУ С ЛОГАМИ
 from pathlib import Path

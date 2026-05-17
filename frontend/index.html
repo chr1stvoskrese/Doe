@@ -151,9 +151,15 @@
 </header>
 
 <!-- 📋 КОНТЕЙНЕР ДОСКИ -->
-<main class="board-container">
-    <div class="board" id="board">
-        <!-- Здесь будет рендериться доска через JS -->
+<main class="board-wrapper" id="board-wrapper">
+    <div class="board-container">
+        <div class="board" id="board">
+            <!-- Здесь будет рендериться доска через JS -->
+        </div>
+    </div>
+    <!-- Кастомный скроллбар доски (по аналогии с вкладками) -->
+    <div class="board-scrollbar" id="board-scrollbar">
+        <div class="board-scrollbar-thumb" id="board-thumb"></div>
     </div>
 </main>
 
@@ -316,6 +322,9 @@
                 <button class="modal-copy-link" aria-label="Копировать ссылку">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
                 </button>
+                <button class="modal-notify" aria-label="Уведомить">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                </button>
                 <button class="modal-export" aria-label="Экспорт">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                 </button>
@@ -391,6 +400,21 @@
     </div>
 </div>
 
+<!-- 🔗 МОДАЛКА УМНОЙ ОТВЯЗКИ -->
+<div class="modal-overlay" id="detach-modal">
+    <div class="modal-card confirm-card">
+        <div class="confirm-body">
+            <h3 class="confirm-title" data-i18n="modals.detachTitle">Отвязать карточку?</h3>
+            <p class="confirm-text" data-i18n="modals.detachDesc">Эта карточка привязана к нескольким задачам.</p>
+        </div>
+        <div class="confirm-actions stacked">
+            <button class="confirm-btn cancel-btn" data-action="detach-current" data-i18n="modals.detachCurrent">Только от текущей задачи</button>
+            <button class="confirm-btn danger-btn" data-action="detach-all" data-i18n="modals.detachAll">От всех задач (сделать независимой)</button>
+            <button class="confirm-btn cancel-btn" data-action="detach-cancel" data-i18n="cancel" style="margin-top: 8px;">Отмена</button>
+        </div>
+    </div>
+</div>
+
 <!-- Глобальное контекстное меню для карточек -->
 <div id="global-card-menu" class="dropdown-menu card-context-menu">
     <div class="menu-item" data-action="open-card">
@@ -405,6 +429,10 @@
         <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         <span data-i18n="menu.exportCard">Экспорт в Markdown</span>
     </div>
+    <div class="menu-item" data-action="notify-card">
+        <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+        <span data-i18n="menu.notify">Напомнить</span>
+    </div>
     <div class="menu-item" data-action="clear-card-timer">
         <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
         <span data-i18n="menu.clearTimer">Очистить таймер</span>
@@ -416,7 +444,64 @@
     </div>
 </div>
 
-<script src="static/prism.min.js"></script> 
+<!-- ⏰ МОДАЛКА УВЕДОМЛЕНИЙ -->
+<div class="modal-overlay" id="notify-modal">
+    <div class="modal-card">
+        <div class="modal-header">
+            <span class="modal-title" data-i18n="modals.notifyTitle">Напомнить</span>
+            <button class="modal-close" aria-label="Закрыть">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+        </div>
+        <div class="modal-body" style="padding: 16px;">
+            
+            <!-- Apple-style Segmented Control -->
+            <div class="segmented-control">
+                <div class="segmented-btn active" data-target="notify-relative" data-i18n="modals.notifyRelative">Через</div>
+                <div class="segmented-btn" data-target="notify-absolute" data-i18n="modals.notifyAbsolute">В точное время</div>
+            </div>
+
+            <!-- Вкладка "Через время" -->
+            <div id="notify-relative" class="notify-tab-content active">
+                <div class="notify-input-group">
+                    <input type="number" id="notify-amount" class="column-input" value="15" min="1" style="width: 80px; text-align: center;">
+                    <select id="notify-unit" class="column-input" style="flex: 1; cursor: pointer;">
+                        <option value="1" data-i18n="timeUnitsFull.s">секунд</option>
+                        <option value="60" data-i18n="timeUnitsFull.m" selected>минут</option>
+                        <option value="3600" data-i18n="timeUnitsFull.h">часов</option>
+                        <option value="86400" data-i18n="timeUnitsFull.d">дней</option>
+                        <option value="604800" data-i18n="timeUnitsFull.w">недель</option>
+                        <option value="2592000" data-i18n="timeUnitsFull.mo">месяцев</option>
+                        <option value="31536000" data-i18n="timeUnitsFull.y">лет</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Вкладка "Точная дата" -->
+            <div id="notify-absolute" class="notify-tab-content">
+                <input type="datetime-local" id="notify-datetime" class="column-input" style="width: 100%; text-align: center; cursor: pointer;">
+            </div>
+
+            <div class="confirm-actions" style="padding: 16px 0 0 0;">
+                <button class="confirm-btn cancel-btn" onclick="document.getElementById('notify-modal').classList.remove('show')" data-i18n="cancel">Отмена</button>
+                <button class="confirm-btn vault-submit-btn" style="color: white;" id="btn-confirm-notify" data-i18n="modals.btnSet">Установить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 🍞 ЭСТЕТИЧНОЕ ВНУТРИПРОГРАММНОЕ УВЕДОМЛЕНИЕ (TOAST) -->
+<div id="app-toast" class="app-toast">
+    <div class="app-toast-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+    </div>
+    <div class="app-toast-text">
+        <span class="app-toast-title" id="app-toast-title">Уведомление</span>
+        <span class="app-toast-message" id="app-toast-message">Текст</span>
+    </div>
+</div>
+
+<script src="static/prism.min.js"></script>
 <script src="static/marked.min.js"></script>
 <script src="/static/app.js"></script>
 </body>

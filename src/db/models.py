@@ -4,9 +4,11 @@
 from datetime import datetime
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Float, Boolean, Enum
 from sqlalchemy.orm import relationship, declarative_base
+from sqlalchemy.orm.attributes import instance_state
 import enum
 
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Float, Boolean, Enum, JSON
+from sqlalchemy import Table # Добавить в импорты наверху файла, если нет
 
 Base = declarative_base()
 
@@ -41,6 +43,14 @@ class ColumnModel(Base):
     workspace = relationship("WorkspaceModel", back_populates="columns")
     tasks = relationship("TaskModel", back_populates="column", cascade="all, delete-orphan", order_by="TaskModel.position")
 
+# Ассоциативная таблица для реализации графа (Many-to-Many)
+task_relations = Table(
+    'task_relations',
+    Base.metadata,
+    Column('parent_id', Integer, ForeignKey('tasks.id', ondelete="CASCADE"), primary_key=True),
+    Column('child_id', Integer, ForeignKey('tasks.id', ondelete="CASCADE"), primary_key=True)
+)
+
 class TaskModel(Base):
     __tablename__ = "tasks"
 
@@ -49,18 +59,41 @@ class TaskModel(Base):
     description = Column(String, nullable=True)
     attachments_order = Column(JSON, default=list)
     column_id = Column(Integer, ForeignKey("columns.id"), nullable=False)
-    parent_id = Column(Integer, ForeignKey("tasks.id"), nullable=True)
+    # parent_id удален
     position = Column(Float, default=0.0)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     completed_at = Column(DateTime, nullable=True)
-
+    
     is_visible_on_board = Column(Boolean, default=False)
 
     column = relationship("ColumnModel", back_populates="tasks")
-    parent = relationship("TaskModel", remote_side=[id], back_populates="subtasks")
-    subtasks = relationship("TaskModel", back_populates="parent", cascade="all, delete-orphan")
+    
+    # Новые графовые связи
+    parents = relationship(
+        "TaskModel", 
+        secondary=task_relations, 
+        primaryjoin=id==task_relations.c.child_id, 
+        secondaryjoin=id==task_relations.c.parent_id, 
+        back_populates="subtasks"
+    )
+    subtasks = relationship(
+        "TaskModel", 
+        secondary=task_relations, 
+        primaryjoin=id==task_relations.c.parent_id, 
+        secondaryjoin=id==task_relations.c.child_id, 
+        back_populates="parents"
+    )
+    
     timer_sessions = relationship("TimerSessionModel", back_populates="task", cascade="all, delete-orphan")
+
+    @property
+    def parent_ids(self):
+        # Безопасно отдаем список ID, только если связи parents были загружены из БД.
+        # Это защищает от крашей (MissingGreenlet) при асинхронных запросах.
+        if 'parents' in instance_state(self).dict:
+            return [p.id for p in self.parents]
+        return []
 
 
 class TimerSessionModel(Base):
