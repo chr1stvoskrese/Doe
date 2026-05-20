@@ -1604,7 +1604,8 @@ select.column-input {
     overflow: hidden;           /* Прячем скролл, высота растет авто через JS */
     display: block;
     line-height: 1.45;
-    min-height: 38px;
+    min-height: 42px;           /* ФИКС: Увеличено для идеального вертикального центрирования плейсхолдера */
+    box-sizing: border-box;     /* ФИКС: Явно указываем модель коробки */
 }
 
 /* Цвет плейсхолдера */

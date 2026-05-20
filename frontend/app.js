@@ -1105,7 +1105,6 @@ function createColumnFormElement() {
                 placeholder="${placeholder}" 
                 autocomplete="off"
                 spellcheck="false"
-                rows="1"
             ></textarea>
         </div>
     `;
@@ -1192,7 +1191,12 @@ async function onCreateColumn() {
     };
 
     input.addEventListener('input', autoResize);
-    autoResize();
+    
+    // ФИКС: Вызываем замер scrollHeight на следующем кадре, 
+    // когда CSS (паддинги и line-height) уже гарантированно применены к DOM-узлу
+    requestAnimationFrame(() => {
+        autoResize();
+    });
 
     const submit = async () => {
         const title = input.value.trim();
