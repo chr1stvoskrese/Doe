@@ -65,7 +65,8 @@ async def get_columns_with_tasks(db: AsyncSession, workspace_id: int):
                         is_visible_on_board=sub.is_visible_on_board,
                         subtasks=[], # Жестко обрываем рекурсию для Pydantic, не ломая ORM-кэш!
                         active_timer=None,
-                        total_time_spent=0
+                        total_time_spent=0,
+                        folded_headings=sub.folded_headings or []
                     )
                 )
 
@@ -99,6 +100,7 @@ async def get_columns_with_tasks(db: AsyncSession, workspace_id: int):
                 subtasks=serialized_subtasks, 
                 active_timer=active_timer,
                 total_time_spent=int(total_seconds),
+                folded_headings=task.folded_headings or []
             )
             task_responses.append(task_resp)
 

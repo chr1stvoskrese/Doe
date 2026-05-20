@@ -1,6 +1,7 @@
 """
 Pydantic-схемы для задач (карточек).
 """
+from __future__ import annotations
 from pydantic import BaseModel, Field, field_serializer
 from datetime import datetime
 from typing import Optional, List
@@ -17,6 +18,7 @@ class TaskCreate(TaskBase):
     column_id: int = Field(..., description="ID колонки, в которой создаётся задача")
     parent_ids: List[int] = Field(default=[], description="Список ID родительских задач")
 
+
 class TaskUpdate(BaseModel):
     """Данные для обновления задачи (все поля необязательные)."""
     title: Optional[str] = Field(None, min_length=1, max_length=200)
@@ -27,11 +29,13 @@ class TaskUpdate(BaseModel):
     attachments_order: Optional[List[str]] = None
     completed_at: Optional[datetime] = None
     is_visible_on_board: Optional[bool] = None
+    folded_headings: Optional[List[str]] = None
 
 
 class TaskMove(BaseModel):
     """Схема для перемещения задачи в другую колонку."""
     target_column_id: int = Field(..., description="ID колонки, куда перемещается задача")
+
 
 class TaskExportReq(BaseModel):
     """Схема для запроса экспорта карточки."""
@@ -67,6 +71,7 @@ class TaskCreateResponse(TaskBase):
     completed_at: Optional[datetime]
     active_timer: Optional[TimerSessionResponse] = None
     total_time_spent: Optional[int] = None  # в секундах
+    folded_headings: List[str] = []
 
     class Config:
         from_attributes = True
@@ -76,12 +81,13 @@ class TaskSetTimeReq(BaseModel):
     """Схема для ручной установки потраченного времени."""
     total_seconds: int = Field(..., description="Новое общее время в секундах", ge=0)
 
+
 class TaskNotifyReq(BaseModel):
     """Схема для создания отложенного системного уведомления."""
     delay_seconds: int = Field(..., description="Через сколько секунд показать уведомление", ge=1)
     title: str = Field(..., description="Заголовок уведомления")
     message: str = Field(..., description="Текст уведомления")
-    
+
 
 class TaskResponse(TaskBase):
     """Полная информация о задаче, возвращаемая API (с подзадачами)."""
@@ -95,16 +101,18 @@ class TaskResponse(TaskBase):
     updated_at: datetime
     completed_at: Optional[datetime]
     # Заменяем List на Optional, чтобы Pydantic не лез в базу, если мы не подложили данные
-    subtasks: Optional[List["TaskResponse"]] = None
+    subtasks: Optional[List[TaskResponse]] = None
     active_timer: Optional[TimerSessionResponse] = None
     total_time_spent: Optional[int] = None
+    folded_headings: List[str] = []
 
     class Config:
         from_attributes = True
+
 
 class TaskReorder(BaseModel):
     """Схема для изменения порядка задач."""
     ordered_ids: List[int]
 
-TaskResponse.model_rebuild()
 
+TaskResponse.model_rebuild()

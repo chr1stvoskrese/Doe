@@ -3934,7 +3934,7 @@ async function loadTaskIntoModal(taskId, pushToStack = true, highlightQuery = nu
             }
             
             enhanceCodeBlocks(renderDiv);
-            initHeadingFolding(renderDiv);
+            initHeadingFolding(renderDiv, task.folded_headings || []);
         } else {
             attachmentsCount.textContent = '0';
             attachmentsList.innerHTML = '';
@@ -4684,7 +4684,7 @@ const checkApi = () => {
     }
 };
 
-function initHeadingFolding(container) {
+function initHeadingFolding(container, foldedHeadings = []) {
     const headings = container.querySelectorAll('h1, h2, h3, h4, h5, h6');
     headings.forEach(heading => {
         if (heading.querySelector('.heading-fold-arrow')) return;
@@ -4695,6 +4695,25 @@ function initHeadingFolding(container) {
         
         heading.prepend(arrow);
         heading.classList.add('foldable-heading');
+
+        const headingText = heading.textContent.replace(arrow.textContent || '', '').trim();
+
+        // Первоначальное сворачивание на основе сохраненного состояния
+        if (foldedHeadings.includes(headingText)) {
+            heading.classList.add('is-folded');
+            const level = parseInt(heading.tagName.substring(1));
+            let next = heading.nextElementSibling;
+            while (next) {
+                if (next.tagName.match(/^H[1-6]$/)) {
+                    const nextLevel = parseInt(next.tagName.substring(1));
+                    if (nextLevel <= level) {
+                        break;
+                    }
+                }
+                next.classList.add('is-hidden-by-fold');
+                next = next.nextElementSibling;
+            }
+        }
 
         heading.addEventListener('click', (e) => {
             if (e.target.closest('a')) return; // Игнорируем ссылки внутри заголовков
@@ -4735,6 +4754,33 @@ function initHeadingFolding(container) {
                     }
                 }
                 if (next) next = next.nextElementSibling;
+            }
+
+            // Отправка нового состояния свернутых заголовков на бэкенд
+            const taskId = document.getElementById('task-modal').dataset.taskId;
+            if (taskId) {
+                const currentFolded = [];
+                container.querySelectorAll('.foldable-heading.is-folded').forEach(h => {
+                    const cleanText = h.textContent.replace(h.querySelector('.heading-fold-arrow')?.textContent || '', '').trim();
+                    currentFolded.push(cleanText);
+                });
+
+                fetch(`${API_BASE}/tasks/${taskId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ folded_headings: currentFolded })
+                }).then(res => {
+                    if (res.ok) {
+                        // Локальная синхронизация состояния для избежания лишних перезапросов к БД
+                        for (let col of state.columns) {
+                            let t = col.tasks.find(taskItem => taskItem.id === parseInt(taskId));
+                            if (t) {
+                                t.folded_headings = currentFolded;
+                                break;
+                            }
+                        }
+                    }
+                }).catch(console.error);
             }
         });
     });
@@ -5482,7 +5528,17 @@ function initTaskDescriptionLogic() {
             const cleanContent = content.replace(cleanRegex, '');
             renderDiv.innerHTML = parseMarkdownWithMath(cleanContent);
             enhanceCodeBlocks(renderDiv);
-            initHeadingFolding(renderDiv);
+            
+            const taskId = modal.dataset.taskId;
+            let localFolded = [];
+            for (let col of state.columns) {
+                let t = col.tasks.find(taskItem => taskItem.id == taskId);
+                if (t) {
+                    localFolded = t.folded_headings || [];
+                    break;
+                }
+            }
+            initHeadingFolding(renderDiv, localFolded);
         } else {
             renderDiv.innerHTML = `<span class="markdown-empty">${t('taskModal.descPlaceholder')}</span>`;
         }

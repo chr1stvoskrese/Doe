@@ -66,6 +66,7 @@ class TaskModel(Base):
     completed_at = Column(DateTime, nullable=True)
     
     is_visible_on_board = Column(Boolean, default=False)
+    folded_headings = Column(JSON, default=list)
 
     column = relationship("ColumnModel", back_populates="tasks")
     
