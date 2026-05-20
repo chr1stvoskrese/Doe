@@ -345,7 +345,7 @@ body {
     align-items: center;
     /* Идеальные 24px сверху и 24px слева (равны отступу между колонками) */
     padding: 24px 0 16px 24px; 
-    gap: 24px; 
+    gap: 16px; /* Расстояние после поиска теперь равно расстоянию до него */
 }
 
 /* Обертка для кнопок настроек */
@@ -372,6 +372,7 @@ body {
     font-weight: 500;
     color: var(--text-primary);
     width: 140px; /* Компактный размер по умолчанию (вмещает иконку и слово Поиск) */
+    height: 36px; /* Высота выровнена по кнопке выбора хранилища (.workspace-btn) */
     transition: all var(--transition-apple);
     outline: none;
 }
@@ -488,11 +489,6 @@ body {
 }
 
 /* Стили инпутов и ховеров списка */
-[data-theme="dark"] .search-input { background: rgba(255, 255, 255, 0.06); color: var(--text-primary); }
-[data-theme="dark"] .search-input:focus { background: var(--surface-card); border-color: rgba(137, 160, 133, 0.4); }
-[data-theme="dark"] .search-result-item:hover { background: rgba(255, 255, 255, 0.06); }
-
-/* Стили инпутов и ховеров списка поиска для темной темы */
 [data-theme="dark"] .search-input { background: rgba(255, 255, 255, 0.06); color: var(--text-primary); }
 [data-theme="dark"] .search-input:focus { background: var(--surface-card); border-color: rgba(137, 160, 133, 0.4); }
 [data-theme="dark"] .search-result-item:hover { background: rgba(255, 255, 255, 0.06); }
