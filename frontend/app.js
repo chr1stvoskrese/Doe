@@ -3744,6 +3744,21 @@ document.addEventListener('click', async (e) => {
                     
                     void card.offsetWidth; // Сбрасываем кэш рендера
                     card.style.transition = '';
+
+                    // 🔥 СУПЕР-ФИКС УТЕЧКИ ПАМЯТИ:
+                    // Жестко очищаем тяжелый DOM (LaTeX, подзадачи), чтобы тысячи
+                    // невидимых узлов не грузили процессор и не ломали FPS при перетаскивании доски.
+                    const renderDiv = document.getElementById('task-desc-render');
+                    if (renderDiv) renderDiv.innerHTML = '';
+                    
+                    const subtasksList = document.getElementById('subtasks-list');
+                    if (subtasksList) subtasksList.innerHTML = '';
+                    
+                    const attachmentsList = document.getElementById('attachments-list');
+                    if (attachmentsList) attachmentsList.innerHTML = '';
+                    
+                    const breadcrumbs = document.getElementById('task-breadcrumbs');
+                    if (breadcrumbs) breadcrumbs.innerHTML = '';
                 }, 300);
             }
         }
