@@ -3174,6 +3174,34 @@ async function endDrag() {
                         
                         updateCardAppearance(draggedElement, taskForUI, targetCol.mode);
                         draggedElement.dataset.sourceColumnId = newColumnId;
+
+                        // Синхронизация прогресса подзадач на родительской карточке
+                        if (updatedTask.parent_ids && updatedTask.parent_ids.length > 0) {
+                            updatedTask.parent_ids.forEach(parentId => {
+                                let parentTask = null;
+                                let parentCol = null;
+                                
+                                for (const col of state.columns) {
+                                    parentTask = col.tasks.find(t => t.id === parentId);
+                                    if (parentTask) {
+                                        parentCol = col;
+                                        break;
+                                    }
+                                }
+
+                                if (parentTask && parentTask.subtasks) {
+                                    const subtask = parentTask.subtasks.find(s => s.id === taskId);
+                                    if (subtask) {
+                                        subtask.completed_at = updatedTask.completed_at;
+                                    }
+                                    
+                                    const parentCardEl = document.querySelector(`.card[data-card-id="${parentId}"]`);
+                                    if (parentCardEl && parentCol) {
+                                        updateCardAppearance(parentCardEl, parentTask, parentCol.mode);
+                                    }
+                                }
+                            });
+                        }
                     }
 
                     await saveTasksOrder(orderedIds);

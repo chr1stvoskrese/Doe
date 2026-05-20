@@ -273,7 +273,8 @@ async def move_task(db: AsyncSession, task_id: int, target_column_id: int) -> Ta
         select(TaskModel)
         .options(
             selectinload(TaskModel.column),
-            selectinload(TaskModel.timer_sessions)
+            selectinload(TaskModel.timer_sessions),
+            selectinload(TaskModel.parents)
         )
         .where(TaskModel.id == task_id)
     )
