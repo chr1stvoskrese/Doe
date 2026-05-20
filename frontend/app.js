@@ -5635,7 +5635,7 @@ function initTaskModalDragAndResize() {
             'button, input, textarea, a, ' + 
             '.markdown-body, .description-wrapper, ' + 
             '.subtask-item, .attachment-item, ' +      
-            '.breadcrumb-item'
+            '.breadcrumb-item, .modal-timer-pill'
         );
 
         // Исключаем клики по нативным скроллбарам
