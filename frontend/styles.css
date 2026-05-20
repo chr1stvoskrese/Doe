@@ -3236,6 +3236,8 @@ body.is-dragging-modal * {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    width: 16px;                     /* Жесткий каркас предотвращает прыжки ширины */
+    height: 16px;                    /* Жесткий каркас предотвращает прыжки высоты */
     margin-right: 8px;
     margin-left: -2px;
     color: var(--text-secondary);
@@ -3243,12 +3245,18 @@ body.is-dragging-modal * {
 }
 
 .heading-fold-arrow svg {
-    transform: rotate(90deg); /* По умолчанию развернуто (стрелка вниз) */
+    width: 12px !important;
+    height: 12px !important;
+    transform: rotate(90deg);        /* По умолчанию развернуто (стрелка вниз) */
+    transform-origin: center center; /* Точная ось вращения */
+    will-change: transform;          /* Вынос на GPU для плавной анимации */
+    backface-visibility: hidden;     /* Устранение субпиксельного размытия текста */
+    -webkit-backface-visibility: hidden;
     transition: transform var(--transition-apple);
 }
 
 .foldable-heading.is-folded .heading-fold-arrow svg {
-    transform: rotate(0deg); /* Свернуто (стрелка вправо) */
+    transform: rotate(0deg);         /* Свернуто (стрелка вправо) */
 }
 
 .is-hidden-by-fold {
