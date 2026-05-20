@@ -2489,7 +2489,7 @@ document.addEventListener('pointerdown', (e) => {
 
     // 1. Игнорируем клики по интерактивным элементам (чтобы кнопки и инпуты работали штатно)
     // 🚀 SENIOR FIX: Добавили .description-wrapper, чтобы кастомный DND не ломал нативный ресайзер
-    if (e.target.closest('button, input, textarea, .menu-btn, .card-menu-btn, .tab-close-btn, .column.is-renaming, .board-tab.is-renaming, .card.is-renaming, .card-entering, .description-wrapper')) return;
+    if (e.target.closest('button, input, textarea, .menu-btn, .card-menu-btn, .tab-close-btn, .column.is-renaming, .board-tab.is-renaming, .card.is-renaming, .card-entering, .column-entering, .description-wrapper')) return;
     // 2. Ищем, на чем именно кликнули
     const vaultHistory = e.target.closest('.vault-history-item');
     const subtask = e.target.closest('.subtask-item');
