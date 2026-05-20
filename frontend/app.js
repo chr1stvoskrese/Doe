@@ -3989,8 +3989,8 @@ async function loadTaskIntoModal(taskId, pushToStack = true, highlightQuery = nu
             tempDiv.innerHTML = generateSubtaskHtml(sub, parentMode).trim();
             const subItem = tempDiv.firstChild;
             
-            // Привязка событий с передачей режима
-            bindSubtaskEvents(subItem, sub, task.id, parentMode);
+            // Привязка событий с передачей объекта задачи вместо простого ID
+            bindSubtaskEvents(subItem, sub, task, parentMode);
             
             subtasksList.appendChild(subItem);
         });
@@ -5130,9 +5130,23 @@ function renderSubtaskAddButton(container) {
 }
 
 // Вспомогательная функция привязки событий (выносим из основного цикла)
-function bindSubtaskEvents(el, sub, parentId, parentMode = 'default') {
+function bindSubtaskEvents(el, sub, parentTaskOrId, parentMode = 'default') {
+    // Нормализуем родительскую задачу для поддержки разных сценариев вызова
+    let parentTask = null;
+    let parentId = null;
+    if (typeof parentTaskOrId === 'object' && parentTaskOrId !== null) {
+        parentTask = parentTaskOrId;
+        parentId = parentTask.id;
+    } else {
+        parentId = parseInt(parentTaskOrId);
+        for (const col of state.columns) {
+            parentTask = col.tasks.find(t => t.id === parentId);
+            if (parentTask) break;
+        }
+    }
+
     // 1. Чекбокс
-    el.querySelector('.subtask-checkbox').onclick = async (e) => {
+    el.querySelector('.subtask-checkbox').onclick = (e) => {
         e.stopPropagation();
 
         // --- БЛОКИРОВКА ТОЛЬКО ЕСЛИ КАРТОЧКА НА ДОСКЕ ---
@@ -5145,13 +5159,60 @@ function bindSubtaskEvents(el, sub, parentId, parentMode = 'default') {
         }
 
         const isDone = !el.classList.contains('is-done');
+        
+        // --- OPTIMISTIC UI: Мгновенное визуальное переключение ---
         el.classList.toggle('is-done', isDone);
         
         const timestamp = isDone ? new Date().toISOString() : null;
-        sub.completed_at = timestamp; 
-        
-        await updateTask(sub.id, { completed_at: timestamp });
-        refreshBoard(); // Обновляем прогресс на карточке доски
+        const previousTimestamp = sub.completed_at;
+        sub.completed_at = timestamp;
+
+        // --- МГНОВЕННОЕ ОБНОВЛЕНИЕ РОДИТЕЛЬСКОЙ КАРТОЧКИ НА ДОСКЕ ---
+        if (parentTask) {
+            if (parentTask.subtasks) {
+                const subIndex = parentTask.subtasks.findIndex(s => s.id === sub.id);
+                if (subIndex !== -1) {
+                    parentTask.subtasks[subIndex].completed_at = timestamp;
+                }
+            }
+            
+            const parentCardEl = document.querySelector(`.card[data-card-id="${parentId}"]`);
+            if (parentCardEl) {
+                const parentColEl = parentCardEl.closest('.column');
+                const colId = parentColEl ? parseInt(parentColEl.dataset.columnId) : null;
+                const col = state.columns.find(c => c.id === colId);
+                const colMode = col ? col.mode : 'default';
+                
+                updateCardAppearance(parentCardEl, parentTask, colMode);
+            }
+        }
+
+        // --- АСИНХРОННЫЙ ЗАПРОС БЕЗ БЛОКИРОВКИ ИНТЕРФЕЙСА ---
+        updateTask(sub.id, { completed_at: timestamp }).catch((err) => {
+            console.error("Failed to update subtask status:", err);
+            
+            // Откат состояния UI в случае сетевой ошибки
+            el.classList.toggle('is-done', !isDone);
+            sub.completed_at = previousTimestamp;
+            
+            if (parentTask) {
+                if (parentTask.subtasks) {
+                    const subIndex = parentTask.subtasks.findIndex(s => s.id === sub.id);
+                    if (subIndex !== -1) {
+                        parentTask.subtasks[subIndex].completed_at = previousTimestamp;
+                    }
+                }
+                const parentCardEl = document.querySelector(`.card[data-card-id="${parentId}"]`);
+                if (parentCardEl) {
+                    const parentColEl = parentCardEl.closest('.column');
+                    const colId = parentColEl ? parseInt(parentColEl.dataset.columnId) : null;
+                    const col = state.columns.find(c => c.id === colId);
+                    const colMode = col ? col.mode : 'default';
+                    updateCardAppearance(parentCardEl, parentTask, colMode);
+                }
+            }
+            window.showToast(t('alerts.error'), 'Не удалось сохранить статус подзадачи', true);
+        });
     };
 
     // 2. УДАЛЕНИЕ (Корзина)
