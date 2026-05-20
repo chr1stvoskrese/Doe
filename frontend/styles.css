@@ -3222,6 +3222,39 @@ body.is-dragging-modal * {
     letter-spacing: -0.02em;
 }
 
+/* Сворачивание заголовков */
+.foldable-heading {
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    width: 100%;
+}
+
+.heading-fold-arrow {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 8px;
+    margin-left: -2px;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+}
+
+.heading-fold-arrow svg {
+    transform: rotate(90deg); /* По умолчанию развернуто (стрелка вниз) */
+    transition: transform var(--transition-apple);
+}
+
+.foldable-heading.is-folded .heading-fold-arrow svg {
+    transform: rotate(0deg); /* Свернуто (стрелка вправо) */
+}
+
+.is-hidden-by-fold {
+    display: none !important;
+}
+
 /* 🔥 ДОБАВИТЬ ЭТО: Убираем отступ сверху у самого первого элемента (заголовка, текста и тд) */
 .markdown-body > *:first-child {
     margin-top: 0 !important;

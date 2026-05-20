@@ -3934,6 +3934,7 @@ async function loadTaskIntoModal(taskId, pushToStack = true, highlightQuery = nu
             }
             
             enhanceCodeBlocks(renderDiv);
+            initHeadingFolding(renderDiv);
         } else {
             attachmentsCount.textContent = '0';
             attachmentsList.innerHTML = '';
@@ -4683,6 +4684,62 @@ const checkApi = () => {
     }
 };
 
+function initHeadingFolding(container) {
+    const headings = container.querySelectorAll('h1, h2, h3, h4, h5, h6');
+    headings.forEach(heading => {
+        if (heading.querySelector('.heading-fold-arrow')) return;
+
+        const arrow = document.createElement('span');
+        arrow.className = 'heading-fold-arrow';
+        arrow.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>`;
+        
+        heading.prepend(arrow);
+        heading.classList.add('foldable-heading');
+
+        heading.addEventListener('click', (e) => {
+            if (e.target.closest('a')) return; // Игнорируем ссылки внутри заголовков
+
+            const isFolded = heading.classList.toggle('is-folded');
+            const level = parseInt(heading.tagName.substring(1));
+
+            let next = heading.nextElementSibling;
+            while (next) {
+                // Если встретили заголовок такого же уровня или выше (меньший H-индекс) — останавливаемся
+                if (next.tagName.match(/^H[1-6]$/)) {
+                    const nextLevel = parseInt(next.tagName.substring(1));
+                    if (nextLevel <= level) {
+                        break;
+                    }
+                }
+
+                if (isFolded) {
+                    next.classList.add('is-hidden-by-fold');
+                } else {
+                    next.classList.remove('is-hidden-by-fold');
+                    
+                    // Если разворачиваем родительский блок, но встречаем вложенный заголовок,
+                    // который тоже свернут — не разворачиваем его дочерние элементы
+                    if (next.tagName.match(/^H[1-6]$/) && next.classList.contains('is-folded')) {
+                        const skipLevel = parseInt(next.tagName.substring(1));
+                        let skipNext = next.nextElementSibling;
+                        while (skipNext) {
+                            if (skipNext.tagName.match(/^H[1-6]$/)) {
+                                const skipNextLevel = parseInt(skipNext.tagName.substring(1));
+                                if (skipNextLevel <= skipLevel) {
+                                    break;
+                                }
+                            }
+                            skipNext = skipNext.nextElementSibling;
+                        }
+                        next = skipNext ? skipNext.previousElementSibling : null;
+                    }
+                }
+                if (next) next = next.nextElementSibling;
+            }
+        });
+    });
+}
+
 function enhanceCodeBlocks(container) {
     const codeBlocks = container.querySelectorAll('pre code');
     
@@ -5425,6 +5482,7 @@ function initTaskDescriptionLogic() {
             const cleanContent = content.replace(cleanRegex, '');
             renderDiv.innerHTML = parseMarkdownWithMath(cleanContent);
             enhanceCodeBlocks(renderDiv);
+            initHeadingFolding(renderDiv);
         } else {
             renderDiv.innerHTML = `<span class="markdown-empty">${t('taskModal.descPlaceholder')}</span>`;
         }
