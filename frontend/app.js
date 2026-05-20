@@ -3910,7 +3910,7 @@ async function loadTaskIntoModal(taskId, pushToStack = true, highlightQuery = nu
 
             const cleanRegex = /(!?)\[[^\]]+\]\(doe\/[^)]+\)!\s*/g;
             let readModeText = task.description.replace(cleanRegex, '');
-            renderDiv.innerHTML = marked.parse(readModeText, { breaks: true });
+            renderDiv.innerHTML = parseMarkdownWithMath(readModeText);
             
             // --- ПОДСВЕТКА ПОИСКА ---
             if (highlightQuery) {
@@ -5408,7 +5408,7 @@ function initTaskDescriptionLogic() {
         if (content.trim()) {
             const cleanRegex = /(!?)\[[^\]]+\]\(doe\/[^)]+\)!\s*/g;
             const cleanContent = content.replace(cleanRegex, '');
-            renderDiv.innerHTML = marked.parse(cleanContent, { breaks: true });
+            renderDiv.innerHTML = parseMarkdownWithMath(cleanContent);
             enhanceCodeBlocks(renderDiv);
         } else {
             renderDiv.innerHTML = `<span class="markdown-empty">${t('taskModal.descPlaceholder')}</span>`;
@@ -5503,6 +5503,7 @@ function initTaskModalDragAndResize() {
     let targetRotation = 0;
     let lastMouseX = 0;
     let currentMouseX = 0;
+    let currentMouseY = 0;
     let rafId = null;
 
     // ЛОГИКА КНОПКИ РАЗВОРОТА И ПЛАВНОГО ЦЕНТРИРОВАНИЯ (FLIP-анимация)
@@ -5594,7 +5595,11 @@ function initTaskModalDragAndResize() {
         targetRotation = Math.max(-maxRotation, Math.min(maxRotation, deltaX * 0.15));
         currentRotation += (targetRotation - currentRotation) * 0.12;
 
-        card.style.transform = `rotate(${currentRotation}deg)`;
+        // 🔥 Вычисляем смещение от стартовой точки для GPU
+        const dx = currentMouseX - startX;
+        const dy = currentMouseY - startY;
+
+        card.style.transform = `translate3d(${dx}px, ${dy}px, 0) rotate(${currentRotation}deg)`;
         rafId = requestAnimationFrame(renderModalPhysics);
     };
 
@@ -5658,11 +5663,12 @@ function initTaskModalDragAndResize() {
         if (isDragging) {
             lastMouseX = e.clientX;
             currentMouseX = e.clientX;
+            currentMouseY = e.clientY;
             currentRotation = 0;
             targetRotation = 0;
             
             card.style.transition = 'none'; 
-            card.style.willChange = 'left, top, transform'; 
+            card.style.willChange = 'transform'; 
             
             // Включаем кулак
             document.body.classList.add('is-dragging-modal');
@@ -5678,15 +5684,14 @@ function initTaskModalDragAndResize() {
 
     const onPointerMove = (e) => {
         currentMouseX = e.clientX; // Обновляем глобальную мышь для loop-анимации
+        currentMouseY = e.clientY;
         
         const dx = e.clientX - startX;
         const dy = e.clientY - startY;
 
         // ЛОГИКА ПЕРЕМЕЩЕНИЯ
         if (isDragging) {
-            card.style.left = `${startLeft + dx}px`;
-            card.style.top = `${startTop + dy}px`;
-            return;
+            return; // Изменение координат теперь делает renderModalPhysics на GPU
         }
 
         // ЛОГИКА РАСШИРЕНИЯ (Ресайз)
@@ -5725,14 +5730,36 @@ function initTaskModalDragAndResize() {
     const onPointerUp = (e) => {
         // Завершение физики
         if (isDragging) {
-            // 🔥 ФИКС КУРСОРА: Отключаем кулак
             document.body.classList.remove('is-dragging-modal');
-            
             cancelAnimationFrame(rafId);
-            // Плавно и "желейно" возвращаем наклон в 0 градусов
+
+            const dx = currentMouseX - startX;
+            const dy = currentMouseY - startY;
+
+            // 1. Отключаем любую анимацию для мгновенной подмены
+            card.style.transition = 'none';
+
+            // 2. Мгновенно применяем новые физические координаты
+            card.style.left = `${startLeft + dx}px`;
+            card.style.top = `${startTop + dy}px`;
+
+            // 3. Убираем смещение (translate) из матрицы, оставляем только текущий угол наклона.
+            // Визуально карточка останется ровно там же, где была кадр назад.
+            card.style.transform = `rotate(${currentRotation}deg)`;
+
+            // 4. Форсируем перерисовку, чтобы браузер "запомнил" новые координаты до включения анимации
+            void card.offsetWidth;
+
+            // 5. Включаем плавность и сбрасываем только наклон
             card.style.transition = 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)';
             card.style.transform = 'rotate(0deg)';
-            card.style.willChange = 'auto'; // Снимаем нагрузку с GPU
+            
+            // 6. Ждем завершения анимации "успокоения" и убираем за собой
+            setTimeout(() => {
+                card.style.willChange = 'auto';
+                card.style.transform = 'none';
+                card.style.transition = 'none';
+            }, 400);
             
             if (Math.abs(e.clientX - startX) > 3 || Math.abs(e.clientY - startY) > 3) {
                 window._isAfterDrag = true;
@@ -6977,6 +7004,56 @@ document.addEventListener('click', async (e) => {
         }
     }
 });
+
+// ==========================================
+// ЛОГИКА РЕНДЕРА LATEX (KaTeX)
+// ==========================================
+function parseMarkdownWithMath(text) {
+    if (!text) return "";
+    const mathBlocks = [];
+    
+    // 1. Изолируем Блочные формулы ($$...$$)
+    let processed = text.replace(/\$\$([\s\S]+?)\$\$/g, (match, math) => {
+        mathBlocks.push({ math, displayMode: true });
+        // Используем ТОЛЬКО буквы, чтобы Markdown не принял это за форматирование
+        return `DOEMATHPLACEHOLDER${mathBlocks.length - 1}END`;
+    });
+
+    // 2. Изолируем Инлайн формулы ($...$).
+    // Регулярка улучшена: ловит всё внутри $...$, исключая переносы строк
+    processed = processed.replace(/\$([^$\n]+?)\$/g, (match, math) => {
+        mathBlocks.push({ math, displayMode: false });
+        return `DOEMATHPLACEHOLDER${mathBlocks.length - 1}END`;
+    });
+
+    // 3. Парсим чистый Markdown (он не тронет наши плейсхолдеры, т.к. в них нет _, *, ~)
+    let html = marked.parse(processed, { breaks: true });
+
+    // 4. Рендерим и возвращаем формулы на место
+    if (window.katex) {
+        mathBlocks.forEach((item, i) => {
+            try {
+                // output: 'html' отключает генерацию MathML, что СИЛЬНО разгружает DOM и убирает лаги при DND
+                const rendered = katex.renderToString(item.math, {
+                    displayMode: item.displayMode,
+                    throwOnError: false,
+                    output: 'html',
+                    strict: false
+                });
+                html = html.replace(`DOEMATHPLACEHOLDER${i}END`, rendered);
+            } catch (e) {
+                html = html.replace(`DOEMATHPLACEHOLDER${i}END`, `<code>${item.math}</code>`);
+            }
+        });
+    } else {
+        // Fallback, если CDN недоступен
+        mathBlocks.forEach((item, i) => {
+            html = html.replace(`DOEMATHPLACEHOLDER${i}END`, `<code>${item.math}</code>`);
+        });
+    }
+
+    return html;
+}
 
 // Запускаем инициализацию (можно поместить вызов внутрь главной IIFE async функции внизу файла)
 initTaskDescriptionLogic();

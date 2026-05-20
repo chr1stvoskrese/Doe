@@ -5606,3 +5606,57 @@ body.is-dragging-vault-history * {
     -webkit-appearance: none;
     margin: 0;
 }
+
+/* ==========================================
+   ОПТИМИЗАЦИЯ LATEX (KaTeX) ДЛЯ ПРОИЗВОДИТЕЛЬНОСТИ И РЕЗКОСТИ
+   ========================================== */
+
+/* 1. Блокируем пересчёт Layout внутри формул во время Drag & Drop.
+      contain: layout paint заставляет браузер считать формулу единым блоком. */
+.katex-display {
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    contain: layout paint;
+    margin: 16px 0 !important;
+    padding: 4px 0;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* 2. Жесткое форсирование сглаживания текста. 
+      Убивает "мыло" и скачки резкости шрифтов KaTeX (KaTeX_Math) при завершении анимаций transform. */
+.katex {
+    -webkit-font-smoothing: antialiased !important;
+    -moz-osx-font-smoothing: grayscale !important;
+    text-rendering: optimizeLegibility !important;
+}
+
+/* 🔥 СУПЕР-ФИКС ДЛЯ 60FPS ПРИ ПЕРЕТАСКИВАНИИ МОДАЛКИ С ФОРМУЛАМИ */
+body.is-dragging-modal .task-detail-body {
+    /* Отключаем тяжелые просчеты (hit-test) мыши над тысячами span'ов от KaTeX во время движения */
+    pointer-events: none !important;
+}
+
+/* 3. Адаптация цвета под эстетику Doe */
+.katex {
+    color: var(--text-primary);
+}
+
+/* Темная тема: Формулы должны быть читаемыми */
+[data-theme="dark"] .katex {
+    color: #E6E8E5;
+}
+
+/* Фикс полосы прокрутки внутри формул, чтобы выглядело как в блоках кода */
+.katex-display::-webkit-scrollbar {
+    height: 6px;
+}
+.katex-display::-webkit-scrollbar-track {
+    background: transparent;
+}
+.katex-display::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 4px;
+}
+.katex-display::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover);
+}
