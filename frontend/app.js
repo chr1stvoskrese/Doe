@@ -6158,10 +6158,12 @@ function createAttachmentElement(att) {
             const isEditMode = renderDiv.style.display === 'none';
             
             const safePath = pathToDelete.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            const pathRegex = new RegExp(`(!?)\\[[^\\]]*\\]\\(${safePath}\\)(!?)`, 'g');
+            // Добавляем круглые скобки ([^\\]]*), чтобы захватить текст ссылки в группу $2
+            const pathRegex = new RegExp(`(!?)\\[([^\\]]*)\\]\\(${safePath}\\)(!?)`, 'g');
             
             const oldText = inputArea.value;
-            inputArea.value = oldText.replace(pathRegex, '').trim();
+            // Заменяем конструкцию ссылки на захваченный текст из квадратных скобок ($2)
+            inputArea.value = oldText.replace(pathRegex, '$2');
             
             // Если текст реально изменился — решаем, что делать дальше в зависимости от режима
             if (oldText !== inputArea.value) {
@@ -6188,7 +6190,10 @@ function replaceBrokenAttachment(att, newData) {
     const isEditMode = renderDiv.style.display === 'none';
 
     const encodedNewPath = encodeURI(newData.path);
-    const newMarkdown = `[${newData.name}](${encodedNewPath})`;
+    // Бережно собираем markdown обратно, оставляя оригинальный текст (label) вместо имени файла
+    const prefix = att.isImage ? '!' : '';
+    const suffix = att.isHidden ? '!' : '';
+    const newMarkdown = `${prefix}[${att.label}](${encodedNewPath})${suffix}`;
     
     inputArea.value = inputArea.value.replace(att.fullMatch, newMarkdown);
     
