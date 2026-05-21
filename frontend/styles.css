@@ -3494,26 +3494,39 @@ body.is-dragging-modal * {
    ========================================== */
 
 .description-wrapper {
-    flex: none; /* <-- ВОЗВРАЩЕНО: Запрещает Flexbox-контейнеру подавлять ручной ресайз */
-    position: relative; /* <-- ВОЗВРАЩЕНО: Фиксирует контекст для вложенных элементов */
+    flex: none; 
+    position: relative; 
     display: flex;
     flex-direction: column;
     height: 300px;
     min-height: 150px;
     max-height: 80vh;
     resize: vertical;
-    overflow: hidden; /* <--- ФИКС РЕСАЙЗА: hidden включает ресайз, но не перекрывает уголок скроллбаром */
+    overflow-y: hidden; 
+    overflow-x: auto; /* Включаем горизонтальный скролл при растягивании картинок */
     border: 1px solid var(--border-light);
     border-radius: 10px;
     background: var(--brand-pale) !important;
     transition: border-color 0.2s;
     margin-bottom: 16px;
     cursor: auto;
-    padding-bottom: 16px; /* Физически защищаем уголок от перекрытия текстом и скроллом */
+    padding-bottom: 16px; 
 }
 
-/* 🚀 ФИКС РЕСАЙЗА: Явно стилизуем нативный уголок изменения размера.
-   Это гарантирует его кликабельность и создает эстетичный "Apple-like" зацеп. */
+.description-wrapper::-webkit-scrollbar {
+    height: 8px;
+}
+.description-wrapper::-webkit-scrollbar-track {
+    background: transparent;
+}
+.description-wrapper::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 4px;
+}
+.description-wrapper::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover);
+}
+
 .description-wrapper::-webkit-resizer {
     background-color: transparent;
     background-image: url('data:image/svg+xml;utf8,<svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 2L2 10M10 6L6 10" stroke="%23828A80" stroke-width="1.5" stroke-linecap="round"/></svg>');
@@ -3538,11 +3551,11 @@ body.is-dragging-modal * {
 
 .markdown-body,
 .description-input {
-    position: relative; /* Убираем absolute, браузер корректно считает hit-box */
-    flex: 1;            /* Растягиваем на всю доступную высоту контейнера */
+    position: relative; 
+    flex: 1;            
     width: 100%;
     overflow-y: auto;
-    overflow-x: hidden;
+    overflow-x: visible; /* ИСПРАВЛЕНО: Скроллит только родитель (.description-wrapper) */
     overflow-wrap: break-word;
     word-wrap: break-word;
     word-break: break-word;
@@ -3553,6 +3566,78 @@ body.is-dragging-modal * {
     outline: none;
     box-sizing: border-box;
     cursor: text;
+}
+
+/* Обертка для растягиваемых изображений */
+.image-resizer-wrapper {
+    position: relative;
+    display: inline-block; /* Легально находится внутри текста и абзацев <p> */
+    vertical-align: bottom; /* Изменено с middle на bottom: полностью убирает субпиксельный сдвиг и нижний текстовый зазор */
+    line-height: 0; /* Исключает влияние высоты текста на контейнер */
+    max-width: 100%; 
+    margin: 8px 0; /* Уменьшено с 12px до 8px для баланса с внешними отступами параграфов */
+    border-radius: 8px;
+    user-select: none; 
+    -webkit-user-select: none;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Обнуляем влияние высоты строки (line-height) родительского параграфа, если в нем находится только изображение. 
+   Это гарантирует симметричные внешние отступы сверху и снизу без браузерных смещений. */
+.markdown-body p:has(> .image-resizer-wrapper:only-child) {
+    line-height: 0;
+}
+
+/* При явном задании ширины отключаем max-width, чтобы текст расширился за изображением */
+.image-resizer-wrapper.has-custom-size {
+    max-width: none;
+}
+
+.image-resizer-wrapper img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: fill; 
+    border-radius: 8px;
+    pointer-events: none; /* Чтобы браузер не тянул саму картинку */
+}
+
+/* Кастомная ручка ресайза */
+.image-resize-handle {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 24px;
+    height: 24px;
+    cursor: nwse-resize;
+    background-color: var(--brand-pine);
+    border-top-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+    opacity: 0;
+    transition: opacity 0.2s;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.image-resize-handle::after {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-right: 2px solid white;
+    border-bottom: 2px solid white;
+    margin-top: -2px;
+    margin-left: -2px;
+}
+
+.image-resizer-wrapper:hover .image-resize-handle,
+.image-resizer-wrapper.is-resizing .image-resize-handle {
+    opacity: 1;
+}
+
+[data-theme="dark"] .image-resize-handle {
+    background-color: #89A085;
 }
 
 .markdown-body {
@@ -4325,12 +4410,19 @@ body.is-dragging-attachment .attachment-item:not(.attachment-drag-clone) {
 
 /* Красный цвет для иконки вопроса */
 .attachment-item .subtask-checkbox.missing,
-.vault-history-item .subtask-checkbox.missing {
+.vault-history-item .subtask-checkbox.missing,
+.attachment-item .subtask-checkbox.pending {
     cursor: pointer; /* Подсказываем, что можно кликнуть */
 }
 .attachment-item .subtask-checkbox.missing svg,
 .vault-history-item .subtask-checkbox.missing svg {
     color: #D35446 !important;
+    opacity: 1 !important;
+}
+
+/* Желтый цвет для ожидаемого вложения */
+.attachment-item .subtask-checkbox.pending svg {
+    color: #E5B567 !important;
     opacity: 1 !important;
 }
 
@@ -4347,6 +4439,9 @@ body.is-dragging-attachment .attachment-item:not(.attachment-drag-clone) {
 [data-theme="dark"] .attachment-item .subtask-checkbox.missing svg,
 [data-theme="dark"] .vault-history-item .subtask-checkbox.missing svg {
     color: #D65A4B !important;
+}
+[data-theme="dark"] .attachment-item .subtask-checkbox.pending svg {
+    color: #E5B567 !important; /* Желтый отлично смотрится и в темной теме */
 }
 [data-theme="dark"] .attachment-item .subtask-title.missing-text,
 [data-theme="dark"] .vault-history-name.missing-text,

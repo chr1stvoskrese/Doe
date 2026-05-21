@@ -36,6 +36,10 @@ const translations = {
         columnModes: { default: 'Стандартный', track_time: 'Учёт времени', completion: 'Результирующий' },
         defaultWorkspace: 'Начальная вкладка',
         attachments: 'Вложения', addAttachment: '+ Добавить вложение...',
+        missingTooltip: 'Файл не найден. Нажмите, чтобы перепривязать',
+        pendingTooltip: 'Ожидаемое вложение. Нажмите, чтобы привязать файл',
+        pendingTitle: (name) => `Ожидание файла для [${name}](doe/)`,
+        expectedFilename: 'Ожидаемое имя файла',
         vault: {
             subtitle: 'Aesthetic. Local-first. Kanban sanctuary.',
             createTitle: 'Создать хранилище',
@@ -104,6 +108,10 @@ const translations = {
         columnModes: { default: 'Standard', track_time: 'Track time', completion: 'Completed' },
         defaultWorkspace: 'Main Board',
         attachments: 'Attachments', addAttachment: '+ Add attachment...',
+        missingTooltip: 'File not found. Click to relink',
+        pendingTooltip: 'Pending attachment. Click to link a file',
+        pendingTitle: (name) => `Waiting for file [${name}](doe/)`,
+        expectedFilename: 'Expected filename',
         vault: {
             subtitle: 'Aesthetic. Local-first. Kanban sanctuary.',
             createTitle: 'Create Vault',
@@ -549,6 +557,31 @@ async function updateSettings(data) {
 
 
 function escapeHtml(text) { const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
+function unescapeHtml(html) { const div = document.createElement('div'); div.innerHTML = html; return div.textContent; }
+
+function applyTextExpansion() {
+    const renderDiv = document.getElementById('task-desc-render');
+    const inputArea = document.getElementById('task-desc-input');
+    if (!renderDiv || !inputArea) return;
+    
+    // Ищем самую широкую кастомную картинку
+    const images = renderDiv.querySelectorAll('.image-resizer-wrapper.has-custom-size');
+    let maxWidth = 0;
+    images.forEach(img => {
+        const w = parseInt(img.style.width);
+        if (w > maxWidth) maxWidth = w;
+    });
+    
+    // Если картинка расширена, увеличиваем минимальную ширину всего текста, 
+    // чтобы текст заполнил пространство, а скроллбар появился у обертки
+    if (maxWidth > 0) {
+        renderDiv.style.minWidth = (maxWidth + 24) + 'px';
+        inputArea.style.minWidth = (maxWidth + 24) + 'px';
+    } else {
+        renderDiv.style.minWidth = '100%';
+        inputArea.style.minWidth = '100%';
+    }
+}
 
 function formatTime(task) {
     let startStr = task.active_timer.start_time;
@@ -3967,6 +4000,7 @@ async function loadTaskIntoModal(taskId, pushToStack = true, highlightQuery = nu
             
             enhanceCodeBlocks(renderDiv);
             initHeadingFolding(renderDiv, task.folded_headings || []);
+            applyTextExpansion(); // Подгоняем ширину текста под картинки
         } else {
             attachmentsCount.textContent = '0';
             attachmentsList.innerHTML = '';
@@ -5171,50 +5205,51 @@ function bindSubtaskEvents(el, sub, parentTaskOrId, parentMode = 'default') {
         const previousTimestamp = sub.completed_at;
         sub.completed_at = timestamp;
 
-        // --- МГНОВЕННОЕ ОБНОВЛЕНИЕ РОДИТЕЛЬСКОЙ КАРТОЧКИ НА ДОСКЕ ---
-        if (parentTask) {
-            if (parentTask.subtasks) {
-                const subIndex = parentTask.subtasks.findIndex(s => s.id === sub.id);
-                if (subIndex !== -1) {
-                    parentTask.subtasks[subIndex].completed_at = timestamp;
+        // --- МГНОВЕННОЕ ГЛОБАЛЬНОЕ ОБНОВЛЕНИЕ ВСЕХ КАРТОЧЕК НА ДОСКЕ ---
+        // Проходим по всему стейту, так как подзадача может быть привязана к нескольким родителям
+        state.columns.forEach(col => {
+            col.tasks.forEach(task => {
+                if (task.subtasks) {
+                    const subIndex = task.subtasks.findIndex(s => s.id === sub.id);
+                    if (subIndex !== -1) {
+                        // Обновляем статус подзадачи в локальном стейте этой карточки
+                        task.subtasks[subIndex].completed_at = timestamp;
+                        
+                        // Обновляем визуал пилюли на доске для этой карточки
+                        const cardEl = document.querySelector(`.card[data-card-id="${task.id}"]`);
+                        if (cardEl) {
+                            updateCardAppearance(cardEl, task, col.mode);
+                        }
+                    }
                 }
-            }
-            
-            const parentCardEl = document.querySelector(`.card[data-card-id="${parentId}"]`);
-            if (parentCardEl) {
-                const parentColEl = parentCardEl.closest('.column');
-                const colId = parentColEl ? parseInt(parentColEl.dataset.columnId) : null;
-                const col = state.columns.find(c => c.id === colId);
-                const colMode = col ? col.mode : 'default';
-                
-                updateCardAppearance(parentCardEl, parentTask, colMode);
-            }
-        }
+            });
+        });
 
         // --- АСИНХРОННЫЙ ЗАПРОС БЕЗ БЛОКИРОВКИ ИНТЕРФЕЙСА ---
         updateTask(sub.id, { completed_at: timestamp }).catch((err) => {
             console.error("Failed to update subtask status:", err);
             
-            // Откат состояния UI в случае сетевой ошибки
+            // Откат состояния модалки UI в случае сетевой ошибки
             el.classList.toggle('is-done', !isDone);
             sub.completed_at = previousTimestamp;
             
-            if (parentTask) {
-                if (parentTask.subtasks) {
-                    const subIndex = parentTask.subtasks.findIndex(s => s.id === sub.id);
-                    if (subIndex !== -1) {
-                        parentTask.subtasks[subIndex].completed_at = previousTimestamp;
+            // Откат глобального состояния UI на доске
+            state.columns.forEach(col => {
+                col.tasks.forEach(task => {
+                    if (task.subtasks) {
+                        const subIndex = task.subtasks.findIndex(s => s.id === sub.id);
+                        if (subIndex !== -1) {
+                            task.subtasks[subIndex].completed_at = previousTimestamp;
+                            
+                            const cardEl = document.querySelector(`.card[data-card-id="${task.id}"]`);
+                            if (cardEl) {
+                                updateCardAppearance(cardEl, task, col.mode);
+                            }
+                        }
                     }
-                }
-                const parentCardEl = document.querySelector(`.card[data-card-id="${parentId}"]`);
-                if (parentCardEl) {
-                    const parentColEl = parentCardEl.closest('.column');
-                    const colId = parentColEl ? parseInt(parentColEl.dataset.columnId) : null;
-                    const col = state.columns.find(c => c.id === colId);
-                    const colMode = col ? col.mode : 'default';
-                    updateCardAppearance(parentCardEl, parentTask, colMode);
-                }
-            }
+                });
+            });
+            
             window.showToast(t('alerts.error'), 'Не удалось сохранить статус подзадачи', true);
         });
     };
@@ -5447,7 +5482,11 @@ function initTaskDescriptionLogic() {
             fileName = `Скриншот_${dateStr}.png`;
         }
 
-        const placeholder = `[⏳ Загрузка ${fileName}...]()`;
+        // Определяем тип файла для правильного префикса
+        const ext = fileName.split('.').pop().toLowerCase();
+        const isImg = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'ico'].includes(ext);
+        const prefix = isImg ? '!' : '';
+        const placeholder = `${prefix}[⏳ Загрузка ${fileName}...]()`;
 
         if (isEditMode) {
             const cursorPos = inputArea.selectionStart;
@@ -5487,11 +5526,11 @@ function initTaskDescriptionLogic() {
             if (!res.ok) throw new Error('Upload failed');
             const data = await res.json();
             const encodedPath = encodeURI(data.path);
-            const finalMarkdown = `[${data.name}](${encodedPath})`;
+            const finalMarkdown = `${prefix}[${data.name}](${encodedPath})`;
             
             inputArea.value = inputArea.value.replace(placeholder, finalMarkdown);
         } catch (err) {
-            inputArea.value = inputArea.value.replace(placeholder, `[❌ Ошибка: ${fileName}]()`);
+            inputArea.value = inputArea.value.replace(placeholder, `${prefix}[❌ Ошибка: ${fileName}]()`);
         }
 
         if (isEditMode) {
@@ -5632,8 +5671,10 @@ function initTaskDescriptionLogic() {
                 }
             }
             initHeadingFolding(renderDiv, localFolded);
+            applyTextExpansion(); // Расширяем текст под картинки
         } else {
             renderDiv.innerHTML = `<span class="markdown-empty">${t('taskModal.descPlaceholder')}</span>`;
+            applyTextExpansion(); // Сброс
         }
         
         inputArea.style.display = 'none';
@@ -5641,6 +5682,89 @@ function initTaskDescriptionLogic() {
     };
 
     renderDiv.addEventListener('mousedown', (e) => {
+        // ЛОГИКА РЕСАЙЗА ИЗОБРАЖЕНИЙ
+        if (e.target.classList.contains('image-resize-handle')) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const wrapper = e.target.closest('.image-resizer-wrapper');
+            const startX = e.clientX;
+            const startY = e.clientY;
+            const startWidth = wrapper.offsetWidth;
+            const startHeight = wrapper.offsetHeight;
+            const aspectRatio = startWidth / startHeight; // Запоминаем исходные пропорции
+            
+            wrapper.classList.add('is-resizing');
+            wrapper.classList.add('has-custom-size'); // Отключаем max-width
+            document.body.style.userSelect = 'none'; // Блокируем выделение текста
+            
+            const onMouseMove = (moveEvent) => {
+                let newWidth = Math.max(50, startWidth + (moveEvent.clientX - startX));
+                let newHeight = Math.max(50, startHeight + (moveEvent.clientY - startY));
+                
+                // Если зажат Shift — жестко блокируем пропорции по ширине
+                if (moveEvent.shiftKey) {
+                    newHeight = newWidth / aspectRatio;
+                }
+                
+                wrapper.style.width = newWidth + 'px';
+                wrapper.style.height = newHeight + 'px';
+                
+                // РАСШИРЯЕМ ПРОСТРАНСТВО ТЕКСТА В РЕАЛЬНОМ ВРЕМЕНИ
+                applyTextExpansion();
+            };
+            
+            const onMouseUp = async () => {
+                document.removeEventListener('mousemove', onMouseMove);
+                document.removeEventListener('mouseup', onMouseUp);
+                document.body.style.userSelect = '';
+                wrapper.classList.remove('is-resizing');
+                
+                // Сохраняем результат
+                const finalWidth = Math.round(wrapper.offsetWidth);
+                const finalHeight = Math.round(wrapper.offsetHeight);
+                const originalMd = unescapeHtml(wrapper.dataset.md);
+                
+                // Парсим оригинальный маркдаун изображения (с или без старых размеров)
+                const regex = /!\[([^\]]*)\]\(([^)]+)\)(?:\{[^}]+\})?/;
+                const newMd = originalMd.replace(regex, `![$1]($2){${finalWidth}, ${finalHeight}}`);
+                
+                // Подменяем текст в скрытом inputArea
+                inputArea.value = inputArea.value.replace(originalMd, newMd);
+                
+                // Обновляем data-атрибут, чтобы можно было ресайзить дальше без перезагрузки
+                wrapper.dataset.md = escapeHtml(newMd);
+                lastSavedValue = inputArea.value; 
+                
+                // Фоновое сохранение на бэкенд без прерывания сессии чтения пользователя
+                const taskId = modal.dataset.taskId;
+                try {
+                    await fetch(`${API_BASE}/tasks/${taskId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ description: inputArea.value })
+                    });
+                    
+                    bumpModalUpdatedDate();
+                    
+                    // Обновляем стейт в фоне
+                    for (let col of state.columns) {
+                        let currentTask = col.tasks.find(t => t.id == taskId);
+                        if (currentTask) {
+                            currentTask.description = inputArea.value;
+                            break;
+                        }
+                    }
+                } catch (err) {
+                    console.error("Failed to save image resize", err);
+                }
+            };
+            
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
+            return;
+        }
+
         if (e.target.tagName === 'A') return;
         if (e.detail > 1) {
             e.preventDefault(); 
@@ -5649,6 +5773,7 @@ function initTaskDescriptionLogic() {
 
     renderDiv.addEventListener('dblclick', (e) => {
         if (e.target.tagName === 'A') return;
+        if (e.target.closest('.image-resizer-wrapper')) return; // Игнорируем двойной клик по картинке (позволяет спокойно кликать на ресайз)
         switchToEditMode();
     });
 
@@ -6001,7 +6126,7 @@ function initTaskModalDragAndResize() {
 }
 
 function extractAttachments(desc, savedOrder = []) {
-    const regex = /(!?)\[([^\]]+)\]\((doe\/[^)]+)\)(!?)/g;
+    const regex = /(!?)\[([^\]]+)\]\((doe\/[^)]*)\)(!?)/g;
     let match;
     const attachments = [];
     
@@ -6042,10 +6167,16 @@ async function enrichAttachments(attachments) {
         if (res.ok) {
             const validation = await res.json();
             attachments.forEach(a => {
-                const status = validation[a.path];
-                a.exists = status ? status.exists : false;
-                // ИМЯ БЕРЕМ С ДИСКА (ИЛИ ИЗ ПУТИ), А НЕ ИЗ КВАДРАТНЫХ СКОБОК МАРКДАУНА!
-                a.real_name = status ? status.real_name : a.name; 
+                if (a.path === 'doe/') {
+                    a.isPending = true;
+                    a.exists = false;
+                    a.real_name = a.label;
+                } else {
+                    const status = validation[a.path];
+                    a.exists = status ? status.exists : false;
+                    // ИМЯ БЕРЕМ С ДИСКА (ИЛИ ИЗ ПУТИ), А НЕ ИЗ КВАДРАТНЫХ СКОБОК МАРКДАУНА!
+                    a.real_name = status ? status.real_name : a.label; 
+                }
             });
         }
     } catch (e) {
@@ -6062,20 +6193,37 @@ function createAttachmentElement(att) {
     div.dataset.fullMatch = att.fullMatch;
     div.dataset.path = att.path; 
     
-    const isMissing = att.exists === false;
+    const isPending = att.isPending === true;
+    const isMissing = att.exists === false && !isPending;
+    const needsRelink = isMissing || isPending;
     
-    // Если файла нет - показываем знак вопроса, если есть - скрепку/документ
-    const fileIcon = isMissing 
-        ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>`
-        : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: block;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>`;
+    let fileIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: block;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>`;
+    if (needsRelink) {
+        fileIcon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>`;
+    }
     
     const trashIcon = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
     
+    let displayTitle = escapeHtml(att.real_name);
+    if (isPending) {
+        displayTitle = t('pendingTitle', escapeHtml(att.label));
+    }
+
+    let checkboxClass = '';
+    let titleAttr = '';
+    if (isMissing) {
+        checkboxClass = 'missing';
+        titleAttr = `title="${t('missingTooltip')}"`;
+    } else if (isPending) {
+        checkboxClass = 'pending';
+        titleAttr = `title="${t('pendingTooltip')}"`;
+    }
+
     div.innerHTML = `
-        <div class="subtask-checkbox ${isMissing ? 'missing' : ''}" ${isMissing ? 'title="Файл не найден. Нажмите, чтобы перепривязать"' : ''}>
+        <div class="subtask-checkbox ${checkboxClass}" ${titleAttr}>
             ${fileIcon}
         </div>
-        <div class="subtask-title ${isMissing ? 'missing-text' : ''}" ${isMissing ? 'title="Ожидаемое имя файла"' : ''}>${escapeHtml(att.real_name)}</div>
+        <div class="subtask-title ${isMissing ? 'missing-text' : ''}" ${isMissing ? `title="${t('expectedFilename')}"` : ''}>${displayTitle}</div>
         <div class="subtask-actions">
             <button class="subtask-delete-btn" title="${t('menu.delete')}">${trashIcon}</button>
         </div>
@@ -6086,7 +6234,7 @@ function createAttachmentElement(att) {
         if (e.target.closest('.subtask-delete-btn')) return;
         
         // --- ЛОГИКА ПЕРЕПРИВЯЗКИ ФАЙЛА ---
-        if (isMissing) {
+        if (needsRelink) {
             let newAbsPath = null;
             if (window.pywebview && window.pywebview.api && window.pywebview.api.choose_file) {
                 newAbsPath = await window.pywebview.api.choose_file();
@@ -6145,11 +6293,14 @@ function createAttachmentElement(att) {
         const pathToDelete = att.path;
 
         // 2. СРАЗУ отправляем запрос на физическое удаление с диска (исключение из правил)
-        fetch(`${API_BASE}/system/delete-file`, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ path: pathToDelete })
-        }).catch(err => console.error("Physical delete failed:", err));
+        // Запрос отправляется только если файл реально существовал, а не просто висел в статусе "Ожидание"
+        if (!isPending) {
+            fetch(`${API_BASE}/system/delete-file`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ path: pathToDelete })
+            }).catch(err => console.error("Physical delete failed:", err));
+        }
 
         // 3. Стираем упоминание файла из текста Markdown
         setTimeout(() => {
@@ -6158,8 +6309,8 @@ function createAttachmentElement(att) {
             const isEditMode = renderDiv.style.display === 'none';
             
             const safePath = pathToDelete.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            // Добавляем круглые скобки ([^\\]]*), чтобы захватить текст ссылки в группу $2
-            const pathRegex = new RegExp(`(!?)\\[([^\\]]*)\\]\\(${safePath}\\)(!?)`, 'g');
+            // ДОБАВЛЕНО: (?:\\{[^}]+\\})? захватывает блок {w,h}, если он есть, чтобы удалить его вместе со ссылкой
+            const pathRegex = new RegExp(`(!?)\\[([^\\]]*)\\]\\(${safePath}\\)(?:\\{[^}]+\\})?(!?)`, 'g');
             
             const oldText = inputArea.value;
             // Заменяем конструкцию ссылки на захваченный текст из квадратных скобок ($2)
@@ -6210,8 +6361,12 @@ function appendAttachmentToDescription(name, path) {
     const renderDiv = document.getElementById('task-desc-render');
     const isEditMode = renderDiv.style.display === 'none';
 
+    const ext = name.split('.').pop().toLowerCase();
+    const isImg = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'ico'].includes(ext);
+    const prefix = isImg ? '!' : '';
+
     const encodedPath = encodeURI(path); 
-    const attachmentMarkdown = `[${name}](${encodedPath})`;
+    const attachmentMarkdown = `${prefix}[${name}](${encodedPath})`;
     
     if (isEditMode) {
         const cursorPos = inputArea.selectionStart;
@@ -7242,18 +7397,42 @@ function parseMarkdownWithMath(text) {
     // 1. Изолируем Блочные формулы ($$...$$)
     let processed = text.replace(/\$\$([\s\S]+?)\$\$/g, (match, math) => {
         mathBlocks.push({ math, displayMode: true });
-        // Используем ТОЛЬКО буквы, чтобы Markdown не принял это за форматирование
         return `DOEMATHPLACEHOLDER${mathBlocks.length - 1}END`;
     });
 
-    // 2. Изолируем Инлайн формулы ($...$).
-    // Регулярка улучшена: ловит всё внутри $...$, исключая переносы строк
+    // 2. Изолируем Инлайн формулы ($...$)
     processed = processed.replace(/\$([^$\n]+?)\$/g, (match, math) => {
         mathBlocks.push({ math, displayMode: false });
         return `DOEMATHPLACEHOLDER${mathBlocks.length - 1}END`;
     });
 
-    // 3. Парсим чистый Markdown (он не тронет наши плейсхолдеры, т.к. в них нет _, *, ~)
+    // 3. ПРЕ-ПРОЦЕССИНГ ИЗОБРАЖЕНИЙ С РЕСАЙЗОМ (и отсев не-изображений)
+    // Ищет: ![alt](doe/file.png){100, 200} или просто ![alt](doe/file.png)
+    processed = processed.replace(/!\[([^\]]*)\]\(([^)]+)\)(?:\{(\d+)\s*,\s*(\d+)\})?/g, (match, alt, url, w, h) => {
+        const ext = url.split('.').pop().toLowerCase();
+        const isImage = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'ico'].includes(ext);
+        
+        // Если указан !, но это не картинка - принудительно рендерим как обычную кликабельную ссылку
+        if (!isImage) {
+            return `[${alt}](${url})`;
+        }
+
+        // Экранируем оригинальный markdown, чтобы при ресайзе мы знали что заменять в коде
+        const safeMatch = escapeHtml(match);
+        let style = '';
+        let customClass = '';
+        
+        if (w && h) {
+            style = `width: ${w}px; height: ${h}px;`;
+            customClass = 'has-custom-size';
+        }
+
+        // Возвращаем HTML-обертку на одной строке без переносов и пробелов, 
+        // чтобы Marked при breaks: true не генерировал паразитные теги <br> и пустые текстовые узлы.
+        return `<span class="image-resizer-wrapper ${customClass}" style="${style}" data-md="${safeMatch}"><img src="/${url}" alt="${alt}" draggable="false"><span class="image-resize-handle" title="Потяните для изменения размера"></span></span>`;
+    });
+
+    // 4. Парсим чистый Markdown
     let html = marked.parse(processed, { breaks: true });
 
     // 4. Рендерим и возвращаем формулы на место
