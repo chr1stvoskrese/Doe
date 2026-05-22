@@ -4950,8 +4950,10 @@ body.is-dragging-attachment .attachment-item:not(.attachment-drag-clone) {
     
     /* Плавный скролл для macOS */
     -webkit-overflow-scrolling: touch;
-    
-    /* 🚀 Мягкое размытие (затухание) сверху и снизу при скролле истории */
+}
+
+/* 🚀 Применяется через JS только когда контент реально не влезает */
+.vault-history-list.is-scrollable {
     -webkit-mask-image: linear-gradient(to bottom, transparent 0px, black 16px, black calc(100% - 32px), transparent 100%);
     mask-image: linear-gradient(to bottom, transparent 0px, black 16px, black calc(100% - 32px), transparent 100%);
 }

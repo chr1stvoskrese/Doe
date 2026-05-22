@@ -3536,17 +3536,6 @@ document.addEventListener('click', async (e) => {
         return;
     }
 
-    // 5.1 ОТКРЫТИЕ КАРТОЧКИ ПО КЛИКУ НА НЕЁ
-    const cardEl = target.closest('.card');
-    if (cardEl && !target.closest('.card-title-input')) {
-        const taskId = parseInt(cardEl.dataset.cardId);
-        if (taskId) {
-            loadTaskIntoModal(taskId, true);
-            document.getElementById('task-modal').classList.add('show');
-        }
-        return;
-    }
-
     // 6. ОБРАБОТКА ДЕЙСТВИЙ (Меню, Колонки, Карточки, Системные)
     const menuItem = target.closest('.menu-item');
     const actionElement = target.closest('[data-action]');
@@ -6520,6 +6509,18 @@ async function fetchVaultHistory() {
     return [];
 }
 
+// Проверяет, нужен ли списку эффект затенения (если есть скролл)
+function updateVaultHistoryScrollState() {
+    const list = document.getElementById('vault-history-list');
+    if (!list) return;
+    // Если реальная высота контента больше видимой области контейнера
+    if (list.scrollHeight > list.clientHeight) {
+        list.classList.add('is-scrollable');
+    } else {
+        list.classList.remove('is-scrollable');
+    }
+}
+
 async function renderVaultHistory() {
     const list = document.getElementById('vault-history-list');
     if (!list) return;
@@ -6705,6 +6706,8 @@ async function renderVaultHistory() {
                 if (clone.parentNode) clone.remove();
                 if (spacer.parentNode) spacer.remove();
                 
+                updateVaultHistoryScrollState(); // Пересчитываем маску после удаления элемента
+                
                 if (list.querySelectorAll('.vault-history-item').length === 0) {
                     renderVaultHistory();
                 }
@@ -6724,6 +6727,9 @@ async function renderVaultHistory() {
 
         list.appendChild(div);
     });
+    
+    // Замеряем геометрию после того, как браузер отрендерит добавленные элементы
+    requestAnimationFrame(updateVaultHistoryScrollState);
 }
 
 async function transitionToApp() {
@@ -7753,6 +7759,7 @@ initLocalSearchLogic();
             requestAnimationFrame(() => {
                 clampExpandedTitles();
                 adjustCollapsedColumnWidths();
+                updateVaultHistoryScrollState();
             });
         });
 
