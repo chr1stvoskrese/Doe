@@ -306,6 +306,18 @@
         <div class="resizer r-top-right"></div>
         <div class="resizer r-bottom-left"></div>
         <div class="resizer r-bottom-right"></div>
+
+        <!-- ВИДЖЕТ ЛОКАЛЬНОГО ПОИСКА -->
+        <div class="local-search-widget" id="local-search-widget">
+            <input type="text" id="local-search-input" placeholder="Найти в карточке..." autocomplete="off" spellcheck="false">
+            <span class="local-search-count" id="local-search-count">0/0</span>
+            <div class="local-search-actions">
+                <button class="icon-btn" id="local-search-prev" title="Предыдущее (Shift+Enter)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg></button>
+                <button class="icon-btn" id="local-search-next" title="Следующее (Enter)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></button>
+                <button class="icon-btn" id="local-search-close" title="Закрыть (Esc)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+            </div>
+        </div>
+
         <div class="modal-header">
             <div class="modal-title-group">
                 <span class="modal-title" id="task-modal-title">Название карточки</span>
@@ -321,6 +333,9 @@
                         <line x1="16" y1="22" x2="16" y2="19"></line>
                         <line x1="22" y1="16" x2="19" y2="16"></line>
                     </svg>
+                </button>
+                <button class="modal-search" aria-label="Поиск в карточке (Cmd+F)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                 </button>
                 <button class="modal-copy-link" aria-label="Копировать ссылку">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>

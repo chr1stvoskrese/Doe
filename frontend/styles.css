@@ -1268,6 +1268,7 @@ body {
 .modal-maximize,
 .modal-export,
 .modal-copy-link,
+.modal-search,
 .modal-detach,
 .modal-notify {
     background: transparent;
@@ -1282,7 +1283,8 @@ body {
     padding: 0;
     margin: 0;
     border-radius: 8px; 
-    transition: all 0.2s ease; 
+    transition: all 0.2s ease;
+    flex-shrink: 0; /* 🚀 БРОНЕЖИЛЕТ ОТ СПЛЮЩИВАНИЯ */
 }
 
 /* Жестко фиксируем одинаковый размер самих иконок */
@@ -1290,6 +1292,7 @@ body {
 .modal-maximize svg,
 .modal-export svg,
 .modal-copy-link svg,
+.modal-search svg,
 .modal-detach svg,
 .modal-notify svg {
     width: 16px !important;
@@ -1300,6 +1303,7 @@ body {
 .modal-maximize:hover,
 .modal-export:hover,
 .modal-copy-link:hover,
+.modal-search:hover,
 .modal-detach:hover,
 .modal-notify:hover {
     background: rgba(0, 0, 0, 0.05);
@@ -1313,6 +1317,7 @@ body {
 [data-theme="dark"] .modal-maximize:hover,
 [data-theme="dark"] .modal-export:hover,
 [data-theme="dark"] .modal-copy-link:hover,
+[data-theme="dark"] .modal-search:hover,
 [data-theme="dark"] .modal-detach:hover,
 [data-theme="dark"] .modal-notify:hover {
     background: rgba(255, 255, 255, 0.08);
@@ -3500,7 +3505,7 @@ body.is-dragging-modal * {
     flex-direction: column;
     height: 300px;
     min-height: 150px;
-    max-height: 80vh;
+    max-height: none; /* Убрано жесткое ограничение в 80vh, теперь можно тянуть бесконечно вниз */
     resize: vertical;
     overflow-y: hidden; 
     overflow-x: auto; /* Включаем горизонтальный скролл при растягивании картинок */
@@ -5825,4 +5830,120 @@ body.is-dragging-modal .task-detail-body {
 }
 .katex-display::-webkit-scrollbar-thumb:hover {
     background: var(--scrollbar-thumb-hover);
+}
+
+/* ==========================================
+   ЛОКАЛЬНЫЙ ПОИСК В КАРТОЧКЕ (VS Code Style)
+   ========================================== */
+.local-search-widget {
+    position: absolute;
+    top: 12px;
+    right: 16px;
+    z-index: 100;
+    background: var(--surface-card);
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    box-shadow: var(--shadow-menu);
+    display: flex;
+    align-items: center;
+    padding: 4px 6px;
+    gap: 8px;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-8px);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.local-search-widget.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+#local-search-input {
+    background: transparent;
+    border: none;
+    outline: none;
+    font-family: var(--font-main);
+    font-size: 13px;
+    color: var(--text-primary);
+    width: 140px;
+    min-width: 140px; /* Блокируем браузерный расчет min-width: auto */
+    max-width: 140px; /* Гарантируем жесткий лимит ширины */
+    flex: 0 0 140px;  /* Запрещаем сжатие и расширение во флекс-контексте */
+}
+
+#local-search-input::placeholder {
+    color: var(--text-secondary);
+    opacity: 0.6;
+}
+
+.local-search-count {
+    font-size: 12px;
+    font-family: var(--font-mono);
+    color: var(--text-secondary);
+    min-width: 32px;
+    text-align: center;
+    flex-shrink: 0; /* Запрещаем сжатие счетчика */
+}
+
+.local-search-actions {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    border-left: 1px solid var(--border-light);
+    padding-left: 6px;
+    flex-shrink: 0; /* Запрещаем деформацию блока с кнопками */
+}
+
+.local-search-actions .icon-btn {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+}
+
+/* Маркеры локального поиска */
+mark.local-search-highlight {
+    background-color: rgba(195, 198, 188, 0.4); /* Мягкая полупрозрачная подсветка */
+    color: var(--text-primary);
+    transition: background-color 0.15s, color 0.15s;
+
+    /* ЖЕСТКИЙ СБРОС ГЕОМЕТРИИ (сохраняет неизменную форму и положение букв) */
+    border-radius: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    display: inline !important;
+    box-shadow: none !important;
+    border: none !important;
+}
+
+mark.local-search-highlight.active {
+    background-color: #C3C6BC; /* Активный фокус выделяется сплошной заливкой */
+    color: var(--text-primary);
+    
+    /* Сохраняем абсолютную стабильность геометрии */
+    border-radius: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    display: inline !important;
+    box-shadow: none !important;
+    border: none !important;
+}
+
+[data-theme="dark"] mark.local-search-highlight {
+    background-color: rgba(92, 99, 90, 0.4);
+    color: #FFFFFF;
+}
+
+[data-theme="dark"] mark.local-search-highlight.active {
+    background-color: #5C635A;
+    color: #FFFFFF;
+    
+    /* Сохраняем абсолютную стабильность геометрии */
+    border-radius: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    display: inline !important;
+    box-shadow: none !important;
+    border: none !important;
 }

@@ -3369,6 +3369,14 @@ document.addEventListener('click', async (e) => {
         return;
     }
 
+    // ПОИСК ИЗ МОДАЛКИ КАРТОЧКИ
+    const searchModalBtn = target.closest('.modal-search');
+    if (searchModalBtn) {
+        e.stopPropagation();
+        if (window.openLocalSearch) window.openLocalSearch();
+        return;
+    }
+
     // ЭКСПОРТ ИЗ МОДАЛКИ КАРТОЧКИ
     const exportModalBtn = target.closest('.modal-export');
     if (exportModalBtn) {
@@ -3505,7 +3513,6 @@ document.addEventListener('click', async (e) => {
         }
 
         // 4. ГЛАВНЫЙ ФИКС: Используем двойной requestAnimationFrame
-        // Это железно гарантирует, что браузер УЖЕ отрисовал инпут и знает его новые размеры
         requestAnimationFrame(() => {
             requestAnimationFrame(() => {
                 cardEl.scrollIntoView({ 
@@ -3526,6 +3533,17 @@ document.addEventListener('click', async (e) => {
         };
         updatePos();
 
+        return;
+    }
+
+    // 5.1 ОТКРЫТИЕ КАРТОЧКИ ПО КЛИКУ НА НЕЁ
+    const cardEl = target.closest('.card');
+    if (cardEl && !target.closest('.card-title-input')) {
+        const taskId = parseInt(cardEl.dataset.cardId);
+        if (taskId) {
+            loadTaskIntoModal(taskId, true);
+            document.getElementById('task-modal').classList.add('show');
+        }
         return;
     }
 
@@ -3778,6 +3796,8 @@ document.addEventListener('click', async (e) => {
         const taskModal = document.getElementById('task-modal');
         if (taskModal && taskModal.classList.contains('show')) {
             
+            if (window.closeLocalSearch) window.closeLocalSearch(); // Сбрасываем локальный поиск
+
             // 🌟 НОВОЕ: ЗАПУСК СБОРЩИКА МУСОРА ПРИ ЗАКРЫТИИ КАРТОЧКИ
             // Проверяем, что крестик нажали именно внутри модалки задачи
             if (target.closest('#task-modal')) {
@@ -3845,30 +3865,25 @@ document.addEventListener('click', async (e) => {
 
 function applyHighlight(container, query) {
     if (!query) return;
-    // Разбиваем запрос на слова, чтобы подсветить каждое вхождение
     const words = query.trim().split(/\s+/).filter(w => w.length > 0);
     if (words.length === 0) return;
 
     const regexWords = words.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
     const regex = new RegExp(`(${regexWords.join('|')})`, 'gi');
 
-    // Находим все текстовые узлы
     const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null, false);
     const nodesToProcess = [];
     
     let node;
     while (node = walker.nextNode()) {
         const parent = node.parentNode;
-        // Игнорируем технические теги и уже подсвеченные элементы
         if (['CODE', 'MARK', 'TEXTAREA', 'PRE', 'SCRIPT', 'STYLE'].includes(parent.tagName)) continue;
         if (parent.classList.contains('search-highlight')) continue;
-        
         if (regex.test(node.nodeValue)) {
             nodesToProcess.push(node);
         }
     }
 
-    // Оборачиваем вхождения
     nodesToProcess.forEach(textNode => {
         const parent = textNode.parentNode;
         if (!parent) return;
@@ -3878,46 +3893,84 @@ function applyHighlight(container, query) {
         let lastIndex = 0;
 
         content.replace(regex, (match, p1, offset) => {
-            // Текст до совпадения
             fragment.appendChild(document.createTextNode(content.substring(lastIndex, offset)));
-            
-            // Само совпадение в обертке
             const span = document.createElement('span');
             span.className = 'search-highlight';
             span.textContent = match;
             fragment.appendChild(span);
-            
             lastIndex = offset + match.length;
         });
 
-        // Оставшийся текст после последнего совпадения
         fragment.appendChild(document.createTextNode(content.substring(lastIndex)));
         parent.replaceChild(fragment, textNode);
     });
 
-    // Senior UI UX: Мягкое затухание подсветки через 1.5 секунды
     const highlights = container.querySelectorAll('.search-highlight');
     if (highlights.length === 0) return;
+
+    // 🔥 АВТО-СКРОЛЛ К ПЕРВОМУ РЕЗУЛЬТАТУ ПОИСКА И РАЗВОРАЧИВАНИЕ
+    setTimeout(() => {
+        if (container.id === 'task-desc-render') {
+            const firstMatch = highlights[0];
+            if (firstMatch) {
+                // 1. Умное разворачивание всех родительских H1-H6, если текст был скрыт
+                let block = firstMatch.closest('p, ul, ol, pre, blockquote, h1, h2, h3, h4, h5, h6, div, span');
+                if (block) {
+                    let prev = block.previousElementSibling;
+                    while (prev && block.classList.contains('is-hidden-by-fold')) {
+                        if (prev.tagName.match(/^H[1-6]$/) && prev.classList.contains('is-folded')) {
+                            prev.click(); // Имитируем клик для разворачивания
+                        }
+                        prev = prev.previousElementSibling;
+                    }
+                }
+
+                // 2. Скроллим внутренний контейнер текста (markdown-body)
+                const mdBody = firstMatch.closest('.markdown-body');
+                if (mdBody) {
+                    const rect = firstMatch.getBoundingClientRect();
+                    const containerRect = mdBody.getBoundingClientRect();
+                    const relativeTop = rect.top - containerRect.top + mdBody.scrollTop;
+                    mdBody.scrollTo({
+                        top: relativeTop - (containerRect.height / 2),
+                        behavior: 'smooth'
+                    });
+                }
+
+                // 3. Скроллим внешнюю модалку (task-detail-body)
+                const scrollParent = document.querySelector('.task-detail-body');
+                if (scrollParent) {
+                    setTimeout(() => {
+                        const rect = firstMatch.getBoundingClientRect();
+                        const parentRect = scrollParent.getBoundingClientRect();
+                        if (rect.top < parentRect.top + 50 || rect.bottom > parentRect.bottom - 50) {
+                            const relativeTop = rect.top - parentRect.top + scrollParent.scrollTop;
+                            scrollParent.scrollTo({
+                                top: relativeTop - (parentRect.height / 2),
+                                behavior: 'smooth'
+                            });
+                        }
+                    }, 50);
+                }
+            }
+        }
+    }, 50);
 
     setTimeout(() => {
         highlights.forEach(h => {
             if (h.parentNode) {
-                // Теперь CSS подхватит эти изменения плавно, так как нет !important
                 h.style.backgroundColor = 'transparent';
                 h.style.color = 'inherit';
-                
-                // Ждем завершения CSS-анимации (500мс)
                 setTimeout(() => {
                     if (h.parentNode) {
                         const txt = document.createTextNode(h.textContent);
                         h.parentNode.replaceChild(txt, h);
-                        // normalize() склеит соседние текстовые узлы в один
                         container.normalize();
                     }
                 }, 550);
             }
         });
-    }, 1500);
+    }, 2000);
 }
 
 // <--- ДОБАВЛЕН ТРЕТИЙ ПАРАМЕТР highlightQuery
@@ -5434,6 +5487,7 @@ function initTaskDescriptionLogic() {
     let lastSavedValue = "";
 
     const switchToEditMode = () => {
+        if (window.closeLocalSearch) window.closeLocalSearch(); // Закрываем виджет
         lastSavedValue = inputArea.value; 
 
         // 1. Вычисляем пропорциональную позицию клика через Selection API
@@ -6806,16 +6860,21 @@ function initGlobalSearch() {
 
     if (!input) return;
 
-    // Глобальный Hotkey для фокуса (Cmd+S / Ctrl+S)
+    // Глобальный Hotkey: Cmd+F / Ctrl+F
     document.addEventListener('keydown', (e) => {
-        if ((e.metaKey || e.ctrlKey) && e.key === 's') {
-            e.preventDefault(); // Защита от системного "Сохранить страницу"
+        if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'f') {
+            e.preventDefault(); 
             
-            // Если карточка открыта — игнорируем фокус на поиске
             const taskModal = document.getElementById('task-modal');
-            if (taskModal && taskModal.classList.contains('show')) return;
+            // Если открыта карточка — запускаем локальный поиск VS Code-style
+            if (taskModal && taskModal.classList.contains('show')) {
+                if (window.openLocalSearch) window.openLocalSearch();
+                return;
+            }
             
+            // Иначе фокусируемся на глобальном поиске
             input.focus();
+            input.select();
         }
     });
 
@@ -7463,8 +7522,185 @@ function parseMarkdownWithMath(text) {
     return html;
 }
 
+// ==========================================
+// ЛОГИКА ЛОКАЛЬНОГО ПОИСКА В КАРТОЧКЕ
+// ==========================================
+function initLocalSearchLogic() {
+    const widget = document.getElementById('local-search-widget');
+    const input = document.getElementById('local-search-input');
+    const countEl = document.getElementById('local-search-count');
+    const btnNext = document.getElementById('local-search-next');
+    const btnPrev = document.getElementById('local-search-prev');
+    const btnClose = document.getElementById('local-search-close');
+    const renderDiv = document.getElementById('task-desc-render');
+    const scrollParent = document.querySelector('.task-detail-body');
+
+    let localMatches = [];
+    let currentMatchIndex = -1;
+
+    window.openLocalSearch = () => {
+        // Если включен режим редактирования — не разрешаем локальный поиск
+        if (renderDiv.style.display === 'none') return;
+        
+        widget.classList.add('show');
+        
+        // Переносим фокус на следующий тик цикла событий (macrotask),
+        // когда виджет гарантированно отобразился в DOM и текущее событие ввода/клика завершилось
+        setTimeout(() => {
+            input.focus();
+            input.select();
+        }, 50);
+        
+        if (input.value.trim()) performLocalSearch(input.value);
+    };
+
+    window.closeLocalSearch = () => {
+        widget.classList.remove('show');
+        clearLocalSearch();
+        input.value = '';
+    };
+
+    function clearLocalSearch() {
+        const marks = renderDiv.querySelectorAll('.local-search-highlight');
+        marks.forEach(m => {
+            const text = document.createTextNode(m.textContent);
+            m.parentNode.replaceChild(text, m);
+        });
+        renderDiv.normalize();
+        localMatches = [];
+        currentMatchIndex = -1;
+        countEl.textContent = '0/0';
+    }
+
+    function performLocalSearch(query) {
+        clearLocalSearch();
+        if (!query.trim()) return;
+
+        // Поиск точной подстроки (без учета регистра)
+        const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+        const walker = document.createTreeWalker(renderDiv, NodeFilter.SHOW_TEXT, null, false);
+        const nodesToProcess = [];
+
+        let node;
+        while (node = walker.nextNode()) {
+            const parent = node.parentNode;
+            if (['CODE', 'MARK', 'TEXTAREA', 'PRE', 'SCRIPT', 'STYLE'].includes(parent.tagName)) continue;
+            if (regex.test(node.nodeValue)) {
+                nodesToProcess.push(node);
+            }
+        }
+
+        nodesToProcess.forEach(textNode => {
+            const parent = textNode.parentNode;
+            const content = textNode.nodeValue;
+            const fragment = document.createDocumentFragment();
+            let lastIndex = 0;
+
+            content.replace(regex, (match, p1, offset) => {
+                fragment.appendChild(document.createTextNode(content.substring(lastIndex, offset)));
+                const mark = document.createElement('mark');
+                mark.className = 'local-search-highlight';
+                mark.textContent = match;
+                fragment.appendChild(mark);
+                lastIndex = offset + match.length;
+            });
+            fragment.appendChild(document.createTextNode(content.substring(lastIndex)));
+            parent.replaceChild(fragment, textNode);
+        });
+
+        localMatches = Array.from(renderDiv.querySelectorAll('.local-search-highlight'));
+        
+        if (localMatches.length > 0) {
+            currentMatchIndex = 0;
+            updateLocalSearchUI();
+        } else {
+            countEl.textContent = '0/0';
+        }
+    }
+
+    function updateLocalSearchUI() {
+        localMatches.forEach(m => m.classList.remove('active'));
+        if (localMatches.length > 0 && currentMatchIndex >= 0) {
+            const activeMark = localMatches[currentMatchIndex];
+            activeMark.classList.add('active');
+            
+            // 1. Умное разворачивание свернутых заголовков
+            let block = activeMark.closest('p, ul, ol, pre, blockquote, h1, h2, h3, h4, h5, h6, div, span');
+            if (block) {
+                let prev = block.previousElementSibling;
+                while (prev && block.classList.contains('is-hidden-by-fold')) {
+                    if (prev.tagName.match(/^H[1-6]$/) && prev.classList.contains('is-folded')) {
+                        prev.click(); // Разворачиваем
+                    }
+                    prev = prev.previousElementSibling;
+                }
+            }
+
+            // 2. Скроллим внутренний контейнер (markdown-body)
+            const mdBody = activeMark.closest('.markdown-body');
+            if (mdBody) {
+                const rect = activeMark.getBoundingClientRect();
+                const containerRect = mdBody.getBoundingClientRect();
+                const relativeTop = rect.top - containerRect.top + mdBody.scrollTop;
+                mdBody.scrollTo({
+                    top: relativeTop - (containerRect.height / 2),
+                    behavior: 'smooth'
+                });
+            }
+
+            // 3. Скроллим внешнюю модалку (task-detail-body)
+            if (scrollParent) {
+                setTimeout(() => {
+                    const rect = activeMark.getBoundingClientRect();
+                    const parentRect = scrollParent.getBoundingClientRect();
+                    if (rect.top < parentRect.top + 50 || rect.bottom > parentRect.bottom - 50) {
+                        const relativeTop = rect.top - parentRect.top + scrollParent.scrollTop;
+                        scrollParent.scrollTo({
+                            top: relativeTop - (parentRect.height / 2),
+                            behavior: 'smooth'
+                        });
+                    }
+                }, 50);
+            }
+
+            countEl.textContent = `${currentMatchIndex + 1}/${localMatches.length}`;
+        }
+    }
+
+    function nextMatch() {
+        if (localMatches.length === 0) return;
+        currentMatchIndex = (currentMatchIndex + 1) % localMatches.length;
+        updateLocalSearchUI();
+    }
+
+    function prevMatch() {
+        if (localMatches.length === 0) return;
+        currentMatchIndex = (currentMatchIndex - 1 + localMatches.length) % localMatches.length;
+        updateLocalSearchUI();
+    }
+
+    input.addEventListener('input', () => performLocalSearch(input.value));
+    
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            if (e.shiftKey) prevMatch();
+            else nextMatch();
+        }
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            window.closeLocalSearch();
+        }
+    });
+
+    btnNext.addEventListener('click', nextMatch);
+    btnPrev.addEventListener('click', prevMatch);
+    btnClose.addEventListener('click', window.closeLocalSearch);
+}
+
 // Запускаем инициализацию (можно поместить вызов внутрь главной IIFE async функции внизу файла)
 initTaskDescriptionLogic();
+initLocalSearchLogic();
 
 (async () => {
     initTooltip();
