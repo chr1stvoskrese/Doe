@@ -5787,11 +5787,13 @@ function initTaskDescriptionLogic() {
             const href = link.getAttribute('href');
             if (!href) return;
 
-            if (href.startsWith('doe/')) {
+            // Поддерживаем относительные ссылки на локальные файлы как с ведущим слэшем, так и без
+            if (href.startsWith('doe/') || href.startsWith('/doe/')) {
+                const cleanHref = href.startsWith('/') ? href.slice(1) : href;
                 fetch(`${API_BASE}/system/open-file`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({path: decodeURIComponent(href)})
+                    body: JSON.stringify({path: decodeURIComponent(cleanHref)})
                 });
                 return;
             }

@@ -237,7 +237,8 @@ class OpenFileReq(BaseModel):
 
 @router.post("/open-file")
 async def open_file_endpoint(req: OpenFileReq):
-    filename = req.path.replace("doe/", "", 1)
+    # Очищаем префикс приложения и убираем ведущие слэши, чтобы Path / filename работал корректно
+    filename = req.path.replace("doe/", "", 1).lstrip("/")
     abs_path = get_attachments_dir() / filename
     
     if not abs_path.exists():
@@ -245,8 +246,10 @@ async def open_file_endpoint(req: OpenFileReq):
         
     try:
         if sys.platform == 'darwin':
+            # На macOS команда 'open' запускает файл в приложении по умолчанию для данного типа
             subprocess.call(['open', str(abs_path)])
         elif sys.platform == 'win32':
+            # На Windows 'os.startfile' аналогичен двойному клику в Проводнике
             os.startfile(str(abs_path))
         return {"success": True}
     except Exception as e:
@@ -286,7 +289,19 @@ class OpenLinkReq(BaseModel):
 async def open_link_endpoint(req: OpenLinkReq):
     target = req.url
     try:
-        # 1. Если это веб-ссылка или IP -> открываем в браузере
+        # Если ссылка указывает на внутреннее вложение нашего сервера (например, http://127.0.0.1:8000/doe/file.pdf),
+        # перенаправляем ее на открытие локального файла в нативной системной читалке
+        if "/doe/" in target:
+            filename = target.split("/doe/")[-1].lstrip("/")
+            abs_path = get_attachments_dir() / filename
+            if abs_path.exists() and abs_path.is_file():
+                if sys.platform == 'darwin':
+                    subprocess.call(['open', str(abs_path)])
+                elif sys.platform == 'win32':
+                    os.startfile(str(abs_path))
+                return {"success": True}
+
+        # 1. Если это внешняя веб-ссылка или IP -> открываем в браузере
         if target.startswith(("http://", "https://")):
             webbrowser.open(target)
             return {"success": True}
