@@ -1,4 +1,3 @@
-// ---------- ГЛОБАЛЬНОЕ СОСТОЯНИЕ ----------
 let state = { columns: [], workspaces: [], activeWorkspaceId: null };
 const API_BASE = '/api/v1';
 
@@ -165,7 +164,6 @@ const dpLocales = {
     }
 };
 
-// Эстетичные внутрипрограммные уведомления
 let toastTimeout;
 window.showToast = (title, message, isError = false) => {
     const toast = document.getElementById('app-toast');
@@ -187,20 +185,19 @@ window.showToast = (title, message, isError = false) => {
     }
 
     toast.classList.remove('show');
-    void toast.offsetWidth; // Сбрасываем CSS-анимацию
+    void toast.offsetWidth;
     toast.classList.add('show');
 
     clearTimeout(toastTimeout);
     toastTimeout = setTimeout(() => toast.classList.remove('show'), 3500);
 };
 
-// Глобальная защита: запрещаем браузеру открывать файлы при случайном перетаскивании мимо зоны
 window.addEventListener('dragover', (e) => e.preventDefault());
 window.addEventListener('drop', (e) => e.preventDefault());
 
 let currentLang = 'ru';
 let activeConfirmResolve = null; 
-let activeDetachResolve = null; // Для модалки отвязки
+let activeDetachResolve = null;
 
 function showDetachModal() {
     return new Promise((resolve) => {
@@ -210,7 +207,6 @@ function showDetachModal() {
     });
 }
 
-// --- НОВЫЕ ФУНКЦИИ ПРИМЕНЕНИЯ ТЕМЫ И ЯЗЫКА ---
 function applyTheme(theme, saveToBackend = false) {
     const updateDOM = () => {
         if (theme === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
@@ -224,8 +220,6 @@ function applyTheme(theme, saveToBackend = false) {
         if (saveToBackend) updateSettings({ theme }).catch(console.error);
     };
 
-    // Запускаем красивую анимацию "раскрывающегося круга" только при ручном клике пользователя (saveToBackend = true). 
-    // При первоначальной загрузке приложения тема применяется мгновенно.
     if (saveToBackend && document.startViewTransition) {
         document.startViewTransition(updateDOM);
     } else {
@@ -261,7 +255,6 @@ function parseTimeToSeconds(input) {
     let seconds = 0;
     let matchedAny = false;
 
-    // СНЯТО ОГРАНИЧЕНИЕ: теперь \d+ позволяет вводить хоть миллион часов/дней (например "999999:30:00")
     const timeMatch = input.match(/(?:^|\s)(\d+):(\d{1,2})(?::(\d{1,2}))?(?:\s|$)/);
     if (timeMatch) {
         seconds += parseInt(timeMatch[1]) * 3600 + parseInt(timeMatch[2]) * 60;
@@ -269,7 +262,6 @@ function parseTimeToSeconds(input) {
         matchedAny = true;
     }
 
-    // Вспомогательная функция для поиска текстовых единиц измерения
     const matchUnit = (regex, multiplier) => {
         const match = input.match(regex);
         if (match) {
@@ -278,7 +270,6 @@ function parseTimeToSeconds(input) {
         }
     };
 
-    // Парсим без лимитов: 100000y, 999999d и т.д.
     matchUnit(/(\d+(?:\.\d+)?)\s*(y|л|год|лет|года)/, 31536000);
     matchUnit(/(\d+(?:\.\d+)?)\s*(mo|мес)/, 2592000);
     matchUnit(/(\d+(?:\.\d+)?)\s*(w|н|нед)/, 604800);
@@ -287,11 +278,10 @@ function parseTimeToSeconds(input) {
     matchUnit(/(\d+(?:\.\d+)?)\s*(m(?!o)|м|min|мин)/, 60);
     matchUnit(/(\d+(?:\.\d+)?)\s*(s|с|sec|сек)/, 1);
 
-    const MAX_SECONDS = 31536000000; // Ровно 1000 лет
+    const MAX_SECONDS = 31536000000;
 
     if (matchedAny) return Math.min(Math.floor(seconds), MAX_SECONDS);
 
-    // Если ввели просто число без букв (например "99999") - считаем это минутами
     if (/^\d+(?:\.\d+)?$/.test(input)) {
         return Math.min(Math.floor(parseFloat(input) * 60), MAX_SECONDS);
     }
@@ -321,7 +311,6 @@ function applyLanguage(lang, saveToBackend = false) {
         el.classList.toggle('active', el.dataset.value === lang);
     });
 
-    // Мгновенно обновляем даты в истории хранилищ
     document.querySelectorAll('.vault-history-date').forEach(el => {
         const ts = el.dataset.timestamp;
         if (ts) {
@@ -341,8 +330,6 @@ function t(key, ...args) {
     return translation || key;
 }
 
-// ---------- API-КЛИЕНТ ----------
-
 async function saveWorkspacesOrder(orderedIds) {
     const res = await fetch(`${API_BASE}/workspaces/reorder`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ordered_ids: orderedIds })
@@ -352,7 +339,6 @@ async function saveWorkspacesOrder(orderedIds) {
 
 async function triggerGarbageCollector() {
     try {
-        // Фоновый запрос, мы даже не ждем его ответа (fire-and-forget)
         fetch(`${API_BASE}/system/cleanup-attachments`, { method: 'POST' }).catch(() => {});
     } catch (e) {
         console.error("Garbage Collector trigger failed:", e);
@@ -393,20 +379,16 @@ async function fetchVault() {
 }
 
 async function switchVault() {
-    // 1. Проверяем, доступен ли нативный API
     if (!window.pywebview || !window.pywebview.api) {
         throw new Error("Native API not ready");
     }
 
-    // 2. Вызываем нативный macOS/Windows диалог выбора папки
     const selectedPath = await window.pywebview.api.choose_directory();
     
-    // 3. Если пользователь нажал "Отмена" или просто закрыл окно
     if (!selectedPath) {
         return { canceled: true };
     }
 
-    // 4. Отправляем выбранный путь на бэкенд
     const res = await fetch(`${API_BASE}/system/vault/switch`, { 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -420,10 +402,9 @@ async function switchVault() {
 function updateVaultName(name) {
     const span = document.querySelector('.vault-name-text');
     if (span) {
-        // Сохраняем полный оригинал для тултипа
+
         span.dataset.fullTitle = name;
         
-        // Логика троеточия (если > 30 символов)
         if (name.length > 30) {
             span.textContent = name.substring(0, 29) + '…';
         } else {
