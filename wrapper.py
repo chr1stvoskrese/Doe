@@ -16,10 +16,7 @@ if len(sys.argv) >= 5 and sys.argv[1] == "--notify":
         import os
         import json
         from pathlib import Path
-        
-        # --- УМНАЯ ПРОВЕРКА СТАТУСА ПРИ ПРОБУЖДЕНИИ ---
-        # Вместо того чтобы доверять старой памяти, читаем глобальный конфиг.
-        # Это спасет, если юзер перенес папку и перепривязал её в интерфейсе.
+
         config_file = Path.home() / ".doe_config.json"
         reminder_valid = False
         current_vault_path = vault_path  # Фолбэк на старый путь
