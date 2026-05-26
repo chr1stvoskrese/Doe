@@ -169,6 +169,10 @@ async def update_task(db: AsyncSession, task_id: int, task_in: TaskUpdate) -> Ta
             for p in task.parents:
                 p.updated_at = datetime.utcnow()
 
+    # 🚀 Срезаем таймзону, чтобы SQLite не падал с 500 ошибкой
+    if "due_date" in update_data and update_data["due_date"] is not None:
+        update_data["due_date"] = update_data["due_date"].replace(tzinfo=None)
+
     col_res = await db.execute(select(ColumnModel).where(ColumnModel.id == task.column_id))
     col = col_res.scalar_one()
 
@@ -252,6 +256,8 @@ async def delete_task(db: AsyncSession, task_id: int) -> list[int]:
     # Собираем все ID (самой задачи и всех её потомков) ДО удаления
     deleted_ids = await _get_all_child_ids(db, task_id)
 
+    from src.core.config import remove_active_reminder, get_active_vault
+
     # Каскад в БД автоматически уничтожит все подзадачи
     await db.delete(task)
     
@@ -260,6 +266,11 @@ async def delete_task(db: AsyncSession, task_id: int) -> list[int]:
         p.updated_at = datetime.utcnow()
 
     await db.commit()
+    
+    # Убиваем системные напоминания для удаляемых задач
+    current_vault = get_active_vault()
+    for d_id in deleted_ids:
+        remove_active_reminder(d_id, current_vault)
     
     # 🧹 Вызываем сборщик мусора. Он автоматически удалит с диска все файлы,
     # которые были привязаны к удаленной карточке и ВСЕМ её подзадачам,

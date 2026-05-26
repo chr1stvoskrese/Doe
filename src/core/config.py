@@ -1,7 +1,7 @@
 import json
 import os
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timedelta
 
 CONFIG_FILE = Path.home() / ".doe_config.json"
 DEFAULT_VAULT = Path.home() / "DoeDevVault"
@@ -139,8 +139,9 @@ def reorder_vault_history(ordered_paths: list[str]) -> None:
 
 def relink_vault_history(old_path: str, new_path: str) -> None:
     data = _load_config()
-    history = data.get("vault_history", [])
     
+    # 1. Обновляем пути в истории хранилищ
+    history = data.get("vault_history", [])
     new_history = []
     for item in history:
         if isinstance(item, str):
@@ -154,7 +155,122 @@ def relink_vault_history(old_path: str, new_path: str) -> None:
                 new_history.append(item)
             else:
                 new_history.append(item)
-                
     data["vault_history"] = new_history
+
+    # 2. Обновляем пути в ждущих напоминаниях (ЧТОБЫ ОНИ ВЫЖИЛИ ПРИ ПЕРЕЕЗДЕ ПАПКИ)
+    reminders = data.get("active_reminders", [])
+    for r in reminders:
+        if r.get("vault_path") == old_path:
+            r["vault_path"] = new_path
+    data["active_reminders"] = reminders
+
+    # 3. Обновляем привязку вкладок
+    active_ws = data.get("active_workspaces", {})
+    if old_path in active_ws:
+        active_ws[new_path] = active_ws.pop(old_path)
+    data["active_workspaces"] = active_ws
+
+    # 4. Обновляем текущее хранилище (если оно открыто)
+    if data.get("active_vault") == old_path:
+        data["active_vault"] = new_path
+        
+    _save_config(data)
+
+
+def get_active_reminders() -> list:
+    """Возвращает список запланированных напоминаний, очищая просроченные."""
+    data = _load_config()
+    reminders = data.get("active_reminders", [])
+    now = datetime.utcnow()
+    
+    valid = []
+    for r in reminders:
+        try:
+            # Оставляем напоминания актуальными в течение 2 минут после срабатывания,
+            # чтобы избежать гонки состояний при запуске фонового процесса.
+            due = datetime.fromisoformat(r["due_time"].replace("Z", ""))
+            if due > now - timedelta(minutes=2):
+                valid.append(r)
+        except Exception:
+            valid.append(r)
+            
+    if len(valid) != len(reminders):
+        data["active_reminders"] = valid
+        _save_config(data)
+        
+    return valid
+
+
+import os
+import signal
+
+def add_active_reminder(task_id: int, task_title: str, message: str, due_time_iso: str, pid: int, vault_path: str) -> None:
+    """Регистрирует новое активное напоминание с привязкой к процессу ОС и хранилищу."""
+    data = _load_config()
+    reminders = data.get("active_reminders", [])
+    
+    # Жестко убиваем старый процесс напоминания для этой задачи (если он был)
+    for r in reminders:
+        if r.get("task_id") == task_id and r.get("vault_path") == vault_path:
+            old_pid = r.get("pid")
+            if old_pid:
+                try:
+                    os.kill(old_pid, signal.SIGTERM)
+                except Exception:
+                    pass
+
+    reminders = [r for r in reminders if not (r.get("task_id") == task_id and r.get("vault_path") == vault_path)]
+    
+    reminders.append({
+        "task_id": task_id,
+        "vault_path": vault_path,
+        "pid": pid,
+        "task_title": task_title,
+        "message": message,
+        "due_time": due_time_iso
+    })
+    
+    data["active_reminders"] = reminders
+    _save_config(data)
+
+
+def remove_active_reminder(task_id: int, vault_path: str = None) -> None:
+    """Удаляет напоминание из списка и убивает фоновый процесс."""
+    data = _load_config()
+    reminders = data.get("active_reminders", [])
+    
+    new_reminders = []
+    for r in reminders:
+        if r.get("task_id") == task_id and (vault_path is None or r.get("vault_path") == vault_path):
+            pid = r.get("pid")
+            if pid:
+                try:
+                    os.kill(pid, signal.SIGTERM)
+                except Exception:
+                    pass
+        else:
+            new_reminders.append(r)
+            
+    data["active_reminders"] = new_reminders
+    _save_config(data)
+
+def remove_all_vault_reminders(vault_path: str) -> None:
+    """Удаляет все напоминания, связанные с конкретным хранилищем (при его удалении)."""
+    data = _load_config()
+    reminders = data.get("active_reminders", [])
+    
+    new_reminders = []
+    for r in reminders:
+        if r.get("vault_path") == vault_path:
+            pid = r.get("pid")
+            if pid:
+                try:
+                    os.kill(pid, signal.SIGTERM)
+                except Exception:
+                    pass
+        else:
+            new_reminders.append(r)
+            
+    data["active_reminders"] = new_reminders
     _save_config(data)
 

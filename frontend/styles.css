@@ -783,6 +783,100 @@ body {
     transform-origin: top left;
 }
 
+/* --- СТИЛИЗАЦИЯ КОЛОКОЛЬЧИКА И СПИСКА НАПОМИНАНИЙ --- */
+#reminders-bell-wrapper {
+    position: relative;
+}
+
+#reminders-bell-trigger {
+    position: relative; /* Гарантирует точное позиционирование индикатора внутри кнопки */
+}
+
+.bell-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 7px;
+    height: 7px;
+    background-color: var(--timer-text); /* Эстетичный терракотовый цвет */
+    border-radius: 50%;
+    border: 1.5px solid var(--bg-canvas);
+    pointer-events: none;
+}
+
+.reminders-dropdown {
+    top: 44px;
+    left: 0;
+    width: 320px;
+    max-height: 400px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px;
+}
+
+.reminders-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    overflow-y: auto;
+}
+
+.reminders-list::-webkit-scrollbar {
+    display: none; /* Прячем скроллбар */
+}
+
+.reminder-item {
+    padding: 8px 10px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.reminder-item:hover {
+    background: rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="dark"] .reminder-item:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.reminder-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+}
+
+.reminder-task-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.reminder-time {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-secondary);
+}
+
+.reminder-item .subtask-delete-btn {
+    opacity: 0.5;
+    transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.reminder-item:hover .subtask-delete-btn {
+    opacity: 1;
+}
+
 /* Класс для отображения меню через JS */
 .dropdown-menu.show {
     opacity: 1;
@@ -2692,13 +2786,15 @@ body.is-dragging-tab .board-tab::after {
     color: #FFFFFF !important;
 }
 
-/* ==========================================
-   АБСОЛЮТНЫЙ ФИКС HOVER ПРИ ПЕРЕТАСКИВАНИИ (WebKit/Blink BugFix)
-   ========================================== */
+/* ========== АБСОЛЮТНЫЙ ФИКС HOVER ПРИ ПЕРЕТАСКИВАНИИ (WebKit/Blink BugFix) ========== */
 /* Исключаем псевдокласс :hover из селектора. Мы жестко фиксируем стили 
-   элементов на время всего драга (!important). Даже если браузер 
-   из-за сдвига DOM решит, что мышь попала на элемент, он физически 
-   не сможет его перекрасить или сдвинуть. */
+   элементов на время всего драга (!important). ... */
+
+/* Блокировка взаимодействия с панелью глобального поиска во время любого перетаскивания */
+body[class*="is-dragging-"] #global-search-wrapper,
+body[class*="is-dragging-"] #global-search-wrapper * {
+    pointer-events: none !important;
+}
 
 /* Железобетонно скрываем крестики у неактивных вкладок и отключаем им анимацию на время драга */
 body[class*="is-dragging-"] .board-tab:not(.active) .tab-close-btn {
@@ -2860,7 +2956,7 @@ body[class*="is-dragging-"] .board-tab:not(.active) {
 /* 📦 МОДАЛКИ ПОВЕРХ КАРТОЧКИ (Экспорт и Уведомления)
    Поднимаем z-index выше, чем у .modal-overlay (9999999), 
    потому что они вызываются ПОВЕРХ уже открытой карточки задачи. */
-#export-modal, #notify-modal {
+#export-modal, #notify-modal, #due-date-modal {
     z-index: 99999999;
 }
 
@@ -5298,6 +5394,53 @@ body.is-dragging-vault-history * {
     letter-spacing: 0.04em;
 }
 
+/* СТИЛИ СРОКА ВЫПОЛНЕНИЯ (DUE DATE) */
+.due-date-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    height: 22px;
+    padding: 0 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+    flex-shrink: 0;
+    background: rgba(0, 0, 0, 0.04);
+    color: var(--text-secondary);
+    transition: all var(--transition-apple);
+}
+
+.due-date-pill svg {
+    width: 12px;
+    height: 12px;
+}
+
+.due-date-pill.clickable {
+    cursor: pointer;
+}
+.due-date-pill.clickable:hover {
+    background: rgba(0, 0, 0, 0.08);
+    color: var(--text-primary);
+}
+
+.due-date-pill.overdue {
+    background: rgba(211, 84, 70, 0.1) !important;
+    color: #D35446 !important;
+}
+
+[data-theme="dark"] .due-date-pill {
+    background: rgba(255, 255, 255, 0.08);
+}
+[data-theme="dark"] .due-date-pill.clickable:hover {
+    background: rgba(255, 255, 255, 0.12);
+}
+[data-theme="dark"] .due-date-pill.overdue {
+    background: rgba(214, 90, 75, 0.15) !important;
+    color: #D65A4B !important;
+}
+
 .checklist-meta.all-done {
     color: var(--success-done);
     background: rgba(137, 160, 133, 0.15);
@@ -5598,11 +5741,14 @@ body.is-dragging-vault-history * {
 
 .datepicker-trigger {
     width: 100%;
-    text-align: center;
     cursor: pointer;
     user-select: none;
     transition: background 0.2s, border-color 0.2s;
-    line-height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 42px; /* Фиксируем высоту под min-height родительского инпута */
+    padding: 0 !important; /* Обнуляем паддинги для безупречного центрирования текста по вертикали */
 }
 
 .datepicker-trigger:hover {
@@ -5930,6 +6076,21 @@ mark.local-search-highlight.active {
     display: inline !important;
     box-shadow: none !important;
     border: none !important;
+}
+
+/* ==========================================
+   ФИКС ГАБАРИТОВ КНОПКИ СРОКА В МОДАЛКЕ
+   ========================================== */
+.modal-time-tracker .due-date-pill {
+    height: auto; /* Сбрасываем жесткие 22px маленькой пилюли */
+    padding: 4px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+}
+
+.modal-time-tracker .due-date-pill svg {
+    width: 14px;
+    height: 14px;
 }
 
 [data-theme="dark"] mark.local-search-highlight {

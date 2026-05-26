@@ -26,16 +26,17 @@ pending_highlights = []
 
 class HighlightReq(BaseModel):
     task_id: int
+    vault_path: Optional[str] = None
 
 @router.post("/highlight-task")
 async def trigger_highlight(req: HighlightReq):
-    pending_highlights.append(req.task_id)
+    pending_highlights.append({"task_id": req.task_id, "vault_path": req.vault_path})
     return {"success": True}
 
 @router.get("/pending-highlights")
 async def get_pending_highlights():
     if pending_highlights:
-        return {"task_id": pending_highlights.pop(0)}
+        return pending_highlights.pop(0)
     return {"task_id": None}
 
 class VaultResponse(BaseModel):
@@ -496,10 +497,34 @@ async def relink_vault_history_endpoint(req: RelinkHistoryReq):
 class RemoveHistoryReq(BaseModel):
     path: str
 
+from src.core.config import get_active_reminders, remove_active_reminder, remove_all_vault_reminders
+
 @router.post("/vault/history/remove")
 async def remove_vault_history_endpoint(req: RemoveHistoryReq):
+    remove_all_vault_reminders(req.path)
     remove_vault_from_history(req.path)
     return {"success": True}
+
+
+@router.get("/reminders")
+async def get_reminders_endpoint():
+    """Возвращает список всех активных запланированных напоминаний."""
+    return get_active_reminders()
+
+
+@router.delete("/reminders/{task_id}")
+async def cancel_reminder_endpoint(task_id: int, vault_path: Optional[str] = None):
+    """Отменяет запланированное напоминание."""
+    remove_active_reminder(task_id, vault_path)
+    return {"success": True}
+
+
+@router.get("/reminders/check")
+async def check_reminder_status_endpoint(task_id: int):
+    """Используется фоновым процессом для проверки, не было ли напоминание отменено."""
+    reminders = get_active_reminders()
+    is_active = any(r.get("task_id") == task_id for r in reminders)
+    return {"active": is_active}
 
 from sqlalchemy import text
 

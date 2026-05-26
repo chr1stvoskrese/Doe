@@ -98,24 +98,41 @@ async def set_task_time_endpoint(task_id: int, req: TaskSetTimeReq, db: AsyncSes
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
+from datetime import datetime, timedelta
+from src.db.models import TaskModel
+from sqlalchemy import select
+from src.core.config import add_active_reminder, get_active_vault
+
 @router.post("/{task_id}/notify")
-async def schedule_notification_endpoint(task_id: int, req: TaskNotifyReq):
+async def schedule_notification_endpoint(task_id: int, req: TaskNotifyReq, db: AsyncSession = Depends(get_session)):
     try:
+        # 1. Получаем заголовок задачи для сохранения в истории напоминаний
+        res = await db.execute(select(TaskModel).where(TaskModel.id == task_id))
+        task = res.scalar_one_or_none()
+        task_title = task.title if task else "Doe Task"
+
+        # 2. Вычисляем точное UTC-время срабатывания
+        due_time = datetime.utcnow() + timedelta(seconds=req.delay_seconds)
+        due_time_iso = due_time.isoformat() + "Z"
+
+        # 3. Вычисляем текущее хранилище
+        vault_path = get_active_vault()
+
         executable = sys.executable
-        
         if getattr(sys, 'frozen', False):
-            args = [executable, "--notify", str(req.delay_seconds), req.title, req.message, str(task_id)]
+            args = [executable, "--notify", str(req.delay_seconds), req.title, req.message, str(task_id), vault_path]
         else:
             wrapper_path = os.path.abspath(sys.argv[0])
-            args = [executable, wrapper_path, "--notify", str(req.delay_seconds), req.title, req.message, str(task_id)]
+            args = [executable, wrapper_path, "--notify", str(req.delay_seconds), req.title, req.message, str(task_id), vault_path]
         
-        # Порождаем полностью отсоединённый процесс, который выживет после закрытия основного приложения
+        # Порождаем полностью отсоединённый процесс
         if sys.platform == 'win32':
-            # CREATE_NO_WINDOW | DETACHED_PROCESS
-            subprocess.Popen(args, creationflags=0x08000000 | 0x00000008)
+            p = subprocess.Popen(args, creationflags=0x08000000 | 0x00000008)
         else:
-            # macOS / Linux
-            subprocess.Popen(args, start_new_session=True)
+            p = subprocess.Popen(args, start_new_session=True)
+            
+        # 4. Сохраняем в список активных с указанием PID процесса и пути
+        add_active_reminder(task_id, task_title, req.message, due_time_iso, p.pid, vault_path)
             
         return {"success": True}
     except Exception as e:

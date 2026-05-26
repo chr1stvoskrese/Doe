@@ -11,11 +11,13 @@ const translations = {
             delete: 'Удалить', clear: 'Очистить', open: 'Открыть', 
             deleteCard: 'Удалить карточку', clearTimer: 'Очистить таймер',
             exportCard: 'Экспорт в Markdown', attachmentsSettings: 'Хранилище вложений',
-            copyCardLink: 'Скопировать ссылку', notify: 'Напомнить'
+            copyCardLink: 'Скопировать ссылку', dueDate: 'Установить срок', notify: 'Напомнить',
+            reminders: 'Активные напоминания', remindersEmpty: 'Нет активных напоминаний'
         },
         copied: 'Скопировано!',
         modals: { 
             notifyTitle: 'Напомнить', notifyRelative: 'Через', notifyAbsolute: 'В точное время', btnSet: 'Установить',
+            dueDateTitle: 'Срок выполнения', dueDateSet: 'Установить срок', dueDateClear: 'Очистить',
             themeTitle: 'Тема оформления', light: 'Светлая', dark: 'Тёмная', 
             langTitle: 'Выберите язык', aboutTitle: 'О приложении', 
             aboutDesc: 'Aesthetic. Local-first. Kanban sanctuary.',
@@ -86,11 +88,13 @@ const translations = {
             delete: 'Delete', clear: 'Clear', open: 'Open', 
             deleteCard: 'Delete card', clearTimer: 'Clear timer',
             exportCard: 'Export to Markdown', attachmentsSettings: 'Attachments Storage',
-            copyCardLink: 'Copy link', notify: 'Remind me'
+            copyCardLink: 'Copy link', dueDate: 'Set due date', notify: 'Remind me',
+            reminders: 'Active Reminders', remindersEmpty: 'No active reminders'
         },
         copied: 'Copied!',
         modals: { 
             notifyTitle: 'Remind me', notifyRelative: 'In', notifyAbsolute: 'At exact time', btnSet: 'Set',
+            dueDateTitle: 'Due date', dueDateSet: 'Set due date', dueDateClear: 'Clear',
             themeTitle: 'Theme', light: 'Light', dark: 'Dark', 
             langTitle: 'Select language', aboutTitle: 'About', 
             aboutDesc: 'Aesthetic. Local-first. Kanban sanctuary.',
@@ -486,6 +490,15 @@ function formatTotalTime(seconds) {
     return parts.slice(0, 2).join(' ');
 }
 
+function formatShortDate(isoString) {
+    if (!isoString) return '';
+    let dateStr = isoString;
+    if (!dateStr.endsWith('Z') && !dateStr.includes('+')) dateStr += 'Z';
+    const date = new Date(dateStr);
+    const options = { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+    return date.toLocaleDateString(currentLang, options).replace(' г.', '');
+}
+
 async function deleteColumn(id) { const res = await fetch(`${API_BASE}/columns/${id}`, { method: 'DELETE' }); if (!res.ok) throw new Error('Error'); }
 async function clearColumn(id) { 
     const res = await fetch(`${API_BASE}/columns/${id}/tasks`, { method: 'DELETE' }); 
@@ -705,6 +718,16 @@ function updateCardAppearance(cardElement, task, columnMode) {
         newContent += `<div class="checklist-meta ${allDone}"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:4px;"><line x1="6" y1="3" x2="6" y2="15"></line><circle cx="18" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><path d="M18 9a9 9 0 0 1-9 9"></path></svg><span>${done}/${total}</span></div>`;
     }
 
+    if (task.due_date) {
+        const dateStr = task.due_date + (task.due_date.endsWith('Z') || task.due_date.includes('+') ? '' : 'Z');
+        const isOverdue = !task.completed_at && new Date(dateStr) < new Date();
+        const overdueClass = isOverdue ? 'overdue' : '';
+        const icon = isOverdue
+            ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>'
+            : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>';
+        newContent += `<div class="due-date-pill ${overdueClass}">${icon}<span>${formatShortDate(task.due_date)}</span></div>`;
+    }
+
     if (isTimerColumn) {
         const displayTime = task.active_timer ? formatTime(task) : formatExactTime(task.total_time_spent || 0);
         newContent += `<div class="card-timer" data-task-id="${task.id}">${displayTime}</div>`;
@@ -733,14 +756,26 @@ function generateCardHtml(task, columnMode) {
         checklistHtml = `<div class="checklist-meta ${done === total ? 'all-done' : ''}"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:4px;"><line x1="6" y1="3" x2="6" y2="15"></line><circle cx="18" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><path d="M18 9a9 9 0 0 1-9 9"></path></svg><span>${done}/${total}</span></div>`;
     }
 
-    // 2. Таймер (активный или остановленный)
+    // 2. Срок выполнения (Due Date)
+    let dueDateHtml = '';
+    if (task.due_date) {
+        const dateStr = task.due_date + (task.due_date.endsWith('Z') || task.due_date.includes('+') ? '' : 'Z');
+        const isOverdue = !task.completed_at && new Date(dateStr) < new Date();
+        const overdueClass = isOverdue ? 'overdue' : '';
+        const icon = isOverdue
+            ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>'
+            : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>';
+        dueDateHtml = `<div class="due-date-pill ${overdueClass}">${icon}<span>${formatShortDate(task.due_date)}</span></div>`;
+    }
+
+    // 3. Таймер (активный или остановленный)
     let timerHtml = '';
     if (columnMode === 'track_time') {
         const displayTime = task.active_timer ? formatTime(task) : formatExactTime(task.total_time_spent || 0);
         timerHtml = `<div class="card-timer" data-task-id="${task.id}">${displayTime}</div>`;
     }
 
-    // 3. Затраченное время (Completion)
+    // 4. Затраченное время (Completion)
     let spentTimeHtml = '';
     if (columnMode === 'completion' && task.total_time_spent !== undefined) {
         spentTimeHtml = `<div class="subtask-meta">${t('card.timeSpent')} ${formatTotalTime(task.total_time_spent)}</div>`;
@@ -748,8 +783,8 @@ function generateCardHtml(task, columnMode) {
     } 
 
     let footerHtml = '';
-    if (checklistHtml || timerHtml || spentTimeHtml) {
-        footerHtml = `<div class="card-footer">${checklistHtml}${timerHtml}${spentTimeHtml}</div>`;
+    if (checklistHtml || dueDateHtml || timerHtml || spentTimeHtml) {
+        footerHtml = `<div class="card-footer">${checklistHtml}${dueDateHtml}${timerHtml}${spentTimeHtml}</div>`;
     }
     
     return `
@@ -1605,6 +1640,10 @@ function closeAllDropdowns() {
     document.querySelectorAll('.dropdown-menu.show').forEach(m => m.classList.remove('show'));
     document.querySelectorAll('.menu-btn.active').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.settings-trigger.active').forEach(b => b.classList.remove('active'));
+    
+    // Закрываем меню напоминаний
+    const bellTrigger = document.getElementById('reminders-bell-trigger');
+    if (bellTrigger) bellTrigger.classList.remove('active');
     
     // Специфичное для карточек
     document.querySelectorAll('.card-menu-btn.active').forEach(b => b.classList.remove('active'));
@@ -2577,6 +2616,12 @@ document.addEventListener('pointerup', async (e) => {
 });
 
 function startDrag(element, type, e) {
+    // Сворачиваем открытые выпадающие списки и убираем фокус с поиска перед началом перетаскивания
+    closeAllDropdowns();
+    if (document.activeElement && typeof document.activeElement.blur === 'function') {
+        document.activeElement.blur();
+    }
+
     isDragging = true;
     dragType = type;
     draggedElement = element;
@@ -3449,6 +3494,21 @@ document.addEventListener('click', async (e) => {
         return;
     }
 
+    // ОТКРЫТИЕ МЕНЮ НАПОМИНАНИЙ (Колокольчик)
+    const bellTrigger = target.closest('#reminders-bell-trigger');
+    if (bellTrigger) {
+        e.stopPropagation();
+        const menu = document.getElementById('reminders-dropdown');
+        const isShowing = menu.classList.contains('show');
+        closeAllDropdowns();
+        if (!isShowing) {
+            menu.classList.add('show');
+            bellTrigger.classList.add('active');
+            renderRemindersDropdown(); // Загружаем список при открытии
+        }
+        return;
+    }
+
     // 4. ОТКРЫТИЕ МЕНЮ НАСТРОЕК (Header & Vault)
     const settingsTrigger = target.closest('.settings-trigger');
     if (settingsTrigger) {
@@ -3660,6 +3720,11 @@ document.addEventListener('click', async (e) => {
                     
                     openNotifyModal(taskId, taskTitle);
                 }
+                else if (action === 'set-due-date') {
+                    // Берем задачу из стейта, чтобы пробросить её текущую дату, если есть
+                    const task = state.columns.find(c => c.id === parseInt(colEl.dataset.columnId))?.tasks.find(t => t.id === taskId);
+                    openDueDateModal(taskId, task?.due_date);
+                }
             }
             closeAllDropdowns();
             return; // Выходим только если это было меню карточки
@@ -3746,46 +3811,46 @@ document.addEventListener('click', async (e) => {
     // ==========================================
 
     // 8. ЗАКРЫТИЕ МОДАЛОК
-    if (target.closest('.modal-close') || target.classList.contains('modal-overlay')) {
+    const modalCloseBtn = target.closest('.modal-close');
+    const isOverlayClick = target.classList.contains('modal-overlay');
+
+    if (modalCloseBtn || isOverlayClick) {
+        // Определяем, какую именно модалку нужно закрыть
+        const modalToClose = modalCloseBtn ? modalCloseBtn.closest('.modal-overlay') : target;
         
-        // 🔥 ФИКС: Если кликнули по серому фону (overlay) именно модалки карточки — ничего не закрываем.
-        if (target.id === 'task-modal' && target.classList.contains('modal-overlay')) {
+        if (!modalToClose) return;
+
+        // 🔥 ФИКС: Если кликнули по серому фону (overlay) именно главной карточки — ничего не закрываем.
+        if (modalToClose.id === 'task-modal' && isOverlayClick) {
             return; 
         }
 
-        if (activeConfirmResolve && (target.id === 'confirm-modal' || target.closest('#confirm-modal'))) {
+        if (activeConfirmResolve && modalToClose.id === 'confirm-modal') {
             activeConfirmResolve(false);
             activeConfirmResolve = null;
         }
-        if (activeDetachResolve && (target.id === 'detach-modal' || target.closest('#detach-modal'))) {
+        if (activeDetachResolve && modalToClose.id === 'detach-modal') {
             activeDetachResolve(null);
             activeDetachResolve = null;
         }
         
-        // --- СБРОС ГЕОМЕТРИИ И FULLSCREEN СТАТУСА ПРИ ЗАКРЫТИИ ---
-        const taskModal = document.getElementById('task-modal');
-        if (taskModal && taskModal.classList.contains('show')) {
-            
-            if (window.closeLocalSearch) window.closeLocalSearch(); // Сбрасываем локальный поиск
+        // --- СБРОС ГЕОМЕТРИИ ПРИ ЗАКРЫТИИ ИМЕННО ГЛАВНОЙ КАРТОЧКИ ---
+        if (modalToClose.id === 'task-modal') {
+            if (window.closeLocalSearch) window.closeLocalSearch();
 
-            // 🌟 НОВОЕ: ЗАПУСК СБОРЩИКА МУСОРА ПРИ ЗАКРЫТИИ КАРТОЧКИ
-            // Проверяем, что крестик нажали именно внутри модалки задачи
-            if (target.closest('#task-modal')) {
-                triggerGarbageCollector();
-            }
+            // Запуск сборщика мусора
+            triggerGarbageCollector();
             
-            const card = taskModal.querySelector('.task-detail-card');
-            const maximizeBtn = taskModal.querySelector('.modal-maximize');
+            const card = modalToClose.querySelector('.task-detail-card');
+            const maximizeBtn = modalToClose.querySelector('.modal-maximize');
             
             if (card) {
-
                 // Иконку разворота возвращаем сразу
                 if(maximizeBtn) {
                     maximizeBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="14 6 18 6 18 10"></polyline><polyline points="10 18 6 18 6 14"></polyline><line x1="18" y1="6" x2="13" y2="11"></line><line x1="6" y1="18" x2="11" y2="13"></line></svg>`;
                 }
 
-                // Ждем 300мс, пока окно плавно исчезнет (CSS анимация длится 0.25s).
-                // Только когда оно станет полностью невидимым — стираем координаты.
+                // Очистка DOM и координат только после полного затухания
                 setTimeout(() => {
                     card.classList.remove('maximized', 'is-restoring');
                     card.style.transition = 'none';
@@ -3800,9 +3865,6 @@ document.addEventListener('click', async (e) => {
                     void card.offsetWidth; // Сбрасываем кэш рендера
                     card.style.transition = '';
 
-                    // 🔥 СУПЕР-ФИКС УТЕЧКИ ПАМЯТИ:
-                    // Жестко очищаем тяжелый DOM (LaTeX, подзадачи), чтобы тысячи
-                    // невидимых узлов не грузили процессор и не ломали FPS при перетаскивании доски.
                     const renderDiv = document.getElementById('task-desc-render');
                     if (renderDiv) renderDiv.innerHTML = '';
                     
@@ -3817,9 +3879,9 @@ document.addEventListener('click', async (e) => {
                 }, 300);
             }
         }
-        // ----------------------------------------------
 
-        document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('show'));
+        // 🔥 ГЛАВНЫЙ ФИКС: Закрываем ТОЛЬКО ту модалку, с которой мы взаимодействовали
+        modalToClose.classList.remove('show');
     }
 
     // 9. ЗАКРЫТИЕ ВСЕХ МЕНЮ ПРИ КЛИКЕ ВНЕ
@@ -3991,9 +4053,33 @@ async function loadTaskIntoModal(taskId, pushToStack = true, highlightQuery = nu
         if (datesMetaEl) {
             const createdStr = formatDateTime(task.created_at);
             const updatedStr = formatDateTime(task.updated_at);
-            
-            // 🚀 Убрали физическую точку из HTML. Теперь всё безупречно контролирует CSS!
             datesMetaEl.innerHTML = `<div><span>${t('taskModal.created')}: ${createdStr}</span><span id="task-updated-text">${t('taskModal.updated')}: ${updatedStr}</span></div>`;
+        }
+        
+        // --- Рендер Срока Выполнения (Due Date) в модалке ---
+        const modalDueDatePill = document.getElementById('modal-due-date');
+        if (modalDueDatePill) {
+            if (task.due_date) {
+                const dateStr = task.due_date + (task.due_date.endsWith('Z') || task.due_date.includes('+') ? '' : 'Z');
+                const isOverdue = !task.completed_at && new Date(dateStr) < new Date();
+                modalDueDatePill.classList.toggle('overdue', isOverdue);
+                
+                const icon = isOverdue
+                    ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>'
+                    : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>';
+                modalDueDatePill.innerHTML = `${icon}<span>${formatShortDate(task.due_date)}</span>`;
+            } else {
+                modalDueDatePill.classList.remove('overdue');
+                modalDueDatePill.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg><span data-i18n="modals.dueDateSet">${t('modals.dueDateSet')}</span>`;
+            }
+            
+            // Отвязываем старые события и вешаем новое на открытие модалки выбора даты
+            const newDueDatePill = modalDueDatePill.cloneNode(true);
+            modalDueDatePill.replaceWith(newDueDatePill);
+            newDueDatePill.onclick = (e) => {
+                e.stopPropagation();
+                openDueDateModal(task.id, task.due_date);
+            };
         }
         // ----------------------------------------------
 
@@ -5993,7 +6079,8 @@ function initTaskModalDragAndResize() {
             'button, input, textarea, a, ' + 
             '.markdown-body, .description-wrapper, ' + 
             '.subtask-item, .attachment-item, ' +      
-            '.breadcrumb-item, .modal-timer-pill'
+            '.breadcrumb-item, .modal-timer-pill, ' +
+            '.due-date-pill'
         );
 
         // Исключаем клики по нативным скроллбарам
@@ -7107,6 +7194,7 @@ window.resetAttFolder = async () => {
 // Глобальное состояние пикера
 let dpCurrentDate = new Date();
 let dpSelectedDate = new Date();
+let activeDatePickerTrigger = null; // Хранит активное поле ввода даты
 
 function renderDatePicker() {
     const locale = dpLocales[currentLang];
@@ -7160,7 +7248,7 @@ function renderDatePicker() {
             e.stopPropagation();
             dpSelectedDate.setFullYear(year, month, i);
             renderDatePicker();
-            updateDatePickerTrigger();
+            if (window.updateDatePickerTrigger) window.updateDatePickerTrigger();
         };
         grid.appendChild(div);
     }
@@ -7176,12 +7264,12 @@ function renderDatePicker() {
     }
 }
 
-function updateDatePickerTrigger() {
-    const trigger = document.getElementById('datepicker-trigger');
+window.updateDatePickerTrigger = function() {
+    if (!activeDatePickerTrigger) return;
     const timeStr = dpSelectedDate.toLocaleTimeString(currentLang, {hour: '2-digit', minute: '2-digit'});
     const dateStr = dpSelectedDate.toLocaleDateString(currentLang, {day: 'numeric', month: 'short', year: 'numeric'});
-    trigger.textContent = `${dateStr}, ${timeStr}`;
-}
+    activeDatePickerTrigger.textContent = `${dateStr}, ${timeStr}`;
+};
 
 // Привязка обработчиков для пикера (выполняется один раз)
 document.addEventListener('DOMContentLoaded', () => {
@@ -7264,7 +7352,7 @@ document.addEventListener('DOMContentLoaded', () => {
         mInput.value = m.toString().padStart(2, '0');
         
         dpSelectedDate.setHours(h, m, 0, 0);
-        updateDatePickerTrigger();
+        if (window.updateDatePickerTrigger) window.updateDatePickerTrigger();
     };
 
     hInput.addEventListener('blur', handleTimeChange);
@@ -7282,9 +7370,9 @@ function openNotifyModal(taskId, taskTitle) {
     // Сброс инпутов "Через"
     document.getElementById('notify-amount').value = 15;
     
-    // Сброс Кастомного Календаря на "Сейчас + 1 час"
+    // Сброс Кастомного Календаря на "Сейчас + 1 минута"
     dpSelectedDate = new Date();
-    dpSelectedDate.setHours(dpSelectedDate.getHours() + 1);
+    dpSelectedDate.setMinutes(dpSelectedDate.getMinutes() + 1);
     dpSelectedDate.setSeconds(0);
     dpSelectedDate.setMilliseconds(0);
     dpCurrentDate = new Date(dpSelectedDate);
@@ -7292,6 +7380,7 @@ function openNotifyModal(taskId, taskTitle) {
     document.getElementById('dp-hour').value = dpSelectedDate.getHours().toString().padStart(2, '0');
     document.getElementById('dp-minute').value = dpSelectedDate.getMinutes().toString().padStart(2, '0');
     
+    activeDatePickerTrigger = document.getElementById('datepicker-trigger');
     renderDatePicker();
     updateDatePickerTrigger();
     
@@ -7375,6 +7464,9 @@ function openNotifyModal(taskId, taskTitle) {
 
             modal.classList.remove('show');
             
+            // Мгновенное обновление статуса индикатора в шапке
+            updateBellBadge();
+            
             // Мигание зеленой галочкой у кнопки модалки (если открыта карточка)
             const bellBtn = document.querySelector('.modal-notify');
             if (bellBtn) {
@@ -7387,6 +7479,132 @@ function openNotifyModal(taskId, taskTitle) {
         } finally {
             newConfirmBtn.style.opacity = '1';
             newConfirmBtn.disabled = false;
+        }
+    };
+    
+    modal.classList.add('show');
+}
+
+function openDueDateModal(taskId, currentDueDate) {
+    const modal = document.getElementById('due-date-modal');
+    modal.dataset.taskId = taskId;
+    
+    // Настраиваем пикер
+    if (currentDueDate) {
+        const dateStr = currentDueDate + (currentDueDate.endsWith('Z') || currentDueDate.includes('+') ? '' : 'Z');
+        dpSelectedDate = new Date(dateStr);
+    } else {
+        dpSelectedDate = new Date();
+        dpSelectedDate.setMinutes(dpSelectedDate.getMinutes() + 1);
+        dpSelectedDate.setSeconds(0);
+        dpSelectedDate.setMilliseconds(0);
+    }
+    dpCurrentDate = new Date(dpSelectedDate);
+    
+    document.getElementById('dp-hour').value = dpSelectedDate.getHours().toString().padStart(2, '0');
+    document.getElementById('dp-minute').value = dpSelectedDate.getMinutes().toString().padStart(2, '0');
+    
+    // Устанавливаем активный триггер для календаря
+    activeDatePickerTrigger = document.getElementById('due-datepicker-trigger');
+    const trigger = activeDatePickerTrigger;
+    
+    // Вешаем открытие календаря на новый триггер
+    trigger.onclick = (e) => {
+        e.stopPropagation();
+        closeAllDropdowns();
+        
+        const rect = trigger.getBoundingClientRect();
+        const dropdown = document.getElementById('datepicker-dropdown');
+        
+        dropdown.style.visibility = 'hidden';
+        dropdown.style.display = 'flex';
+        dropdown.classList.add('show');
+        const dropHeight = dropdown.offsetHeight;
+        dropdown.classList.remove('show');
+        dropdown.style.visibility = '';
+        dropdown.style.display = '';
+
+        let topPos = rect.bottom + 8;
+        let transformOrigin = 'top center';
+        
+        if (topPos + dropHeight > window.innerHeight - 10) {
+            topPos = rect.top - dropHeight - 8;
+            transformOrigin = 'bottom center';
+        }
+        
+        dropdown.style.top = `${topPos}px`;
+        dropdown.style.left = `${rect.left + (rect.width / 2)}px`;
+        dropdown.style.transformOrigin = transformOrigin;
+        
+        void dropdown.offsetWidth;
+        dropdown.classList.add('show');
+    };
+
+    renderDatePicker();
+    updateDatePickerTrigger();
+
+    // Кнопка Установить
+    const confirmBtn = document.getElementById('btn-confirm-due-date');
+    const newConfirmBtn = confirmBtn.cloneNode(true);
+    confirmBtn.replaceWith(newConfirmBtn);
+    
+    newConfirmBtn.onclick = async () => {
+        newConfirmBtn.style.opacity = '0.5';
+        newConfirmBtn.disabled = true;
+        try {
+            const isoString = dpSelectedDate.toISOString();
+            await updateTask(taskId, { due_date: isoString });
+            
+            // Обновляем локальный стейт
+            for (let col of state.columns) {
+                let t = col.tasks.find(task => task.id == taskId);
+                if (t) {
+                    t.due_date = isoString;
+                    const cardEl = document.querySelector(`.card[data-card-id="${taskId}"]`);
+                    if (cardEl) updateCardAppearance(cardEl, t, col.mode);
+                    break;
+                }
+            }
+            
+            loadTaskIntoModal(taskId, false); // Обновляем пилюлю в модалке
+            modal.classList.remove('show');
+        } catch (e) {
+            window.showToast(t('alerts.error'), 'Не удалось установить срок', true);
+        } finally {
+            newConfirmBtn.style.opacity = '1';
+            newConfirmBtn.disabled = false;
+        }
+    };
+
+    // Кнопка Очистить
+    const clearBtn = document.getElementById('btn-clear-due-date');
+    const newClearBtn = clearBtn.cloneNode(true);
+    clearBtn.replaceWith(newClearBtn);
+    
+    newClearBtn.onclick = async () => {
+        newClearBtn.style.opacity = '0.5';
+        newClearBtn.disabled = true;
+        try {
+            await updateTask(taskId, { due_date: null });
+            
+            // Обновляем локальный стейт
+            for (let col of state.columns) {
+                let t = col.tasks.find(task => task.id == taskId);
+                if (t) {
+                    t.due_date = null;
+                    const cardEl = document.querySelector(`.card[data-card-id="${taskId}"]`);
+                    if (cardEl) updateCardAppearance(cardEl, t, col.mode);
+                    break;
+                }
+            }
+            
+            loadTaskIntoModal(taskId, false);
+            modal.classList.remove('show');
+        } catch (e) {
+            window.showToast(t('alerts.error'), 'Не удалось очистить срок', true);
+        } finally {
+            newClearBtn.style.opacity = '1';
+            newClearBtn.disabled = false;
         }
     };
     
@@ -7706,6 +7924,21 @@ initLocalSearchLogic();
             applyTheme(localStorage.getItem('doe-theme') || 'light', false);
         } catch (e) {}
 
+        // Обработка карточки, если произошла перезагрузка страницы для смены хранилища по уведомлению
+        const pendingHighlight = localStorage.getItem('doe-pending-highlight');
+        if (pendingHighlight) {
+            localStorage.removeItem('doe-pending-highlight');
+            setTimeout(async () => {
+                try {
+                    const ctxRes = await fetch(`${API_BASE}/tasks/${pendingHighlight}/context`);
+                    if (ctxRes.ok) {
+                        const context = await ctxRes.json();
+                        window.navigateToEntityGlobal(context.workspace_id, context.column_id, parseInt(pendingHighlight), null, true, true);
+                    }
+                } catch (e) {}
+            }, 800); // Даем UI время на полное построение доски
+        }
+
         // Глобальные лисенеры вешаем в любом случае
         setInterval(updateTimers, 250);
         
@@ -7717,6 +7950,20 @@ initLocalSearchLogic();
                 const data = await res.json();
                 
                 if (data.task_id) {
+                    const vaultRes = await fetch(`${API_BASE}/system/vault`);
+                    const currentVault = await vaultRes.json();
+                    
+                    // Если ОС-уведомление от другого хранилища, переключаем контекст
+                    if (data.vault_path && data.vault_path !== currentVault.path) {
+                        await fetch(`${API_BASE}/system/vault/switch`, {
+                            method: 'POST', headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ new_path: data.vault_path })
+                        });
+                        localStorage.setItem('doe-pending-highlight', data.task_id);
+                        window.location.reload();
+                        return;
+                    }
+                    
                     // Запрашиваем контекст, чтобы знать в какой вкладке эта карточка
                     const ctxRes = await fetch(`${API_BASE}/tasks/${data.task_id}/context`);
                     if (!ctxRes.ok) return;
@@ -7847,32 +8094,143 @@ initLocalSearchLogic();
 
         // 4. ЗАГРУЗКА КОЛОНОК (только если ID определен)
         if (state.activeWorkspaceId) {
-            const columnsData = await fetchColumns(state.activeWorkspaceId);
-            state.columns = columnsData.map(col => ({ ...col, collapsed: col.collapsed || false }));
-            
-            renderBoard(); // Рисуем доску
-            
-            // Выполняем замеры высот и схлопывание (фикс вспышки макета)
-            adjustCollapsedColumnWidths();
-            clampExpandedTitles();
+                const columnsData = await fetchColumns(state.activeWorkspaceId);
+                state.columns = columnsData.map(col => ({ ...col, collapsed: col.collapsed || false }));
+                
+                renderBoard(); // Рисуем доску
+                
+                // Выполняем замеры высот и схлопывание (фикс вспышки макета)
+                adjustCollapsedColumnWidths();
+                clampExpandedTitles();
 
-            // 🌟 НОВОЕ: Запускаем фоновую очистку мусора при старте приложения, 
-            // когда хранилище и БД гарантированно подключены.
-            triggerGarbageCollector();
+                // 🌟 НОВОЕ: Запускаем фоновую очистку мусора при старте приложения, 
+                // когда хранилище и БД гарантированно подключены.
+                triggerGarbageCollector();
 
-        } else {
-            // Если воркспейсов вообще нет (критическая ситуация)
-            console.error("No workspaces found even after initialization");
-            renderBoard(); 
+            } else {
+                // Если воркспейсов вообще нет (критическая ситуация)
+                console.error("No workspaces found even after initialization");
+                renderBoard(); 
+            }
+
+            // Запрашиваем состояние напоминаний ДО удаления класса preload и показа окна.
+            // Это гарантирует, что индикатор отрисуется за кулисами и появится одновременно с доской.
+            await updateBellBadge().catch(console.error);
+
+            // 5. ПОКАЗЫВАЕМ ОКНО (убираем preload)
+            document.body.classList.remove('preload');
+            setTimeout(triggerReveal, 50);
+
+        } catch (e) {
+            console.error("Fatal initialization error:", e);
+            document.body.classList.remove('preload');
+            setTimeout(triggerReveal, 50); 
         }
-
-        // 5. ПОКАЗЫВАЕМ ОКНО (убираем preload)
-        document.body.classList.remove('preload');
-        setTimeout(triggerReveal, 50);
-
-    } catch (e) {
-        console.error("Fatal initialization error:", e);
-        document.body.classList.remove('preload');
-        setTimeout(triggerReveal, 50); 
-    }
 })();
+
+
+// --- ФУНКЦИОНАЛ НАПОМИНАНИЙ И КОЛОКОЛЬЧИКА ---
+async function fetchActiveReminders() {
+    try {
+        const res = await fetch(`${API_BASE}/system/reminders?t=${Date.now()}`);
+        if (res.ok) return await res.json();
+    } catch (e) {
+        console.error("Failed to fetch reminders:", e);
+    }
+    return [];
+}
+
+async function cancelReminder(taskId, vaultPath, event) {
+    if (event) event.stopPropagation();
+    try {
+        const queryParams = vaultPath ? `?vault_path=${encodeURIComponent(vaultPath)}` : '';
+        const res = await fetch(`${API_BASE}/system/reminders/${taskId}${queryParams}`, { method: 'DELETE' });
+        if (res.ok) {
+            renderRemindersDropdown(); // Перерисовываем список
+            updateBellBadge();         // Обновляем индикатор
+        }
+    } catch (e) {
+        console.error("Failed to cancel reminder:", e);
+    }
+}
+
+async function updateBellBadge() {
+    const badge = document.getElementById('bell-badge');
+    if (!badge) return;
+    const reminders = await fetchActiveReminders();
+    if (reminders.length > 0) {
+        badge.style.display = 'block';
+    } else {
+        badge.style.display = 'none';
+    }
+}
+
+async function renderRemindersDropdown() {
+    const list = document.getElementById('reminders-list');
+    if (!list) return;
+    list.innerHTML = '';
+    
+    const reminders = await fetchActiveReminders();
+    if (reminders.length === 0) {
+        list.innerHTML = `<div style="padding: 12px; text-align: center; color: var(--text-secondary); font-size: 13px;">${t('menu.remindersEmpty')}</div>`;
+        return;
+    }
+    
+    const trashIcon = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
+    
+    reminders.forEach(r => {
+        const div = document.createElement('div');
+        div.className = 'reminder-item';
+        
+        const dueTimeStr = formatDateTime(r.due_time);
+        
+        div.innerHTML = `
+            <div class="reminder-info">
+                <div class="reminder-task-title">${escapeHtml(r.task_title)}</div>
+                <div class="reminder-time">${dueTimeStr}</div>
+            </div>
+            <button class="subtask-delete-btn" title="${t('menu.delete')}">${trashIcon}</button>
+        `;
+        
+        // Клик по карточке напоминания перенаправляет к самой задаче на доске
+        div.addEventListener('click', async (e) => {
+            if (e.target.closest('.subtask-delete-btn')) return;
+            document.getElementById('reminders-dropdown').classList.remove('show');
+            document.getElementById('reminders-bell-trigger').classList.remove('active');
+            
+            const vaultRes = await fetch(`${API_BASE}/system/vault`);
+            const currentVault = await vaultRes.json();
+            
+            // Если карточка из другого хранилища — сперва свитчимся
+            if (r.vault_path && r.vault_path !== currentVault.path) {
+                await fetch(`${API_BASE}/system/vault/switch`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ new_path: r.vault_path })
+                });
+                localStorage.setItem('doe-pending-highlight', r.task_id);
+                window.location.reload();
+                return;
+            }
+            
+            // Навигация внутри текущего хранилища
+            fetch(`${API_BASE}/tasks/${r.task_id}/context`)
+                .then(res => res.json())
+                .then(context => {
+                    window.navigateToEntityGlobal(context.workspace_id, context.column_id, r.task_id, null, true);
+                })
+                .catch(() => {
+                    // Фолбэк, если задача была удалена
+                    loadTaskIntoModal(r.task_id, true);
+                    document.getElementById('task-modal').classList.add('show');
+                });
+        });
+        
+        // Кнопка удаления напоминания
+        div.querySelector('.subtask-delete-btn').onclick = (e) => cancelReminder(r.task_id, r.vault_path, e);
+        
+        list.appendChild(div);
+    });
+}
+
+// Запускаем периодический опрос активных напоминаний раз в 15 секунд для синхронизации красной точки
+setInterval(updateBellBadge, 15000);

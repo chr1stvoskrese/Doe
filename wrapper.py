@@ -3,20 +3,54 @@ import subprocess
 import os
 import time
 
-# ==========================================
-# 🔔 SENIOR HACK: ФОНОВЫЙ УВЕДОМИТЕЛЬ (ОБРАБОТКА --notify)
-# ==========================================
-# ВАЖНО: Этот блок ДОЛЖЕН БЫТЬ ДО инициализации AppKit и setActivationPolicy.
-# Иначе macOS будет думать, что запускается полноценное GUI-приложение, 
-# и начнет прыгать пустой иконкой в Dock.
 if len(sys.argv) >= 5 and sys.argv[1] == "--notify":
     try:
         delay = int(sys.argv[2])
         title = sys.argv[3]
         message = sys.argv[4]
         task_id = sys.argv[5] if len(sys.argv) >= 6 else None
+        vault_path = sys.argv[6] if len(sys.argv) >= 7 else None
         
         time.sleep(delay)
+        
+        import os
+        import json
+        from pathlib import Path
+        
+        # --- УМНАЯ ПРОВЕРКА СТАТУСА ПРИ ПРОБУЖДЕНИИ ---
+        # Вместо того чтобы доверять старой памяти, читаем глобальный конфиг.
+        # Это спасет, если юзер перенес папку и перепривязал её в интерфейсе.
+        config_file = Path.home() / ".doe_config.json"
+        reminder_valid = False
+        current_vault_path = vault_path  # Фолбэк на старый путь
+
+        if task_id and config_file.exists():
+            try:
+                with open(config_file, 'r', encoding='utf-8') as f:
+                    config_data = json.load(f)
+                
+                reminders = config_data.get("active_reminders", [])
+                for r in reminders:
+                    if str(r.get("task_id")) == str(task_id):
+                        reminder_valid = True
+                        # Берем СВЕЖИЙ путь, если хранилище переехало
+                        if r.get("vault_path"):
+                            current_vault_path = r.get("vault_path")
+                        break
+            except Exception:
+                # Если конфиг поврежден или заблокирован, разрешаем показ (лучше показать, чем пропустить)
+                reminder_valid = True
+                
+        # Если напоминание было удалено пользователем
+        if task_id and not reminder_valid:
+            os._exit(0)
+            
+        # Если папка была удалена из системы или перенесена (но НЕ перепривязана в приложении)
+        if current_vault_path and not os.path.exists(current_vault_path):
+            os._exit(0)
+            
+        # Обновляем переменную для использования в кликах по уведомлению
+        vault_path = current_vault_path
         
         if sys.platform == 'darwin':
             try:
@@ -36,10 +70,11 @@ if len(sys.argv) >= 5 and sys.argv[1] == "--notify":
                         t_id = notification.userInfo().get("task_id") if notification.userInfo() else None
                         if t_id:
                             try:
+                                v_path = notification.userInfo().get("vault_path") if notification.userInfo() else None
                                 # Дергаем наш локальный FastAPI сервер
                                 req = urllib.request.Request(
                                     "http://127.0.0.1:8000/api/v1/system/highlight-task",
-                                    data=json.dumps({"task_id": int(t_id)}).encode('utf-8'),
+                                    data=json.dumps({"task_id": int(t_id), "vault_path": v_path}).encode('utf-8'),
                                     headers={'Content-Type': 'application/json'}
                                 )
                                 urllib.request.urlopen(req, timeout=1)
@@ -58,7 +93,7 @@ if len(sys.argv) >= 5 and sys.argv[1] == "--notify":
                 notification.setHasActionButton_(True)
                 
                 if task_id:
-                    notification.setUserInfo_({"task_id": task_id})
+                    notification.setUserInfo_({"task_id": task_id, "vault_path": vault_path})
                 
                 center = AppKit.NSUserNotificationCenter.defaultUserNotificationCenter()
                 delegate = NotificationDelegate.alloc().init()
@@ -78,7 +113,11 @@ if len(sys.argv) >= 5 and sys.argv[1] == "--notify":
         elif sys.platform == 'win32':
             safe_title = title.replace("'", "''")
             safe_message = message.replace("'", "''")
-            t_id_str = str(task_id) if task_id else "null"
+            
+            import json
+            # Безопасно формируем JSON для PowerShell
+            ps_payload = json.dumps({"task_id": int(task_id) if task_id else None, "vault_path": vault_path})
+            ps_payload_safe = ps_payload.replace("'", "''")
             
             ps_script = f"""
             Add-Type -AssemblyName System.Windows.Forms;
@@ -90,8 +129,8 @@ if len(sys.argv) >= 5 and sys.argv[1] == "--notify":
             
             $action = {{
                 try {{
-                    if ('{t_id_str}' -ne 'null') {{
-                        $body = '{{"task_id": {t_id_str}}}'
+                    $body = '{ps_payload_safe}'
+                    if ($body -match '"task_id": \\d+') {{
                         Invoke-WebRequest -Uri 'http://127.0.0.1:8000/api/v1/system/highlight-task' -Method POST -Body $body -ContentType 'application/json' -UseBasicParsing | Out-Null
                     }}
                 }} catch {{ 
@@ -115,11 +154,6 @@ if len(sys.argv) >= 5 and sys.argv[1] == "--notify":
     import os
     os._exit(0)
 
-
-# ==========================================
-# 🍎 МГНОВЕННЫЙ ФИКС ИКОНКИ ДЛЯ MACOS (SENIOR UI/UX HACK)
-# ==========================================
-# Определяем пути сразу, чтобы найти картинку до загрузки остальных модулей
 if getattr(sys, 'frozen', False):
     bundle_dir = sys._MEIPASS
 else:
@@ -133,11 +167,7 @@ if sys.platform == 'darwin':
         # NSApplicationActivationPolicyRegular = 0
         # Это нужно и в разработке, и в билде, чтобы приложение появилось в Dock
         app.setActivationPolicy_(0)
-        
-        # 🚀 SENIOR FIX: Мы убрали вмешательство в NSUserDefaults для скроллбаров.
-        # Ошибка была в том, что передача "WhenScrolling" наоборот ВКЛЮЧАЛА
-        # маковский overlay-режим. Теперь всё безупречно рендерится через чистый CSS.
-        
+
         # МЕНЯЕМ ИКОНКУ КОДОМ ТОЛЬКО В РЕЖИМЕ РАЗРАБОТКИ
         # В собранном .app это не нужно и вызывает "прыжок" размера
         if not getattr(sys, 'frozen', False):

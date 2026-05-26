@@ -11,6 +11,7 @@ class TaskBase(BaseModel):
     """Общие поля задачи."""
     title: str = Field(..., min_length=1, max_length=1000, description="Текст задачи")
     is_visible_on_board: bool = False
+    due_date: Optional[datetime] = None # <--- СРОК ВЫПОЛНЕНИЯ
 
 
 class TaskCreate(TaskBase):
@@ -28,6 +29,7 @@ class TaskUpdate(BaseModel):
     position: Optional[float] = None
     attachments_order: Optional[List[str]] = None
     completed_at: Optional[datetime] = None
+    due_date: Optional[datetime] = None # <--- СРОК ВЫПОЛНЕНИЯ
     is_visible_on_board: Optional[bool] = None
     folded_headings: Optional[List[str]] = None
 
