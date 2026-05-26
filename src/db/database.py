@@ -32,41 +32,59 @@ else:
 
 
 def _backup_filename(db_path: Path) -> Path:
-    """Имя аварийного бэкапа для данной БД: например 'My Vault.backup.db'."""
-    return db_path.with_suffix(".backup.db")
+    """Имя аварийного бэкапа: 'MyVault.backup.db.doe'."""
+    return db_path.parent / db_path.name.replace(".db.doe", ".backup.db.doe")
 
 
 def _is_backup_file(p: Path) -> bool:
     """Распознаём бэкап независимо от имени хранилища."""
-    return p.name.endswith(".backup.db")
+    return p.name.endswith(".backup.db.doe")
 
 
 def _resolve_db_path(vault_path: str) -> Path:
     """
     Возвращает путь к рабочему файлу БД для данного хранилища.
-    
-    Философия: Файл .db — независимая сущность. 
-    Мы не привязываемся к его имени и никогда его не переименовываем.
-    Папка хранилища — лишь контейнер.
+    Использует уникальное расширение .db.doe
     """
     vault_dir = Path(vault_path)
     
-    # 1. Ищем все .db файлы в папке, исключая аварийные бэкапы (*.backup.db)
-    candidates = [f for f in vault_dir.glob("*.db") if not _is_backup_file(f)]
+    # 0.1 БЕСШОВНАЯ МИГРАЦИЯ со старого .doe.db на новый .db.doe
+    doe_db_candidates = [f for f in vault_dir.glob("*.doe.db")]
+    if doe_db_candidates:
+        old_db = max(doe_db_candidates, key=lambda p: p.stat().st_mtime)
+        new_db_name = old_db.name.replace(".doe.db", ".db.doe")
+        new_db_path = vault_dir / new_db_name
+        try:
+            old_db.rename(new_db_path)
+            print(f"[Database] 🔄 Migrated DB extension: {old_db.name} -> {new_db_path.name}")
+        except Exception as e:
+            print(f"[Database] ❌ Failed to migrate DB extension: {e}")
+            return old_db
+
+    # 0.2 БЕСШОВНАЯ МИГРАЦИЯ: Если есть старый .db (не backup), переименовываем в .db.doe
+    legacy_candidates = [f for f in vault_dir.glob("*.db") if not f.name.endswith(".db.doe") and not f.name.endswith(".backup.db") and not f.name.endswith(".doe.db")]
+    if legacy_candidates:
+        old_db = max(legacy_candidates, key=lambda p: p.stat().st_mtime)
+        new_db_name = old_db.stem + ".db.doe"
+        new_db_path = vault_dir / new_db_name
+        try:
+            old_db.rename(new_db_path)
+            print(f"[Database] 🔄 Migrated DB extension: {old_db.name} -> {new_db_path.name}")
+        except Exception as e:
+            print(f"[Database] ❌ Failed to migrate DB extension: {e}")
+            return old_db # Фолбэк на старый файл, если нет прав
+
+    # 1. Ищем все .db.doe файлы в папке
+    candidates = [f for f in vault_dir.glob("*.db.doe") if not _is_backup_file(f)]
     
     if candidates:
-        # Если находим файлы, берем самый свежий по времени изменения.
-        # Мы НЕ ПЕРЕИМЕНОВЫВАЕМ его. Пользователь может назвать его как угодно,
-        # перенести из другой папки или использовать копию из облака (например, "MyData (Конфликт).db").
         target_db = max(candidates, key=lambda p: p.stat().st_mtime)
         print(f"[Database] Found existing database file: {target_db.name}")
         return target_db
 
-    # 2. Если файлов нет (создание абсолютно нового хранилища), 
-    # даем ему эстетичное базовое имя, совпадающее с именем папки.
-    # Alembic создаст этот файл при инициализации.
+    # 2. Если файлов нет (создание абсолютно нового хранилища)
     vault_name = vault_dir.name
-    new_db_target = vault_dir / f"{vault_name}.db"
+    new_db_target = vault_dir / f"{vault_name}.db.doe"
     print(f"[Database] No existing DB found. Targeting new file: {new_db_target.name}")
     return new_db_target
 

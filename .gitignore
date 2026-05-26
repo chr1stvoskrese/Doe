@@ -9,6 +9,7 @@ __pycache__/
 
 # Database
 *.db
+*.db.doe
 *.sqlite3
 
 # Mac & Windows OS Files
@@ -27,3 +28,7 @@ dist/
 *.swp
 
 board_dev.db
+
+# Doe Logs
+*.log.doe.txt
+.log.doe.txt

@@ -49,64 +49,159 @@ if len(sys.argv) >= 5 and sys.argv[1] == "--notify":
         # Обновляем переменную для использования в кликах по уведомлению
         vault_path = current_vault_path
         
+
+        # Глобальное удержание ссылки на ранний делегат во избежание сборки мусора (Garbage Collection)
+        early_delegate_keep_alive = None
         if sys.platform == 'darwin':
             try:
                 import AppKit
                 import objc
-                import urllib.request
-                import json
-                import os
-                import subprocess
+                import urllib.parse
                 
-                class NotificationDelegate(AppKit.NSObject):
-                    def userNotificationCenter_shouldPresentNotification_(self, center, notification):
-                        return True
-                        
-                    def userNotificationCenter_didActivateNotification_(self, center, notification):
-                        # Срабатывает при клике на уведомление или кнопку "Показать"
-                        t_id = notification.userInfo().get("task_id") if notification.userInfo() else None
-                        if t_id:
-                            try:
-                                v_path = notification.userInfo().get("vault_path") if notification.userInfo() else None
-                                # Дергаем наш локальный FastAPI сервер
-                                req = urllib.request.Request(
-                                    "http://127.0.0.1:8000/api/v1/system/highlight-task",
-                                    data=json.dumps({"task_id": int(t_id), "vault_path": v_path}).encode('utf-8'),
-                                    headers={'Content-Type': 'application/json'}
-                                )
-                                urllib.request.urlopen(req, timeout=1)
-                            except Exception:
-                                # Если сервер не ответил (приложение закрыто) - запускаем приложение!
-                                subprocess.call(['open', '-b', 'com.aesthetic.doe'])
-                        os._exit(0) # Убиваем фоновый процесс после обработки
+                app = AppKit.NSApplication.sharedApplication()
+                app.setActivationPolicy_(0)
 
-                notification = AppKit.NSUserNotification.alloc().init()
-                notification.setTitle_(title)
-                notification.setInformativeText_(message)
-                notification.setSoundName_(AppKit.NSUserNotificationDefaultSoundName)
+                # Единая логика для перехвата открытия файла в macOS.
+                # Первым аргументом обязательно принимает self, так как метод связывается с инстансом делегата.
+                def handle_mac_file_open(self, sender, filename):
+                    try:
+                        import os
+                        import urllib.parse
+                        import urllib.request
+                        import json as _json
+                        
+                        clean_path = filename
+                        if clean_path.startswith("file://"):
+                            clean_path = clean_path.replace("file://", "", 1)
+                        clean_path = urllib.parse.unquote(clean_path)
+                        clean_path = os.path.abspath(clean_path)
+                        
+                        if not (clean_path.endswith(".doe") or clean_path.endswith(".db.doe")) or not os.path.exists(clean_path):
+                            return False
+                            
+                        vault_dir = os.path.dirname(clean_path)
+                        
+                        import webview
+                        if webview.windows:
+                            # 1. Мы находимся в первом (активном) процессе.
+                            # Безопасно переключаем БД через внутренний HTTP-запрос к самому себе (исключает конфликты потоков БД)
+                            print(f"[System] 🚀 Hot-switch triggered in the running instance. Vault: {vault_dir}")
+                            import threading
+                            def perform_hot_switch():
+                                try:
+                                    req = urllib.request.Request(
+                                        f"http://127.0.0.1:{PORT}/api/v1/system/vault/switch",
+                                        data=_json.dumps({"new_path": vault_dir, "trigger_ui": True}).encode('utf-8'),
+                                        headers={'Content-Type': 'application/json'}
+                                    )
+                                    urllib.request.urlopen(req, timeout=5.0)
+                                except Exception as e:
+                                    print(f"[System] Hot switch HTTP request failed: {e}")
+                            
+                            threading.Thread(target=perform_hot_switch, daemon=True).start()
+                            return True
+                        else:
+                            # 2. Мы находимся в процессе-дублере, либо это первый запуск (холодный старт).
+                            server_running_elsewhere = False
+                            try:
+                                req = urllib.request.urlopen(f"http://127.0.0.1:{PORT}/", timeout=0.3)
+                                server_running_elsewhere = True
+                            except Exception:
+                                pass
+                                
+                            if server_running_elsewhere:
+                                print(f"[System] Existing instance detected. Forwarding path to: {vault_dir}")
+                                try:
+                                    req = urllib.request.Request(
+                                        f"http://127.0.0.1:{PORT}/api/v1/system/vault/switch",
+                                        data=_json.dumps({"new_path": vault_dir, "trigger_ui": True}).encode('utf-8'),
+                                        headers={'Content-Type': 'application/json'}
+                                    )
+                                    urllib.request.urlopen(req, timeout=2.0)
+                                except Exception as e:
+                                    print(f"[System] Failed to forward switch command: {e}")
+                                
+                                # Нативное изящное закрытие дублера через Cocoa RunLoop (устраняет Finder-ошибку "could not be opened")
+                                import AppKit
+                                import threading
+                                threading.Timer(0.1, lambda: AppKit.NSApplication.sharedApplication().terminate_(None)).start()
+                                return True
+                            else:
+                                from src.core.config import set_active_vault
+                                set_active_vault(vault_dir)
+                                print(f"[System] 🚀 Cold launch. Active vault set to: {vault_dir}")
+                                return True
+                    except Exception as e:
+                        print(f"[System] Error in openFile: {e}")
+                        return True
+
+                class EarlyAppDelegate(AppKit.NSObject):
+                    @objc.typedSelector(b'Z@:@@')
+                    def application_openFile_(self, sender, filename):
+                        return handle_mac_file_open(self, sender, filename)
                 
-                # Добавляем кнопку "Показать"
-                notification.setActionButtonTitle_("Показать")
-                notification.setHasActionButton_(True)
-                
-                if task_id:
-                    notification.setUserInfo_({"task_id": task_id, "vault_path": vault_path})
-                
-                center = AppKit.NSUserNotificationCenter.defaultUserNotificationCenter()
-                delegate = NotificationDelegate.alloc().init()
-                center.setDelegate_(delegate)
-                center.deliverNotification_(notification)
-                
-                # Держим процесс живым максимум 1 час (чтобы дождаться клика)
-                run_loop = AppKit.NSRunLoop.currentRunLoop()
-                timeout = AppKit.NSDate.dateWithTimeIntervalSinceNow_(3600.0)
-                run_loop.runUntilDate_(timeout)
-                
+                early_delegate = EarlyAppDelegate.alloc().init()
+                # Сохраняем в глобальную переменную, чтобы Python-делегат не съел GC (garbage collector)
+                early_delegate_keep_alive = early_delegate
+                app.setDelegate_(early_delegate)
+                print("[System] EarlyAppDelegate registered successfully for cold startup.")
+
+                import webview.platforms.cocoa
+
+                # ПРАВИЛЬНЫЙ PyObjC-патчинг через регистрацию в рантайме Objective-C.
+                for delegate_name in ['AppDelegate', 'ApplicationDelegate', 'BrowserDelegate']:
+                    if hasattr(webview.platforms.cocoa, delegate_name):
+                        cls = getattr(webview.platforms.cocoa, delegate_name)
+                        
+                        sel = objc.selector(
+                            handle_mac_file_open,
+                            selector=b'application:openFile:',
+                            signature=b'Z@:@@'
+                        )
+                        
+                        try:
+                            # classAddMethods гарантирует, что macOS увидит этот метод в работающем приложении
+                            objc.classAddMethods(cls, [sel])
+                            print(f"[System] macOS {delegate_name}.application_openFile_ registered via classAddMethods.")
+                        except Exception as e:
+                            setattr(cls, 'application_openFile_', sel)
+                            print(f"[System] macOS {delegate_name}.application_openFile_ fallback setattr: {e}")
+
+                print("[System] macOS application:openFile: injected successfully.")
+
+                # МЕНЯЕМ ИКОНКУ КОДОМ ТОЛЬКО В РЕЖИМЕ РАЗРАБОТКИ
+                # В собранном .app это не нужно и вызывает "прыжок" размера
+                if not getattr(sys, 'frozen', False):
+                    if getattr(sys, 'frozen', False):
+                        current_bundle_dir = sys._MEIPASS
+                    else:
+                        current_bundle_dir = os.path.dirname(os.path.abspath(__file__))
+                    
+                    icon_p = os.path.join(current_bundle_dir, "doe.png")
+
+                    if os.path.exists(icon_p):
+                        original_image = AppKit.NSImage.alloc().initWithContentsOfFile_(icon_p)
+                        if original_image:
+                            target_size = AppKit.NSMakeSize(512, 512)
+                            padding_factor = 0.82 
+                            new_size = AppKit.NSMakeSize(target_size.width * padding_factor, target_size.height * padding_factor)
+                            
+                            canvas = AppKit.NSImage.alloc().initWithSize_(target_size)
+                            canvas.lockFocus()
+                            rect = AppKit.NSMakeRect(
+                                (target_size.width - new_size.width) / 2,
+                                (target_size.height - new_size.height) / 2,
+                                new_size.width,
+                                new_size.height
+                            )
+                            original_image.drawInRect_(rect)
+                            canvas.unlockFocus()
+                            app.setApplicationIconImage_(canvas)
+
+                app.activateIgnoringOtherApps_(True)
+                print("[System] macOS App Policy initialized.")
             except Exception as e:
-                safe_title = title.replace('"', '\\"')
-                safe_message = message.replace('"', '\\"')
-                subprocess.run(['osascript', '-e', f'display notification "{safe_message}" with title "{safe_title}" sound name "Default"'])
-                
+                print(f"[System] macOS Early Fix failed: {e}")
         elif sys.platform == 'win32':
             safe_title = title.replace("'", "''")
             safe_message = message.replace("'", "''")
@@ -159,11 +254,142 @@ else:
 if sys.platform == 'darwin':
     try:
         import AppKit
-        app = AppKit.NSApplication.sharedApplication()
+        import objc
+        import urllib.parse
         
-        # NSApplicationActivationPolicyRegular = 0
-        # Это нужно и в разработке, и в билде, чтобы приложение появилось в Dock
+        app = AppKit.NSApplication.sharedApplication()
         app.setActivationPolicy_(0)
+
+        import webview.platforms.cocoa
+
+        # Единая логика для перехвата открытия файла в macOS.
+        # Метод принимает self в качестве первого аргумента, так как он связывается как метод экземпляра.
+        def handle_mac_file_open(self, sender, filename):
+            try:
+                import os
+                import urllib.parse
+                import urllib.request
+                import json as _json
+                
+                clean_path = filename
+                if clean_path.startswith("file://"):
+                    clean_path = clean_path.replace("file://", "", 1)
+                clean_path = urllib.parse.unquote(clean_path)
+                clean_path = os.path.abspath(clean_path)
+                
+                if not (clean_path.endswith(".doe") or clean_path.endswith(".db.doe")) or not os.path.exists(clean_path):
+                    return False
+                    
+                vault_dir = os.path.dirname(clean_path)
+                
+                import webview
+                if webview.windows:
+                    # 1. Мы находимся в первом (активном) процессе.
+                    # Выполняем переключение базы данных без блокирующих диалогов.
+                    print(f"[System] 🚀 Hot-switch triggered in the running instance. Vault: {vault_dir}")
+                    import threading
+                    def perform_hot_switch():
+                        try:
+                            from src.db.database import switch_vault
+                            import asyncio
+                            asyncio.run(switch_vault(vault_dir))
+                            api = WindowAPI()
+                            api.open_main_window()
+                        except Exception as e:
+                            print(f"[System] Hot switch failed: {e}")
+                    
+                    threading.Thread(target=perform_hot_switch, daemon=True).start()
+                    return True
+                else:
+                    # 2. Мы находимся в процессе-дублере, либо это первый запуск (холодный старт).
+                    server_running_elsewhere = False
+                    try:
+                        # Проверяем доступность порта 8000
+                        req = urllib.request.urlopen(f"http://127.0.0.1:{PORT}/", timeout=0.3)
+                        server_running_elsewhere = True
+                    except Exception:
+                        pass
+                        
+                    if server_running_elsewhere:
+                        # Если первый процесс активен, отправляем ему команду переключения и завершаем себя.
+                        # Это предотвращает появление дублирующей иконки в macOS Dock.
+                        print(f"[System] Existing instance detected. Forwarding path to: {vault_dir}")
+                        try:
+                            req = urllib.request.Request(
+                                f"http://127.0.0.1:{PORT}/api/v1/system/vault/switch",
+                                data=_json.dumps({"new_path": vault_dir, "trigger_ui": True}).encode('utf-8'),
+                                headers={'Content-Type': 'application/json'}
+                            )
+                            urllib.request.urlopen(req, timeout=2.0)
+                        except Exception as e:
+                            print(f"[System] Failed to forward switch command: {e}")
+                        
+                        # Откладываем завершение процесса на 100мс, чтобы AppKit успел вернуть True в ОС
+                        import threading
+                        threading.Timer(0.1, lambda: os._exit(0)).start()
+                        return True
+                    else:
+                        # Холодный запуск: сохраняем путь как активный для инициализации БД
+                        from src.core.config import set_active_vault
+                        set_active_vault(vault_dir)
+                        print(f"[System] 🚀 Cold launch. Active vault set to: {vault_dir}")
+                        return True
+            except Exception as e:
+                print(f"[System] Error in openFile: {e}")
+                return True
+
+        # БЕЗОПАСНЫЙ И ПРЯМОЙ MONKEY-PATCHING ЧЕРЕЗ КЛАССЫ РАНТАЙМА Objective-C:
+        for delegate_name in ['AppDelegate', 'ApplicationDelegate', 'BrowserDelegate']:
+            if hasattr(webview.platforms.cocoa, delegate_name):
+                cls = getattr(webview.platforms.cocoa, delegate_name)
+                
+                sel = objc.selector(
+                    handle_mac_file_open,
+                    selector=b'application:openFile:',
+                    signature=b'Z@:@@'
+                )
+                
+                try:
+                    # classAddMethods принудительно регистрирует метод в таблице виртуальных методов Cocoa
+                    objc.classAddMethods(cls, [sel])
+                    print(f"[System] macOS {delegate_name}.application_openFile_ registered via classAddMethods.")
+                except Exception as e:
+                    setattr(cls, 'application_openFile_', sel)
+                    print(f"[System] macOS {delegate_name}.application_openFile_ fallback setattr: {e}")
+
+        # МЕНЯЕМ ИКОНКУ КОДОМ ТОЛЬКО В РЕЖИМЕ РАЗРАБОТКИ
+        # В собранном .app это не нужно и вызывает "прыжок" размера
+        if not getattr(sys, 'frozen', False):
+            if getattr(sys, 'frozen', False):
+                current_bundle_dir = sys._MEIPASS
+            else:
+                current_bundle_dir = os.path.dirname(os.path.abspath(__file__))
+            
+            icon_p = os.path.join(current_bundle_dir, "doe.png")
+
+            if os.path.exists(icon_p):
+                original_image = AppKit.NSImage.alloc().initWithContentsOfFile_(icon_p)
+                if original_image:
+                    target_size = AppKit.NSMakeSize(512, 512)
+                    padding_factor = 0.82 
+                    new_size = AppKit.NSMakeSize(target_size.width * padding_factor, target_size.height * padding_factor)
+                    
+                    canvas = AppKit.NSImage.alloc().initWithSize_(target_size)
+                    canvas.lockFocus()
+                    rect = AppKit.NSMakeRect(
+                        (target_size.width - new_size.width) / 2,
+                        (target_size.height - new_size.height) / 2,
+                        new_size.width,
+                        new_size.height
+                    )
+                    original_image.drawInRect_(rect)
+                    canvas.unlockFocus()
+                    app.setApplicationIconImage_(canvas)
+
+        app.activateIgnoringOtherApps_(True)
+        print("[System] macOS App Policy initialized.")
+    except Exception as e:
+        print(f"[System] macOS Early Fix failed: {e}")
 
         # МЕНЯЕМ ИКОНКУ КОДОМ ТОЛЬКО В РЕЖИМЕ РАЗРАБОТКИ
         # В собранном .app это не нужно и вызывает "прыжок" размера
@@ -205,28 +431,73 @@ from datetime import datetime
 import sys
 import os
 
-# ОПРЕДЕЛЯЕМ ПАПКУ С ЛОГАМИ
+# ОПРЕДЕЛЯЕМ ДИНАМИЧЕСКИЙ ПУТЬ ДЛЯ ЛОГОВ
 from pathlib import Path
-if getattr(sys, 'frozen', False):
-    base_dir = Path(sys.executable).parent
-else:
-    base_dir = Path(__file__).resolve().parent
+import json
 
-log_file_path = str(base_dir / "Doe_Log.txt")
+def get_dynamic_log_path():
+    """Возвращает путь к логу текущего хранилища. Если не выбрано — во временный лог пользователя."""
+    try:
+        config_file = Path.home() / ".doe_config.json"
+        if config_file.exists():
+            with open(config_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                vault_path = data.get("active_vault")
+                if vault_path and os.path.exists(vault_path):
+                    vp = Path(vault_path)
+                    # Формируем имя файла: [НазваниеХранилища].log.doe.txt внутри самой папки хранилища
+                    return vp / f"{vp.name}.log.doe.txt"
+    except Exception:
+        pass
+    # Фолбэк: если хранилище еще не выбрано или конфиг недоступен
+    return Path.home() / ".log.doe.txt"
 
 class LoggerWriter:
-    def __init__(self, filename, original_stream, is_main=False):
-        self.file = open(filename, 'a', encoding='utf-8')
+    def __init__(self, original_stream, is_main=False):
         self.terminal = original_stream
-        if is_main:
-            self.file.write(f"\n{'='*50}\n")
-            self.file.write(f"🚀 DOE APP Started: {datetime.now()}\n")
-            self.file.write(f"{'='*50}\n")
-            self.file.flush()
+        self.is_main = is_main
+        self.current_path = None
+        self.file = None
+        self.last_check_time = 0
+        self._check_and_switch_file(force=True)
+
+    def _check_and_switch_file(self, force=False):
+        now = time.time()
+        # Троттлинг: проверяем смену папки не чаще раза в 2 секунды, чтобы не грузить диск
+        if not force and (now - self.last_check_time < 2.0):
+            return
+        self.last_check_time = now
+
+        new_path = get_dynamic_log_path()
+        if new_path != self.current_path:
+            # Если путь изменился на лету (пользователь сменил Vault)
+            if self.file:
+                try:
+                    self.file.write(f"\n[System] 🔄 Redirecting logs to new vault: {new_path}\n")
+                    self.file.close()
+                except Exception:
+                    pass
+            
+            self.current_path = new_path
+            try:
+                self.file = open(self.current_path, 'a', encoding='utf-8')
+                if self.is_main:
+                    self.file.write(f"\n{'='*50}\n")
+                    self.file.write(f"🚀 DOE APP Session Started: {datetime.now()}\n")
+                    self.file.write(f"📁 Log Location: {self.current_path}\n")
+                    self.file.write(f"{'='*50}\n")
+                    self.is_main = False
+            except Exception:
+                self.file = None
 
     def write(self, message):
-        self.file.write(message)
-        self.file.flush()
+        self._check_and_switch_file()
+        if self.file:
+            try:
+                self.file.write(message)
+                self.file.flush()
+            except Exception:
+                pass
         if self.terminal:
             try:
                 self.terminal.write(message)
@@ -235,7 +506,11 @@ class LoggerWriter:
                 pass
 
     def flush(self):
-        self.file.flush()
+        if self.file:
+            try:
+                self.file.flush()
+            except Exception:
+                pass
         if self.terminal:
             try:
                 self.terminal.flush()
@@ -253,12 +528,16 @@ class LoggerWriter:
     def __getattr__(self, name):
         if self.terminal and hasattr(self.terminal, name):
             return getattr(self.terminal, name)
-        return getattr(self.file, name)
+        if self.file and hasattr(self.file, name):
+            return getattr(self.file, name)
+        raise AttributeError(f"Neither terminal nor file has attribute '{name}'")
 
+# Глобальный перехват вывода для ВСЕХ ОС (включая macOS)
+sys.stdout = LoggerWriter(sys.__stdout__, is_main=True)
+sys.stderr = LoggerWriter(sys.__stderr__, is_main=False)
+
+# NullReader требуется только для PyInstaller windowed mode на Windows
 if sys.platform == 'win32':
-    sys.stdout = LoggerWriter(log_file_path, sys.__stdout__, is_main=True)
-    sys.stderr = LoggerWriter(log_file_path, sys.__stderr__, is_main=False)
-    
     class NullReader:
         def read(self, *args, **kwargs): return ""
         def readline(self, *args, **kwargs): return ""
@@ -389,8 +668,11 @@ class WindowAPI:
         window.show()
 
     def open_main_window(self):
-        """Порождает новое окно приложения и убивает старое диалоговое"""
-        current_window = webview.active_window() or (webview.windows[0] if webview.windows else None)
+        """Порождает новое окно приложения и убивает ВСЕ старые окна (включая окно выбора хранилища)"""
+        # Снимок всех окон ДО создания нового — гарантированно не содержит новое окно.
+        # Это надёжнее, чем webview.active_window(), который при открытии файла из Finder
+        # (когда приложение не в фокусе) может вернуть None или не то окно, оставив диалог висеть.
+        old_windows = list(webview.windows)
         webview.create_window(
             title='Doe — Aesthetic Kanban',
             url=URL,
@@ -403,12 +685,16 @@ class WindowAPI:
             hidden=True,
             js_api=WindowAPI()
         )
-        if current_window:
-            current_window.destroy()
+        # Уничтожаем все ранее открытые окна (диалоговое окно выбора хранилища и т.д.)
+        for w in old_windows:
+            try:
+                w.destroy()
+            except Exception:
+                pass
 
     def open_vault_window(self):
-        """Порождает маленькое окно выбора хранилища и убивает основное"""
-        current_window = webview.active_window() or (webview.windows[0] if webview.windows else None)
+        """Порождает маленькое окно выбора хранилища и убивает ВСЕ основные окна"""
+        old_windows = list(webview.windows)
         webview.create_window(
             title='Doe — Select Vault',
             url=f"{URL}?mode=vault",
@@ -421,8 +707,11 @@ class WindowAPI:
             hidden=True,
             js_api=WindowAPI()
         )
-        if current_window:
-            current_window.destroy()
+        for w in old_windows:
+            try:
+                w.destroy()
+            except Exception:
+                pass
 
 class APIServerThread(threading.Thread):
     def __init__(self):
@@ -453,7 +742,37 @@ if __name__ == '__main__':
     multiprocessing.freeze_support()
     print("[System] Starting main thread...")
     
-    # ФИКС ИКОНКИ ДЛЯ WINDOWS
+    # ПЕРЕХВАТ ДВОЙНОГО КЛИКА ПО ФАЙЛУ .db.doe ИЗ ОС
+    if len(sys.argv) == 2 and not sys.argv[1].startswith("--"):
+        file_arg = sys.argv[1]
+        if file_arg.endswith(".db.doe") and os.path.exists(file_arg):
+            vault_dir = os.path.dirname(os.path.abspath(file_arg))
+            
+            # Проверяем, запущен ли уже сервер (первый процесс)
+            server_running = False
+            try:
+                import urllib.request
+                import json as _json
+                req = urllib.request.Request(
+                    f"http://127.0.0.1:{PORT}/api/v1/system/vault/switch",
+                    data=_json.dumps({"new_path": vault_dir, "trigger_ui": True}).encode('utf-8'),
+                    headers={'Content-Type': 'application/json'}
+                )
+                urllib.request.urlopen(req, timeout=2)
+                server_running = True
+            except Exception:
+                pass
+                
+            if server_running:
+                print(f"[System] Passed vault to existing instance. Exiting.")
+                import os
+                os._exit(0) # Убиваем второй процесс, первый процесс всё сделает сам
+            else:
+                from src.core.config import set_active_vault
+                set_active_vault(vault_dir)
+                print(f"[System] 🚀 Launched from file association. Active vault set to: {vault_dir}")
+
+    # ФИКС ИКОНКИ И РЕЕСТРА ДЛЯ WINDOWS
     if sys.platform == 'win32':
         import ctypes
         try:
@@ -462,6 +781,30 @@ if __name__ == '__main__':
             print("[System] AppUserModelID set successfully.")
         except Exception as e:
             print(f"[System] Failed to set AppUserModelID: {e}")
+            
+        # ТИХАЯ РЕГИСТРАЦИЯ РАСШИРЕНИЯ В РЕЕСТРЕ WINDOWS (если запущено как .exe)
+        try:
+            if getattr(sys, 'frozen', False):
+                import winreg
+                exe_path = os.path.abspath(sys.argv[0])
+                
+                # Привязываем расширение. ВАЖНО: Windows (как и macOS) определяет расширение
+                # только по последней точке, поэтому регистрируем .doe, а не .db.doe —
+                # иначе ассоциация и иконка не подхватываются вообще.
+                winreg.SetValue(winreg.HKEY_CURRENT_USER, r"Software\Classes\.doe", winreg.REG_SZ, "Doe.Vault")
+                # Указываем команду на открытие
+                winreg.SetValue(winreg.HKEY_CURRENT_USER, r"Software\Classes\Doe.Vault\shell\open\command", winreg.REG_SZ, f'"{exe_path}" "%1"')
+                # Ставим иконку от нашего же экзешника
+                winreg.SetValue(winreg.HKEY_CURRENT_USER, r"Software\Classes\Doe.Vault\DefaultIcon", winreg.REG_SZ, f'"{exe_path}",0')
+                
+                # Мгновенно уведомляем систему об изменении иконок (очистка кэша Explorer)
+                import ctypes
+                from ctypes import wintypes
+                SHCNE_ASSOCCHANGED = 0x08000000
+                SHCNF_IDLIST = 0x0000
+                ctypes.windll.shell32.SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, None, None)
+        except Exception as e:
+            print(f"[System] Failed to register file association in Windows Registry: {e}")
 
     server_thread = None
 

@@ -43,6 +43,7 @@ class VaultResponse(BaseModel):
     name: Optional[str] = None
     path: Optional[str] = None
     canceled: bool = False
+    already_active: bool = False  # <-- ДОБАВЛЕН ФЛАГ
 
 @router.get("/vault", response_model=VaultResponse)
 async def get_vault():
@@ -58,8 +59,15 @@ async def reorder_vault_history_endpoint(req: ReorderHistoryReq):
     reorder_vault_history(req.ordered_paths)
     return {"success": True}
 
+class VaultResponse(BaseModel):
+    name: Optional[str] = None
+    path: Optional[str] = None
+    canceled: bool = False
+    already_active: bool = False  # <-- Флаг для фронтенда и wrapper'а
+
 class SwitchVaultRequest(BaseModel):
     new_path: str
+    trigger_ui: Optional[bool] = False
 
 @router.post("/vault/switch", response_model=VaultResponse)
 async def switch_vault_endpoint(req: SwitchVaultRequest):
@@ -68,31 +76,70 @@ async def switch_vault_endpoint(req: SwitchVaultRequest):
         return VaultResponse(canceled=True)
 
     # --- ПРОВЕРКА ВАЛИДНОСТИ ХРАНИЛИЩА ---
-    # Хранилище = папка, в которой есть хотя бы один '*.db' файл
-    # (исключаем '*.backup.db' — это аварийный бэкап, не основная БД).
-    # Так корректно распознаётся и старый формат (board.db),
-    # и новый ({имя_папки}.db), и случай переименования папки.
     vault_dir = Path(new_path)
     if not vault_dir.exists() or not vault_dir.is_dir():
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="INVALID_VAULT"
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="INVALID_VAULT")
 
     has_db = any(
-        f for f in vault_dir.glob("*.db")
-        if not f.name.endswith(".backup.db")
+        f for f in vault_dir.iterdir()
+        if f.is_file() and (f.name.endswith(".db.doe") or f.name.endswith(".db")) and "backup" not in f.name
     )
     if not has_db:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="INVALID_VAULT"
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="INVALID_VAULT")
     # -------------------------------------
 
-    await switch_vault(new_path)
+    from src.core.config import get_active_vault, set_active_vault
+    import os
+    current_vault = get_active_vault()
+    
+    # Проверяем, открываем ли мы то же самое хранилище
+    already_active = (os.path.normpath(new_path) == os.path.normpath(current_vault))
+
+    if not already_active:
+        await switch_vault(new_path)
+    else:
+        # Просто обновляем "last_opened" в конфиге
+        set_active_vault(new_path)
+
     name = Path(new_path).resolve().name
-    return VaultResponse(name=name, path=new_path, canceled=False)
+
+    # Магия для Windows (macOS обрабатывает это на своей стороне в главном потоке)
+    if req.trigger_ui:
+        import threading
+        def _update_ui():
+            try:
+                import sys
+                import webview
+                
+                # Проверяем, открыто ли главное окно доски
+                is_main_open = any('Kanban' in w.title for w in webview.windows)
+                
+                if already_active and is_main_open:
+                    for w in webview.windows:
+                        if 'Kanban' in w.title:
+                            w.restore()
+                            w.show()
+                            # На Windows вытягиваем окно наверх через WinAPI
+                            if sys.platform == 'win32':
+                                import ctypes
+                                hwnd = ctypes.windll.user32.FindWindowW(None, w.title)
+                                if hwnd:
+                                    ctypes.windll.user32.ShowWindow(hwnd, 9) # SW_RESTORE
+                                    ctypes.windll.user32.SetForegroundWindow(hwnd)
+                            break
+                else:
+                    # Хранилище другое или окно доски не открыто (открыт Vault) - пересоздаем
+                    wrapper_mod = sys.modules.get('wrapper')
+                    if wrapper_mod and hasattr(wrapper_mod, 'WindowAPI'):
+                        api = wrapper_mod.WindowAPI()
+                        api.open_main_window()
+            except Exception as e:
+                print(f"[System] UI update failed: {e}")
+        
+        threading.Timer(0.1, _update_ui).start()
+
+    return VaultResponse(name=name, path=new_path, canceled=False, already_active=already_active)
+
 
 class CreateVaultRequest(BaseModel):
     parent_path: str
@@ -435,7 +482,7 @@ async def get_vault_history_endpoint():
             exists = False
             # Проверяем, что папка жива и в ней есть рабочая база
             if vault_dir.exists() and vault_dir.is_dir():
-                if any(f for f in vault_dir.glob("*.db") if not f.name.endswith(".backup.db")):
+                if any(f for f in vault_dir.iterdir() if f.is_file() and (f.name.endswith(".db.doe") or f.name.endswith(".db")) and "backup" not in f.name):
                     exists = True
 
             name = vault_dir.name
@@ -461,7 +508,7 @@ async def relink_vault_history_endpoint(req: RelinkHistoryReq):
     # 1. Проверяем валидность новой папки
     if not vault_dir.exists() or not vault_dir.is_dir():
         raise HTTPException(status_code=400, detail="INVALID_VAULT")
-    if not any(f for f in vault_dir.glob("*.db") if not f.name.endswith(".backup.db")):
+    if not any(f for f in vault_dir.iterdir() if f.is_file() and (f.name.endswith(".db.doe") or f.name.endswith(".db")) and "backup" not in f.name):
         raise HTTPException(status_code=400, detail="INVALID_VAULT")
         
     from src.core.config import _load_config, _save_config

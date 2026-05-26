@@ -1,27 +1,48 @@
 #!/bin/bash
 
-echo "Начинаем сборку Doe.app..."
+LOG_FILE="build_mac.log"
+> "$LOG_FILE" # Очищаем лог при старте
 
-rm -rf build dist Doe.spec
+TOTAL_STEPS=10
+CURRENT_STEP=0
+
+# Функция эстетичного прогресс-бара
+update_progress() {
+    CURRENT_STEP=$((CURRENT_STEP + 1))
+    local msg="$1"
+    local width=30
+    local filled=$(( width * CURRENT_STEP / TOTAL_STEPS ))
+    local empty=$(( width - filled ))
+    local pct=$(( 100 * CURRENT_STEP / TOTAL_STEPS ))
+    
+    # Кроссплатформенная генерация заполненного и пустого бара (работает в дефолтном macOS Bash)
+    local bar_filled=""
+    for ((i=0; i<filled; i++)); do bar_filled="${bar_filled}█"; done
+    local bar_empty=""
+    for ((i=0; i<empty; i++)); do bar_empty="${bar_empty}░"; done
+    
+    # \r возвращает каретку, \033[2K очищает строку
+    printf "\r\033[2K[\033[32m%s\033[0m%s] %3d%% | %s" "$bar_filled" "$bar_empty" "$pct" "$msg"
+}
+
+echo "🚀 Начинаем сборку Doe.app (логи сохраняются в $LOG_FILE)"
+
+update_progress "Очистка старых билдов..."
+rm -rf build dist Doe.spec >> "$LOG_FILE" 2>&1
 
 # ==========================================
 # МАГИЯ MACOS: Генерируем ПРАВИЛЬНЫЙ .icns с отступами 0.82
 # ==========================================
 if [ -f "doe.png" ]; then
-    echo "Генерация doe.icns с идеальными отступами..."
+    update_progress "Генерация иконок sips..."
     mkdir -p Doe.iconset
 
     make_icon() {
         local size=$1
         local name=$2
-        # Вычисляем размер картинки внутри (82% от холста)
-        # Округляем до целого числа
         local content_size=$(python3 -c "print(int($size * 0.82))")
-        
-        # 1. Ресайзим исходный png до 82% от целевого размера
-        sips -z $content_size $content_size doe.png --out "Doe.iconset/tmp.png" > /dev/null
-        # 2. Помещаем его в центр прозрачного холста полного размера ($size)
-        sips -p $size $size "Doe.iconset/tmp.png" --out "Doe.iconset/$name.png" > /dev/null
+        sips -z $content_size $content_size doe.png --out "Doe.iconset/tmp.png" >> "$LOG_FILE" 2>&1
+        sips -p $size $size "Doe.iconset/tmp.png" --out "Doe.iconset/$name.png" >> "$LOG_FILE" 2>&1
     }
 
     make_icon 16    icon_16x16
@@ -35,13 +56,20 @@ if [ -f "doe.png" ]; then
     make_icon 512   icon_512x512
     make_icon 1024  icon_512x512@2x
 
-    rm "Doe.iconset/tmp.png"
-    iconutil -c icns Doe.iconset -o doe.icns
-    rm -R Doe.iconset
+    rm "Doe.iconset/tmp.png" >> "$LOG_FILE" 2>&1
+    
+    update_progress "Компиляция файла doe.icns..."
+    iconutil -c icns Doe.iconset -o doe.icns >> "$LOG_FILE" 2>&1
+    rm -R Doe.iconset >> "$LOG_FILE" 2>&1
+else
+    update_progress "Пропуск генерации иконок..."
+    CURRENT_STEP=$((CURRENT_STEP + 1)) # Компенсируем второй шаг
 fi
 
+update_progress "Сборка через PyInstaller (это может занять время)..."
 pyinstaller --noconfirm \
     --windowed \
+    --argv-emulation \
     --name "Doe" \
     --icon="doe.icns" \
     --osx-bundle-identifier "com.aesthetic.doe" \
@@ -68,15 +96,55 @@ pyinstaller --noconfirm \
     --hidden-import "uvicorn.lifespan.on" \
     --hidden-import "uvicorn.lifespan.off" \
     --hidden-import "aiosqlite" \
-    wrapper.py
+    wrapper.py >> "$LOG_FILE" 2>&1
 
-echo "Выполняем локальную подпись..."
-codesign --force --deep --sign - dist/Doe.app
+update_progress "Регистрация UTI в Info.plist..."
+python3 -c "
+import plistlib
+plist_path = 'dist/Doe.app/Contents/Info.plist'
+with open(plist_path, 'rb') as f:
+    pl = plistlib.load(f)
 
-echo "Снимаем атрибут карантина..."
-xattr -cr dist/Doe.app
+pl['UTExportedTypeDeclarations'] = [{
+    'UTTypeIdentifier': 'com.aesthetic.doe.vault',
+    'UTTypeDescription': 'Doe Vault Database',
+    'UTTypeIconFile': 'doe.icns',
+    'UTTypeConformsTo': ['public.data', 'public.content'],
+    'UTTypeTagSpecification': {
+        'public.filename-extension': ['db.doe', 'doe']
+    }
+}]
 
-# Сброс кэша LaunchServices, чтобы macOS увидела новую иконку немедленно
-/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister -f dist/Doe.app
+pl['CFBundleDocumentTypes'] = [{
+    'CFBundleTypeName': 'Doe Vault',
+    'CFBundleTypeRole': 'Editor',
+    'CFBundleTypeIconFile': 'doe.icns',
+    'LSHandlerRank': 'Owner',
+    'LSItemContentTypes': ['com.aesthetic.doe.vault'],
+    'CFBundleTypeExtensions': ['db.doe', 'doe'] # Устаревший резервный ключ для Launch Services
+}]
 
-echo "Сборка завершена!"
+with open(plist_path, 'wb') as f:
+    plistlib.dump(pl, f)
+" >> "$LOG_FILE" 2>&1
+
+update_progress "Копирование ресурсов и Touch..."
+cp doe.icns "dist/Doe.app/Contents/Resources/doe.icns" >> "$LOG_FILE" 2>&1
+touch dist/Doe.app >> "$LOG_FILE" 2>&1
+
+update_progress "Локальная подпись (codesign)..."
+codesign --force --deep --sign - dist/Doe.app >> "$LOG_FILE" 2>&1
+
+update_progress "Снятие атрибута карантина..."
+xattr -cr dist/Doe.app >> "$LOG_FILE" 2>&1
+
+update_progress "Сброс кэшей (LaunchServices, Finder)..."
+/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister -f dist/Doe.app >> "$LOG_FILE" 2>&1
+killall Finder 2>/dev/null || true >> "$LOG_FILE" 2>&1
+
+update_progress "Финализация!"
+echo "" # Перевод строки после прогресс-бара
+echo ""
+echo "✅ Приложение успешно собрано."
+echo "📂 Открываем Finder..."
+open -R dist/Doe.app
