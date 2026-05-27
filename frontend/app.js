@@ -2190,12 +2190,24 @@ function startCardRename(cardEl, task) {
 
         if (newTitle && newTitle !== task.title) {
             try {
+                // OPTIMISTIC UI: Мгновенно меняем название подзадачи в открытой модалке (если есть)
+                const subtaskTitleEl = document.querySelector(`.subtask-item[data-subtask-id="${task.id}"] .subtask-title`);
+                if (subtaskTitleEl) {
+                    subtaskTitleEl.textContent = newTitle;
+                }
+
                 await updateTask(task.id, { title: newTitle });
                 task.title = newTitle;
             } catch (_) {
                 cardEl.classList.add('is-error');
                 const div = cardEl.querySelector('.card-title');
                 if (div) div.textContent = task.title;
+                
+                // Откат в модалке при ошибке
+                const subtaskTitleEl = document.querySelector(`.subtask-item[data-subtask-id="${task.id}"] .subtask-title`);
+                if (subtaskTitleEl) {
+                    subtaskTitleEl.textContent = task.title;
+                }
             }
         }
     };
@@ -2312,6 +2324,12 @@ function startModalTaskRename(titleEl) {
 
         if (newTitle && newTitle !== originalTitle) {
             try {
+                // OPTIMISTIC UI: Мгновенно обновляем название на самой доске
+                const boardCardTitle = document.querySelector(`.card[data-card-id="${taskId}"] .card-title`);
+                if (boardCardTitle) {
+                    boardCardTitle.textContent = newTitle;
+                }
+
                 await updateTask(taskId, { title: newTitle });
                 
                 bumpModalUpdatedDate();
@@ -2324,13 +2342,19 @@ function startModalTaskRename(titleEl) {
                         break;
                     }
                 }
-                refreshBoard(); // Чтобы название карточки обновилось и на фоне
+                refreshBoard(); // Обновляем доску в фоне для полной синхронизации
                 
                 // Обновляем графовые крошки внутри модалки
                 renderGraphBreadcrumbs(taskId);
             } catch (e) {
                 console.error("Ошибка при переименовании задачи", e);
                 restore(originalTitle);
+                
+                // Откат изменений на доске при ошибке
+                const boardCardTitle = document.querySelector(`.card[data-card-id="${taskId}"] .card-title`);
+                if (boardCardTitle) {
+                    boardCardTitle.textContent = originalTitle;
+                }
             }
         }
     };
@@ -2404,7 +2428,6 @@ function startSubtaskRename(subtaskEl) {
         
         const newTitle = input.value.trim();
         
-        // Валидация на 200 символов с тряской
         if (newTitle.length > 200) {
             if (!subtaskEl.querySelector('.card-error-hint')) {
                 const hint = document.createElement('div');
@@ -2413,7 +2436,7 @@ function startSubtaskRename(subtaskEl) {
                 subtaskEl.appendChild(hint);
             }
             subtaskEl.classList.remove('is-error');
-            void subtaskEl.offsetWidth; // Force Reflow
+            void subtaskEl.offsetWidth;
             subtaskEl.classList.add('is-error');
             input.focus();
             return;
@@ -2425,14 +2448,49 @@ function startSubtaskRename(subtaskEl) {
 
         if (newTitle && newTitle !== originalTitle) {
             try {
+                // 1. OPTIMISTIC UI: Мгновенно обновляем название на самой доске (если она вынесена)
+                const boardCardTitle = document.querySelector(`.card[data-card-id="${subtaskId}"] .card-title`);
+                if (boardCardTitle) {
+                    boardCardTitle.textContent = newTitle;
+                }
+
+                // 2. Обновляем локальный стейт самой карточки на доске
+                for (let col of state.columns) {
+                    let t = col.tasks.find(taskItem => taskItem.id === subtaskId);
+                    if (t) {
+                        t.title = newTitle;
+                        break;
+                    }
+                }
+
+                // 3. Обновляем стейт подзадачи внутри родительской карточки (модалки)
+                const modal = document.getElementById('task-modal');
+                const parentTaskId = parseInt(modal.dataset.taskId);
+                for (let col of state.columns) {
+                    let parentTask = col.tasks.find(taskItem => taskItem.id === parentTaskId);
+                    if (parentTask && parentTask.subtasks) {
+                        let subtaskObj = parentTask.subtasks.find(s => s.id === subtaskId);
+                        if (subtaskObj) {
+                            subtaskObj.title = newTitle;
+                        }
+                        break;
+                    }
+                }
+
+                // 4. Отправляем на бэкенд
                 await updateTask(subtaskId, { title: newTitle });
-                // Обновляем локальный объект, чтобы модалка не рассинхронизировалась
-                sub.title = newTitle; 
-                // Обязательно обновляем фон доски (т.к. подзадача может быть вынесена туда как карточка)
+                
+                // 5. Синхронизируем интерфейс в фоне
                 refreshBoard(); 
             } catch (e) {
                 console.error("Ошибка при переименовании подзадачи", e);
                 restore(originalTitle);
+                
+                // Откат изменений на доске при ошибке сети
+                const boardCardTitle = document.querySelector(`.card[data-card-id="${subtaskId}"] .card-title`);
+                if (boardCardTitle) {
+                    boardCardTitle.textContent = originalTitle;
+                }
             }
         }
     };
@@ -3609,7 +3667,30 @@ document.addEventListener('click', async (e) => {
                     
                     // Вычищаем из локального стейта до ответа сервера (optimistic UI)
                     for (let col of state.columns) {
+                        // 1. Удаляем саму карточку из списка
                         col.tasks = col.tasks.filter(t => t.id !== taskId);
+                        
+                        // 2. Ищем, не была ли эта карточка подзадачей в других карточках
+                        col.tasks.forEach(parentTask => {
+                            if (parentTask.subtasks) {
+                                const originalLength = parentTask.subtasks.length;
+                                parentTask.subtasks = parentTask.subtasks.filter(s => s.id !== taskId);
+                                
+                                // Если удалили из чек-листа — мгновенно обновляем пилюлю на родительской карточке
+                                if (parentTask.subtasks.length !== originalLength) {
+                                    const parentCardEl = document.querySelector(`.card[data-card-id="${parentTask.id}"]`);
+                                    if (parentCardEl) {
+                                        updateCardAppearance(parentCardEl, parentTask, col.mode);
+                                    }
+                                    // Если родитель сейчас открыт в модалке - обновляем счетчик
+                                    const modal = document.getElementById('task-modal');
+                                    if (modal && modal.classList.contains('show') && parseInt(modal.dataset.taskId) === parentTask.id) {
+                                        const countEl = document.getElementById('subtasks-count');
+                                        if (countEl) countEl.textContent = parentTask.subtasks.length;
+                                    }
+                                }
+                            }
+                        });
                     }
                     
                     deleteTask(taskId).then(data => {
@@ -3626,8 +3707,22 @@ document.addEventListener('click', async (e) => {
                             // Вычищаем остатки из локального стейта
                             for (let col of state.columns) {
                                 col.tasks = col.tasks.filter(t => t.id !== id);
+                                
+                                // Подчищаем каскадно удаленные задачи из чужих чек-листов
+                                col.tasks.forEach(parentTask => {
+                                    if (parentTask.subtasks) {
+                                        const originalLength = parentTask.subtasks.length;
+                                        parentTask.subtasks = parentTask.subtasks.filter(s => s.id !== id);
+                                        if (parentTask.subtasks.length !== originalLength) {
+                                            const parentCardEl = document.querySelector(`.card[data-card-id="${parentTask.id}"]`);
+                                            if (parentCardEl) updateCardAppearance(parentCardEl, parentTask, col.mode);
+                                        }
+                                    }
+                                });
                             }
                         });
+                        
+                        refreshBoard(); // Железобетонно синхронизируем доску с бэкендом
                     }).catch(err => { 
                         console.error(err); 
                         refreshBoard(); 
