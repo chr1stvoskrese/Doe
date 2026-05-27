@@ -49,159 +49,29 @@ if len(sys.argv) >= 5 and sys.argv[1] == "--notify":
         # Обновляем переменную для использования в кликах по уведомлению
         vault_path = current_vault_path
         
-
-        # Глобальное удержание ссылки на ранний делегат во избежание сборки мусора (Garbage Collection)
-        early_delegate_keep_alive = None
         if sys.platform == 'darwin':
             try:
-                import AppKit
-                import objc
-                import urllib.parse
+                import subprocess
+                import json
+                import urllib.request
                 
-                app = AppKit.NSApplication.sharedApplication()
-                app.setActivationPolicy_(0)
-
-                # Единая логика для перехвата открытия файла в macOS.
-                # Первым аргументом обязательно принимает self, так как метод связывается с инстансом делегата.
-                def handle_mac_file_open(self, sender, filename):
-                    try:
-                        import os
-                        import urllib.parse
-                        import urllib.request
-                        import json as _json
-                        
-                        clean_path = filename
-                        if clean_path.startswith("file://"):
-                            clean_path = clean_path.replace("file://", "", 1)
-                        clean_path = urllib.parse.unquote(clean_path)
-                        clean_path = os.path.abspath(clean_path)
-                        
-                        if not (clean_path.endswith(".doe") or clean_path.endswith(".db.doe")) or not os.path.exists(clean_path):
-                            return False
-                            
-                        vault_dir = os.path.dirname(clean_path)
-                        
-                        import webview
-                        if webview.windows:
-                            # 1. Мы находимся в первом (активном) процессе.
-                            # Безопасно переключаем БД через внутренний HTTP-запрос к самому себе (исключает конфликты потоков БД)
-                            print(f"[System] 🚀 Hot-switch triggered in the running instance. Vault: {vault_dir}")
-                            import threading
-                            def perform_hot_switch():
-                                try:
-                                    req = urllib.request.Request(
-                                        f"http://127.0.0.1:{PORT}/api/v1/system/vault/switch",
-                                        data=_json.dumps({"new_path": vault_dir, "trigger_ui": True}).encode('utf-8'),
-                                        headers={'Content-Type': 'application/json'}
-                                    )
-                                    urllib.request.urlopen(req, timeout=5.0)
-                                except Exception as e:
-                                    print(f"[System] Hot switch HTTP request failed: {e}")
-                            
-                            threading.Thread(target=perform_hot_switch, daemon=True).start()
-                            return True
-                        else:
-                            # 2. Мы находимся в процессе-дублере, либо это первый запуск (холодный старт).
-                            server_running_elsewhere = False
-                            try:
-                                req = urllib.request.urlopen(f"http://127.0.0.1:{PORT}/", timeout=0.3)
-                                server_running_elsewhere = True
-                            except Exception:
-                                pass
-                                
-                            if server_running_elsewhere:
-                                print(f"[System] Existing instance detected. Forwarding path to: {vault_dir}")
-                                try:
-                                    req = urllib.request.Request(
-                                        f"http://127.0.0.1:{PORT}/api/v1/system/vault/switch",
-                                        data=_json.dumps({"new_path": vault_dir, "trigger_ui": True}).encode('utf-8'),
-                                        headers={'Content-Type': 'application/json'}
-                                    )
-                                    urllib.request.urlopen(req, timeout=2.0)
-                                except Exception as e:
-                                    print(f"[System] Failed to forward switch command: {e}")
-                                
-                                # Нативное изящное закрытие дублера через Cocoa RunLoop (устраняет Finder-ошибку "could not be opened")
-                                import AppKit
-                                import threading
-                                threading.Timer(0.1, lambda: AppKit.NSApplication.sharedApplication().terminate_(None)).start()
-                                return True
-                            else:
-                                from src.core.config import set_active_vault
-                                set_active_vault(vault_dir)
-                                print(f"[System] 🚀 Cold launch. Active vault set to: {vault_dir}")
-                                return True
-                    except Exception as e:
-                        print(f"[System] Error in openFile: {e}")
-                        return True
-
-                class EarlyAppDelegate(AppKit.NSObject):
-                    @objc.typedSelector(b'Z@:@@')
-                    def application_openFile_(self, sender, filename):
-                        return handle_mac_file_open(self, sender, filename)
+                safe_title = title.replace('"', '\\"')
+                safe_message = message.replace('"', '\\"')
                 
-                early_delegate = EarlyAppDelegate.alloc().init()
-                # Сохраняем в глобальную переменную, чтобы Python-делегат не съел GC (garbage collector)
-                early_delegate_keep_alive = early_delegate
-                app.setDelegate_(early_delegate)
-                print("[System] EarlyAppDelegate registered successfully for cold startup.")
-
-                import webview.platforms.cocoa
-
-                # ПРАВИЛЬНЫЙ PyObjC-патчинг через регистрацию в рантайме Objective-C.
-                for delegate_name in ['AppDelegate', 'ApplicationDelegate', 'BrowserDelegate']:
-                    if hasattr(webview.platforms.cocoa, delegate_name):
-                        cls = getattr(webview.platforms.cocoa, delegate_name)
-                        
-                        sel = objc.selector(
-                            handle_mac_file_open,
-                            selector=b'application:openFile:',
-                            signature=b'Z@:@@'
-                        )
-                        
-                        try:
-                            # classAddMethods гарантирует, что macOS увидит этот метод в работающем приложении
-                            objc.classAddMethods(cls, [sel])
-                            print(f"[System] macOS {delegate_name}.application_openFile_ registered via classAddMethods.")
-                        except Exception as e:
-                            setattr(cls, 'application_openFile_', sel)
-                            print(f"[System] macOS {delegate_name}.application_openFile_ fallback setattr: {e}")
-
-                print("[System] macOS application:openFile: injected successfully.")
-
-                # МЕНЯЕМ ИКОНКУ КОДОМ ТОЛЬКО В РЕЖИМЕ РАЗРАБОТКИ
-                # В собранном .app это не нужно и вызывает "прыжок" размера
-                if not getattr(sys, 'frozen', False):
-                    if getattr(sys, 'frozen', False):
-                        current_bundle_dir = sys._MEIPASS
-                    else:
-                        current_bundle_dir = os.path.dirname(os.path.abspath(__file__))
-                    
-                    icon_p = os.path.join(current_bundle_dir, "doe.png")
-
-                    if os.path.exists(icon_p):
-                        original_image = AppKit.NSImage.alloc().initWithContentsOfFile_(icon_p)
-                        if original_image:
-                            target_size = AppKit.NSMakeSize(512, 512)
-                            padding_factor = 0.82 
-                            new_size = AppKit.NSMakeSize(target_size.width * padding_factor, target_size.height * padding_factor)
-                            
-                            canvas = AppKit.NSImage.alloc().initWithSize_(target_size)
-                            canvas.lockFocus()
-                            rect = AppKit.NSMakeRect(
-                                (target_size.width - new_size.width) / 2,
-                                (target_size.height - new_size.height) / 2,
-                                new_size.width,
-                                new_size.height
-                            )
-                            original_image.drawInRect_(rect)
-                            canvas.unlockFocus()
-                            app.setApplicationIconImage_(canvas)
-
-                app.activateIgnoringOtherApps_(True)
-                print("[System] macOS App Policy initialized.")
-            except Exception as e:
-                print(f"[System] macOS Early Fix failed: {e}")
+                # 1. Показываем нативное уведомление macOS через AppleScript (НЕ создает иконку в Dock)
+                apple_script = f'display notification "{safe_message}" with title "{safe_title}"'
+                subprocess.call(["osascript", "-e", apple_script])
+                
+                # 2. Отправляем сигнал на подсветку карточки в фоне
+                payload = json.dumps({"task_id": int(task_id) if task_id else None, "vault_path": vault_path})
+                req = urllib.request.Request(
+                    "http://127.0.0.1:8000/api/v1/system/highlight-task",
+                    data=payload.encode('utf-8'),
+                    headers={'Content-Type': 'application/json'}
+                )
+                urllib.request.urlopen(req, timeout=1.0)
+            except Exception:
+                pass
         elif sys.platform == 'win32':
             safe_title = title.replace("'", "''")
             safe_message = message.replace("'", "''")
