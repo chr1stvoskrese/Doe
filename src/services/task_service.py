@@ -83,14 +83,17 @@ def _calculate_task_time(task: TaskModel) -> None:
     task.total_time_spent = int(total_seconds)
 
 async def create_task(db: AsyncSession, task_in: TaskCreate) -> TaskModel:
-    result = await db.execute(
-        select(TaskModel)
-        .where(TaskModel.column_id == task_in.column_id)
-        .order_by(TaskModel.position.desc())
-        .limit(1)
-    )
-    last_task = result.scalar()
-    position = (last_task.position + 1.0) if last_task else 1.0
+    if task_in.position is not None:
+        position = task_in.position
+    else:
+        result = await db.execute(
+            select(TaskModel)
+            .where(TaskModel.column_id == task_in.column_id)
+            .order_by(TaskModel.position.desc())
+            .limit(1)
+        )
+        last_task = result.scalar()
+        position = (last_task.position + 1.0) if last_task else 1.0
 
     db_task = TaskModel(
         title=task_in.title,

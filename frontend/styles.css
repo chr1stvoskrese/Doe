@@ -993,6 +993,114 @@ body {
     user-select: none;
     will-change: transform, box-shadow;
     pointer-events: auto;
+    position: relative;     /* <--- Добавлено для абсолютного позиционирования инлайн-триггеров создания */
+}
+
+/* ==========================================
+   ИНЛАЙН-ТРИГГЕРЫ СОЗДАНИЯ КАРТОЧЕК В ЗАЗОРАХ
+   ========================================== */
+.card-inline-trigger {
+    position: absolute;
+    bottom: -13px; /* Сдвиг на 13px (12px зазор + 1px внешняя граница) для точного позиционирования */
+    left: 0;
+    right: 0;
+    height: 12px;  /* Высота контейнера равна высоте зазора для центрирования линии */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    opacity: 0;
+    transform: scaleY(0.8);
+    transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    pointer-events: auto;
+    cursor: default;
+}
+
+.card-inline-trigger:hover {
+    opacity: 1;
+    transform: scaleY(1);
+}
+
+/* Отключаем триггер у последней карточки в колонке, так как под ней нет другой карточки */
+.card:last-child .card-inline-trigger {
+    display: none !important;
+}
+
+/* Если сразу за карточкой идет открытая форма ввода, полностью скрываем триггер над ней */
+.card:has(+ .card-entering) .card-inline-trigger {
+    display: none !important;
+}
+
+/* Линия разделителя */
+.card-inline-trigger::before {
+    content: '';
+    position: absolute;
+    left: 16px;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 0;
+    background: transparent;
+    border-top: 1.5px dashed var(--brand-pine);
+    opacity: 0.25;
+    pointer-events: none;
+}
+
+[data-theme="dark"] .card-inline-trigger::before {
+    background: transparent;
+    border-top: 1.5px dashed var(--brand-pine);
+    opacity: 0.4;
+}
+
+/* Круглая кнопка с плюсом */
+.divider-plus-btn {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: none; /* Убираем стандартный несимметричный CSS-border */
+    background-color: transparent; /* Прозрачный фон по умолчанию */
+    
+    /* Идеально симметричный векторный круг с 8 одинаковыми штрихами */
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20'><circle cx='10' cy='10' r='9' fill='none' stroke='%234A5A48' stroke-width='1.5' stroke-dasharray='4,3.06'/></svg>");
+    background-repeat: no-repeat;
+    background-position: center;
+    
+    color: var(--brand-pine);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 2;
+    box-shadow: none;
+    transform: scale(0.8);
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.15s, background-image 0.15s, color 0.15s;
+}
+
+/* Симметричный векторный круг для темной темы */
+[data-theme="dark"] .divider-plus-btn {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20'><circle cx='10' cy='10' r='9' fill='none' stroke='%2389A085' stroke-width='1.5' stroke-dasharray='4,3.06'/></svg>");
+}
+
+.card-inline-trigger:hover .divider-plus-btn {
+    transform: scale(1);
+}
+
+/* При наведении контур сохраняется, а внутри появляется деликатная полупрозрачная подложка */
+.divider-plus-btn:hover {
+    background-color: var(--brand-pale) !important; /* Мягкий полупрозрачный оттенок зеленого */
+    color: var(--brand-pine) !important; /* Плюс сохраняет свой цвет */
+    transform: scale(1.15) !important;
+}
+
+/* Благодаря использованию переменной --brand-pale, цвет подложки автоматически адаптируется под темную тему */
+[data-theme="dark"] .divider-plus-btn:hover {
+    background-color: var(--brand-pale) !important;
+    color: var(--brand-pine) !important;
+}
+
+/* Полностью отключаем отображение триггеров во время перетаскивания (Drag & Drop) */
+body[class*="is-dragging-"] .card-inline-trigger {
+    display: none !important;
 }
 
 /* При зажатии карточки */
@@ -1000,8 +1108,13 @@ body {
     cursor: grabbing;
 }
 
-/* Анимация приподнимания при наведении */
-.card:hover {
+/* Задаем z-index при любом наведении на область карты или её триггеров, чтобы плюс не перекрывался соседними картами */
+.card:not(.card-entering):hover {
+    z-index: 10;
+}
+
+/* Физический подъем и тень применяем только когда курсор не на триггере */
+.card:not(.card-entering):hover:not(:has(.card-inline-trigger:hover)) {
     transform: translate3d(0, -2px, 0);
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
 }
@@ -1011,8 +1124,8 @@ body {
     background: #F7F6F3;        /* Более серый фон */
 }
 
-/* Ховер на завершенную карточку */
-.card.is-completed:hover {
+/* Ховер на завершенную карточку (исключая наведение на триггер создания в зазоре) */
+.card.is-completed:hover:not(:has(.card-inline-trigger:hover)) {
     transform: translate3d(0, -2px, 0);
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
 }
@@ -1283,6 +1396,7 @@ body {
 /* Скрываем содержимое внутри призрака колонки */
 .column.is-ghost > * {
     visibility: hidden !important;
+    transition: none !important; /* Мгновенное скрытие, убивает задержку от transition: all у кнопки добавления */
 }
 
 .modal-overlay {
@@ -2177,43 +2291,106 @@ body.is-dragging-card .column-header {
 }
 
 /* ==========================================
-   АНИМАЦИЯ СОЗДАНИЯ КАРТОЧКИ
+   АНИМАЦИЯ СОЗДАНИЯ КАРТОЧКИ (Двухфазная хореография)
+   ========================================== */
+
+/* ==========================================
+   АНИМАЦИЯ СОЗДАНИЯ КАРТОЧКИ (Двухфазная хореография - Оптимизированная)
    ========================================== */
 
 /* Форма создания новой карточки */
+
 .card.card-entering {
     background: transparent;
-    border: 1.5px dashed rgba(74, 90, 72, 0.25);
+    border: 1.5px dashed transparent; 
     box-shadow: none;
     opacity: 0;
-    transform: scale(0.96);
-    will-change: opacity, transform;
-    transition:
-        opacity 0.30s cubic-bezier(0.16, 1, 0.3, 1),
-        transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-    padding: 10px 14px;
-    display: flex;
+    transform: scale(0.97) translateZ(0);
+    
+    /* 🔥 ФИКС ФРИЗОВ: CSS Grid + Компенсация Flex Gap */
+    display: grid !important;
+    grid-template-rows: 0fr;
+    padding: 0 14px !important;
+    
+    /* Идеально компенсируем flex-gap (12px) при спавне в DOM, чтобы карточки не прыгали */
+    margin-top: -12px !important;
+    margin-bottom: 0 !important;
+    
+    overflow: hidden; 
     cursor: default;
-    pointer-events: auto; /* Позволяем кликать в инпут */
+    pointer-events: auto;
+    contain: layout style;
+    will-change: grid-template-rows, padding, margin, opacity, transform;
+    
+    /* Единая плавная кривая без рассинхрона фаз */
+    transition:
+        grid-template-rows 0.2s cubic-bezier(0.2, 0.8, 0.2, 1),
+        padding 0.2s cubic-bezier(0.2, 0.8, 0.2, 1),
+        margin-top 0.2s cubic-bezier(0.2, 0.8, 0.2, 1),
+        opacity 0.15s ease-out 0.05s,
+        transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1),
+        border-color 0.2s ease-out;
 }
+
+/* Убиваем паразитные псевдоэлементы (защита Grid-потока) */
+.card.card-entering::before,
+.card.card-entering::after {
+    display: none !important; 
+}
+
+/* Внутренний контейнер должен позволять сжатие в 0 */
+.card.card-entering > * {
+    min-height: 0;
+    overflow: hidden;
+}
+
+.card.card-entering.entered {
+    opacity: 1;
+    transform: scale(1) translateZ(0);
+    grid-template-rows: 1fr;
+    padding: 10px 14px !important;
+    border-color: rgba(74, 90, 72, 0.25);
+    
+    /* Возвращаем маржин в 0, плавно открывая законные 12px gap */
+    margin-top: 0 !important;
+}
+
+.card.card-entering.is-exiting {
+    opacity: 0;
+    transform: scale(0.96) translateZ(0);
+    pointer-events: none;
+    grid-template-rows: 0fr !important;
+    padding: 0 14px !important; 
+    border-color: transparent !important;
+    
+    /* Идеальная математика: 12px gap + 2px border (верх и низ) = 14px, которые нужно съесть */
+    margin-top: -14px !important;
+    margin-bottom: 0 !important;
+    
+    transition:
+        grid-template-rows 0.2s cubic-bezier(0.2, 0.8, 0.2, 1),
+        padding 0.2s cubic-bezier(0.2, 0.8, 0.2, 1),
+        margin-top 0.2s cubic-bezier(0.2, 0.8, 0.2, 1),
+        opacity 0.15s ease-out,
+        transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1),
+        border-color 0.15s ease-out;
+}
+
+/* Жёстко зануляем габариты инпута, чтобы он позволил сетке сжаться в абсолютный ноль */
+.card.card-entering.is-exiting .card-input {
+    min-height: 0 !important;
+    height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    transition: height 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), min-height 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
 
 .card.card-entering:active {
     cursor: default;
 }
 
-.card.card-entering.entered {
-    opacity: 1;
-    transform: scale(1);
-}
 
-.card.card-entering.is-exiting {
-    opacity: 0;
-    transform: scale(0.96);
-    pointer-events: none;
-    transition:
-        opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1),
-        transform 0.30s cubic-bezier(0.16, 1, 0.3, 1);
-}
 
 .card.card-entering.is-submitting {
     opacity: 0.4;
@@ -2251,7 +2428,8 @@ body.is-dragging-card .column-header {
     opacity: 0.55;
 }
 
-[data-theme="dark"] .card.card-entering {
+/* Плавное изменение цвета рамки для темной темы */
+[data-theme="dark"] .card.card-entering.entered {
     border-color: rgba(137, 160, 133, 0.25);
 }
 
@@ -2907,7 +3085,7 @@ body[class*="is-dragging-"] .board-tab:not(.active) {
     pointer-events: auto;
 }
 
-.card:hover .card-copy-btn { opacity: 1; }
+.card:hover:not(:has(.card-inline-trigger:hover)) .card-copy-btn { opacity: 1; }
 .card-copy-btn:hover { background: rgba(0, 0, 0, 0.06); color: var(--text-primary); }
 [data-theme="dark"] .card-copy-btn:hover { background: rgba(255, 255, 255, 0.08); }
 .card-copy-btn.copied { color: var(--success-done); }
@@ -2990,8 +3168,8 @@ body[class*="is-dragging-"] .board-tab:not(.active) {
     /* Убрали align-self: flex-end, теперь они идеально центрируются по вертикали вместе с чек-листом */
 }
 
-/* Показываем карандашик при наведении на карточку или если меню открыто */
-.card:hover .card-menu-btn,
+/* Показываем карандашик при наведении на карточку или если меню открыто (исключая зазор) */
+.card:hover:not(:has(.card-inline-trigger:hover)) .card-menu-btn,
 .card-menu-btn.active {
     opacity: 1;
 }
@@ -3168,13 +3346,13 @@ body[class*="is-dragging-"] .board-tab:not(.active) {
     color: #D65A4B;
 }
 
-.card.has-unknown-time:hover .subtask-meta {
+.card.has-unknown-time:hover:not(:has(.card-inline-trigger:hover)) .subtask-meta {
     opacity: 1;
     visibility: visible;
 }
 
 /* 4. Показываем футер при наведении, если он был схлопнут */
-.card.has-unknown-time:hover .card-footer {
+.card.has-unknown-time:hover:not(:has(.card-inline-trigger:hover)) .card-footer {
     margin-top: 8px;
     max-height: 40px;
     opacity: 1;

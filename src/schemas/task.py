@@ -18,6 +18,7 @@ class TaskCreate(TaskBase):
     """Данные для создания новой задачи."""
     column_id: int = Field(..., description="ID колонки, в которой создаётся задача")
     parent_ids: List[int] = Field(default=[], description="Список ID родительских задач")
+    position: Optional[float] = Field(default=None, description="Позиция карточки")
 
 
 class TaskUpdate(BaseModel):

@@ -799,6 +799,12 @@ function generateCardHtml(task, columnMode) {
                 </div>
             </div>
             ${footerHtml}
+            <!-- Инлайн триггер создания новой карточки под текущей -->
+            <div class="card-inline-trigger">
+                <button class="divider-plus-btn">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                </button>
+            </div>
         </div>
     `;
 }
@@ -822,8 +828,11 @@ function createColumnElement(column) {
 
     const sortedTasks = [...column.tasks].sort((a, b) => a.position - b.position);
     
-    // Используем новую функцию генерации HTML для карточек
-    const tasksHtml = sortedTasks.map(task => generateCardHtml(task, column.mode)).join('');
+    // Рендерим карточки. Каждый инлайн-триггер находится строго внизу карточки.
+    let tasksHtml = '';
+    sortedTasks.forEach((task) => {
+        tasksHtml += generateCardHtml(task, column.mode);
+    });
 
     colDiv.innerHTML = `
         <div class="column-header">
@@ -926,6 +935,214 @@ function createCardFormElement() {
     return card;
 }
 
+async function onAddCardInline(plusBtn) {
+    const trigger = plusBtn.closest('.card-inline-trigger');
+    const cardEl = trigger.closest('.card');
+    const columnEl = cardEl.closest('.column');
+    const columnId = parseInt(columnEl.dataset.columnId);
+    const colState = state.columns.find(c => c.id === columnId);
+
+    if (columnEl.dataset.ignoreNextAdd === 'true') return;
+
+    // Синхронно и чисто закрываем все открытые формы на доске перед созданием новой
+    closeAllOpenCardForms();
+
+    columnEl.setAttribute('draggable', 'false');
+
+    const formCard = createCardFormElement();
+    
+    // Вставляем форму строго под целевой карточкой (между текущей и следующей)
+    cardEl.after(formCard);
+
+    // Плавная анимация появления формы
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            formCard.classList.add('entered');
+        });
+    });
+
+    const input = formCard.querySelector('.card-input');
+    const autoResize = () => {
+        const computed = window.getComputedStyle(input);
+        const borders = parseFloat(computed.borderTopWidth) + parseFloat(computed.borderBottomWidth);
+        input.style.height = '1px';
+        const sh = input.scrollHeight + borders;
+        const maxHeight = 120;
+        if (sh > maxHeight) {
+            input.style.height = maxHeight + 'px';
+            input.style.overflowY = 'auto';
+        } else {
+            input.style.height = sh + 'px';
+            input.style.overflowY = 'hidden';
+        }
+    };
+    
+    input.addEventListener('input', autoResize);
+    autoResize();
+    input.focus();
+
+    let isResolved = false;
+
+    const cancel = (animate = true) => {
+        if (isResolved) return;
+        isResolved = true;
+
+        columnEl.setAttribute('draggable', 'true');
+        input.blur();
+
+        if (!animate) {
+            formCard.remove();
+            return;
+        }
+
+        formCard.classList.remove('entered');
+        formCard.classList.add('is-exiting');
+
+        const onTransitionEnd = (e) => {
+            // Строго реагируем только на саму карточку (отсекаем всплытие от инпута)
+            if (e.target === formCard && (e.propertyName === 'margin-top' || e.propertyName === 'grid-template-rows')) {
+                formCard.remove();
+                formCard.removeEventListener('transitionend', onTransitionEnd);
+            }
+        };
+        formCard.addEventListener('transitionend', onTransitionEnd);
+        // Страховочный таймаут (200ms анимация CSS + 10ms запас)
+        setTimeout(() => { if (formCard.parentNode) formCard.remove(); }, 210);
+    };
+
+    formCard.cancelInline = cancel; // Сохраняем деструктор в DOM-элементе для вызова извне
+
+    const submit = async () => {
+        const title = input.value.trim();
+        if (!title) {
+            cancel(true);
+            return;
+        }
+
+        if (title.length > 200) {
+            formCard.classList.remove('is-error');
+            void formCard.offsetWidth;
+            formCard.classList.add('is-error');
+            setTimeout(() => formCard.classList.remove('is-error'), 400);
+            input.focus();
+            return;
+        }
+
+        if (isResolved) return;
+        isResolved = true;
+
+        columnEl.setAttribute('draggable', 'true');
+        input.disabled = true;
+        formCard.classList.add('is-submitting');
+
+        // ВЫЧИСЛЯЕМ МАТЕМАТИЧЕСКУЮ ПОЗИЦИЮ (Ювелирная точность)
+        let nextPosition = null;
+        let prevPosition = null;
+        
+        const currentCardId = parseInt(cardEl.dataset.cardId);
+        const currentTask = colState.tasks.find(t => t.id === currentCardId);
+        
+        prevPosition = currentTask.position;
+        // Ищем карточку, следующую за формой (пропускаем саму форму)
+        const nextCardEl = cardEl.nextElementSibling;
+        if (nextCardEl && nextCardEl.classList.contains('card') && !nextCardEl.classList.contains('card-entering')) {
+            const nextCardId = parseInt(nextCardEl.dataset.cardId);
+            const nextTask = colState.tasks.find(t => t.id === nextCardId);
+            if (nextTask) nextPosition = nextTask.position;
+        }
+        
+        let targetPosition = 0;
+        if (prevPosition !== null && nextPosition !== null) {
+            targetPosition = (prevPosition + nextPosition) / 2;
+        } else if (prevPosition !== null) {
+            targetPosition = prevPosition + 1.0;
+        } else if (nextPosition !== null) {
+            targetPosition = nextPosition - 1.0;
+        } else {
+            targetPosition = 1.0;
+        }
+
+        try {
+            // Отправляем на бэкенд с указанием высчитанной позиции
+            const res = await fetch(`${API_BASE}/tasks/`, { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify({ 
+                    title, 
+                    column_id: columnId,
+                    position: targetPosition
+                }) 
+            });
+            if (!res.ok) throw new Error('Create failed');
+            const newTask = await res.json();
+
+            // Интегрируем в стейт и сортируем массив, чтобы сохранить математическую гармонию
+            colState.tasks.push(newTask);
+            colState.tasks.sort((a, b) => a.position - b.position);
+
+            // Создаем настоящую красивую карточку
+            const realCardStr = generateCardHtml(newTask, colState.mode);
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = realCardStr.trim();
+            const realCard = tempDiv.firstChild;
+            
+            realCard.classList.add('card-birth');
+
+            // Заменяем форму на карточку
+            formCard.replaceWith(realCard);
+            updateColumnCount(columnEl);
+
+            // Плавное рождение карточки из прозрачности
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    realCard.classList.add('born');
+                });
+            });
+
+            const cleanup = (e) => {
+                if (e.propertyName === 'transform') {
+                    realCard.classList.remove('card-birth', 'born');
+                    realCard.removeEventListener('transitionend', cleanup);
+                }
+            };
+            realCard.addEventListener('transitionend', cleanup);
+            setTimeout(() => realCard.classList.remove('card-birth', 'born'), 500);
+
+        } catch (err) {
+            console.error('Task creation inline failed:', err);
+            isResolved = false;
+            input.disabled = false;
+            formCard.classList.remove('is-submitting');
+            formCard.classList.add('is-error');
+            setTimeout(() => formCard.classList.remove('is-error'), 400);
+            input.focus();
+        }
+    };
+
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); submit(); }
+        if (e.key === 'Escape') { e.preventDefault(); cancel(true); }
+    });
+
+    // Полностью изолируем события мыши на инпуте от перетаскивания доски
+    input.addEventListener('mousedown', (e) => e.stopPropagation());
+    input.addEventListener('click', (e) => e.stopPropagation());
+    input.addEventListener('mousemove', (e) => e.stopPropagation());
+    input.addEventListener('touchstart', (e) => e.stopPropagation());
+
+    input.addEventListener('blur', () => {
+        if (isResolved) return;
+        requestAnimationFrame(() => {
+            if (isResolved) return;
+            if (input.value.trim()) {
+                submit();
+            } else {
+                cancel(true);
+            }
+        });
+    });
+}
+
 // Новая анимированная функция добавления задачи
 async function onAddTask(columnId) {
     const columnEl = document.querySelector(`.column[data-column-id="${columnId}"]`);
@@ -933,6 +1150,9 @@ async function onAddTask(columnId) {
 
     // Игнорируем вызов, если только что закрыли пустую форму кликом по этой же кнопке
     if (columnEl.dataset.ignoreNextAdd === 'true') return;
+
+    // Закрываем формы во всех других колонках на доске, кроме текущей
+    closeAllOpenCardForms(columnId);
 
     // Сначала удаляем форму, если она в процессе исчезновения (чтобы не было перескока курсора)
     const exitingForm = columnEl.querySelector('.card-entering.is-exiting');
@@ -1006,17 +1226,19 @@ async function onAddTask(columnId) {
         formCard.classList.add('is-exiting');
 
         const onTransitionEnd = (e) => {
-            if (e.propertyName === 'opacity') {
+            // Строго реагируем только на саму карточку (отсекаем всплытие от инпута)
+            if (e.target === formCard && (e.propertyName === 'margin-top' || e.propertyName === 'grid-template-rows')) {
                 formCard.remove();
                 formCard.removeEventListener('transitionend', onTransitionEnd);
             }
         };
         formCard.addEventListener('transitionend', onTransitionEnd);
-        
-        setTimeout(() => { if (formCard.parentNode) formCard.remove(); }, 400);
+        // Страховочный таймаут (200ms анимация CSS + 10ms запас)
+        setTimeout(() => { if (formCard.parentNode) formCard.remove(); }, 210);
     };
 
-    // Функция сохранения на сервер
+    formCard.cancelInline = cancel; // Сохраняем деструктор в DOM-элементе для вызова извне
+
     const submit = async () => {
         const title = input.value.trim();
         if (!title) {
@@ -1133,15 +1355,6 @@ async function onAddTask(columnId) {
         });
     });
 }
-// --- КОНЕЦ ВСТАВКИ 2 ---
-
-// ==========================================
-// АНИМАЦИЯ СОЗДАНИЯ КОЛОНКИ (Column Birth)
-// ==========================================
-
-// ==========================================
-// АНИМАЦИЯ СОЗДАНИЯ КОЛОНКИ (исправленная)
-// ==========================================
 
 function createColumnFormElement() {
     const col = document.createElement('div');
@@ -1158,6 +1371,22 @@ function createColumnFormElement() {
         </div>
     `;
     return col;
+}
+
+// Вспомогательная функция для синхронного закрытия всех открытых форм создания карточек на доске
+function closeAllOpenCardForms(excludeColumnId = null) {
+    document.querySelectorAll('.card-entering').forEach(form => {
+        const col = form.closest('.column');
+        const colId = col ? parseInt(col.dataset.columnId) : null;
+        if (excludeColumnId && colId === excludeColumnId) {
+            return; // Пропускаем формы в целевой колонке при нажатии нижней кнопки добавления
+        }
+        if (typeof form.cancelInline === 'function') {
+            form.cancelInline(false); // Закрываем мгновенно и без анимации, переводя статус в resolved
+        } else {
+            form.remove();
+        }
+    });
 }
 
 function restoreAddButton() {
@@ -8222,6 +8451,19 @@ initLocalSearchLogic();
             setTimeout(triggerReveal, 50); 
         }
 })();
+
+// Перехватываем нажатие на плюс в зазорах на этапе погружения (capture),
+// чтобы мгновенно открыть новую форму ДО того, как асинхронный blur старой формы
+// запустит анимацию схлопывания и сдвинет верстку под курсором мыши.
+document.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0) return; // Только левый клик мыши
+    const plusBtn = e.target.closest('.divider-plus-btn');
+    if (plusBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        onAddCardInline(plusBtn);
+    }
+}, { capture: true });
 
 
 // --- ФУНКЦИОНАЛ НАПОМИНАНИЙ И КОЛОКОЛЬЧИКА ---
