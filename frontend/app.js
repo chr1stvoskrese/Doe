@@ -3722,10 +3722,10 @@ document.addEventListener('click', async (e) => {
                             }
                         });
                         
-                        refreshBoard(); // Железобетонно синхронизируем доску с бэкендом
+                        // Оптимистичный UI успешно отработал, полная перерисовка доски больше не нужна!
                     }).catch(err => { 
                         console.error(err); 
-                        refreshBoard(); 
+                        refreshBoard(); // Оставляем refreshBoard ТОЛЬКО при ошибке сервера для отката сломанного UI
                     });
                 }
                 else if (action === 'clear-card-timer') {
