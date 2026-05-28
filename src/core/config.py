@@ -177,6 +177,23 @@ def relink_vault_history(old_path: str, new_path: str) -> None:
     _save_config(data)
 
 
+def get_vault_geometry(vault_path: str) -> tuple[int, int]:
+    """Возвращает сохраненную геометрию окна для конкретного хранилища. По умолчанию 1200x800."""
+    data = _load_config()
+    geom = data.get("vault_geometry", {}).get(vault_path)
+    if geom:
+        return geom.get("width", 1200), geom.get("height", 800)
+    return 1200, 800
+
+def set_vault_geometry(vault_path: str, width: int, height: int) -> None:
+    """Сохраняет геометрию окна для конкретного хранилища."""
+    data = _load_config()
+    if "vault_geometry" not in data:
+        data["vault_geometry"] = {}
+    data["vault_geometry"][vault_path] = {"width": width, "height": height}
+    _save_config(data)
+
+
 def get_active_reminders() -> list:
     """Возвращает список запланированных напоминаний, очищая просроченные."""
     data = _load_config()

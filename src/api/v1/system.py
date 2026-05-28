@@ -103,13 +103,14 @@ async def switch_vault_endpoint(req: SwitchVaultRequest):
 
     name = Path(new_path).resolve().name
 
-    # Магия для Windows (macOS обрабатывает это на своей стороне в главном потоке)
     if req.trigger_ui:
-        import threading
+        import sys as _sys_check
         def _update_ui():
             try:
                 import sys
                 import webview
+                
+                print(f"[System] 🔄 _update_ui invoked (already_active={already_active}, windows={[w.title for w in webview.windows]})")
                 
                 # Проверяем, открыто ли главное окно доски
                 is_main_open = any('Kanban' in w.title for w in webview.windows)
@@ -128,15 +129,156 @@ async def switch_vault_endpoint(req: SwitchVaultRequest):
                                     ctypes.windll.user32.SetForegroundWindow(hwnd)
                             break
                 else:
-                    # Хранилище другое или окно доски не открыто (открыт Vault) - пересоздаем
-                    wrapper_mod = sys.modules.get('wrapper')
-                    if wrapper_mod and hasattr(wrapper_mod, 'WindowAPI'):
-                        api = wrapper_mod.WindowAPI()
-                        api.open_main_window()
+                    # КРИТИЧНО: на macOS НЕЛЬЗЯ destroy() последнего окна, чтобы потом create_window().
+                    # AppKit обрабатывает applicationShouldTerminateAfterLastWindowClosed: СИНХРОННО,
+                    # ещё до того, как pywebview успеет зарегистрировать новое окно — процесс умирает.
+                    # Поэтому НЕ вызываем open_main_window (он делает destroy+create), а просто
+                    # перенавигируем уже существующее окно Vault Selector на доску и подгоняем
+                    # размер/заголовок. Это работает на всех платформах одинаково и не зависит
+                    # от window lifecycle.
+                    target_url = 'http://127.0.0.1:8000/app'
+                    
+                    if webview.windows:
+                        target_window = webview.windows[0]
+                        try:
+                            print(f"[System] 🪟 Navigating existing window '{target_window.title}' → {target_url}")
+                            target_window.load_url(target_url)
+                            print("[System] ✅ load_url completed")
+                            
+                            # 🚀 ФИКС: Если мы уже в Kanban (переключаемся) — НЕ ТРОГАЕМ размер (он остается текущим).
+                            # Если переходим из маленького Vault Selector — грузим геометрию нового хранилища.
+                            if not is_main_open:
+                                try:
+                                    from src.core.config import get_vault_geometry
+                                    t_w, t_h = get_vault_geometry(new_path)
+                                    target_window.resize(t_w, t_h)
+                                    print(f"[System] ✅ window resized to saved geometry: {t_w}x{t_h}")
+                                except Exception as e:
+                                    print(f"[System] resize failed (non-fatal): {e}")
+                                
+                            # 🚀 ФИКС: Нативно возвращаем окну ОС возможность ресайза и разворота на весь экран
+                            try:
+                                import sys
+                                if sys.platform == 'darwin':
+                                    import AppKit
+                                    if hasattr(target_window, 'gui') and hasattr(target_window.gui, 'window'):
+                                        nswin = target_window.gui.window
+                                        # Добавляем маски: Resizable (8) и Miniaturizable (4)
+                                        nswin.setStyleMask_(nswin.styleMask() | 8 | 4)
+                                        # Принудительно включаем зеленую кнопку (NSWindowZoomButton = 2)
+                                        zoom_btn = nswin.standardWindowButton_(2)
+                                        if zoom_btn:
+                                            zoom_btn.setEnabled_(True)
+                                elif sys.platform == 'win32':
+                                    import ctypes
+                                    # Ищем HWND окна по текущему или старому заголовку
+                                    hwnd = ctypes.windll.user32.FindWindowW(None, target_window.title)
+                                    if not hwnd:
+                                        hwnd = ctypes.windll.user32.FindWindowW(None, 'Doe — Select Vault')
+                                    
+                                    if hwnd:
+                                        # GWL_STYLE = -16
+                                        style = ctypes.windll.user32.GetWindowLongW(hwnd, -16)
+                                        # Внедряем WS_THICKFRAME (ресайз) | WS_MAXIMIZEBOX | WS_MINIMIZEBOX
+                                        ctypes.windll.user32.SetWindowLongW(hwnd, -16, style | 0x00040000 | 0x00010000 | 0x00020000)
+                                        # Принудительно заставляем Windows перерисовать рамку: 
+                                        # SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED (0x27)
+                                        ctypes.windll.user32.SetWindowPos(hwnd, 0, 0, 0, 0, 0, 0x27)
+                                print("[System] ✅ window resizability restored natively")
+                            except Exception as e:
+                                print(f"[System] Failed to restore resizability: {e}")
+                            
+                            try:
+                                target_window.set_title('Doe — Kanban')
+                                print("[System] ✅ window title updated")
+                            except Exception as e:
+                                print(f"[System] set_title failed (non-fatal): {e}")
+                            
+                            try:
+                                target_window.show()
+                                target_window.restore()
+                            except Exception as e:
+                                print(f"[System] show/restore failed (non-fatal): {e}")
+                            
+                            # 🚀 ФИКС: Мгновенное включение ресайза без визуальных задержек
+                            def _force_native_resizability():
+                                try:
+                                    import sys
+                                    if sys.platform == 'darwin':
+                                        import AppKit
+                                        for win in AppKit.NSApp.windows():
+                                            if win.canBecomeKeyWindow():
+                                                win.setStyleMask_(win.styleMask() | 8 | 4)
+                                                zoom_btn = win.standardWindowButton_(2)
+                                                if zoom_btn is not None: zoom_btn.setEnabled_(True)
+                                                min_btn = win.standardWindowButton_(1)
+                                                if min_btn is not None: min_btn.setEnabled_(True)
+                                                win.display()
+                                        print("[System] 🍏 macOS native resizability enforced instantly")
+                                    elif sys.platform == 'win32':
+                                        import ctypes
+                                        hwnd = ctypes.windll.user32.FindWindowW(None, 'Doe — Kanban')
+                                        if not hwnd: hwnd = ctypes.windll.user32.FindWindowW(None, 'Doe — Select Vault')
+                                        if hwnd:
+                                            style = ctypes.windll.user32.GetWindowLongW(hwnd, -16)
+                                            ctypes.windll.user32.SetWindowLongW(hwnd, -16, style | 0x00040000 | 0x00010000 | 0x00020000)
+                                            ctypes.windll.user32.SetWindowPos(hwnd, 0, 0, 0, 0, 0, 0x27)
+                                        print("[System] 🪟 Windows native resizability enforced instantly")
+                                except Exception as ex:
+                                    print(f"[System] ❌ Native resize hack failed: {ex}")
+
+                            import sys
+                            if sys.platform == 'darwin':
+                                try:
+                                    from Foundation import NSOperationQueue
+                                    # Кладем хак в ту же очередь Main Thread сразу после команды resize от pywebview.
+                                    # Выполнится за ~1 миллисекунду, до того как экран успеет нарисовать кадр.
+                                    NSOperationQueue.mainQueue().addOperationWithBlock_(_force_native_resizability)
+                                except Exception as e:
+                                    print(f"[System] macOS dispatch failed: {e}")
+                            else:
+                                import threading
+                                # Микро-задержка 30мс. Хватает для обработки очереди событий Windows, но невидимо для глаза.
+                                threading.Timer(0.03, _force_native_resizability).start()
+
+                            print("[System] ✅ Vault switch UI update complete")
+                        except Exception as e:
+                            print(f"[System] ❌ load_url failed: {e}")
+                            import traceback
+                            traceback.print_exc()
+                    else:
+                        # Окон нет вообще — попытка fallback на open_main_window только в этом случае,
+                        # т.к. terminate-after-last-window-closed уже не страшен (последнего окна и так нет,
+                        # AppKit либо уже всё прибрал, либо мы в очень странном состоянии).
+                        print("[System] ⚠️ No windows present, falling back to open_main_window")
+                        wrapper_mod = sys.modules.get('wrapper') or sys.modules.get('__main__')
+                        if wrapper_mod and hasattr(wrapper_mod, 'WindowAPI'):
+                            api = wrapper_mod.WindowAPI()
+                            api.open_main_window()
+                            print("[System] ✅ open_main_window invoked")
+                        else:
+                            print("[System] ❌ WindowAPI not found and no existing windows — cannot recover")
             except Exception as e:
                 print(f"[System] UI update failed: {e}")
+                import traceback
+                traceback.print_exc()
         
-        threading.Timer(0.1, _update_ui).start()
+        if _sys_check.platform == 'darwin':
+            # На macOS pywebview-операции (create_window/destroy/show) ОБЯЗАНЫ выполняться
+            # на главном потоке Cocoa. threading.Timer запускает callback в фоновом потоке,
+            # из-за чего AppKit молча игнорирует вызовы. NSOperationQueue.mainQueue даёт
+            # стандартный dispatch на главный thread — это правильный путь.
+            try:
+                from Foundation import NSOperationQueue
+                NSOperationQueue.mainQueue().addOperationWithBlock_(_update_ui)
+                print("[System] 🧵 _update_ui dispatched to main thread via NSOperationQueue")
+            except Exception as e:
+                print(f"[System] Failed to dispatch to main thread: {e}")
+                import traceback
+                traceback.print_exc()
+        else:
+            import threading
+            threading.Timer(0.1, _update_ui).start()
 
     return VaultResponse(name=name, path=new_path, canceled=False, already_active=already_active)
 

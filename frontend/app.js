@@ -2998,6 +2998,11 @@ function performHitTest() {
                 clearTimeout(tabSwitchTimeout);
                 pendingSwitchTabId = tabId;
 
+                // Отдача при наведении на заголовок вкладки (пересечение физического барьера)
+                if (window.pywebview && window.pywebview.api && window.pywebview.api.trigger_haptic) {
+                    window.pywebview.api.trigger_haptic();
+                }
+
                 tabSwitchTimeout = setTimeout(async () => {
                     await switchToWorkspaceDuringDrag(tabId);
                 }, 600); 
@@ -3121,6 +3126,11 @@ async function switchToWorkspaceDuringDrag(wsId) {
     if (targetTab) {
         targetTab.classList.add('active');
         targetTab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+
+    // Отдача при успешном фоновом переключении активной вкладки под курсором
+    if (window.pywebview && window.pywebview.api && window.pywebview.api.trigger_haptic) {
+        window.pywebview.api.trigger_haptic();
     }
 
     state.activeWorkspaceId = wsId;

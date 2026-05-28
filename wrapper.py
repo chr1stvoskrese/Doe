@@ -132,100 +132,293 @@ if sys.platform == 'darwin':
 
         import webview.platforms.cocoa
 
-        # Единая логика для перехвата открытия файла в macOS.
-        # Метод принимает self в качестве первого аргумента, так как он связывается как метод экземпляра.
-        def handle_mac_file_open(self, sender, filename):
+        # Единая логика обработки пути к файлу хранилища.
+        # Выделена в отдельную функцию, чтобы её могли вызвать оба селектора macOS:
+        # deprecated application:openFile: (старые системы) и
+        # современный application:openURLs: (macOS 10.13+, в т.ч. Tahoe).
+        def _doe_handle_vault_path(raw_path):
             try:
                 import os
                 import urllib.parse
                 import urllib.request
                 import json as _json
+                import traceback
                 
-                clean_path = filename
+                clean_path = str(raw_path)  # NSString → Python str (важно для новых pyobjc)
                 if clean_path.startswith("file://"):
                     clean_path = clean_path.replace("file://", "", 1)
                 clean_path = urllib.parse.unquote(clean_path)
                 clean_path = os.path.abspath(clean_path)
                 
-                if not (clean_path.endswith(".doe") or clean_path.endswith(".db.doe")) or not os.path.exists(clean_path):
+                print(f"[System] 📂 macOS openFile event: {clean_path}")
+                
+                if not os.path.exists(clean_path):
+                    print(f"[System] ⚠️ File does not exist: {clean_path}")
+                    return False
+                if not (clean_path.endswith(".doe") or clean_path.endswith(".db.doe")):
+                    print(f"[System] ⚠️ File extension not recognized: {clean_path}")
                     return False
                     
                 vault_dir = os.path.dirname(clean_path)
                 
-                import webview
-                if webview.windows:
-                    # 1. Мы находимся в первом (активном) процессе.
-                    # Выполняем переключение базы данных без блокирующих диалогов.
-                    print(f"[System] 🚀 Hot-switch triggered in the running instance. Vault: {vault_dir}")
-                    import threading
-                    def perform_hot_switch():
-                        try:
-                            from src.db.database import switch_vault
-                            import asyncio
-                            asyncio.run(switch_vault(vault_dir))
-                            api = WindowAPI()
-                            api.open_main_window()
-                        except Exception as e:
-                            print(f"[System] Hot switch failed: {e}")
+                # Универсальная проверка: жив ли уже наш сервер (наш процесс или дубль)
+                server_running = False
+                try:
+                    urllib.request.urlopen(f"http://127.0.0.1:{PORT}/", timeout=0.5)
+                    server_running = True
+                except Exception:
+                    pass
+                
+                if server_running:
+                    # Сервер уже запущен — единый путь через HTTP-эндпоинт.
+                    # Эндпоинт /vault/switch:
+                    #   • переключит БД через switch_vault() (внутри обновится vault_history)
+                    #   • сам решит что делать с окнами (vault-селектор / Kanban)
+                    #   • для same-vault просто поднимет существующее окно
+                    # Этот же эндпоинт уже годами работает для Windows file-association.
+                    print(f"[System] 🚀 Forwarding vault switch via HTTP: {vault_dir}")
                     
-                    threading.Thread(target=perform_hot_switch, daemon=True).start()
-                    return True
-                else:
-                    # 2. Мы находимся в процессе-дублере, либо это первый запуск (холодный старт).
-                    server_running_elsewhere = False
-                    try:
-                        # Проверяем доступность порта 8000
-                        req = urllib.request.urlopen(f"http://127.0.0.1:{PORT}/", timeout=0.3)
-                        server_running_elsewhere = True
-                    except Exception:
-                        pass
-                        
-                    if server_running_elsewhere:
-                        # Если первый процесс активен, отправляем ему команду переключения и завершаем себя.
-                        # Это предотвращает появление дублирующей иконки в macOS Dock.
-                        print(f"[System] Existing instance detected. Forwarding path to: {vault_dir}")
+                    import threading
+                    def _fire_switch():
                         try:
                             req = urllib.request.Request(
                                 f"http://127.0.0.1:{PORT}/api/v1/system/vault/switch",
                                 data=_json.dumps({"new_path": vault_dir, "trigger_ui": True}).encode('utf-8'),
                                 headers={'Content-Type': 'application/json'}
                             )
-                            urllib.request.urlopen(req, timeout=2.0)
+                            urllib.request.urlopen(req, timeout=10.0)
                         except Exception as e:
-                            print(f"[System] Failed to forward switch command: {e}")
-                        
-                        # Откладываем завершение процесса на 100мс, чтобы AppKit успел вернуть True в ОС
-                        import threading
-                        threading.Timer(0.1, lambda: os._exit(0)).start()
-                        return True
-                    else:
-                        # Холодный запуск: сохраняем путь как активный для инициализации БД
-                        from src.core.config import set_active_vault
-                        set_active_vault(vault_dir)
-                        print(f"[System] 🚀 Cold launch. Active vault set to: {vault_dir}")
-                        return True
+                            print(f"[System] HTTP forward failed: {e}")
+                            traceback.print_exc()
+                    # HTTP кидаем в фон, чтобы не блокировать AppKit-поток (никаких beach-ball).
+                    threading.Thread(target=_fire_switch, daemon=True).start()
+                    
+                    # Если у нас нет своих окон — мы дубль-процесс, нужно завершиться,
+                    # чтобы в macOS Dock не висела вторая иконка приложения.
+                    import webview
+                    if not webview.windows:
+                        threading.Timer(0.5, lambda: os._exit(0)).start()
+                    return True
+                else:
+                    # Сервер ещё не поднят — холодный запуск.
+                    # Просто запоминаем путь, чтобы init_dev_database() инициализировал нужную БД.
+                    from src.core.config import set_active_vault
+                    set_active_vault(vault_dir)
+                    print(f"[System] 🆕 Cold launch with vault: {vault_dir}")
+                    return True
             except Exception as e:
-                print(f"[System] Error in openFile: {e}")
+                print(f"[System] Error in _doe_handle_vault_path: {e}")
+                import traceback
+                traceback.print_exc()
                 return True
 
-        # БЕЗОПАСНЫЙ И ПРЯМОЙ MONKEY-PATCHING ЧЕРЕЗ КЛАССЫ РАНТАЙМА Objective-C:
+        # Deprecated селектор application:openFile: для совместимости со старыми macOS.
+        def handle_mac_file_open(self, sender, filename):
+            try:
+                return _doe_handle_vault_path(filename)
+            except Exception as e:
+                print(f"[System] Error in handle_mac_file_open: {e}")
+                return True
+
+        # Современный селектор application:openURLs: для macOS 10.13+.
+        # На свежих системах (включая Tahoe / macOS 26) AppKit отдаёт события
+        # открытия файлов именно сюда, а deprecated openFile: может не вызываться.
+        def handle_mac_open_urls(self, sender, urls):
+            try:
+                for url in urls:
+                    # NSURL → строковый путь без префикса file://
+                    path = str(url.path()) if hasattr(url, 'path') else str(url)
+                    _doe_handle_vault_path(path)
+            except Exception as e:
+                print(f"[System] Error in handle_mac_open_urls: {e}")
+                import traceback
+                traceback.print_exc()
+
+        # ОСНОВНОЙ МЕХАНИЗМ: регистрируем handler напрямую на Apple Event 'odoc'.
+        # Это работает ВНЕ зависимости от внутренностей pywebview: событие
+        # перехватывается ДО того, как AppKit передаст его делегату или
+        # NSDocumentController (который и показывает "could not be opened").
+        try:
+            from Foundation import NSAppleEventManager, NSObject, NSURL
+            
+            def _fourcc(s):
+                return (ord(s[0]) << 24) | (ord(s[1]) << 16) | (ord(s[2]) << 8) | ord(s[3])
+            
+            kCoreEventClass = _fourcc('aevt')   # 1701867620
+            kAEOpenDocuments = _fourcc('odoc')  # 1868853091
+            keyDirectObject = _fourcc('----')   # 757935405
+            typeFileURL     = _fourcc('furl')   # 0x6675726C
+            
+            class DoeOpenDocHandler(NSObject):
+                def handleOpenDoc_withReplyEvent_(self, event, replyEvent):
+                    # Этот print должен появляться в логе ПРИ КАЖДОМ клике по .db.doe.
+                    # Если его нет — handler не вызывается (т.е. AppKit его не нашёл).
+                    print(f"[System] 🎯 AppleEvent 'odoc' INVOKED")
+                    try:
+                        direct_param = event.paramDescriptorForKeyword_(keyDirectObject)
+                        if direct_param is None:
+                            print("[System] AppleEvent: no direct object")
+                            return
+                        count = direct_param.numberOfItems()
+                        print(f"[System] AppleEvent: {count} file(s) in event")
+                        for i in range(1, count + 1):
+                            item = direct_param.descriptorAtIndex_(i)
+                            path = None
+                            
+                            # ПРАВИЛЬНЫЙ способ: через NSURL.URLWithDataRepresentation
+                            # (typeFileURL хранит URL в специальном бинарном формате, а не plain text)
+                            try:
+                                coerced = item.coerceToDescriptorType_(typeFileURL)
+                                if coerced is not None:
+                                    data = coerced.data()
+                                    if data is not None:
+                                        url = NSURL.URLWithDataRepresentation_relativeToURL_(data, None)
+                                        if url is not None:
+                                            url_path = url.path()
+                                            if url_path is not None:
+                                                path = str(url_path)
+                            except Exception as e:
+                                print(f"[System] NSURL coerce failed: {e}")
+                            
+                            # Fallback: попробовать stringValue (для legacy alias-дескрипторов)
+                            if not path:
+                                try:
+                                    sv = item.stringValue()
+                                    if sv:
+                                        path = str(sv)
+                                except Exception:
+                                    pass
+                            
+                            if path:
+                                print(f"[System] AppleEvent extracted path: {path}")
+                                _doe_handle_vault_path(path)
+                            else:
+                                print(f"[System] AppleEvent: could NOT extract path from item {i}")
+                    except Exception as e:
+                        print(f"[System] AppleEvent handler error: {e}")
+                        import traceback
+                        traceback.print_exc()
+                
+                # КРИТИЧНО: явно задаём Objective-C сигнатуру метода.
+                # Без неё pyobjc угадывает и часто ошибается, из-за чего AppleEventManager
+                # регистрирует метод "успешно", но никогда его не вызывает.
+                # 'v@:@@' = void return, self, _cmd, NSAppleEventDescriptor*, NSAppleEventDescriptor*
+                handleOpenDoc_withReplyEvent_ = objc.selector(
+                    handleOpenDoc_withReplyEvent_,
+                    signature=b'v@:@@'
+                )
+            
+            # ВАЖНО: handler нужно сохранить в модульной переменной, иначе сборщик мусора
+            # уничтожит Objective-C объект и AppKit упадёт при попытке вызвать метод.
+            _doe_open_doc_handler = DoeOpenDocHandler.alloc().init()
+            globals()['_doe_open_doc_handler'] = _doe_open_doc_handler
+            
+            def _register_apple_event_handler():
+                """Регистрирует наш handler на 'odoc'. Вынесено в функцию, чтобы можно было
+                перевызвать после старта pywebview — на случай если AppKit/pywebview
+                переинициализирует AppleEventManager при создании NSApp delegate."""
+                NSAppleEventManager.sharedAppleEventManager().setEventHandler_andSelector_forEventClass_andEventID_(
+                    _doe_open_doc_handler,
+                    b'handleOpenDoc:withReplyEvent:',
+                    kCoreEventClass,
+                    kAEOpenDocuments,
+                )
+            
+            _register_apple_event_handler()
+            print("[System] macOS: AppleEvent 'odoc' handler registered (primary mechanism).")
+            
+            # Сохраняем функцию для повторной регистрации через 1 секунду после старта окна.
+            # Это страховка: если pywebview/AppKit при инициализации NSApp перезатирают
+            # наш handler своим дефолтным (который кидает alert), мы возвращаем своё право.
+            globals()['_doe_reregister_apple_event'] = _register_apple_event_handler
+            
+            # Дополнительная страховка: переопределяем applicationShouldTerminateAfterLastWindowClosed:
+            # на NO. По умолчанию AppKit убивает процесс при закрытии последнего окна — это ломает
+            # сценарии, когда мы destroy() одно окно и create_window() сразу после: AppKit успевает
+            # терминировать процесс ДО создания нового окна. У нас приложение по архитектуре
+            # многооконное (Vault Selector ↔ Kanban), поэтому такое поведение нежелательно.
+            try:
+                def _should_terminate_after_last_closed(self, sender):
+                    return False
+                
+                sel_no_terminate = objc.selector(
+                    _should_terminate_after_last_closed,
+                    selector=b'applicationShouldTerminateAfterLastWindowClosed:',
+                    signature=b'Z@:@'
+                )
+                
+                # Применяем ко всем найденным AppDelegate-классам (top-level и вложенным)
+                applied_to = []
+                for delegate_name in ['AppDelegate', 'ApplicationDelegate', 'BrowserDelegate']:
+                    if hasattr(webview.platforms.cocoa, delegate_name):
+                        cls = getattr(webview.platforms.cocoa, delegate_name)
+                        try:
+                            objc.classAddMethods(cls, [sel_no_terminate])
+                            applied_to.append(delegate_name)
+                        except Exception:
+                            setattr(cls, 'applicationShouldTerminateAfterLastWindowClosed_', sel_no_terminate)
+                            applied_to.append(f"{delegate_name}(setattr)")
+                
+                if hasattr(webview.platforms.cocoa, 'BrowserView'):
+                    bv = webview.platforms.cocoa.BrowserView
+                    for nested_name in ['AppDelegate', 'ApplicationDelegate']:
+                        if hasattr(bv, nested_name):
+                            cls = getattr(bv, nested_name)
+                            try:
+                                objc.classAddMethods(cls, [sel_no_terminate])
+                                applied_to.append(f"BrowserView.{nested_name}")
+                            except Exception:
+                                setattr(cls, 'applicationShouldTerminateAfterLastWindowClosed_', sel_no_terminate)
+                                applied_to.append(f"BrowserView.{nested_name}(setattr)")
+                
+                print(f"[System] applicationShouldTerminateAfterLastWindowClosed → NO registered on: {applied_to}")
+            except Exception as e:
+                print(f"[System] terminate-after-last-window override failed (non-fatal): {e}")
+            
+        except Exception as e:
+            print(f"[System] AppleEvent registration failed: {e}")
+            import traceback
+            traceback.print_exc()
+        
+        # ДОПОЛНИТЕЛЬНЫЙ СЛОЙ (legacy): пытаемся также пропатчить AppDelegate pywebview.
+        # В pywebview 4.4.1 AppDelegate — ВЛОЖЕННЫЙ класс внутри BrowserView,
+        # поэтому помимо top-level имён ищем его и там. Если не нашли — не страшно,
+        # основной механизм через AppleEventManager уже работает.
+        delegate_candidates = []
         for delegate_name in ['AppDelegate', 'ApplicationDelegate', 'BrowserDelegate']:
             if hasattr(webview.platforms.cocoa, delegate_name):
-                cls = getattr(webview.platforms.cocoa, delegate_name)
-                
-                sel = objc.selector(
+                delegate_candidates.append((delegate_name, getattr(webview.platforms.cocoa, delegate_name)))
+        # pywebview 4.4.1: AppDelegate внутри BrowserView
+        if hasattr(webview.platforms.cocoa, 'BrowserView'):
+            bv = webview.platforms.cocoa.BrowserView
+            for nested_name in ['AppDelegate', 'ApplicationDelegate']:
+                if hasattr(bv, nested_name):
+                    delegate_candidates.append((f'BrowserView.{nested_name}', getattr(bv, nested_name)))
+        
+        for delegate_name, cls in delegate_candidates:
+            try:
+                sel_file = objc.selector(
                     handle_mac_file_open,
                     selector=b'application:openFile:',
                     signature=b'Z@:@@'
                 )
-                
+                sel_urls = objc.selector(
+                    handle_mac_open_urls,
+                    selector=b'application:openURLs:',
+                    signature=b'v@:@@'
+                )
                 try:
-                    # classAddMethods принудительно регистрирует метод в таблице виртуальных методов Cocoa
-                    objc.classAddMethods(cls, [sel])
-                    print(f"[System] macOS {delegate_name}.application_openFile_ registered via classAddMethods.")
+                    objc.classAddMethods(cls, [sel_file, sel_urls])
+                    print(f"[System] macOS {delegate_name}: openFile + openURLs registered via classAddMethods.")
                 except Exception as e:
-                    setattr(cls, 'application_openFile_', sel)
-                    print(f"[System] macOS {delegate_name}.application_openFile_ fallback setattr: {e}")
+                    setattr(cls, 'application_openFile_', sel_file)
+                    setattr(cls, 'application_openURLs_', sel_urls)
+                    print(f"[System] macOS {delegate_name}: fallback setattr ({e}).")
+            except Exception as e:
+                print(f"[System] Delegate patching failed for {delegate_name}: {e}")
+        
+        if not delegate_candidates:
+            print("[System] No AppDelegate classes found in pywebview (using AppleEvent fallback only).")
 
         # МЕНЯЕМ ИКОНКУ КОДОМ ТОЛЬКО В РЕЖИМЕ РАЗРАБОТКИ
         # В собранном .app это не нужно и вызывает "прыжок" размера
@@ -441,8 +634,93 @@ settings = get_ui_settings()
 theme = settings.get("theme", "light")
 bg_color = '#161815' if theme == 'dark' else '#F4F3EF'
 
+# Глобальный кэш для доступа к аппаратному приводу Taptic Engine трекпада
+_mac_actuator = None
+_mt_lib = None
+
+def _trigger_macos_hardware_haptic():
+    """Прямое обращение к физическому актуатору трекпада macOS через приватный фреймворк"""
+    global _mac_actuator, _mt_lib
+    import ctypes
+    import os
+    
+    try:
+        framework_path = '/System/Library/PrivateFrameworks/MultitouchSupport.framework/MultitouchSupport'
+        if not os.path.exists(framework_path):
+            return False
+            
+        if _mt_lib is None:
+            # Загружаем системную библиотеку поддержки мультитача и Taptic Engine
+            _mt_lib = ctypes.CDLL(framework_path)
+            _mt_lib.MTDeviceCreateDefault.restype = ctypes.c_void_p
+            _mt_lib.MTActuatorCreateFromDevice.argtypes = [ctypes.c_void_p]
+            _mt_lib.MTActuatorCreateFromDevice.restype = ctypes.c_void_p
+            _mt_lib.MTActuatorPlayTap.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int]
+            _mt_lib.MTActuatorPlayTap.restype = ctypes.c_int
+
+        if _mac_actuator is None:
+            # Получаем указатель на встроенное устройство ввода
+            device = _mt_lib.MTDeviceCreateDefault()
+            if device:
+                # Создаем интерфейс управления актуатором
+                _mac_actuator = _mt_lib.MTActuatorCreateFromDevice(device)
+
+        if _mac_actuator:
+            # Параметры: actuator, pattern, intensity
+            # pattern=1 (Alignment/Snap - четкий щелчок стыковки)
+            # intensity=3 (сочная средняя физическая отдача)
+            _mt_lib.MTActuatorPlayTap(_mac_actuator, 1, 3)
+            return True
+    except Exception as e:
+        print(f"[Haptic] macOS Hardware Taptic Engine trigger failed: {e}")
+    return False
+
+
+_resize_timer = None
+def bind_resize_event(win):
+    """Дебаунс-сохранение геометрии окна без нагрузки на диск (срабатывает через 1с после остановки мыши)."""
+    def _on_resized(width, height):
+        global _resize_timer
+        if _resize_timer:
+            _resize_timer.cancel()
+        def _save():
+            try:
+                from src.core.config import set_vault_geometry, get_active_vault
+                # Защита: не сохраняем размеры маленького окна выбора хранилищ
+                if width > 760 or height > 680:
+                    vault = get_active_vault()
+                    if vault:
+                        set_vault_geometry(vault, width, height)
+            except Exception:
+                pass
+        import threading
+        _resize_timer = threading.Timer(1.0, _save)
+        _resize_timer.start()
+    win.events.resized += _on_resized
+
+
 # --- ЗАМЕНИТЕ КЛАСС WindowAPI в wrapper.py на этот ---
 class WindowAPI:
+    def trigger_haptic(self):
+        """Генерирует тактильный отклик на трекпадах macOS"""
+        import sys
+        if sys.platform == 'darwin':
+            # На Apple Silicon (M1/M2/M3) приватный фреймворк MultitouchSupport возвращает True, 
+            # но аппаратно глушится песочницей macOS, из-за чего старый код пропускал фолбэк.
+            # Мы убираем хак и используем 100% надежный официальный API AppKit.
+            try:
+                import AppKit
+                performer = AppKit.NSHapticFeedbackManager.defaultPerformer()
+                if performer:
+                    # pattern: 1 = NSHapticFeedbackPatternAlignment (Четкий физический щелчок стыковки)
+                    # performanceTime: 1 = NSHapticFeedbackPerformanceTimeNow 
+                    # ВАЖНО: Флаг "1" заставляет Taptic Engine сработать мгновенно, даже если 
+                    # WebView "съел" нативный фокус мыши в момент кастомного Drag & Drop.
+                    performer.performFeedbackPattern_performanceTime_(1, 1)
+            except Exception as e:
+                print(f"[Haptic] Error: {e}")
+        return True
+
     def choose_file(self):
         """Вызывает нативный диалог выбора файла (macOS/Windows)"""
         if not webview.windows:
@@ -539,15 +817,19 @@ class WindowAPI:
 
     def open_main_window(self):
         """Порождает новое окно приложения и убивает ВСЕ старые окна (включая окно выбора хранилища)"""
-        # Снимок всех окон ДО создания нового — гарантированно не содержит новое окно.
-        # Это надёжнее, чем webview.active_window(), который при открытии файла из Finder
-        # (когда приложение не в фокусе) может вернуть None или не то окно, оставив диалог висеть.
         old_windows = list(webview.windows)
-        webview.create_window(
+        
+        try:
+            from src.core.config import get_vault_geometry, get_active_vault
+            t_w, t_h = get_vault_geometry(get_active_vault())
+        except Exception:
+            t_w, t_h = 1200, 800
+            
+        new_win = webview.create_window(
             title='Doe — Aesthetic Kanban',
             url=URL,
-            width=1200,
-            height=800,
+            width=t_w,
+            height=t_h,
             min_size=(800, 600),
             resizable=True,
             background_color=bg_color,
@@ -555,7 +837,12 @@ class WindowAPI:
             hidden=True,
             js_api=WindowAPI()
         )
-        # Уничтожаем все ранее открытые окна (диалоговое окно выбора хранилища и т.д.)
+        try:
+            bind_resize_event(new_win)
+        except Exception:
+            pass
+
+        # Уничтожаем все ранее открытые окна
         for w in old_windows:
             try:
                 w.destroy()
@@ -611,6 +898,10 @@ class APIServerThread(threading.Thread):
 if __name__ == '__main__':
     multiprocessing.freeze_support()
     print("[System] Starting main thread...")
+    
+    # Регистрируем себя в sys.modules под именем 'wrapper' даже когда запущены как __main__.
+    # Это нужно, чтобы src/api/v1/system.py мог найти WindowAPI через sys.modules['wrapper'].
+    sys.modules['wrapper'] = sys.modules['__main__']
     
     # ПЕРЕХВАТ ДВОЙНОГО КЛИКА ПО ФАЙЛУ .db.doe ИЗ ОС
     if len(sys.argv) == 2 and not sys.argv[1].startswith("--"):
@@ -754,9 +1045,18 @@ if __name__ == '__main__':
         is_configured = "active_vault" in config_data
 
         # Задаем параметры в зависимости от того, первый ли это запуск
+        if is_configured:
+            from src.core.config import get_vault_geometry, get_active_vault
+            try:
+                t_w, t_h = get_vault_geometry(get_active_vault())
+            except Exception:
+                t_w, t_h = 1200, 800
+        else:
+            t_w, t_h = 760, 680
+
         start_url = URL if is_configured else f"{URL}?mode=vault"
-        start_w = 1200 if is_configured else 760
-        start_h = 800 if is_configured else 680
+        start_w = t_w
+        start_h = t_h
         min_w = 800 if is_configured else 760
         min_h = 600 if is_configured else 680
         is_resizable = is_configured
@@ -773,9 +1073,28 @@ if __name__ == '__main__':
             hidden=True,            
             js_api=WindowAPI()      
         )
+        bind_resize_event(window)
         
         try:
             print("[WebView] Starting GUI engine...")
+            
+            # Перерегистрируем Apple Event handler через 1 секунду после старта GUI,
+            # чтобы перекрыть любые попытки AppKit/pywebview восстановить дефолтный
+            # handler 'odoc' (который показывает alert "could not be opened").
+            if sys.platform == 'darwin':
+                import threading
+                def _reregister_safely():
+                    try:
+                        reg = globals().get('_doe_reregister_apple_event')
+                        if reg:
+                            reg()
+                            print("[System] macOS: AppleEvent handler re-registered after webview start.")
+                    except Exception as e:
+                        print(f"[System] Re-registration failed: {e}")
+                threading.Timer(1.0, _reregister_safely).start()
+                # И ещё раз через 3 секунды — на случай отложенной инициализации делегата
+                threading.Timer(3.0, _reregister_safely).start()
+            
             webview.start(debug=False)
         except KeyboardInterrupt:
             pass

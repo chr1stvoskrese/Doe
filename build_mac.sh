@@ -117,12 +117,21 @@ pl['UTExportedTypeDeclarations'] = [{
 
 pl['CFBundleDocumentTypes'] = [{
     'CFBundleTypeName': 'Doe Vault',
-    'CFBundleTypeRole': 'Editor',
+    'CFBundleTypeRole': 'Viewer',           # Viewer вместо Editor — AppKit не лезет в NSDocumentController
     'CFBundleTypeIconFile': 'doe.icns',
     'LSHandlerRank': 'Owner',
     'LSItemContentTypes': ['com.aesthetic.doe.vault'],
-    'CFBundleTypeExtensions': ['db.doe', 'doe'] # Устаревший резервный ключ для Launch Services
+    'CFBundleTypeExtensions': ['db.doe', 'doe'],
+    'LSTypeIsPackage': False,
+    'NSDocumentClass': '',                  # пустой класс документа — явный сигнал, что NSDocument не нужен
 }]
+
+# КЛЮЧЕВАЯ СТРОКА: запрещаем AppKit автоматически вызывать NSDocumentController.
+# Именно он показывает диалог "could not be opened ... in the Doe Vault format",
+# когда не находит зарегистрированного класса NSDocument. Мы используем AppleEventManager,
+# поэтому NSDocumentController нам только мешает.
+pl['NSSupportsAutomaticTermination'] = False
+pl['NSSupportsSuddenTermination'] = False
 
 with open(plist_path, 'wb') as f:
     plistlib.dump(pl, f)
