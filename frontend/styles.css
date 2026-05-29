@@ -1466,6 +1466,99 @@ body[class*="is-dragging-"] .card-inline-trigger {
     margin-top: -2px; /* Выравнивание по уровню текста заголовка */
 }
 
+/* ==========================================
+   ВЫЕЗЖАЮЩАЯ ПАНЕЛЬ ИНСТРУМЕНТОВ В КАРТОЧКЕ
+   ========================================== */
+.modal-tools-wrapper {
+    display: flex;
+    align-items: center;
+    height: 28px; /* Жесткая фиксация высоты от прыжков */
+    transform: translateZ(0); /* Вынос на GPU для блокировки дерганий пикселей */
+}
+
+.modal-tools-menu {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 4px;
+    height: 28px; /* Жесткая фиксация высоты */
+    
+    /* Состояние "Свернуто" */
+    max-width: 0;
+    overflow: hidden;
+    opacity: 0;
+    pointer-events: none;
+    
+    transition: max-width 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+                opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+                margin-right 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.modal-tools-wrapper.expanded .modal-tools-menu {
+    max-width: 250px;
+    opacity: 1;
+    pointer-events: auto;
+    margin-right: 4px;
+}
+
+/* Кнопка активации инструментов */
+.modal-tools-trigger {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--text-secondary);
+    display: block; /* Сбрасываем flex для чистой математики абсолютов */
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    margin: 0;
+    border-radius: 8px; 
+    transition: background 0.2s ease, color 0.2s ease;
+    flex-shrink: 0;
+    position: relative;
+}
+
+.modal-tools-trigger:hover,
+.modal-tools-wrapper.expanded .modal-tools-trigger {
+    background: rgba(0, 0, 0, 0.05);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .modal-tools-trigger:hover,
+[data-theme="dark"] .modal-tools-wrapper.expanded .modal-tools-trigger {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+/* 🚀 ИДЕАЛЬНОЕ ЦЕНТРИРОВАНИЕ И МОРФИНГ ИКОНОК НА GPU */
+.modal-tools-trigger svg {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+    will-change: transform, opacity;
+}
+
+/* Состояние: закрыто (видим гаечный ключ) */
+.icon-tools { 
+    opacity: 1; 
+    transform: translate(-50%, -50%) rotate(0deg) scale(1); 
+}
+/* Стрелка скручена в другую сторону и спрятана */
+.icon-close-tools { 
+    opacity: 0; 
+    transform: translate(-50%, -50%) rotate(180deg) scale(0.5); 
+}
+
+/* Состояние: открыто (инструменты улетают с кручением, выезжает стрелка >) */
+.modal-tools-wrapper.expanded .icon-tools { 
+    opacity: 0; 
+    transform: translate(-50%, -50%) rotate(-180deg) scale(0.5); 
+}
+.modal-tools-wrapper.expanded .icon-close-tools { 
+    opacity: 1; 
+    transform: translate(-50%, -50%) rotate(0deg) scale(1); 
+}
+
 /* Выравнивание одиночного крестика для остальных модалок (Тема, Язык и т.д.) */
 .modal-header > .modal-close {
     margin-top: -2px;

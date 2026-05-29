@@ -4171,6 +4171,9 @@ document.addEventListener('click', async (e) => {
         // --- СБРОС ГЕОМЕТРИИ ПРИ ЗАКРЫТИИ ИМЕННО ГЛАВНОЙ КАРТОЧКИ ---
         if (modalToClose.id === 'task-modal') {
             if (window.closeLocalSearch) window.closeLocalSearch();
+            
+            // Сбрасываем панель инструментов
+            document.getElementById('modal-tools-wrapper')?.classList.remove('expanded');
 
             // Запуск сборщика мусора
             triggerGarbageCollector();
@@ -4216,6 +4219,19 @@ document.addEventListener('click', async (e) => {
 
         // 🔥 ГЛАВНЫЙ ФИКС: Закрываем ТОЛЬКО ту модалку, с которой мы взаимодействовали
         modalToClose.classList.remove('show');
+    }
+
+    // === ЛОГИКА ПАНЕЛИ ИНСТРУМЕНТОВ В КАРТОЧКЕ ===
+    const toolsTrigger = target.closest('.modal-tools-trigger');
+    const toolsWrapper = document.getElementById('modal-tools-wrapper');
+    if (toolsTrigger) {
+        e.stopPropagation();
+        toolsWrapper.classList.toggle('expanded');
+        return;
+    }
+    // Закрываем панель инструментов при клике мимо неё
+    if (toolsWrapper && toolsWrapper.classList.contains('expanded') && !target.closest('.modal-tools-wrapper')) {
+        toolsWrapper.classList.remove('expanded');
     }
 
     // 9. ЗАКРЫТИЕ ВСЕХ МЕНЮ ПРИ КЛИКЕ ВНЕ
