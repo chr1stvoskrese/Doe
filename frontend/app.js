@@ -3492,7 +3492,18 @@ async function endDrag() {
             });
             state.columns.sort((a, b) => a.position - b.position);
 
-            try { await saveColumnsOrder(orderedIds); } catch (e) {}
+            try { 
+                await saveColumnsOrder(orderedIds); 
+                
+                // 🔥 ФИКС КРОСС-ВКЛАДОЧНОГО ЗАЛИПАНИЯ КОЛОНОК:
+                // При переносе колонки в другую вкладку её DOM-элемент вставляется на новую доску,
+                // но локальный стейт (state.columns) о ней не знает, так как вкладка загрузилась ДО переноса.
+                // Бесшумно запрашиваем обновленные данные, чтобы восстановить интерактивность (разворачивание, карточки и т.д.)
+                if (state.activeWorkspaceId !== originalWorkspaceId) {
+                    const freshColumns = await fetchColumns(state.activeWorkspaceId);
+                    state.columns = freshColumns.map(c => ({ ...c, collapsed: c.collapsed || false }));
+                }
+            } catch (e) { console.error("Ошибка сохранения порядка колонок", e); }
         }
 
         if (dragType === 'card') {
