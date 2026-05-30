@@ -144,6 +144,18 @@
             </div>
         </div>
 
+        <!-- КНОПКА ГРАФА СВЯЗЕЙ -->
+        <button class="icon-btn" id="graph-trigger" aria-label="Граф связей">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="5" cy="6" r="2.5"></circle>
+                <circle cx="19" cy="6" r="2.5"></circle>
+                <circle cx="12" cy="18" r="2.5"></circle>
+                <line x1="7" y1="7" x2="10.5" y2="16.5"></line>
+                <line x1="17" y1="7" x2="13.5" y2="16.5"></line>
+                <line x1="7.4" y1="6" x2="16.6" y2="6"></line>
+            </svg>
+        </button>
+
         <!-- НОВЫЙ БЛОК ПОИСКА -->
         <div class="search-wrapper" id="global-search-wrapper">
             <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
@@ -592,6 +604,38 @@
             <input type="number" class="time-input" id="dp-minute" min="0" max="59">
         </div>
     </div>
+</div>
+
+<!-- 🕸️ МОДАЛКА ГРАФА СВЯЗЕЙ -->
+<div class="modal-overlay" id="graph-modal">
+    <div class="modal-card graph-card">
+        <div class="modal-header">
+            <span class="modal-title" data-i18n="graph.title">Граф связей</span>
+            <button class="modal-close" aria-label="Закрыть">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+        </div>
+        <div class="graph-body">
+            <canvas id="graph-canvas"></canvas>
+            <!-- Плавающие контролы графа -->
+            <div class="graph-controls">
+                <div class="graph-slider-wrapper">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 3H11a9 9 0 0 0 0 18h10v-6H11a3 3 0 0 1 0-6h10V3z"/><path d="M16 3v6"/><path d="M16 15v6"/></svg>
+                    <input type="range" id="graph-repulsion-slider" min="1000" max="50000" value="9000" step="1000" title="Сила отталкивания">
+                </div>
+                <button class="graph-toggle-btn" id="graph-arrows-toggle" type="button" aria-label="Стрелки">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                        <polyline points="13 6 19 12 13 18"></polyline>
+                    </svg>
+                    <span data-i18n="graph.arrows">Стрелки</span>
+                </button>
+            </div>
+            <div id="graph-empty" class="graph-empty" style="display: none;"></div>
+        </div>
+    </div>
+    <!-- Тултип для подписей карточек (position: fixed escapes overlay) -->
+    <div id="graph-tooltip" class="custom-tooltip"><div class="tooltip-inner"></div></div>
 </div>
 
 <!-- 🍞 ЭСТЕТИЧНОЕ ВНУТРИПРОГРАММНОЕ УВЕДОМЛЕНИЕ (TOAST) -->

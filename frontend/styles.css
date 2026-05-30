@@ -1394,9 +1394,10 @@ body[class*="is-dragging-"] .card-inline-trigger {
 }
 
 /* Скрываем содержимое внутри призрака колонки */
-.column.is-ghost > * {
+.column.is-ghost * {
     visibility: hidden !important;
-    transition: none !important; /* Мгновенное скрытие, убивает задержку от transition: all у кнопки добавления */
+    opacity: 0 !important;
+    transition: none !important; /* ФИКС: Применяется ко ВСЕМ потомкам (убирает 0.15s задержку у кнопки троеточия) */
 }
 
 .modal-overlay {
@@ -1445,7 +1446,7 @@ body[class*="is-dragging-"] .card-inline-trigger {
     padding: 16px; /* Строгие 16px со всех сторон, как в колонках */
     border-bottom: 1px solid var(--border-light);
     display: flex;
-    align-items: flex-start;
+    align-items: center; /* ФИКС: Идеальное выравнивание по вертикали */
     justify-content: space-between;
     position: relative;
 }
@@ -1463,7 +1464,7 @@ body[class*="is-dragging-"] .card-inline-trigger {
     align-items: center;
     gap: 4px; /* Небольшой зазор между кнопками */
     flex-shrink: 0;
-    margin-top: -2px; /* Выравнивание по уровню текста заголовка */
+    margin-top: 0; /* ФИКС: Сброс костыля. Теперь кнопки встанут строго по паддингу 16px сверху и снизу */
 }
 
 /* ==========================================
@@ -1561,7 +1562,7 @@ body[class*="is-dragging-"] .card-inline-trigger {
 
 /* Выравнивание одиночного крестика для остальных модалок (Тема, Язык и т.д.) */
 .modal-header > .modal-close {
-    margin-top: -2px;
+    margin-top: 0; /* ФИКС: Убираем костыль, теперь flexbox центрирует всё сам */
 }
 
 /* Кнопки в шапке модалки (закрыть, развернуть, экспорт) в стиле эстетичных кнопок */
@@ -5176,6 +5177,7 @@ body.is-dragging-attachment .attachment-item:not(.attachment-drag-clone) {
     flex: 1;
     min-width: 0;
     margin-right: 12px; /* Зазор до кнопок закрытия */
+    margin-top: 3px; /* ФИКС: Идеальное визуальное выравнивание центра текста с 28px кнопками */
 }
 
 /* Специфичные стили для заголовка именно ОТКРЫТОЙ КАРТОЧКИ (для переноса) */
@@ -5263,7 +5265,7 @@ body.is-dragging-attachment .attachment-item:not(.attachment-drag-clone) {
     resize: none;
     overflow: hidden;
     padding: 4px 6px;
-    margin-left: -6px; /* Компенсация padding для сохранения позиции текста */
+    margin: -4px 0 -4px -6px; /* ФИКС: Жестко компенсируем padding сверху и снизу. Теперь серый фон инпута встанет идеально вровень с кнопками, а даты подтянутся обратно наверх */
     display: block;
     line-height: 1.4;
     
@@ -6380,4 +6382,147 @@ mark.local-search-highlight.active {
     display: inline !important;
     box-shadow: none !important;
     border: none !important;
+}
+
+/* ==========================================
+   МОДАЛКА ГРАФА СВЯЗЕЙ
+   ========================================== */
+.graph-card {
+    width: 90vw !important;
+    height: 85vh !important;
+    max-width: 1400px !important;
+    max-height: 900px !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+}
+
+.graph-body {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    background: var(--bg-board);
+    border-bottom-left-radius: var(--radius-card);
+    border-bottom-right-radius: var(--radius-card);
+}
+
+#graph-canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    cursor: grab;
+    touch-action: none; /* отключаем системные жесты, чтобы зум/пан работали корректно */
+}
+
+.graph-empty {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 500;
+    padding: 24px;
+    white-space: pre-line;
+    pointer-events: none;
+}
+
+/* Плавающие контролы графа */
+.graph-controls {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    display: flex;
+    gap: 8px;
+    z-index: 2;
+}
+
+.graph-toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 12px;
+    border: 1px solid rgba(128, 128, 128, 0.25);
+    border-radius: 999px;
+    background: var(--bg-card, var(--bg-board, #fff));
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    transition: all 0.15s ease;
+    user-select: none;
+}
+
+.graph-toggle-btn:hover {
+    color: var(--text-primary);
+    border-color: var(--brand-pine, #4A5A48);
+}
+
+.graph-toggle-btn.active {
+    background: var(--brand-pine, #4A5A48);
+    border-color: var(--brand-pine, #4A5A48);
+    color: #fff;
+}
+
+.graph-toggle-btn svg { flex-shrink: 0; }
+
+/* ==========================================
+   СЛАЙДЕР СИЛЫ В ГРАФЕ
+   ========================================== */
+.graph-slider-wrapper {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 12px;
+    border: 1px solid rgba(128, 128, 128, 0.25);
+    border-radius: 999px;
+    background: var(--surface-card);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    height: 32px;
+}
+
+.graph-slider-wrapper svg {
+    color: var(--text-secondary);
+    flex-shrink: 0;
+}
+
+#graph-repulsion-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 80px;
+    background: transparent;
+    cursor: pointer;
+}
+
+#graph-repulsion-slider:focus {
+    outline: none;
+}
+
+#graph-repulsion-slider::-webkit-slider-runnable-track {
+    width: 100%;
+    height: 4px;
+    background: var(--border-light);
+    border-radius: 2px;
+}
+
+#graph-repulsion-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 14px;
+    width: 14px;
+    border-radius: 50%;
+    background: var(--brand-pine);
+    margin-top: -5px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    transition: transform 0.1s;
+}
+
+#graph-repulsion-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.15);
+}
+
+[data-theme="dark"] #graph-repulsion-slider::-webkit-slider-thumb {
+    background: #89A085;
 }
