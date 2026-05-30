@@ -507,6 +507,7 @@ body {
     color: var(--text-secondary);
     cursor: pointer;
     transition: all 0.2s ease;
+    flex-shrink: 0; /* Защита от деформации при нехватке места */
 }
 
 /* Эффект наведения на кнопку-иконку */
@@ -6469,7 +6470,7 @@ mark.local-search-highlight.active {
 .graph-toggle-btn svg { flex-shrink: 0; }
 
 /* ==========================================
-   СЛАЙДЕР СИЛЫ В ГРАФЕ
+   УНИВЕРСАЛЬНЫЕ СЛАЙДЕРЫ (Граф и Календарь)
    ========================================== */
 .graph-slider-wrapper {
     display: inline-flex;
@@ -6488,26 +6489,35 @@ mark.local-search-highlight.active {
     flex-shrink: 0;
 }
 
-#graph-repulsion-slider {
+#graph-repulsion-slider, #cal-zoom-slider {
     -webkit-appearance: none;
     appearance: none;
-    width: 80px;
     background: transparent;
     cursor: pointer;
 }
 
-#graph-repulsion-slider:focus {
+#graph-repulsion-slider {
+    width: 80px;
+}
+
+#cal-zoom-slider {
+    width: 120px; /* Увеличили в 1.5 раза для ювелирной точности зума */
+}
+
+#graph-repulsion-slider:focus, #cal-zoom-slider:focus {
     outline: none;
 }
 
-#graph-repulsion-slider::-webkit-slider-runnable-track {
+#graph-repulsion-slider::-webkit-slider-runnable-track, 
+#cal-zoom-slider::-webkit-slider-runnable-track {
     width: 100%;
     height: 4px;
     background: var(--border-light);
     border-radius: 2px;
 }
 
-#graph-repulsion-slider::-webkit-slider-thumb {
+#graph-repulsion-slider::-webkit-slider-thumb, 
+#cal-zoom-slider::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
     height: 14px;
@@ -6519,10 +6529,448 @@ mark.local-search-highlight.active {
     transition: transform 0.1s;
 }
 
-#graph-repulsion-slider::-webkit-slider-thumb:hover {
+#graph-repulsion-slider::-webkit-slider-thumb:hover, 
+#cal-zoom-slider::-webkit-slider-thumb:hover {
     transform: scale(1.15);
 }
 
-[data-theme="dark"] #graph-repulsion-slider::-webkit-slider-thumb {
+[data-theme="dark"] #graph-repulsion-slider::-webkit-slider-thumb, 
+[data-theme="dark"] #cal-zoom-slider::-webkit-slider-thumb {
     background: #89A085;
+}
+
+/* ==========================================
+   КАЛЕНДАРЬ (Custom Minimalist Apple-style)
+   ========================================== */
+.calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+}
+
+.cal-controls-left {
+    display: flex;
+    align-items: center;
+    gap: 12px; /* Унифицированный зазор между логическими группами управления */
+    width: 300px; /* Увеличено с 250px для свободного размещения элементов */
+}
+
+.cal-controls-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 300px; /* Увеличено с 250px для сохранения симметрии */
+    justify-content: flex-end;
+}
+
+#cal-prev {
+    margin-right: -4px; /* Сближаем кнопки "<" и ">" для создания единого блока навигации */
+}
+
+.cal-title {
+    margin-left: 0; /* Убираем лишний отступ для получения математически одинаковых зазоров */
+    min-width: 120px; /* Оптимизируем ширину подписи для предотвращения сдавливания флекс-контейнера */
+}
+
+.cal-today-btn {
+    background: var(--surface-card);
+    border: 1px solid var(--border-light);
+    color: var(--text-primary);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    font-family: var(--font-main);
+    flex-shrink: 0; /* Защита от сжатия текста */
+}
+
+.cal-today-btn:hover {
+    background: var(--brand-pale);
+    color: var(--brand-pine);
+    border-color: rgba(74, 90, 72, 0.2);
+}
+[data-theme="dark"] .cal-today-btn {
+    background: rgba(255,255,255,0.04);
+}
+[data-theme="dark"] .cal-today-btn:hover {
+    background: rgba(137, 160, 133, 0.15);
+    color: #89A085;
+    border-color: rgba(137, 160, 133, 0.3);
+}
+
+.cal-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--surface-card);
+    position: relative;
+    --hour-height: 60px; /* Управляется из JS зумом */
+}
+
+/* --- СЕТКА МЕСЯЦА --- */
+.cal-month-view {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.cal-weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    border-bottom: 1px solid var(--border-light);
+    background: var(--bg-canvas);
+}
+
+.cal-weekday {
+    text-align: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    padding: 8px 0;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.cal-month-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    grid-auto-rows: 1fr;
+    flex: 1;
+    background: var(--border-light); /* Линии сетки через gap */
+    gap: 1px;
+}
+
+.cal-day-cell {
+    background: var(--surface-card);
+    padding: 4px 4px 8px 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    position: relative;
+    /* Убираем уродливый скроллбар, оставляем функционал скролла */
+    scrollbar-width: none; 
+}
+.cal-day-cell::-webkit-scrollbar {
+    display: none;
+}
+
+.cal-day-cell.other-month .cal-day-number {
+    opacity: 0.3;
+}
+
+.cal-day-cell.is-today .cal-day-number {
+    background: var(--brand-pine);
+    color: white;
+}
+
+.cal-day-number {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    margin-bottom: 2px;
+    align-self: center;
+}
+
+/* Мини-событие в месяце */
+.cal-event-chip {
+    font-size: 11px;
+    font-weight: 500;
+    background: var(--brand-pale);
+    color: var(--text-primary);
+    padding: 3px 6px;
+    border-radius: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+    transition: filter 0.15s;
+    border-left: 2px solid var(--brand-pine);
+}
+
+[data-theme="dark"] .cal-event-chip {
+    background: rgba(137, 160, 133, 0.15);
+    border-left-color: #89A085;
+}
+
+.cal-event-chip:hover {
+    filter: brightness(0.95);
+}
+[data-theme="dark"] .cal-event-chip:hover {
+    filter: brightness(1.2);
+}
+
+.cal-event-chip.is-done {
+    opacity: 0.5;
+    text-decoration: line-through;
+    border-left-color: var(--success-done);
+}
+
+/* --- СЕТКА НЕДЕЛИ И ДНЯ --- */
+.cal-time-view {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+}
+
+.cal-time-header {
+    display: flex;
+    border-bottom: 1px solid var(--border-light);
+    background: var(--bg-canvas);
+    z-index: 10;
+}
+
+/* Распорка, равная по ширине кастомному скроллбару */
+.cal-header-scrollbar-spacer {
+    width: 6px; 
+    flex-shrink: 0;
+}
+
+.cal-time-zone {
+    width: 60px;
+    flex-shrink: 0;
+    border-right: 1px solid var(--border-light);
+}
+
+.cal-time-days {
+    display: flex;
+    flex: 1;
+}
+
+.cal-time-day-hdr {
+    flex: 1;
+    padding: 8px 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    border-right: 1px solid var(--border-light);
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Идеальное центрирование всех элементов по горизонтали */
+    gap: 4px; /* Чуть увеличили отступ между днём недели и числом для "воздуха" */
+}
+.cal-time-day-hdr:last-child { border-right: none; }
+
+.cal-time-day-hdr span:first-child { 
+    font-size: 11px; 
+    color: var(--text-secondary); 
+    text-transform: uppercase; 
+}
+
+/* ЗАДАЕМ ОБЩИЙ РАЗМЕР ДЛЯ ВСЕХ ЧИСЕЛ (чтобы они стояли на одной оси по вертикали и горизонтали) */
+.cal-time-day-hdr span:last-child {
+    width: 28px; 
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+
+/* КРАСИМ ТОЛЬКО "СЕГОДНЯ" */
+.cal-time-day-hdr.is-today span:last-child {
+    background: var(--brand-pine);
+    color: white;
+}
+
+.cal-time-scroll {
+    flex: 1;
+    overflow-y: auto;
+    position: relative;
+    contain: strict;
+}
+
+/* Скрываем нативный скролл */
+.cal-time-scroll::-webkit-scrollbar { width: 6px; }
+.cal-time-scroll::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 4px; }
+
+.cal-time-grid {
+    position: relative;
+    display: flex;
+    height: calc(24 * var(--hour-height));
+    background: repeating-linear-gradient(to bottom, transparent, transparent calc(var(--hour-height) - 1px), var(--border-light) calc(var(--hour-height) - 1px), var(--border-light) var(--hour-height));
+}
+
+.cal-time-labels {
+    width: 60px;
+    flex-shrink: 0;
+    position: relative;
+    border-right: 1px solid var(--border-light);
+    background: var(--surface-card);
+}
+
+.cal-time-label {
+    position: absolute;
+    width: 100%;
+    text-align: right;
+    padding-right: 8px;
+    font-size: 10px;
+    color: var(--text-secondary);
+    transform: translateY(-50%); /* Выравнивание по линии */
+}
+
+/* Исключение для 0:00, чтобы текст не улетал вверх за пределы скролл-контейнера */
+.cal-time-label:first-child {
+    transform: translateY(0);
+    margin-top: 4px; /* Легкий отступ от самого потолка для "воздуха" */
+}
+
+.cal-time-columns {
+    display: flex;
+    flex: 1;
+    position: relative;
+}
+
+.cal-time-col {
+    flex: 1;
+    border-right: 1px solid var(--border-light);
+    position: relative;
+}
+.cal-time-col:last-child { border-right: none; }
+
+.cal-abs-event {
+    position: absolute;
+    background: var(--surface-card);
+    border-left: 3px solid var(--brand-pine);
+    border-radius: 6px;
+    padding: 4px 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-primary);
+    overflow: hidden;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+    transition: filter 0.15s, z-index 0s;
+    display: flex;
+    flex-direction: column;
+    z-index: 1;
+    container-type: size; /* Включаем контекст размеров для скрытия элементов при нехватке места */
+}
+
+/* Добавляем легкую заливку, чтобы текст читался поверх линий сетки */
+.cal-abs-event::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--brand-pine);
+    opacity: 0.1;
+    pointer-events: none;
+}
+
+[data-theme="dark"] .cal-abs-event {
+    background: var(--surface-card);
+    border-left-color: #89A085;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+[data-theme="dark"] .cal-abs-event::before {
+    background: #89A085;
+    opacity: 0.15;
+}
+
+.cal-abs-event:hover {
+    filter: brightness(0.95);
+    z-index: 10;
+}
+[data-theme="dark"] .cal-abs-event:hover {
+    filter: brightness(1.2);
+}
+
+.cal-abs-event.is-done {
+    opacity: 0.6;
+    border-left-color: var(--success-done);
+}
+.cal-abs-event.is-done .cal-ev-title {
+    text-decoration: line-through;
+}
+
+.cal-ev-title {
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex-shrink: 0; /* Запрещаем сжимать заголовок */
+}
+.cal-ev-time {
+    font-size: 10px;
+    opacity: 0.7;
+    margin-top: 2px;
+    font-family: var(--font-mono);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-height: 0; /* Позволяет блоку времени безопасно исчезать при сильном зуме */
+}
+
+/* Senior UI Polish: Если карточка сплющивается (высота меньше 36px) — элегантно скрываем время, чтобы не было обрезки наполовину */
+@container (max-height: 36px) {
+    .cal-ev-time {
+        display: none;
+    }
+    .cal-ev-title {
+        margin: auto 0; /* Идеальное математическое центрирование по вертикали во flex-контейнере */
+        line-height: 1.1; /* Срезаем невидимый типографический отступ шрифта снизу и сверху */
+    }
+}
+
+/* Текущая линия времени (красная) */
+.cal-now-line {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: #D35446;
+    z-index: 20;
+    pointer-events: none;
+}
+.cal-now-line::before {
+    content: '';
+    position: absolute;
+    left: -4px;
+    top: -4px;
+    width: 10px;
+    height: 10px;
+    background: #D35446;
+    border-radius: 50%;
+    /* Эффект пульсирующего свечения Apple Calendar */
+    box-shadow: 0 0 0 3px rgba(211, 84, 70, 0.2);
+}
+
+/* Эстетичная метка точного времени над линией */
+.cal-now-line::after {
+    content: attr(data-time);
+    position: absolute;
+    left: 14px; /* Чуть отодвинем от кружка, чтобы был воздух */
+    bottom: 4px; /* Приподнимем над линией, чтобы текст на ней не лежал */
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    color: #D35446;
+    pointer-events: none;
+    
+    /* Чистый затемняющий прямоугольник без "мыла" */
+    background: rgba(0, 0, 0, 0.3);
+    padding: 1px 4px;
+    border-radius: 4px;
+}
+
+[data-theme="dark"] .cal-now-line::before {
+    box-shadow: 0 0 0 3px rgba(214, 90, 75, 0.3);
+}
+
+[data-theme="dark"] .cal-now-line::after {
+    color: #D65A4B;
 }

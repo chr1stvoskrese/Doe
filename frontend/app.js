@@ -160,11 +160,13 @@ const translations = {
 const dpLocales = {
     ru: {
         months: ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'],
+        monthsGenitive: ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'],
         days: ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'],
         time: 'Время'
     },
     en: {
         months: ['January','February','March','April','May','June','July','August','September','October','November','December'],
+        monthsGenitive: ['January','February','March','April','May','June','July','August','September','October','November','December'],
         days: ['Mo','Tu','We','Th','Fr','Sa','Su'],
         time: 'Time'
     }
@@ -725,8 +727,9 @@ function updateCardAppearance(cardElement, task, columnMode) {
         const isOverdue = !task.completed_at && new Date(dateStr) < new Date();
         const overdueClass = isOverdue ? 'overdue' : '';
         const icon = isOverdue
-            ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>'
-            : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>';
+            ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>'
+            : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>';
+        
         newContent += `<div class="due-date-pill ${overdueClass}">${icon}<span>${formatShortDate(task.due_date)}</span></div>`;
     }
 
@@ -765,8 +768,8 @@ function generateCardHtml(task, columnMode) {
         const isOverdue = !task.completed_at && new Date(dateStr) < new Date();
         const overdueClass = isOverdue ? 'overdue' : '';
         const icon = isOverdue
-            ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>'
-            : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>';
+            ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>'
+            : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>';
         dueDateHtml = `<div class="due-date-pill ${overdueClass}">${icon}<span>${formatShortDate(task.due_date)}</span></div>`;
     }
 
@@ -4428,8 +4431,8 @@ async function loadTaskIntoModal(taskId, pushToStack = true, highlightQuery = nu
                 modalDueDatePill.classList.toggle('overdue', isOverdue);
                 
                 const icon = isOverdue
-                    ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>'
-                    : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>';
+                    ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>'
+                    : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>';
                 modalDueDatePill.innerHTML = `${icon}<span>${formatShortDate(task.due_date)}</span>`;
             } else {
                 modalDueDatePill.classList.remove('overdue');
@@ -7939,39 +7942,51 @@ function openDueDateModal(taskId, currentDueDate) {
         }
     };
 
-    // Кнопка Очистить
-    const clearBtn = document.getElementById('btn-clear-due-date');
-    const newClearBtn = clearBtn.cloneNode(true);
-    clearBtn.replaceWith(newClearBtn);
-    
-    newClearBtn.onclick = async () => {
-        newClearBtn.style.opacity = '0.5';
-        newClearBtn.disabled = true;
-        try {
-            await updateTask(taskId, { due_date: null });
+    // Кнопка Очистить / Отмена
+            const clearBtn = document.getElementById('btn-clear-due-date');
+            const newClearBtn = clearBtn.cloneNode(true);
+            clearBtn.replaceWith(newClearBtn);
             
-            // Обновляем локальный стейт
-            for (let col of state.columns) {
-                let t = col.tasks.find(task => task.id == taskId);
-                if (t) {
-                    t.due_date = null;
-                    const cardEl = document.querySelector(`.card[data-card-id="${taskId}"]`);
-                    if (cardEl) updateCardAppearance(cardEl, t, col.mode);
-                    break;
-                }
+            if (currentDueDate) {
+                // Если срок был задан ранее — показываем кнопку "Очистить"
+                newClearBtn.textContent = t('modals.dueDateClear');
+                newClearBtn.setAttribute('data-i18n', 'modals.dueDateClear');
+                newClearBtn.onclick = async () => {
+                    newClearBtn.style.opacity = '0.5';
+                    newClearBtn.disabled = true;
+                    try {
+                        await updateTask(taskId, { due_date: null });
+                        
+                        // Обновляем локальный стейт
+                        for (let col of state.columns) {
+                            let t = col.tasks.find(task => task.id == taskId);
+                            if (t) {
+                                t.due_date = null;
+                                const cardEl = document.querySelector(`.card[data-card-id="${taskId}"]`);
+                                if (cardEl) updateCardAppearance(cardEl, t, col.mode);
+                                break;
+                            }
+                        }
+                        
+                        loadTaskIntoModal(taskId, false);
+                        modal.classList.remove('show');
+                    } catch (e) {
+                        window.showToast(t('alerts.error'), 'Не удалось очистить срок', true);
+                    } finally {
+                        newClearBtn.style.opacity = '1';
+                        newClearBtn.disabled = false;
+                    }
+                };
+            } else {
+                // Если срок не задан — показываем кнопку "Отмена"
+                newClearBtn.textContent = t('cancel');
+                newClearBtn.setAttribute('data-i18n', 'cancel');
+                newClearBtn.onclick = () => {
+                    modal.classList.remove('show');
+                };
             }
             
-            loadTaskIntoModal(taskId, false);
-            modal.classList.remove('show');
-        } catch (e) {
-            window.showToast(t('alerts.error'), 'Не удалось очистить срок', true);
-        } finally {
-            newClearBtn.style.opacity = '1';
-            newClearBtn.disabled = false;
-        }
-    };
-    
-    modal.classList.add('show');
+            modal.classList.add('show');
 }
 
 // ==========================================
@@ -9077,3 +9092,430 @@ async function renderRemindersDropdown() {
 
 // Запускаем периодический опрос активных напоминаний раз в 15 секунд для синхронизации красной точки
 setInterval(updateBellBadge, 15000);
+
+// ==========================================
+// ГЛОБАЛЬНЫЙ КАЛЕНДАРЬ
+// ==========================================
+const Calendar = {
+    modal: null, body: null, titleLabel: null, zoomWrapper: null, zoomSlider: null,
+    events: [],
+    currentDate: new Date(),
+    view: 'month', // 'month', 'week', 'day'
+    zoomHourHeight: 60, // px per hour
+    
+    init() {
+        this.modal = document.getElementById('calendar-modal');
+        this.body = document.getElementById('cal-body');
+        this.titleLabel = document.getElementById('cal-title-label');
+        this.zoomWrapper = document.getElementById('cal-zoom-wrapper');
+        this.zoomSlider = document.getElementById('cal-zoom-slider');
+        
+        document.getElementById('calendar-trigger').addEventListener('click', () => this.open());
+        
+        document.getElementById('cal-prev').addEventListener('click', () => this.navigate(-1));
+        document.getElementById('cal-next').addEventListener('click', () => this.navigate(1));
+        document.getElementById('cal-today').addEventListener('click', () => {
+            this.currentDate = new Date();
+            this.render();
+        });
+        
+        const viewBtns = this.modal.querySelectorAll('.cal-controls-center .segmented-btn');
+        viewBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                viewBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                this.view = btn.dataset.view;
+                this.zoomWrapper.style.display = this.view === 'month' ? 'none' : 'inline-flex';
+                this.render();
+            });
+        });
+
+        this.zoomSlider.addEventListener('input', (e) => {
+            this.zoomHourHeight = parseInt(e.target.value);
+            this.body.style.setProperty('--hour-height', `${this.zoomHourHeight}px`);
+        });
+
+        // 🔥 ДОБАВЛЕНО: Обработка Pinch-to-Zoom (Сведение/разведение пальцев) на тачпаде
+        this.body.addEventListener('wheel', (e) => {
+            // Браузеры транслируют жест pinch-to-zoom как wheel с зажатым ctrlKey
+            if (e.ctrlKey && this.view !== 'month') {
+                e.preventDefault(); // Блокируем системный зум браузера всей страницы
+
+                const zoomSpeed = 0.5; // Чувствительность зума
+                let newZoom = this.zoomHourHeight - (e.deltaY * zoomSpeed);
+                
+                // Жесткие лимиты из ползунка (min: 30, max: 150)
+                newZoom = Math.max(30, Math.min(150, newZoom));
+
+                if (newZoom !== this.zoomHourHeight) {
+                    const scrollContainer = this.body.querySelector('.cal-time-scroll');
+                    
+                    if (scrollContainer) {
+                        // 🚀 SENIOR UX: Зум с фокусом на курсор. 
+                        // Вычисляем, какая точка сетки времени сейчас под курсором, 
+                        // и подгоняем скролл так, чтобы после зума она осталась под ним.
+                        const rect = scrollContainer.getBoundingClientRect();
+                        const cursorY = e.clientY - rect.top; // Позиция мыши относительно контейнера
+                        const scrollY = scrollContainer.scrollTop; // Текущий скролл
+                        
+                        const absoluteY = scrollY + cursorY; // Абсолютная точка на виртуальном холсте
+                        const zoomRatio = newZoom / this.zoomHourHeight; // Коэффициент изменения
+                        
+                        // Применяем зум
+                        this.zoomHourHeight = newZoom;
+                        this.body.style.setProperty('--hour-height', `${this.zoomHourHeight}px`);
+                        this.zoomSlider.value = this.zoomHourHeight; // Синхронизируем ползунок
+                        
+                        // Корректируем скролл с учетом нового масштаба
+                        const newAbsoluteY = absoluteY * zoomRatio;
+                        scrollContainer.scrollTop = newAbsoluteY - cursorY;
+                    } else {
+                        // Фолбэк, если контейнер не найден
+                        this.zoomHourHeight = newZoom;
+                        this.body.style.setProperty('--hour-height', `${this.zoomHourHeight}px`);
+                        this.zoomSlider.value = this.zoomHourHeight;
+                    }
+                }
+            }
+        }, { passive: false }); // КРИТИЧНО: passive: false позволяет вызывать e.preventDefault()
+    },
+    
+    async open() {
+        closeAllDropdowns();
+        this.modal.classList.add('show');
+        
+        // Сброс на сегодня при открытии
+        this.currentDate = new Date();
+        this.body.innerHTML = `<div class="graph-empty" style="display:flex;">Загрузка данных...</div>`;
+        
+        try {
+            const res = await fetch(`${API_BASE}/system/calendar`);
+            if (res.ok) {
+                const data = await res.json();
+                // Парсим даты
+                this.events = data.map(ev => ({
+                    ...ev,
+                    dateObj: new Date(ev.due_date)
+                }));
+                this.render();
+            }
+        } catch (e) {
+            console.error("Calendar fetch error:", e);
+            this.body.innerHTML = `<div class="graph-empty" style="display:flex;">Ошибка загрузки</div>`;
+        }
+    },
+    
+    navigate(dir) {
+        if (this.view === 'month') {
+            this.currentDate.setMonth(this.currentDate.getMonth() + dir);
+        } else if (this.view === 'week') {
+            this.currentDate.setDate(this.currentDate.getDate() + (dir * 7));
+        } else {
+            this.currentDate.setDate(this.currentDate.getDate() + dir);
+        }
+        this.render();
+    },
+    
+    getStartOfWeek(date) {
+        const d = new Date(date);
+        const day = d.getDay();
+        const diff = d.getDate() - day + (day === 0 ? -6 : 1); // С понедельника
+        return new Date(d.setDate(diff));
+    },
+
+    formatTimeText(date, durationSec) {
+        const h = date.getHours().toString().padStart(2, '0');
+        const m = date.getMinutes().toString().padStart(2, '0');
+        if (durationSec <= 3600) return `${h}:${m}`;
+        const end = new Date(date.getTime() + durationSec * 1000);
+        const eh = end.getHours().toString().padStart(2, '0');
+        const em = end.getMinutes().toString().padStart(2, '0');
+        return `${h}:${m} - ${eh}:${em}`;
+    },
+
+    render() {
+        const locale = dpLocales[currentLang];
+        this.body.style.setProperty('--hour-height', `${this.zoomHourHeight}px`);
+        
+        if (this.view === 'month') {
+            this.renderMonth(locale);
+        } else {
+            this.renderTimeView(locale, this.view === 'week');
+        }
+    },
+    
+    renderMonth(locale) {
+        const year = this.currentDate.getFullYear();
+        const month = this.currentDate.getMonth();
+        this.titleLabel.textContent = `${locale.months[month]} ${year}`;
+        
+        const firstDay = new Date(year, month, 1).getDay();
+        const startDay = firstDay === 0 ? 6 : firstDay - 1; 
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const daysInPrevMonth = new Date(year, month, 0).getDate();
+        
+        let html = `<div class="cal-month-view">`;
+        html += `<div class="cal-weekdays">${locale.days.map(d => `<div class="cal-weekday">${d}</div>`).join('')}</div>`;
+        html += `<div class="cal-month-grid">`;
+        
+        const today = new Date();
+        const addCell = (dNum, isOther, curDateObj) => {
+            const isToday = !isOther && year === today.getFullYear() && month === today.getMonth() && dNum === today.getDate();
+            
+            // Ищем события на этот день
+            const dayEvents = this.events.filter(ev => 
+                ev.dateObj.getFullYear() === curDateObj.getFullYear() &&
+                ev.dateObj.getMonth() === curDateObj.getMonth() &&
+                ev.dateObj.getDate() === curDateObj.getDate()
+            ).sort((a,b) => a.dateObj - b.dateObj);
+            
+            let evHtml = dayEvents.map(ev => {
+                const time = `${ev.dateObj.getHours().toString().padStart(2,'0')}:${ev.dateObj.getMinutes().toString().padStart(2,'0')}`;
+                return `<div class="cal-event-chip ${ev.completed ? 'is-done' : ''}" data-id="${ev.id}" data-ws="${ev.workspace_id}" data-col="${ev.column_id}">${time} ${escapeHtml(ev.title)}</div>`;
+            }).join('');
+
+            return `<div class="cal-day-cell ${isOther ? 'other-month' : ''} ${isToday ? 'is-today' : ''}">
+                <div class="cal-day-number">${dNum}</div>
+                ${evHtml}
+            </div>`;
+        };
+
+        // Предыдущий месяц
+        for (let i = 0; i < startDay; i++) {
+            const d = daysInPrevMonth - startDay + i + 1;
+            html += addCell(d, true, new Date(year, month - 1, d));
+        }
+        // Текущий месяц
+        for (let i = 1; i <= daysInMonth; i++) {
+            html += addCell(i, false, new Date(year, month, i));
+        }
+        // Следующий месяц
+        const totalCells = startDay + daysInMonth;
+        const remaining = Math.ceil(totalCells / 7) * 7 - totalCells;
+        for (let i = 1; i <= remaining; i++) {
+            html += addCell(i, true, new Date(year, month + 1, i));
+        }
+        
+        html += `</div></div>`;
+        this.body.innerHTML = html;
+        this.attachEventClicks();
+    },
+    
+    renderTimeView(locale, isWeek) {
+        let startDate;
+        if (isWeek) {
+            startDate = this.getStartOfWeek(this.currentDate);
+            const endDate = new Date(startDate);
+            endDate.setDate(startDate.getDate() + 6);
+            
+            let m1 = locale.months[startDate.getMonth()];
+            let m2 = locale.months[endDate.getMonth()];
+            if (startDate.getMonth() === endDate.getMonth()) {
+                this.titleLabel.textContent = `${m1} ${startDate.getFullYear()}`;
+            } else {
+                this.titleLabel.textContent = `${m1} - ${m2} ${startDate.getFullYear()}`;
+            }
+        } else {
+            startDate = new Date(this.currentDate);
+            // Если есть родительный падеж (monthsGenitive) - используем его, иначе обычный массив
+            const monthName = locale.monthsGenitive ? locale.monthsGenitive[startDate.getMonth()] : locale.months[startDate.getMonth()];
+            this.titleLabel.textContent = `${startDate.getDate()} ${monthName} ${startDate.getFullYear()}`;
+        }
+        
+        const daysCount = isWeek ? 7 : 1;
+        const today = new Date();
+        
+        let headerHtml = `<div class="cal-time-header"><div class="cal-time-zone"></div><div class="cal-time-days">`;
+        const colDates = [];
+        
+        for (let i = 0; i < daysCount; i++) {
+            const d = new Date(startDate);
+            d.setDate(startDate.getDate() + i);
+            colDates.push(d);
+            const isToday = d.getFullYear() === today.getFullYear() && d.getMonth() === today.getMonth() && d.getDate() === today.getDate();
+            const dayName = locale.days[d.getDay() === 0 ? 6 : d.getDay() - 1]; 
+            
+            headerHtml += `<div class="cal-time-day-hdr ${isToday ? 'is-today' : ''}">
+                <span>${dayName}</span><span>${d.getDate()}</span>
+            </div>`;
+        }
+        // ДОБАВЛЕНА РАСПОРКА В КОНЕЦ ШАПКИ ДЛЯ КОМПЕНСАЦИИ ШИРИНЫ СКРОЛЛБАРА (6px)
+        headerHtml += `</div><div class="cal-header-scrollbar-spacer"></div></div>`;
+        
+        let gridHtml = `<div class="cal-time-scroll" id="cal-time-scroll"><div class="cal-time-grid">`;
+        
+        // Линейка времени слева
+        gridHtml += `<div class="cal-time-labels">`;
+        for (let h = 0; h < 24; h++) {
+            gridHtml += `<div class="cal-time-label" style="top: calc(${h} * var(--hour-height))">${h}:00</div>`;
+        }
+        gridHtml += `</div>`;
+        
+        // Колонки дней
+        gridHtml += `<div class="cal-time-columns">`;
+        
+        let earliestEventHour = 24; // Для умного автоскролла
+
+        for (let i = 0; i < daysCount; i++) {
+            const curDate = colDates[i];
+            const curDayStartTs = new Date(curDate.getFullYear(), curDate.getMonth(), curDate.getDate(), 0, 0, 0).getTime();
+            const curDayEndTs = curDayStartTs + 24 * 3600 * 1000;
+            
+            gridHtml += `<div class="cal-time-col">`;
+            
+            // 1. Фильтруем события, которые ПЕРЕСЕКАЮТСЯ с текущими сутками
+            const dayEvents = [];
+            this.events.forEach(ev => {
+                const origDurSec = ev.duration > 0 ? ev.duration : 3600;
+                const evStartTs = ev.dateObj.getTime();
+                const evEndTs = evStartTs + origDurSec * 1000;
+
+                // Строгое условие пересечения отрезков времени
+                if (evStartTs < curDayEndTs && evEndTs > curDayStartTs) {
+                    // Вычисляем фактические рамки события внутри ЭТИХ суток
+                    const effectiveStartTs = Math.max(evStartTs, curDayStartTs);
+                    const effectiveEndTs = Math.min(evEndTs, curDayEndTs);
+                    const effectiveDurSec = (effectiveEndTs - effectiveStartTs) / 1000;
+
+                    dayEvents.push({
+                        originalEv: ev,
+                        dateObj: new Date(effectiveStartTs),
+                        effectiveDurSec: effectiveDurSec,
+                        origDurSec: origDurSec,
+                        isContinuation: evStartTs < curDayStartTs // Флаг: карточка пришла со вчерашнего дня
+                    });
+                }
+            });
+
+            // Сортируем по фактическому началу в ЭТИХ сутках
+            dayEvents.sort((a,b) => a.dateObj.getTime() - b.dateObj.getTime());
+            
+            // --- АЛГОРИТМ ГРУППИРОВКИ ПЕРЕСЕКАЮЩИХСЯ СОБЫТИЙ (Overlap Logic) ---
+            const groups = [];
+            let currentGroup = [];
+            let groupEnd = 0;
+
+            dayEvents.forEach(mappedEv => {
+                const start = mappedEv.dateObj.getTime();
+                // Для расчета плотности пересечений используем эффективную длительность с визуальным запасом (40 мин)
+                const end = start + Math.max(mappedEv.effectiveDurSec * 1000, 2400000); 
+
+                // Обновляем статистику для умного скролла
+                if (mappedEv.dateObj.getHours() < earliestEventHour) earliestEventHour = mappedEv.dateObj.getHours();
+
+                if (currentGroup.length === 0) {
+                    currentGroup.push({ mappedEv, start, end, colIndex: 0 });
+                    groupEnd = end;
+                } else if (start < groupEnd) {
+                    let colIndex = 0;
+                    while (currentGroup.some(item => item.colIndex === colIndex && item.end > start)) {
+                        colIndex++;
+                    }
+                    currentGroup.push({ mappedEv, start, end, colIndex });
+                    groupEnd = Math.max(groupEnd, end);
+                } else {
+                    groups.push(currentGroup);
+                    currentGroup = [{ mappedEv, start, end, colIndex: 0 }];
+                    groupEnd = end;
+                }
+            });
+            if (currentGroup.length > 0) groups.push(currentGroup);
+
+            // Рендерим группы с учетом разделения ширины
+            groups.forEach(group => {
+                const columnsCount = Math.max(...group.map(item => item.colIndex)) + 1;
+                
+                group.forEach(item => {
+                    const mappedEv = item.mappedEv;
+                    const ev = mappedEv.originalEv;
+                    const hours = mappedEv.dateObj.getHours();
+                    const mins = mappedEv.dateObj.getMinutes();
+                    
+                    const startSecFromMidnight = (hours * 3600) + (mins * 60);
+                    const secondsInDay = 24 * 3600;
+                    const maxAllowedDurSec = secondsInDay - startSecFromMidnight;
+
+                    // Используем эффективную длительность внутри этих суток
+                    const visDurSec = Math.min(Math.max(mappedEv.effectiveDurSec, 2400), maxAllowedDurSec); 
+                    
+                    const topPos = `calc((${hours} + ${mins}/60) * var(--hour-height))`;
+                    const heightPos = `calc((${visDurSec}/3600) * var(--hour-height))`;
+                    
+                    const widthPercent = 100 / columnsCount;
+                    const leftPercent = item.colIndex * widthPercent;
+                    
+                    // В тексте всегда показываем ОРИГИНАЛЬНОЕ время карточки для консистентности
+                    const timeText = this.formatTimeText(ev.dateObj, mappedEv.origDurSec);
+                    
+                    const positionStyle = `top: ${topPos}; height: ${heightPos}; left: ${leftPercent}%; width: calc(${widthPercent}% - 2px);`;
+                    
+                    // Класс is-continuation указывает, что это визуальный "хвост" задачи
+                    const continuationClass = mappedEv.isContinuation ? 'is-continuation' : '';
+                    
+                    gridHtml += `<div class="cal-abs-event ${ev.completed ? 'is-done' : ''} ${continuationClass}" 
+                                      data-id="${ev.id}" data-ws="${ev.workspace_id}" data-col="${ev.column_id}"
+                                      style="${positionStyle}">
+                        <div class="cal-ev-title">${escapeHtml(ev.title)}</div>
+                        <div class="cal-ev-time">${timeText}</div>
+                    </div>`;
+                });
+            });
+            
+            // Если это сегодня - рисуем красную линию времени
+            if (curDate.getFullYear() === today.getFullYear() && curDate.getMonth() === today.getMonth() && curDate.getDate() === today.getDate()) {
+                const nowH = today.getHours();
+                const nowM = today.getMinutes();
+                const nowTop = `calc((${nowH} + ${nowM}/60) * var(--hour-height))`;
+                
+                // Формируем красивую строку времени
+                const timeStr = `${nowH.toString().padStart(2, '0')}:${nowM.toString().padStart(2, '0')}`;
+                gridHtml += `<div class="cal-now-line" style="top: ${nowTop}" data-time="${timeStr}"></div>`;
+                
+                // Если нет ранних событий, пытаемся скроллить к текущему времени
+                if (earliestEventHour === 24) earliestEventHour = Math.max(0, nowH - 1);
+            }
+            
+            gridHtml += `</div>`;
+        }
+        
+        gridHtml += `</div></div></div>`; 
+        
+        this.body.innerHTML = `<div class="cal-time-view">${headerHtml}${gridHtml}</div>`;
+        this.attachEventClicks();
+        
+        // Умный автоскролл
+        setTimeout(() => {
+            const scrollEl = document.getElementById('cal-time-scroll');
+            if (scrollEl) {
+                // Пытаемся скроллить к самому раннему событию (с отступом в 1 час наверх)
+                // Если событий нет, скроллим к 8 утра
+                let targetHour = earliestEventHour === 24 ? 8 : earliestEventHour - 1;
+                targetHour = Math.max(0, targetHour); // Не ниже полуночи
+                
+                // Используем behavior: 'smooth' для эстетики открытия
+                scrollEl.scrollTo({
+                    top: targetHour * this.zoomHourHeight,
+                    behavior: 'smooth'
+                });
+            }
+        }, 50);
+    },
+    
+    attachEventClicks() {
+        this.body.querySelectorAll('.cal-event-chip, .cal-abs-event').forEach(el => {
+            el.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const id = parseInt(el.dataset.id);
+                const wsId = parseInt(el.dataset.ws);
+                const colId = parseInt(el.dataset.col);
+                
+                this.modal.classList.remove('show');
+                window.navigateToEntityGlobal(wsId, colId, id, null, true, true);
+            });
+        });
+    }
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+    Calendar.init();
+});

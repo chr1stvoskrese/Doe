@@ -1161,3 +1161,34 @@ async def get_graph(db: AsyncSession = Depends(get_session)):
 
     return {"nodes": nodes, "edges": edges}
 
+
+from sqlalchemy.orm import selectinload
+
+@router.get("/calendar")
+async def get_calendar_events(db: AsyncSession = Depends(get_session)):
+    """Возвращает все задачи с дедлайном для календаря."""
+    from src.db.models import TaskModel, ColumnModel
+    
+    stmt = select(TaskModel).options(
+        selectinload(TaskModel.timer_sessions),
+        selectinload(TaskModel.column)
+    ).where(TaskModel.due_date.isnot(None))
+    
+    res = await db.execute(stmt)
+    tasks = res.scalars().all()
+    
+    events = []
+    for t in tasks:
+        total_sec = sum((s.end_time - s.start_time).total_seconds() for s in t.timer_sessions if s.end_time)
+        events.append({
+            "id": t.id,
+            "title": t.title,
+            "due_date": t.due_date.isoformat() + 'Z',
+            "completed": t.completed_at is not None,
+            "column_id": t.column_id,
+            "workspace_id": t.column.workspace_id if t.column else None,
+            "duration": int(total_sec)
+        })
+        
+    return events
+
