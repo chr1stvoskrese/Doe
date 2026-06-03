@@ -3533,10 +3533,58 @@ body.is-dragging-modal * {
     -webkit-overflow-scrolling: touch; /* Включаем плавную нативную инерцию для Mac */
 }
 
-/* Аналогично для описания */
-.markdown-body, .description-input {
-    contain: content;
-    -webkit-overflow-scrolling: touch;
+.markdown-body {
+    position: relative; 
+    flex: 1;            
+    width: 100%;
+    overflow-y: auto;
+    overflow-x: visible; 
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    word-break: break-word;
+    padding: 12px;
+    font-size: 15px;
+    background: transparent;
+    border: none;
+    outline: none;
+    box-sizing: border-box;
+    cursor: text;
+    
+    /* 🚀 Изолируем Layout: браузер перестанет пересчитывать 8000 строк при скролле модалки */
+    contain: content; 
+}
+
+.description-input {
+    /* 🚀 ИДЕАЛЬНАЯ ПРОИЗВОДИТЕЛЬНОСТЬ ВВОДА (VS Code / Obsidian style) */
+    contain: strict !important; /* Полностью изолирует Paint и Layout: браузер рендерит только видимую часть поля */
+    transform: translateZ(0); /* Выносим textarea на отдельный GPU-слой */
+    will-change: transform;
+    text-rendering: optimizeSpeed !important; /* Выключаем дорогие лигатуры на 8000+ строках */
+    -webkit-font-smoothing: antialiased !important;
+    
+    position: relative; 
+    flex: 1;            
+    width: 100% !important;
+    height: 100% !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important; 
+    
+    /* Простые переносы, не требующие тяжелых вычислений от движка WebKit */
+    white-space: pre-wrap !important;
+    word-break: normal !important;
+    overflow-wrap: break-word !important; /* Безопасный перенос длинных ссылок без лагов */
+    
+    padding: 12px !important;
+    font-size: 15px;
+    font-family: var(--font-main);
+    line-height: 1.5;
+    color: var(--text-primary);
+    background: transparent !important;
+    border: none !important;
+    outline: none !important;
+    box-sizing: border-box !important;
+    cursor: text;
+    display: none;
 }
 
 /* ДОБАВЛЕНО: Принудительный перенос внутри всех тегов текста */
@@ -4026,6 +4074,11 @@ body.is-dragging-modal * {
     color: var(--text-primary);
     resize: none;
     white-space: pre-wrap;
+    /* Снимаем тяжёлый legacy-режим переноса: на каждый символ браузер пересчитывает
+       раскладку всего текста, и break-word делает этот проход заметно дороже.
+       overflow-wrap из общего правила выше всё равно разрывает слишком длинные токены,
+       поэтому визуально перенос остаётся прежним. */
+    word-break: normal;
 }
 
 .description-input::placeholder {
@@ -6973,4 +7026,94 @@ mark.local-search-highlight.active {
 
 [data-theme="dark"] .cal-now-line::after {
     color: #D65A4B;
+}
+
+/* ==========================================
+   CODEMIRROR 5 AESTHETIC OVERRIDES (POLISHED)
+   ========================================== */
+.CodeMirror {
+    position: relative;
+    flex: 1;
+    width: 100% !important;
+    height: 100% !important;
+    background: transparent !important;
+    border: none !important;
+    font-family: var(--font-main) !important;
+    font-size: 15px !important;
+    line-height: 1.45 !important; /* Идеально как было раньше */
+    color: var(--text-primary) !important;
+    cursor: text;
+    display: none;
+}
+
+/* Форсируем наш шрифт для всех внутренних слоев CodeMirror */
+.CodeMirror pre.CodeMirror-line, 
+.CodeMirror pre.CodeMirror-line-like {
+    font-family: var(--font-main) !important;
+    font-size: 15px !important;
+}
+
+.CodeMirror-scroll {
+    padding: 12px !important;
+    overflow-x: hidden !important; 
+}
+
+.CodeMirror-lines {
+    padding: 0 !important;
+}
+
+/* 🚀 Делаем курсор элегантным (Apple-style) */
+.CodeMirror-cursor {
+    border-left: 1.5px solid var(--text-primary) !important;
+    height: 18px !important; /* Уменьшаем высоту */
+    margin-top: 2px !important; /* Центрируем по вертикали */
+}
+
+.CodeMirror-selected {
+    background: #C3C6BC !important;
+}
+
+[data-theme="dark"] .CodeMirror-selected {
+    background: #5C635A !important;
+}
+
+/* Скроллбар */
+.CodeMirror-vscrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+.CodeMirror-vscrollbar::-webkit-scrollbar-track { background: transparent; border-radius: 4px; }
+.CodeMirror-vscrollbar::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 4px; }
+.CodeMirror-vscrollbar::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); }
+.CodeMirror-focused { outline: none !important; }
+[data-theme="dark"] .CodeMirror { color: var(--text-primary) !important; }
+
+/* Новое сверхбыстрое выделение локального поиска (CSS Highlight API) */
+::highlight(local-search) {
+    background-color: rgba(195, 198, 188, 0.5);
+    color: var(--text-primary);
+}
+::highlight(local-search-active) {
+    background-color: #C3C6BC;
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] ::highlight(local-search) {
+    background-color: rgba(92, 99, 90, 0.5);
+    color: #FFFFFF;
+}
+[data-theme="dark"] ::highlight(local-search-active) {
+    background-color: #5C635A;
+    color: #FFFFFF;
+}
+
+/* Изолируем контейнер рендера. Изменения внутри него не затронут остальную модалку */
+#task-desc-render {
+    contain: strict !important;
+}
+
+/* Браузер не будет тратить CPU на абзацы и блоки кода, которые находятся ниже скролла */
+#task-desc-render > p,
+#task-desc-render > pre,
+#task-desc-render > ul,
+#task-desc-render > table {
+    content-visibility: auto;
+    contain-intrinsic-size: 1px 50px; /* Сообщаем браузеру примерную высоту скрытого блока, чтобы скроллбар не прыгал */
 }

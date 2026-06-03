@@ -1,5 +1,6 @@
 let state = { columns: [], workspaces: [], activeWorkspaceId: null };
 const API_BASE = '/api/v1';
+let cmEditor = null; // Глобальный редактор
 
 const translations = {
     ru: {
@@ -233,6 +234,37 @@ function applyTheme(theme, saveToBackend = false) {
     } else {
         updateDOM();
     }
+}
+
+function renderMarkdownProgressively(text, container, onComplete) {
+    window.isRenderingMarkdown = true;
+
+    const fullHtml = parseMarkdownWithMath(text);
+    
+    if (text.length < 5000) {
+        container.innerHTML = fullHtml;
+        enhanceCodeBlocks(container);
+        window.isRenderingMarkdown = false;
+        if (onComplete) onComplete();
+        return;
+    }
+
+    // 🌟 ФИКС: Используем visibility: hidden. 
+    // Браузер высчитает высоту для скролла, но не нарисует текст на экране.
+    container.style.visibility = 'hidden'; 
+    container.innerHTML = fullHtml;
+    
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            // 1. Применяем скролл (он вызовется внутри onComplete) ДО отрисовки
+            if (onComplete) onComplete();
+            
+            // 2. Делаем текст видимым - он появится мгновенно на нужном месте
+            container.style.visibility = '';
+            enhanceCodeBlocks(container);
+            window.isRenderingMarkdown = false;
+        });
+    });
 }
 
 function formatExactTime(seconds) {
@@ -559,8 +591,8 @@ function unescapeHtml(html) { const div = document.createElement('div'); div.inn
 
 function applyTextExpansion() {
     const renderDiv = document.getElementById('task-desc-render');
-    const inputArea = document.getElementById('task-desc-input');
-    if (!renderDiv || !inputArea) return;
+    // 🚀 Исключили inputArea, textarea больше не будет динамически растягиваться и лагать
+    if (!renderDiv) return;
     
     // Ищем самую широкую кастомную картинку
     const images = renderDiv.querySelectorAll('.image-resizer-wrapper.has-custom-size');
@@ -570,14 +602,11 @@ function applyTextExpansion() {
         if (w > maxWidth) maxWidth = w;
     });
     
-    // Если картинка расширена, увеличиваем минимальную ширину всего текста, 
-    // чтобы текст заполнил пространство, а скроллбар появился у обертки
+    // Расширяем минимальную ширину ТОЛЬКО в режиме чтения
     if (maxWidth > 0) {
         renderDiv.style.minWidth = (maxWidth + 24) + 'px';
-        inputArea.style.minWidth = (maxWidth + 24) + 'px';
     } else {
         renderDiv.style.minWidth = '100%';
-        inputArea.style.minWidth = '100%';
     }
 }
 
@@ -4184,26 +4213,36 @@ document.addEventListener('click', async (e) => {
             activeDetachResolve = null;
         }
         
-        // --- СБРОС ГЕОМЕТРИИ ПРИ ЗАКРЫТИИ ИМЕННО ГЛАВНОЙ КАРТОЧКИ ---
+        // --- СБРОС ГЕОМЕТРИИ И СОХРАНЕНИЕ ПРИ ЗАКРЫТИИ ГЛАВНОЙ КАРТОЧКИ ---
         if (modalToClose.id === 'task-modal') {
             if (window.closeLocalSearch) window.closeLocalSearch();
             
-            // Сбрасываем панель инструментов
             document.getElementById('modal-tools-wrapper')?.classList.remove('expanded');
-
-            // Запуск сборщика мусора
             triggerGarbageCollector();
+
+            // 🌟 СОХРАНЯЕМ СКРОЛЛ РЕЖИМА ЧТЕНИЯ ПЕРЕД ЗАКРЫТИЕМ
+            const taskId = parseInt(modalToClose.dataset.taskId);
+            const renderDiv = document.getElementById('task-desc-render');
+            const detailBody = document.querySelector('.task-detail-body');
+            for (let col of state.columns) {
+                let t = col.tasks.find(t => t.id === taskId);
+                if (t) {
+                    if (renderDiv.style.display !== 'none') {
+                        t._readScrollTop = renderDiv.scrollTop;
+                        if (detailBody) t._modalScrollTop = detailBody.scrollTop;
+                    }
+                    break;
+                }
+            }
             
             const card = modalToClose.querySelector('.task-detail-card');
             const maximizeBtn = modalToClose.querySelector('.modal-maximize');
             
             if (card) {
-                // Иконку разворота возвращаем сразу
                 if(maximizeBtn) {
                     maximizeBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="14 6 18 6 18 10"></polyline><polyline points="10 18 6 18 6 14"></polyline><line x1="18" y1="6" x2="13" y2="11"></line><line x1="6" y1="18" x2="11" y2="13"></line></svg>`;
                 }
 
-                // Очистка DOM и координат только после полного затухания
                 setTimeout(() => {
                     card.classList.remove('maximized', 'is-restoring');
                     card.style.transition = 'none';
@@ -4215,10 +4254,9 @@ document.addEventListener('click', async (e) => {
                     card.style.transform = '';
                     card.style.margin = '';
                     
-                    void card.offsetWidth; // Сбрасываем кэш рендера
+                    void card.offsetWidth; 
                     card.style.transition = '';
 
-                    const renderDiv = document.getElementById('task-desc-render');
                     if (renderDiv) renderDiv.innerHTML = '';
                     
                     const subtasksList = document.getElementById('subtasks-list');
@@ -4371,12 +4409,18 @@ function applyHighlight(container, query) {
     }, 2000);
 }
 
-// <--- ДОБАВЛЕН ТРЕТИЙ ПАРАМЕТР highlightQuery
 async function loadTaskIntoModal(taskId, pushToStack = true, highlightQuery = null) {
     try {
         const res = await fetch(`${API_BASE}/tasks/${taskId}`);
         if (!res.ok) return;
         const task = await res.json();
+
+        // 🌟 ИЩЕМ ЛОКАЛЬНУЮ ВЕРСИЮ ЗАДАЧИ, ЧТОБЫ ДОСТАТЬ СОХРАНЕННЫЙ СКРОЛЛ
+        let localTask = null;
+        for (let col of state.columns) {
+            localTask = col.tasks.find(t => t.id === taskId);
+            if (localTask) break;
+        }
 
         const modal = document.getElementById('task-modal');
         const titleEl = document.getElementById('task-modal-title');
@@ -4386,35 +4430,27 @@ async function loadTaskIntoModal(taskId, pushToStack = true, highlightQuery = nu
         const subtasksCount = document.getElementById('subtasks-count');
         const formContainer = document.getElementById('subtask-form-container');
 
-        // 🚀 Сброс ручного растягивания поля описания от предыдущей открытой карточки
         const descWrapper = document.querySelector('.description-wrapper');
         if (descWrapper) descWrapper.style.height = '';
 
-        // 🚀 Сбрасываем позиции внутренних скроллов, чтобы новая карточка открывалась сверху,
-        // а не на месте, где скроллилась прошлая.
+        // 🚀 Сбрасываем позиции внутренних скроллов для "чистого" старта.
         const bodyEl = document.querySelector('.task-detail-body');
         if (bodyEl) bodyEl.scrollTop = 0;
-        const renderDivEl = document.getElementById('task-desc-render');
-        if (renderDivEl) renderDivEl.scrollTop = 0;
-        const inputAreaEl = document.getElementById('task-desc-input');
-        if (inputAreaEl) inputAreaEl.scrollTop = 0;
+        if (renderDiv) renderDiv.scrollTop = 0;
+        if (inputArea) inputArea.scrollTop = 0;
 
-        // 1. Рисуем графовые хлебные крошки параллельно (backend сам вычислит все пути)
         renderGraphBreadcrumbs(task.id);
 
-        // 2. Основные данные
         modal.dataset.taskId = task.id;
         modal.dataset.columnId = task.column_id;
         titleEl.textContent = task.title;
         
-        // Показываем кнопку отвязки только если у карточки есть хотя бы один родитель
         const detachBtn = modal.querySelector('.modal-detach');
         if (detachBtn) {
             detachBtn.style.display = (task.parent_ids && task.parent_ids.length > 0) ? 'flex' : 'none';
             detachBtn.title = t('detachSubtask');
         }
 
-        // --- Рендер дат создания и изменения ---
         const datesMetaEl = document.getElementById('task-dates-meta');
         if (datesMetaEl) {
             const createdStr = formatDateTime(task.created_at);
@@ -4422,7 +4458,6 @@ async function loadTaskIntoModal(taskId, pushToStack = true, highlightQuery = nu
             datesMetaEl.innerHTML = `<div><span>${t('taskModal.created')}: ${createdStr}</span><span id="task-updated-text">${t('taskModal.updated')}: ${updatedStr}</span></div>`;
         }
         
-        // --- Рендер Срока Выполнения (Due Date) в модалке ---
         const modalDueDatePill = document.getElementById('modal-due-date');
         if (modalDueDatePill) {
             if (task.due_date) {
@@ -4439,7 +4474,6 @@ async function loadTaskIntoModal(taskId, pushToStack = true, highlightQuery = nu
                 modalDueDatePill.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg><span data-i18n="modals.dueDateSet">${t('modals.dueDateSet')}</span>`;
             }
             
-            // Отвязываем старые события и вешаем новое на открытие модалки выбора даты
             const newDueDatePill = modalDueDatePill.cloneNode(true);
             modalDueDatePill.replaceWith(newDueDatePill);
             newDueDatePill.onclick = (e) => {
@@ -4447,17 +4481,19 @@ async function loadTaskIntoModal(taskId, pushToStack = true, highlightQuery = nu
                 openDueDateModal(task.id, task.due_date);
             };
         }
-        // ----------------------------------------------
 
-        // 3. Описание (Markdown)
         inputArea.value = task.description || "";
+        if (typeof cmEditor !== 'undefined' && cmEditor) {
+            cmEditor.setValue(task.description || "");
+            cmEditor.getWrapperElement().style.display = 'none';
+        }
+        
         const attachmentsList = document.getElementById('attachments-list');
         const attachmentsCount = document.getElementById('attachments-count');
         
         if (task.description) {
-            // Парсим вложения и валидируем на диске
             let extracted = extractAttachments(task.description, task.attachments_order || []);
-            extracted = await enrichAttachments(extracted); // <--- Валидация
+            extracted = await enrichAttachments(extracted);
             
             attachmentsCount.textContent = extracted.length;
             attachmentsList.innerHTML = '';
@@ -4465,29 +4501,36 @@ async function loadTaskIntoModal(taskId, pushToStack = true, highlightQuery = nu
 
             const cleanRegex = /(!?)\[[^\]]+\]\(doe\/[^)]+\)!\s*/g;
             let readModeText = task.description.replace(cleanRegex, '');
-            renderDiv.innerHTML = parseMarkdownWithMath(readModeText);
             
-            // --- ПОДСВЕТКА ПОИСКА ---
-            if (highlightQuery) {
-                applyHighlight(renderDiv, highlightQuery); // В описании
-                applyHighlight(titleEl, highlightQuery);   // И в главном заголовке тоже
-            }
-            
-            enhanceCodeBlocks(renderDiv);
-            initHeadingFolding(renderDiv, task.folded_headings || []);
-            applyTextExpansion(); // Подгоняем ширину текста под картинки
+            renderMarkdownProgressively(readModeText, renderDiv, () => {
+                if (highlightQuery) {
+                    applyHighlight(renderDiv, highlightQuery);
+                    applyHighlight(titleEl, highlightQuery);
+                }
+                initHeadingFolding(renderDiv, task.folded_headings || []);
+                applyTextExpansion();
+
+                // 🌟 БЕЗ ЗАДЕРЖЕК: Высота уже просчитана, скролл применится мгновенно до отрисовки
+                if (localTask && localTask._readScrollTop !== undefined) {
+                    renderDiv.scrollTop = localTask._readScrollTop;
+                } else {
+                    renderDiv.scrollTop = 0;
+                }
+
+                if (localTask && localTask._modalScrollTop !== undefined) {
+                    const detailBody = document.querySelector('.task-detail-body');
+                    if (detailBody) detailBody.scrollTop = localTask._modalScrollTop;
+                }
+            });
+
         } else {
             attachmentsCount.textContent = '0';
             attachmentsList.innerHTML = '';
             renderDiv.innerHTML = `<span class="markdown-empty">${t('taskModal.descPlaceholder')}</span>`;
-            
-            // Если описания нет, но мы искали по заголовку
-            if (highlightQuery) {
-                applyHighlight(titleEl, highlightQuery);
-            }
+            if (highlightQuery) applyHighlight(titleEl, highlightQuery);
         }
+        
         renderDiv.style.display = 'block';
-        inputArea.style.display = 'none';
 
         // 4. Рендер списка подзадач
         subtasksList.innerHTML = '';
@@ -5328,17 +5371,11 @@ function initHeadingFolding(container, foldedHeadings = []) {
 }
 
 function enhanceCodeBlocks(container) {
-    const codeBlocks = container.querySelectorAll('pre code');
+    const codeBlocks = Array.from(container.querySelectorAll('pre code'));
     
     codeBlocks.forEach(block => {
-        // Ставим python если забыли указать язык
         if (!block.className || block.className === "") {
             block.classList.add('language-python');
-        }
-        
-        // Подсвечиваем
-        if (window.Prism) {
-            Prism.highlightElement(block);
         }
     });
 
@@ -5359,6 +5396,30 @@ function enhanceCodeBlocks(container) {
         };
         pre.appendChild(btn);
     });
+
+    if (!window.Prism || codeBlocks.length === 0) return;
+
+    const scheduleIdle = window.requestIdleCallback || ((cb) => setTimeout(cb, 16));
+    let prismIndex = 0;
+    
+    const highlightNextChunk = () => {
+        const sliceStart = performance.now();
+        while (prismIndex < codeBlocks.length && (performance.now() - sliceStart) < 16) {
+            const block = codeBlocks[prismIndex++];
+            if (block.isConnected) {
+                // Если код огромный (минифицированный CSS/JS), подсвечиваем его как Plain Text,
+                // чтобы регулярки Prism не повесили браузер
+                if (block.textContent.length > 20000) {
+                    block.className = 'language-plain';
+                }
+                Prism.highlightElement(block);
+            }
+        }
+        if (prismIndex < codeBlocks.length) {
+            scheduleIdle(highlightNextChunk);
+        }
+    };
+    scheduleIdle(highlightNextChunk);
 }
 
 function generateSubtaskHtml(sub, parentMode = 'default') {
@@ -5908,46 +5969,59 @@ function initTaskDescriptionLogic() {
 
     let lastSavedValue = "";
 
-    const switchToEditMode = () => {
-        if (window.closeLocalSearch) window.closeLocalSearch(); // Закрываем виджет
-        lastSavedValue = inputArea.value; 
+    // --- ИНИЦИАЛИЗАЦИЯ CODEMIRROR ---
+    if (!cmEditor && window.CodeMirror) {
+        cmEditor = CodeMirror.fromTextArea(inputArea, {
+            lineWrapping: true,      
+            viewportMargin: 10,       // ВАЖНО: Рендерить только 10 строк за пределами экрана (по умолчанию он рендерит больше)
+            maxHighlightLength: 2000, // ВАЖНО: Не пытаться парсить синтаксис на строках длиннее 2000 символов (защита от зависания на минифицированном коде)
+            workTime: 10,             // Тратить не более 10мс на парсинг в фоне
+            workDelay: 100,           // Отдыхать 100мс между парсингом
+            spellcheck: false,
+            autocorrect: false
+        });
+        cmEditor.getWrapperElement().style.display = 'none';
+    }
 
-        // 1. Вычисляем пропорциональную позицию клика через Selection API
-        let relativePos = 1; 
-        const selection = window.getSelection();
-        
-        if (selection.rangeCount > 0 && renderDiv.contains(selection.anchorNode)) {
-            const range = selection.getRangeAt(0);
-            const preCaretRange = range.cloneRange();
-            
-            preCaretRange.selectNodeContents(renderDiv);
-            preCaretRange.setEnd(range.startContainer, range.startOffset);
-            
-            const textBefore = preCaretRange.toString();
-            const totalText = renderDiv.textContent || '';
-            
-            if (totalText.length > 0) {
-                relativePos = textBefore.length / totalText.length;
-            }
+    const switchToEditMode = () => {
+        if (window.closeLocalSearch) window.closeLocalSearch(); 
+        lastSavedValue = cmEditor.getValue(); 
+
+        const taskId = parseInt(modal.dataset.taskId);
+        let currentTask = null;
+        for (let col of state.columns) {
+            currentTask = col.tasks.find(t => t.id === taskId);
+            if (currentTask) break;
+        }
+
+        // 1. СОХРАНЯЕМ позицию скролла текста и самой модалки
+        if (currentTask) {
+            currentTask._readScrollTop = renderDiv.scrollTop;
+            const detailBody = document.querySelector('.task-detail-body');
+            if (detailBody) currentTask._modalScrollTop = detailBody.scrollTop;
         }
 
         renderDiv.style.display = 'none';
-        inputArea.style.display = 'block';
+        cmEditor.getWrapperElement().style.display = 'block';
+        cmEditor.refresh(); 
 
         window.getSelection().removeAllRanges();
         
-        // 2. Ставим курсор
-        inputArea.focus();
-        const targetIndex = Math.floor(inputArea.value.length * relativePos);
-        inputArea.setSelectionRange(targetIndex, targetIndex);
+        // 2. ВОССТАНАВЛИВАЕМ последнюю позицию курсора
+        const targetPos = currentTask && currentTask._editCursorPos 
+            ? currentTask._editCursorPos 
+            : { line: 0, ch: 0 };
+
+        cmEditor.focus();
+        cmEditor.setCursor(targetPos);
         
-        // 3. Синхронизируем скролл
-        const scrollTarget = (inputArea.scrollHeight * relativePos) - (inputArea.clientHeight / 2);
-        inputArea.scrollTop = Math.max(0, scrollTarget);
+        const info = cmEditor.getScrollInfo();
+        cmEditor.scrollIntoView(targetPos, Math.round(info.clientHeight / 2));
     };
 
+
     // ==========================================
-    // ЛОГИКА ВСТАВКИ (PASTE) И DRAG & DROP ФАЙЛОВ
+    // ЛОГИКА ВСТАВКИ ФАЙЛОВ
     // ==========================================
     const processFileForDescription = async (file) => {
         const isEditMode = renderDiv.style.display === 'none';
@@ -5958,39 +6032,37 @@ function initTaskDescriptionLogic() {
             fileName = `Скриншот_${dateStr}.png`;
         }
 
-        // Определяем тип файла для правильного префикса
         const ext = fileName.split('.').pop().toLowerCase();
         const isImg = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'ico'].includes(ext);
         const prefix = isImg ? '!' : '';
         const placeholder = `${prefix}[⏳ Загрузка ${fileName}...]()`;
 
+        let insertPos = null;
+
         if (isEditMode) {
-            const cursorPos = inputArea.selectionStart;
-            const text = inputArea.value;
-            const textBefore = text.substring(0, cursorPos);
+            insertPos = cmEditor.getCursor();
+            const textBefore = cmEditor.getRange({line: 0, ch: 0}, insertPos);
             
-            // Умный префикс для пустой строки
-            let prefix = "";
+            let pfx = "";
             if (textBefore.trim() !== "") {
-                if (textBefore.endsWith('\n')) prefix = "\n";
-                else prefix = "\n\n";
+                if (textBefore.endsWith('\n')) pfx = "\n";
+                else pfx = "\n\n";
             }
             
-            const insertText = `${prefix}${placeholder}\n`;
-            inputArea.value = textBefore + insertText + text.substring(cursorPos);
-            inputArea.selectionStart = inputArea.selectionEnd = cursorPos + insertText.length;
-            inputArea.dispatchEvent(new Event('input'));
+            const insertText = `${pfx}${placeholder}\n`;
+            cmEditor.replaceSelection(insertText);
+            cmEditor.focus();
         } else {
-            const text = inputArea.value;
-            let prefix = "";
+            const text = cmEditor.getValue();
+            let pfx = "";
             if (text.trim() !== "") {
-                if (text.endsWith('\n')) prefix = "\n";
-                else prefix = "\n\n";
+                if (text.endsWith('\n')) pfx = "\n";
+                else pfx = "\n\n";
             }
-            inputArea.value = text + prefix + placeholder;
+            cmEditor.setValue(text + pfx + placeholder);
             
             const cleanRegex = /(!?)\[[^\]]+\]\(attachments\/[^)]+\)!\s*/g;
-            const tempText = inputArea.value.replace(cleanRegex, '');
+            const tempText = cmEditor.getValue().replace(cleanRegex, '');
             renderDiv.innerHTML = marked.parse(tempText, { breaks: true });
         }
 
@@ -6004,14 +6076,15 @@ function initTaskDescriptionLogic() {
             const encodedPath = encodeURI(data.path);
             const finalMarkdown = `${prefix}[${data.name}](${encodedPath})`;
             
-            inputArea.value = inputArea.value.replace(placeholder, finalMarkdown);
+            const currentVal = cmEditor.getValue();
+            cmEditor.setValue(currentVal.replace(placeholder, finalMarkdown));
         } catch (err) {
-            inputArea.value = inputArea.value.replace(placeholder, `${prefix}[❌ Ошибка: ${fileName}]()`);
+            const currentVal = cmEditor.getValue();
+            cmEditor.setValue(currentVal.replace(placeholder, `${prefix}[❌ Ошибка: ${fileName}]()`));
         }
 
         if (isEditMode) {
-            inputArea.dispatchEvent(new Event('input'));
-            inputArea.focus();
+            cmEditor.focus();
         } else {
             lastSavedValue = null; 
             await switchToReadMode();
@@ -6025,7 +6098,6 @@ function initTaskDescriptionLogic() {
 
         const files = e.dataTransfer.files;
         if (!files || files.length === 0) return;
-
         processFileForDescription(files[0]);
     };
 
@@ -6041,7 +6113,7 @@ function initTaskDescriptionLogic() {
         }
 
         if (file) {
-            e.preventDefault(); // Блокируем вставку текста base64
+            e.preventDefault();
             processFileForDescription(file);
         }
     };
@@ -6055,20 +6127,20 @@ function initTaskDescriptionLogic() {
     descWrapper.addEventListener('dragleave', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        descWrapper.style.borderColor = document.activeElement === inputArea ? 'rgba(74, 90, 72, 0.3)' : '';
+        descWrapper.style.borderColor = '';
     });
 
     descWrapper.addEventListener('drop', handleFileDrop);
     
-    // Слушаем вставку из буфера обмена (Ctrl+V / Cmd+V)
-    inputArea.addEventListener('paste', handleFilePaste);
+    // Перехватываем Paste внутри CodeMirror
+    cmEditor.on('paste', (cm, e) => handleFilePaste(e));
     renderDiv.addEventListener('paste', handleFilePaste);
 
     // ==========================================
     // ЛОГИКА СОХРАНЕНИЯ ОПИСАНИЯ
     // ==========================================
     const switchToReadMode = async () => {
-        const newDesc = inputArea.value;
+        const newDesc = cmEditor.getValue();
         const taskId = modal.dataset.taskId;
 
         if (newDesc === lastSavedValue) {
@@ -6076,7 +6148,7 @@ function initTaskDescriptionLogic() {
             return;
         }
 
-        inputArea.style.opacity = "0.7";
+        cmEditor.getWrapperElement().style.opacity = "0.7";
 
         try {
             const currentAttachments = Array.from(document.querySelectorAll('#attachments-list .attachment-item'));
@@ -6107,58 +6179,72 @@ function initTaskDescriptionLogic() {
                 }
             }
             
-        exitEditingUI(newDesc, extracted);
+            exitEditingUI(newDesc, extracted);
         } catch (err) {
             console.error("Critical sync error:", err);
             exitEditingUI(newDesc, null);
         } finally {
-            inputArea.style.opacity = "1";
+            cmEditor.getWrapperElement().style.opacity = "1";
         }
     };
 
     const exitEditingUI = async (content, preCalculatedAttachments = null) => {
         const attachmentsList = document.getElementById('attachments-list');
         const attachmentsCount = document.getElementById('attachments-count');
+        const taskId = parseInt(modal.dataset.taskId);
+        
+        let currentTask = null;
+        for (let col of state.columns) {
+            currentTask = col.tasks.find(t => t.id === taskId);
+            if (currentTask) break;
+        }
         
         if (attachmentsCount && attachmentsList && preCalculatedAttachments) {
             let extracted = preCalculatedAttachments;
             if (extracted.length > 0 && extracted[0].exists === undefined) {
                 extracted = await enrichAttachments(extracted);
             }
-
             attachmentsCount.textContent = extracted.length;
             attachmentsList.innerHTML = '';
             extracted.forEach(att => attachmentsList.appendChild(createAttachmentElement(att)));
         }
 
+        // 1. СОХРАНЯЕМ позицию курсора перед выходом
+        if (currentTask && cmEditor) {
+            currentTask._editCursorPos = cmEditor.getCursor();
+        }
+
+        if (cmEditor) cmEditor.getWrapperElement().style.display = 'none';
+        renderDiv.style.display = 'block';
+
         if (content.trim()) {
             const cleanRegex = /(!?)\[[^\]]+\]\(doe\/[^)]+\)!\s*/g;
             const cleanContent = content.replace(cleanRegex, '');
-            renderDiv.innerHTML = parseMarkdownWithMath(cleanContent);
-            enhanceCodeBlocks(renderDiv);
             
-            const taskId = modal.dataset.taskId;
-            let localFolded = [];
-            for (let col of state.columns) {
-                let t = col.tasks.find(taskItem => taskItem.id == taskId);
-                if (t) {
-                    localFolded = t.folded_headings || [];
-                    break;
+            renderMarkdownProgressively(cleanContent, renderDiv, () => {
+                let localFolded = currentTask ? currentTask.folded_headings || [] : [];
+                initHeadingFolding(renderDiv, localFolded);
+                applyTextExpansion(); 
+                
+                // 🌟 БЕЗ ЗАДЕРЖЕК: Мгновенное применение скролла
+                if (currentTask && currentTask._readScrollTop !== undefined) {
+                    renderDiv.scrollTop = currentTask._readScrollTop;
+                } else {
+                    renderDiv.scrollTop = 0;
                 }
-            }
-            initHeadingFolding(renderDiv, localFolded);
-            applyTextExpansion(); // Расширяем текст под картинки
+
+                if (currentTask && currentTask._modalScrollTop !== undefined) {
+                    const detailBody = document.querySelector('.task-detail-body');
+                    if (detailBody) detailBody.scrollTop = currentTask._modalScrollTop;
+                }
+            });
         } else {
             renderDiv.innerHTML = `<span class="markdown-empty">${t('taskModal.descPlaceholder')}</span>`;
-            applyTextExpansion(); // Сброс
+            applyTextExpansion(); 
         }
-        
-        inputArea.style.display = 'none';
-        renderDiv.style.display = 'block';
     };
 
     renderDiv.addEventListener('mousedown', (e) => {
-        // ЛОГИКА РЕСАЙЗА ИЗОБРАЖЕНИЙ
         if (e.target.classList.contains('image-resize-handle')) {
             e.preventDefault();
             e.stopPropagation();
@@ -6168,25 +6254,20 @@ function initTaskDescriptionLogic() {
             const startY = e.clientY;
             const startWidth = wrapper.offsetWidth;
             const startHeight = wrapper.offsetHeight;
-            const aspectRatio = startWidth / startHeight; // Запоминаем исходные пропорции
+            const aspectRatio = startWidth / startHeight;
             
             wrapper.classList.add('is-resizing');
-            wrapper.classList.add('has-custom-size'); // Отключаем max-width
-            document.body.style.userSelect = 'none'; // Блокируем выделение текста
+            wrapper.classList.add('has-custom-size'); 
+            document.body.style.userSelect = 'none'; 
             
             const onMouseMove = (moveEvent) => {
                 let newWidth = Math.max(50, startWidth + (moveEvent.clientX - startX));
                 let newHeight = Math.max(50, startHeight + (moveEvent.clientY - startY));
                 
-                // Если зажат Shift — жестко блокируем пропорции по ширине
-                if (moveEvent.shiftKey) {
-                    newHeight = newWidth / aspectRatio;
-                }
+                if (moveEvent.shiftKey) newHeight = newWidth / aspectRatio;
                 
                 wrapper.style.width = newWidth + 'px';
                 wrapper.style.height = newHeight + 'px';
-                
-                // РАСШИРЯЕМ ПРОСТРАНСТВО ТЕКСТА В РЕАЛЬНОМ ВРЕМЕНИ
                 applyTextExpansion();
             };
             
@@ -6196,38 +6277,33 @@ function initTaskDescriptionLogic() {
                 document.body.style.userSelect = '';
                 wrapper.classList.remove('is-resizing');
                 
-                // Сохраняем результат
                 const finalWidth = Math.round(wrapper.offsetWidth);
                 const finalHeight = Math.round(wrapper.offsetHeight);
                 const originalMd = unescapeHtml(wrapper.dataset.md);
                 
-                // Парсим оригинальный маркдаун изображения (с или без старых размеров)
                 const regex = /!\[([^\]]*)\]\(([^)]+)\)(?:\{[^}]+\})?/;
                 const newMd = originalMd.replace(regex, `![$1]($2){${finalWidth}, ${finalHeight}}`);
                 
-                // Подменяем текст в скрытом inputArea
-                inputArea.value = inputArea.value.replace(originalMd, newMd);
+                const currentVal = cmEditor.getValue();
+                cmEditor.setValue(currentVal.replace(originalMd, newMd));
                 
-                // Обновляем data-атрибут, чтобы можно было ресайзить дальше без перезагрузки
                 wrapper.dataset.md = escapeHtml(newMd);
-                lastSavedValue = inputArea.value; 
+                lastSavedValue = cmEditor.getValue(); 
                 
-                // Фоновое сохранение на бэкенд без прерывания сессии чтения пользователя
                 const taskId = modal.dataset.taskId;
                 try {
                     await fetch(`${API_BASE}/tasks/${taskId}`, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ description: inputArea.value })
+                        body: JSON.stringify({ description: cmEditor.getValue() })
                     });
                     
                     bumpModalUpdatedDate();
                     
-                    // Обновляем стейт в фоне
                     for (let col of state.columns) {
                         let currentTask = col.tasks.find(t => t.id == taskId);
                         if (currentTask) {
-                            currentTask.description = inputArea.value;
+                            currentTask.description = cmEditor.getValue();
                             break;
                         }
                     }
@@ -6249,64 +6325,66 @@ function initTaskDescriptionLogic() {
 
     renderDiv.addEventListener('dblclick', (e) => {
         if (e.target.tagName === 'A') return;
-        if (e.target.closest('.image-resizer-wrapper')) return; // Игнорируем двойной клик по картинке (позволяет спокойно кликать на ресайз)
+        if (e.target.closest('.image-resizer-wrapper')) return; 
         switchToEditMode();
     });
 
     renderDiv.addEventListener('click', (e) => {
         const link = e.target.closest('a');
-        
         if (link) {
             e.preventDefault();
             e.stopPropagation();
-            
             const href = link.getAttribute('href');
             if (!href) return;
-
-            // Поддерживаем относительные ссылки на локальные файлы как с ведущим слэшем, так и без
             if (href.startsWith('doe/') || href.startsWith('/doe/')) {
                 const cleanHref = href.startsWith('/') ? href.slice(1) : href;
-                fetch(`${API_BASE}/system/open-file`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({path: decodeURIComponent(cleanHref)})
-                });
+                fetch(`${API_BASE}/system/open-file`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({path: decodeURIComponent(cleanHref)}) });
                 return;
             }
-
-            // --- МАГИЯ КРОСС-ССЫЛОК ---
             if (href.startsWith('doe://task/')) {
-                e.preventDefault();
-                e.stopPropagation(); // Senior Fix: Жестко гасим всплытие
-                
                 const targetTaskId = parseInt(href.split('/').pop());
-                
-                // Узнаем, где живет эта карточка
                 fetch(`${API_BASE}/tasks/${targetTaskId}/context`)
                     .then(res => res.json())
-                    .then(context => {
-                        // Добавляем true в конце, чтобы сохранить хлебные крошки!
-                        window.navigateToEntityGlobal(context.workspace_id, context.column_id, targetTaskId, null, true);
-                    })
+                    .then(context => { window.navigateToEntityGlobal(context.workspace_id, context.column_id, targetTaskId, null, true); })
                     .catch(err => console.error("Не удалось найти карточку", err));
-                
                 return;
             }
-            
-            fetch(`${API_BASE}/system/open-link`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({url: href})
-            });
+            fetch(`${API_BASE}/system/open-link`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({url: href}) });
             return;
         }
         
-        if (!inputArea.value.trim()) {
+        if (!cmEditor.getValue().trim()) {
             switchToEditMode();
         }
     });
 
-    inputArea.addEventListener('blur', () => {
+    // ==========================================
+    // ЛОГИКА БЛОКИРОВКИ СБРОСА ФОКУСА С РЕДАКТОРА
+    // ==========================================
+    let preventBlurExit = false;
+
+    // Перехватываем клик мышкой в области описания
+    descWrapper.addEventListener('mousedown', (e) => {
+        // Если мы в режиме редактирования, блокируем выход (чтобы клик по скроллбару не выкидывал нас)
+        if (cmEditor && cmEditor.getWrapperElement().style.display === 'block') {
+            preventBlurExit = true;
+        }
+    });
+
+    // Когда мышь отпустили (даже если утащили за пределы окна)
+    window.addEventListener('mouseup', () => {
+        if (preventBlurExit) {
+            preventBlurExit = false;
+            // Принудительно возвращаем фокус редактору после прокрутки
+            if (cmEditor && cmEditor.getWrapperElement().style.display === 'block') {
+                cmEditor.focus();
+            }
+        }
+    });
+
+    // Сохранение при клике мимо редактора
+    cmEditor.on('blur', () => {
+        if (preventBlurExit) return; // 🔥 Игнорируем blur при перетаскивании скроллбара
         switchToReadMode();
     });
 }
@@ -6330,6 +6408,10 @@ function initTaskModalDragAndResize() {
     let currentMouseX = 0;
     let currentMouseY = 0;
     let rafId = null;
+    
+    // 🔥 ФИКС БАГА ПРЫЖКА: Переменные для контроля и отмены старых анимаций
+    let dragCleanupTimeout = null;
+    let dragCleanupFn = null;
 
     // ЛОГИКА КНОПКИ РАЗВОРОТА И ПЛАВНОГО ЦЕНТРИРОВАНИЯ (FLIP-анимация)
     maximizeBtn.addEventListener('click', (e) => {
@@ -6338,7 +6420,6 @@ function initTaskModalDragAndResize() {
         const isMaximized = card.classList.contains('maximized');
 
         if (!isMaximized) {
-            // РАЗВОРОТ: фиксируем стартовые инлайн-размеры для плавной растяжки
             if (card.style.position !== 'absolute') {
                 const rect = card.getBoundingClientRect();
                 card.style.position = 'absolute';
@@ -6352,16 +6433,12 @@ function initTaskModalDragAndResize() {
 
             void card.offsetWidth; // Force Reflow
             card.classList.add('maximized');
-            // Меняем иконку на "Сжатие" (геометрически выверенная)
             maximizeBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 10 14 10 14 6"></polyline><polyline points="6 14 10 14 10 18"></polyline><line x1="14" y1="10" x2="18" y2="6"></line><line x1="10" y1="14" x2="6" y2="18"></line></svg>`;
         } else {
-            // СЖАТИЕ В ЦЕНТР: FLIP анимация
-            // 1. Измеряем начальную (полноэкранную) позицию
             const startRect = card.getBoundingClientRect();
 
-            // 2. Временно убираем все стили, чтобы Flexbox поставил окно в центр
             card.classList.remove('maximized');
-            card.style.transition = 'none'; // Отключаем анимацию
+            card.style.transition = 'none';
             card.style.position = '';
             card.style.left = '';
             card.style.top = '';
@@ -6370,10 +6447,8 @@ function initTaskModalDragAndResize() {
             card.style.transform = '';
             card.style.margin = '';
 
-            // 3. Измеряем целевую (центральную) позицию
             const targetRect = card.getBoundingClientRect();
 
-            // 4. Мгновенно возвращаем окно на полный экран
             card.style.position = 'absolute';
             card.style.margin = '0';
             card.style.left = `${startRect.left}px`;
@@ -6381,10 +6456,9 @@ function initTaskModalDragAndResize() {
             card.style.width = `${startRect.width}px`;
             card.style.height = `${startRect.height}px`;
 
-            void card.offsetWidth; // Force Reflow, чтобы браузер понял изменения
+            void card.offsetWidth;
 
-            // 5. Запускаем анимацию в центр
-            card.style.transition = ''; // Возвращаем возможность анимации
+            card.style.transition = ''; 
             card.classList.add('is-restoring');
             
             card.style.left = `${targetRect.left}px`;
@@ -6393,9 +6467,9 @@ function initTaskModalDragAndResize() {
             card.style.height = `${targetRect.height}px`;
 
             maximizeBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="14 6 18 6 18 10"></polyline><polyline points="10 18 6 18 6 14"></polyline><line x1="18" y1="6" x2="13" y2="11"></line><line x1="6" y1="18" x2="11" y2="13"></line></svg>`;
-            // 6. Убираем лишние стили после завершения анимации
+            
             const cleanup = (ev) => {
-                if (ev && ev.target !== card) return; // Игнорируем всплытия от дочерних элементов
+                if (ev && ev.target !== card) return; 
                 card.removeEventListener('transitionend', cleanup);
                 card.classList.remove('is-restoring');
                 card.style.position = '';
@@ -6406,7 +6480,7 @@ function initTaskModalDragAndResize() {
                 card.style.margin = '';
             };
             card.addEventListener('transitionend', cleanup);
-            setTimeout(cleanup, 350); // Fallback на случай, если эвент не сработает
+            setTimeout(cleanup, 350);
         }
     });
 
@@ -6420,7 +6494,6 @@ function initTaskModalDragAndResize() {
         targetRotation = Math.max(-maxRotation, Math.min(maxRotation, deltaX * 0.15));
         currentRotation += (targetRotation - currentRotation) * 0.12;
 
-        // 🔥 Вычисляем смещение от стартовой точки для GPU
         const dx = currentMouseX - startX;
         const dy = currentMouseY - startY;
 
@@ -6431,16 +6504,11 @@ function initTaskModalDragAndResize() {
     const onPointerDown = (e) => {
         if (e.button !== 0) return;
         
-        // ЗАЩИТА: Запрещаем таскать и ресайзить, если окно на весь экран
         if (card.classList.contains('maximized')) return;
-
-        // ЗАЩИТА: Игнорируем клики вне самой карточки (по полупрозрачному оверлею)
         if (!e.target.closest('.task-detail-card')) return;
 
         const resizer = e.target.closest('.resizer');
         
-        // 🔥 ИСПРАВЛЕНИЕ: Убрали .modal-title из этого списка!
-        // Теперь заголовок модалки можно хватать и тащить.
         const isInteractive = e.target.closest(
             'button, input, textarea, a, ' + 
             '.markdown-body, .description-wrapper, ' + 
@@ -6449,43 +6517,50 @@ function initTaskModalDragAndResize() {
             '.due-date-pill'
         );
 
-        // Исключаем клики по нативным скроллбарам
         const isScrollbarClick = (e.target.clientWidth > 0 && e.offsetX > e.target.clientWidth) || 
                                  (e.target.clientHeight > 0 && e.offsetY > e.target.clientHeight);
 
         if (!resizer && (isInteractive || isScrollbarClick)) return;
 
-        // Если мы кликнули в пустоту (или по заголовку для драга), 
-        // снимаем фокус с любого активного инпута (например, переименования), чтобы он сохранился.
         if (document.activeElement && document.activeElement !== document.body) {
             document.activeElement.blur();
         }
 
         e.preventDefault();
         
-        // Переводим в абсолют при первом же взаимодействии
-        if (card.style.position !== 'absolute') {
-            const rect = card.getBoundingClientRect();
-            card.style.position = 'absolute';
-            card.style.margin = '0';
-            card.style.left = `${rect.left}px`;
-            card.style.top = `${rect.top}px`;
-            card.style.width = `${rect.width}px`;
-            card.style.height = `${rect.height}px`;
-            card.style.transform = 'none';
+        // 🔥 ФИКС ПРЫЖКА: Если юзер схватил карточку до того, как закончилась прошлая анимация
+        // отпускания (или "возврата" на место), отменяем её!
+        if (dragCleanupFn) {
+            card.removeEventListener('transitionend', dragCleanupFn);
+            dragCleanupFn = null;
         }
+        if (dragCleanupTimeout) {
+            clearTimeout(dragCleanupTimeout);
+            dragCleanupTimeout = null;
+        }
+
+        // 🔥 ФИКС ПРЫЖКА: ВСЕГДА читаем актуальные физические координаты карточки на экране!
+        // Это гарантирует, что мы подхватим её ровно там, где она летит в данный момент.
+        const rect = card.getBoundingClientRect();
+        card.style.transition = 'none'; // Мгновенно убиваем CSS-анимации
+        card.style.position = 'absolute';
+        card.style.margin = '0';
+        card.style.left = `${rect.left}px`;
+        card.style.top = `${rect.top}px`;
+        card.style.width = `${rect.width}px`;
+        card.style.height = `${rect.height}px`;
+        card.style.transform = 'none';  // Сбрасываем CSS-translate
 
         isDragging = !resizer;
         currentResizer = resizer;
 
         startX = e.clientX;
         startY = e.clientY;
-        startW = card.offsetWidth;
-        startH = card.offsetHeight;
-        startLeft = parseFloat(card.style.left);
-        startTop = parseFloat(card.style.top);
+        startW = rect.width;
+        startH = rect.height;
+        startLeft = rect.left;
+        startTop = rect.top;
 
-        // Инициализация физики при старте
         if (isDragging) {
             lastMouseX = e.clientX;
             currentMouseX = e.clientX;
@@ -6493,10 +6568,8 @@ function initTaskModalDragAndResize() {
             currentRotation = 0;
             targetRotation = 0;
             
-            card.style.transition = 'none'; 
             card.style.willChange = 'transform'; 
             
-            // Включаем кулак
             document.body.classList.add('is-dragging-modal');
 
             cancelAnimationFrame(rafId);
@@ -6509,27 +6582,23 @@ function initTaskModalDragAndResize() {
     };
 
     const onPointerMove = (e) => {
-        currentMouseX = e.clientX; // Обновляем глобальную мышь для loop-анимации
+        currentMouseX = e.clientX; 
         currentMouseY = e.clientY;
         
         const dx = e.clientX - startX;
         const dy = e.clientY - startY;
 
-        // ЛОГИКА ПЕРЕМЕЩЕНИЯ
         if (isDragging) {
-            return; // Изменение координат теперь делает renderModalPhysics на GPU
+            return; 
         }
 
-        // ЛОГИКА РАСШИРЕНИЯ (Ресайз)
         if (currentResizer) {
             const type = currentResizer.classList;
 
-            // Тянем за правую сторону
             if (type.contains('r-right') || type.contains('r-top-right') || type.contains('r-bottom-right')) {
                 const newWidth = startW + dx;
                 if (newWidth > 400) card.style.width = `${newWidth}px`;
             }
-            // Тянем за левую сторону
             if (type.contains('r-left') || type.contains('r-top-left') || type.contains('r-bottom-left')) {
                 const newWidth = startW - dx;
                 if (newWidth > 400) {
@@ -6537,12 +6606,10 @@ function initTaskModalDragAndResize() {
                     card.style.left = `${startLeft + dx}px`;
                 }
             }
-            // Тянем за низ
             if (type.contains('r-bottom') || type.contains('r-bottom-left') || type.contains('r-bottom-right')) {
                 const newHeight = startH + dy;
                 if (newHeight > 400) card.style.height = `${newHeight}px`;
             }
-            // Тянем за верх
             if (type.contains('r-top') || type.contains('r-top-left') || type.contains('r-top-right')) {
                 const newHeight = startH - dy;
                 if (newHeight > 400) {
@@ -6554,7 +6621,6 @@ function initTaskModalDragAndResize() {
     };
 
     const onPointerUp = (e) => {
-        // Завершение физики
         if (isDragging) {
             document.body.classList.remove('is-dragging-modal');
             cancelAnimationFrame(rafId);
@@ -6562,30 +6628,28 @@ function initTaskModalDragAndResize() {
             const dx = currentMouseX - startX;
             const dy = currentMouseY - startY;
 
-            // 1. Отключаем любую анимацию для мгновенной подмены
-            card.style.transition = 'none';
-
-            // 2. Мгновенно применяем новые физические координаты
-            card.style.left = `${startLeft + dx}px`;
-            card.style.top = `${startTop + dy}px`;
-
-            // 3. Убираем смещение (translate) из матрицы, оставляем только текущий угол наклона.
-            // Визуально карточка останется ровно там же, где была кадр назад.
-            card.style.transform = `rotate(${currentRotation}deg)`;
-
-            // 4. Форсируем перерисовку, чтобы браузер "запомнил" новые координаты до включения анимации
-            void card.offsetWidth;
-
-            // 5. Включаем плавность и сбрасываем только наклон
             card.style.transition = 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)';
-            card.style.transform = 'rotate(0deg)';
-            
-            // 6. Ждем завершения анимации "успокоения" и убираем за собой
-            setTimeout(() => {
-                card.style.willChange = 'auto';
-                card.style.transform = 'none';
+            card.style.transform = `translate3d(${dx}px, ${dy}px, 0) rotate(0deg)`;
+
+            // 🔥 ФИКС ПРЫЖКА: Сохраняем ссылку на функцию очистки, чтобы отменить её,
+            // если юзер схватит карточку ДО того, как анимация завершится.
+            dragCleanupFn = (ev) => {
+                if (ev && ev.target !== card) return; 
+                if (ev && ev.propertyName !== 'transform') return;
+                
+                if (dragCleanupFn) card.removeEventListener('transitionend', dragCleanupFn);
+                if (dragCleanupTimeout) clearTimeout(dragCleanupTimeout);
+                dragCleanupFn = null;
+                dragCleanupTimeout = null;
+                
                 card.style.transition = 'none';
-            }, 400);
+                card.style.left = `${startLeft + dx}px`;
+                card.style.top = `${startTop + dy}px`;
+                card.style.transform = 'none';
+            };
+            
+            card.addEventListener('transitionend', dragCleanupFn);
+            dragCleanupTimeout = setTimeout(dragCleanupFn, 450); 
             
             if (Math.abs(e.clientX - startX) > 3 || Math.abs(e.clientY - startY) > 3) {
                 window._isAfterDrag = true;
@@ -6600,26 +6664,29 @@ function initTaskModalDragAndResize() {
         document.removeEventListener('pointerup', onPointerUp);
     };
 
-    // Вешаем один слушатель на все окно модалки
     taskModal.addEventListener('pointerdown', onPointerDown);
 }
 
 function extractAttachments(desc, savedOrder = []) {
-    const regex = /(!?)\[([^\]]+)\]\((doe\/[^)]*)\)(!?)/g;
+    // 1. Вырезаем блоки кода из поиска, чтобы вложения внутри них не попадали в UI-список
+    let cleanDesc = desc.replace(/```[\s\S]*?```/g, '');
+    cleanDesc = cleanDesc.replace(/`[^`]*`/g, '');
+
+    // 2. Регулярка учитывает возможные размеры {width, height}
+    const regex = /(!?)\[([^\]]+)\]\((doe\/[^)]*)\)(?:\{[^}]+\})?(!?)/g;
     let match;
     const attachments = [];
     
-    while ((match = regex.exec(desc)) !== null) {
+    while ((match = regex.exec(cleanDesc)) !== null) {
         attachments.push({
-            fullMatch: match[0],       // Вся строка: [супер фотка](attachments/old.pn)
+            fullMatch: match[0],       // Вся строка со скобками размеров (если есть)
             isImage: match[1] === '!',
-            label: match[2],           // Подпись пользователя: "супер фотка"
-            path: match[3],            // Реальный или сломанный путь: "attachments/old.pn"
+            label: match[2],
+            path: match[3],
             isHidden: match[4] === '!'
         });
     }
 
-    // Сортировка по сохраненному порядку
     attachments.sort((a, b) => {
         const idxA = savedOrder.indexOf(a.path);
         const idxB = savedOrder.indexOf(b.path);
@@ -6771,8 +6838,7 @@ function createAttachmentElement(att) {
 
         const pathToDelete = att.path;
 
-        // 2. СРАЗУ отправляем запрос на физическое удаление с диска (исключение из правил)
-        // Запрос отправляется только если файл реально существовал, а не просто висел в статусе "Ожидание"
+        // 2. Отправляем запрос на физическое удаление с диска
         if (!isPending) {
             fetch(`${API_BASE}/system/delete-file`, {
                 method: 'POST',
@@ -6781,30 +6847,28 @@ function createAttachmentElement(att) {
             }).catch(err => console.error("Physical delete failed:", err));
         }
 
-        // 3. Стираем упоминание файла из текста Markdown
+        // 3. ПОЛНОСТЬЮ стираем упоминание файла из текста Markdown
         setTimeout(() => {
-            const inputArea = document.getElementById('task-desc-input');
             const renderDiv = document.getElementById('task-desc-render');
             const isEditMode = renderDiv.style.display === 'none';
             
             const safePath = pathToDelete.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            // ДОБАВЛЕНО: (?:\\{[^}]+\\})? захватывает блок {w,h}, если он есть, чтобы удалить его вместе со ссылкой
-            const pathRegex = new RegExp(`(!?)\\[([^\\]]*)\\]\\(${safePath}\\)(?:\\{[^}]+\\})?(!?)`, 'g');
+            // Регулярка захватывает всю конструкцию, включая ![...](...){...}!
+            const pathRegex = new RegExp(`!?\\[[^\\]]*\\]\\(${safePath}\\)(?:\\{[^}]+\\})?!?`, 'g');
             
-            const oldText = inputArea.value;
-            // Заменяем конструкцию ссылки на захваченный текст из квадратных скобок ($2)
-            inputArea.value = oldText.replace(pathRegex, '$2');
+            const oldText = cmEditor.getValue();
+            // Заменяем на пустоту, чтобы не оставлять мусорный текст (label)
+            const newText = oldText.replace(pathRegex, '');
             
-            // Если текст реально изменился — решаем, что делать дальше в зависимости от режима
-            if (oldText !== inputArea.value) {
+            cmEditor.setValue(newText);
+            
+            if (oldText !== newText) {
                 if (isEditMode) {
-                    inputArea.dispatchEvent(new Event('input'));
-                    inputArea.focus();
+                    cmEditor.focus();
                 } else {
-                    inputArea.dispatchEvent(new Event('blur')); // Сохраняем в фоне
+                    cmEditor.getInputField().blur(); // Сохраняем в фоне
                 }
             } else {
-                // Если ссылка была где-то еще, просто убираем из DOM
                 if (div.parentNode) div.remove();
             }
         }, 200);
@@ -6813,30 +6877,34 @@ function createAttachmentElement(att) {
     return div;
 }
 
-// Вспомогательная функция для ювелирной замены сломанного пути в Markdown
 function replaceBrokenAttachment(att, newData) {
-    const inputArea = document.getElementById('task-desc-input');
-    const renderDiv = document.getElementById('task-desc-render');
-    const isEditMode = renderDiv.style.display === 'none';
+    const isEditMode = document.getElementById('task-desc-render').style.display === 'none';
 
     const encodedNewPath = encodeURI(newData.path);
-    // Бережно собираем markdown обратно, оставляя оригинальный текст (label) вместо имени файла
     const prefix = att.isImage ? '!' : '';
     const suffix = att.isHidden ? '!' : '';
-    const newMarkdown = `${prefix}[${att.label}](${encodedNewPath})${suffix}`;
+
+    // 🔥 БАГФИКС: Сохраняем кастомные размеры {width, height}, если они были
+    const sizeMatch = att.fullMatch.match(/\{[^}]+\}$/);
+    const sizeStr = sizeMatch ? sizeMatch[0] : '';
+
+    // Формируем новый валидный Markdown
+    const newMarkdown = `${prefix}[${att.label}](${encodedNewPath})${sizeStr}${suffix}`;
     
-    inputArea.value = inputArea.value.replace(att.fullMatch, newMarkdown);
+    const currentVal = cmEditor.getValue();
+    
+    // Используем callback чтобы символы доллара в путях не ломали замену
+    cmEditor.setValue(currentVal.replace(att.fullMatch, () => newMarkdown));
     
     if (isEditMode) {
-        inputArea.dispatchEvent(new Event('input'));
-        inputArea.focus();
+        cmEditor.focus();
     } else {
-        inputArea.dispatchEvent(new Event('blur'));
+        // Эмулируем blur для сохранения
+        cmEditor.getInputField().blur(); 
     }
 }
 
 function appendAttachmentToDescription(name, path) {
-    const inputArea = document.getElementById('task-desc-input');
     const renderDiv = document.getElementById('task-desc-render');
     const isEditMode = renderDiv.style.display === 'none';
 
@@ -6848,34 +6916,28 @@ function appendAttachmentToDescription(name, path) {
     const attachmentMarkdown = `${prefix}[${name}](${encodedPath})`;
     
     if (isEditMode) {
-        const cursorPos = inputArea.selectionStart;
-        const text = inputArea.value;
-        const textBefore = text.substring(0, cursorPos);
+        const cursor = cmEditor.getCursor();
+        const textBefore = cmEditor.getRange({line: 0, ch: 0}, cursor);
 
-        let prefix = "";
+        let pfx = "";
         if (textBefore.trim() !== "") {
-            // 🔥 SENIOR UI LOGIC:
-            // Если текст заканчивается на один \n — добавляем еще один для пустой строки
-            // Если текст заканчивается на буквы — добавляем два \n\n
-            if (textBefore.endsWith('\n')) prefix = "\n";
-            else prefix = "\n\n";
+            if (textBefore.endsWith('\n')) pfx = "\n";
+            else pfx = "\n\n";
         }
         
-        const insertText = `${prefix}${attachmentMarkdown}\n`;
-        
-        inputArea.value = textBefore + insertText + text.substring(cursorPos);
-        inputArea.selectionStart = inputArea.selectionEnd = cursorPos + insertText.length;
-        inputArea.dispatchEvent(new Event('input'));
-        inputArea.focus();
+        const insertText = `${pfx}${attachmentMarkdown}\n`;
+        cmEditor.replaceSelection(insertText);
+        cmEditor.focus();
     } else {
-        const text = inputArea.value;
-        let prefix = "";
+        const text = cmEditor.getValue();
+        let pfx = "";
         if (text.trim() !== "") {
-            if (text.endsWith('\n')) prefix = "\n";
-            else prefix = "\n\n";
+            if (text.endsWith('\n')) pfx = "\n";
+            else pfx = "\n\n";
         }
-        inputArea.value = text + prefix + attachmentMarkdown;
-        inputArea.dispatchEvent(new Event('blur')); 
+        cmEditor.setValue(text + pfx + attachmentMarkdown);
+        // Сохраняем
+        cmEditor.getInputField().blur(); 
     }
 }
 
@@ -8031,37 +8093,39 @@ document.addEventListener('click', async (e) => {
     }
 });
 
-// ==========================================
-// ЛОГИКА РЕНДЕРА LATEX (KaTeX)
-// ==========================================
 function parseMarkdownWithMath(text) {
     if (!text) return "";
     const mathBlocks = [];
+    const codeBlocks = [];
     
-    // 1. Изолируем Блочные формулы ($$...$$)
-    let processed = text.replace(/\$\$([\s\S]+?)\$\$/g, (match, math) => {
+    // 1. ИЗОЛИРУЕМ КОД (чтобы внутри него не парсились картинки, формулы и HTML)
+    let processed = text.replace(/(```[\s\S]*?```|`[^`]*`)/g, (match) => {
+        codeBlocks.push(match);
+        return `DOECODEPLACEHOLDER${codeBlocks.length - 1}END`;
+    });
+
+    // 2. Изолируем Блочные формулы ($$...$$)
+    processed = processed.replace(/\$\$([\s\S]+?)\$\$/g, (match, math) => {
         mathBlocks.push({ math, displayMode: true });
         return `DOEMATHPLACEHOLDER${mathBlocks.length - 1}END`;
     });
 
-    // 2. Изолируем Инлайн формулы ($...$)
+    // 3. Изолируем Инлайн формулы ($...$)
     processed = processed.replace(/\$([^$\n]+?)\$/g, (match, math) => {
         mathBlocks.push({ math, displayMode: false });
         return `DOEMATHPLACEHOLDER${mathBlocks.length - 1}END`;
     });
 
-    // 3. ПРЕ-ПРОЦЕССИНГ ИЗОБРАЖЕНИЙ С РЕСАЙЗОМ (и отсев не-изображений)
+    // 4. ПРЕ-ПРОЦЕССИНГ ИЗОБРАЖЕНИЙ С РЕСАЙЗОМ (и отсев не-изображений)
     // Ищет: ![alt](doe/file.png){100, 200} или просто ![alt](doe/file.png)
     processed = processed.replace(/!\[([^\]]*)\]\(([^)]+)\)(?:\{(\d+)\s*,\s*(\d+)\})?/g, (match, alt, url, w, h) => {
         const ext = url.split('.').pop().toLowerCase();
         const isImage = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'ico'].includes(ext);
         
-        // Если указан !, но это не картинка - принудительно рендерим как обычную кликабельную ссылку
         if (!isImage) {
             return `[${alt}](${url})`;
         }
 
-        // Экранируем оригинальный markdown, чтобы при ресайзе мы знали что заменять в коде
         const safeMatch = escapeHtml(match);
         let style = '';
         let customClass = '';
@@ -8071,43 +8135,42 @@ function parseMarkdownWithMath(text) {
             customClass = 'has-custom-size';
         }
 
-        // Возвращаем HTML-обертку на одной строке без переносов и пробелов, 
-        // чтобы Marked при breaks: true не генерировал паразитные теги <br> и пустые текстовые узлы.
         return `<span class="image-resizer-wrapper ${customClass}" style="${style}" data-md="${safeMatch}"><img src="/${url}" alt="${alt}" draggable="false"><span class="image-resize-handle" title="Потяните для изменения размера"></span></span>`;
     });
 
-    // 4. Парсим чистый Markdown
+    // 5. ВОЗВРАЩАЕМ КОД НА МЕСТО ДО ПАРСИНГА MARKED (Marked сам обернет его в <pre><code>)
+    codeBlocks.forEach((code, i) => {
+        // Используем callback () => code, чтобы символы '$' в коде не ломали replace
+        processed = processed.replace(`DOECODEPLACEHOLDER${i}END`, () => code);
+    });
+
+    // 6. Парсим чистый Markdown
     let html = marked.parse(processed, { breaks: true });
 
-    // 4. Рендерим и возвращаем формулы на место
+    // 7. Рендерим и возвращаем формулы на место
     if (window.katex) {
         mathBlocks.forEach((item, i) => {
             try {
-                // output: 'html' отключает генерацию MathML, что СИЛЬНО разгружает DOM и убирает лаги при DND
                 const rendered = katex.renderToString(item.math, {
                     displayMode: item.displayMode,
                     throwOnError: false,
                     output: 'html',
                     strict: false
                 });
-                html = html.replace(`DOEMATHPLACEHOLDER${i}END`, rendered);
+                html = html.replace(`DOEMATHPLACEHOLDER${i}END`, () => rendered);
             } catch (e) {
-                html = html.replace(`DOEMATHPLACEHOLDER${i}END`, `<code>${item.math}</code>`);
+                html = html.replace(`DOEMATHPLACEHOLDER${i}END`, () => `<code>${item.math}</code>`);
             }
         });
     } else {
-        // Fallback, если CDN недоступен
         mathBlocks.forEach((item, i) => {
-            html = html.replace(`DOEMATHPLACEHOLDER${i}END`, `<code>${item.math}</code>`);
+            html = html.replace(`DOEMATHPLACEHOLDER${i}END`, () => `<code>${item.math}</code>`);
         });
     }
 
     return html;
 }
 
-// ==========================================
-// ЛОГИКА ЛОКАЛЬНОГО ПОИСКА В КАРТОЧКЕ
-// ==========================================
 function initLocalSearchLogic() {
     const widget = document.getElementById('local-search-widget');
     const input = document.getElementById('local-search-input');
@@ -8118,22 +8181,13 @@ function initLocalSearchLogic() {
     const renderDiv = document.getElementById('task-desc-render');
     const scrollParent = document.querySelector('.task-detail-body');
 
-    let localMatches = [];
+    let matchRanges = [];
     let currentMatchIndex = -1;
 
     window.openLocalSearch = () => {
-        // Если включен режим редактирования — не разрешаем локальный поиск
         if (renderDiv.style.display === 'none') return;
-        
         widget.classList.add('show');
-        
-        // Переносим фокус на следующий тик цикла событий (macrotask),
-        // когда виджет гарантированно отобразился в DOM и текущее событие ввода/клика завершилось
-        setTimeout(() => {
-            input.focus();
-            input.select();
-        }, 50);
-        
+        setTimeout(() => { input.focus(); input.select(); }, 50);
         if (input.value.trim()) performLocalSearch(input.value);
     };
 
@@ -8144,13 +8198,10 @@ function initLocalSearchLogic() {
     };
 
     function clearLocalSearch() {
-        const marks = renderDiv.querySelectorAll('.local-search-highlight');
-        marks.forEach(m => {
-            const text = document.createTextNode(m.textContent);
-            m.parentNode.replaceChild(text, m);
-        });
-        renderDiv.normalize();
-        localMatches = [];
+        if (CSS.highlights) {
+            CSS.highlights.clear();
+        }
+        matchRanges = [];
         currentMatchIndex = -1;
         countEl.textContent = '0/0';
     }
@@ -8159,123 +8210,108 @@ function initLocalSearchLogic() {
         clearLocalSearch();
         if (!query.trim()) return;
 
-        // Поиск точной подстроки (без учета регистра)
-        const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+        const textLower = query.toLowerCase();
         const walker = document.createTreeWalker(renderDiv, NodeFilter.SHOW_TEXT, null, false);
-        const nodesToProcess = [];
+        
+        // Асинхронный поиск порциями, чтобы не вешать UI
+        function searchNextChunk() {
+            const startTime = performance.now();
+            let node;
+            
+            // Ищем, пока не исчерпаем 10 миллисекунд (оставляем время на отрисовку кадров)
+            while ((node = walker.nextNode()) && (performance.now() - startTime < 10)) {
+                const nodeText = node.nodeValue.toLowerCase();
+                let startIndex = 0;
+                while ((startIndex = nodeText.indexOf(textLower, startIndex)) !== -1) {
+                    const range = new Range();
+                    range.setStart(node, startIndex);
+                    range.setEnd(node, startIndex + query.length);
+                    matchRanges.push(range);
+                    startIndex += query.length;
+                }
+            }
 
-        let node;
-        while (node = walker.nextNode()) {
-            const parent = node.parentNode;
-            if (['CODE', 'MARK', 'TEXTAREA', 'PRE', 'SCRIPT', 'STYLE'].includes(parent.tagName)) continue;
-            if (regex.test(node.nodeValue)) {
-                nodesToProcess.push(node);
+            if (node) {
+                // Если не успели дойти до конца текста - планируем продолжение на следующий кадр
+                requestAnimationFrame(searchNextChunk);
+            } else {
+                // Поиск завершен
+                if (matchRanges.length > 0) {
+                    currentMatchIndex = 0;
+                    if (CSS.highlights) {
+                        CSS.highlights.set('local-search', new Highlight(...matchRanges));
+                    }
+                    updateLocalSearchUI();
+                } else {
+                    countEl.textContent = '0/0';
+                }
             }
         }
-
-        nodesToProcess.forEach(textNode => {
-            const parent = textNode.parentNode;
-            const content = textNode.nodeValue;
-            const fragment = document.createDocumentFragment();
-            let lastIndex = 0;
-
-            content.replace(regex, (match, p1, offset) => {
-                fragment.appendChild(document.createTextNode(content.substring(lastIndex, offset)));
-                const mark = document.createElement('mark');
-                mark.className = 'local-search-highlight';
-                mark.textContent = match;
-                fragment.appendChild(mark);
-                lastIndex = offset + match.length;
-            });
-            fragment.appendChild(document.createTextNode(content.substring(lastIndex)));
-            parent.replaceChild(fragment, textNode);
-        });
-
-        localMatches = Array.from(renderDiv.querySelectorAll('.local-search-highlight'));
         
-        if (localMatches.length > 0) {
-            currentMatchIndex = 0;
-            updateLocalSearchUI();
-        } else {
-            countEl.textContent = '0/0';
-        }
+        requestAnimationFrame(searchNextChunk);
     }
 
     function updateLocalSearchUI() {
-        localMatches.forEach(m => m.classList.remove('active'));
-        if (localMatches.length > 0 && currentMatchIndex >= 0) {
-            const activeMark = localMatches[currentMatchIndex];
-            activeMark.classList.add('active');
-            
-            // 1. Умное разворачивание свернутых заголовков
-            let block = activeMark.closest('p, ul, ol, pre, blockquote, h1, h2, h3, h4, h5, h6, div, span');
-            if (block) {
+        if (matchRanges.length === 0 || currentMatchIndex < 0) return;
+
+        const activeRange = matchRanges[currentMatchIndex];
+
+        // Подсвечиваем активный элемент (если поддерживается API)
+        if (CSS.highlights) {
+            const highlightActive = new Highlight(activeRange);
+            CSS.highlights.set('local-search-active', highlightActive);
+        }
+
+        // Автоскролл к элементу (Range имеет getBoundingClientRect)
+        const rect = activeRange.getBoundingClientRect();
+        
+        // Разворачивание скрытых заголовков
+        let block = activeRange.startContainer.parentElement;
+        while (block && block !== renderDiv) {
+            if (block.classList.contains('is-hidden-by-fold')) {
                 let prev = block.previousElementSibling;
-                while (prev && block.classList.contains('is-hidden-by-fold')) {
-                    if (prev.tagName.match(/^H[1-6]$/) && prev.classList.contains('is-folded')) {
-                        prev.click(); // Разворачиваем
+                while (prev) {
+                    if (prev.classList.contains('foldable-heading') && prev.classList.contains('is-folded')) {
+                        prev.click();
                     }
                     prev = prev.previousElementSibling;
                 }
             }
+            block = block.parentElement;
+        }
 
-            // 2. Скроллим внутренний контейнер (markdown-body)
-            const mdBody = activeMark.closest('.markdown-body');
-            if (mdBody) {
-                const rect = activeMark.getBoundingClientRect();
-                const containerRect = mdBody.getBoundingClientRect();
-                const relativeTop = rect.top - containerRect.top + mdBody.scrollTop;
-                mdBody.scrollTo({
-                    top: relativeTop - (containerRect.height / 2),
+        // Скроллим родителя
+        if (scrollParent && rect.top !== 0) {
+            const parentRect = scrollParent.getBoundingClientRect();
+            if (rect.top < parentRect.top + 50 || rect.bottom > parentRect.bottom - 50) {
+                const relativeTop = rect.top - parentRect.top + scrollParent.scrollTop;
+                scrollParent.scrollTo({
+                    top: relativeTop - (parentRect.height / 2),
                     behavior: 'smooth'
                 });
             }
-
-            // 3. Скроллим внешнюю модалку (task-detail-body)
-            if (scrollParent) {
-                setTimeout(() => {
-                    const rect = activeMark.getBoundingClientRect();
-                    const parentRect = scrollParent.getBoundingClientRect();
-                    if (rect.top < parentRect.top + 50 || rect.bottom > parentRect.bottom - 50) {
-                        const relativeTop = rect.top - parentRect.top + scrollParent.scrollTop;
-                        scrollParent.scrollTo({
-                            top: relativeTop - (parentRect.height / 2),
-                            behavior: 'smooth'
-                        });
-                    }
-                }, 50);
-            }
-
-            countEl.textContent = `${currentMatchIndex + 1}/${localMatches.length}`;
         }
+
+        countEl.textContent = `${currentMatchIndex + 1}/${matchRanges.length}`;
     }
 
     function nextMatch() {
-        if (localMatches.length === 0) return;
-        currentMatchIndex = (currentMatchIndex + 1) % localMatches.length;
+        if (matchRanges.length === 0) return;
+        currentMatchIndex = (currentMatchIndex + 1) % matchRanges.length;
         updateLocalSearchUI();
     }
 
     function prevMatch() {
-        if (localMatches.length === 0) return;
-        currentMatchIndex = (currentMatchIndex - 1 + localMatches.length) % localMatches.length;
+        if (matchRanges.length === 0) return;
+        currentMatchIndex = (currentMatchIndex - 1 + matchRanges.length) % matchRanges.length;
         updateLocalSearchUI();
     }
 
     input.addEventListener('input', () => performLocalSearch(input.value));
-    
     input.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            if (e.shiftKey) prevMatch();
-            else nextMatch();
-        }
-        if (e.key === 'Escape') {
-            e.preventDefault();
-            window.closeLocalSearch();
-        }
+        if (e.key === 'Enter') { e.preventDefault(); e.shiftKey ? prevMatch() : nextMatch(); }
+        if (e.key === 'Escape') { e.preventDefault(); window.closeLocalSearch(); }
     });
-
     btnNext.addEventListener('click', nextMatch);
     btnPrev.addEventListener('click', prevMatch);
     btnClose.addEventListener('click', window.closeLocalSearch);
