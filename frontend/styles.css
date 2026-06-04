@@ -187,13 +187,6 @@ body {
     -webkit-user-drag: none;
 }
 
-.app-header {
-    display: flex;
-    align-items: center;
-    padding: 16px 0 16px 24px; /* УБРАЛИ padding-top: 38px */
-    gap: 32px;
-    /* УДАЛИЛИ -webkit-app-region: drag; */
-}
 
 /* Глобальная защита от браузерного выделения и перетаскивания */
 html, body {
@@ -338,14 +331,6 @@ body {
 .tab-name-input {
     -webkit-user-select: text !important;
     user-select: text !important;
-}
-
-.app-header {
-    display: flex;
-    align-items: center;
-    /* Идеальные 24px сверху и 24px слева (равны отступу между колонками) */
-    padding: 24px 0 16px 24px; 
-    gap: 16px; /* Расстояние после поиска теперь равно расстоянию до него */
 }
 
 /* Обертка для кнопок настроек */
@@ -547,10 +532,10 @@ body {
     height: 16px;
 }
 
-/* Основной контейнер, где живут колонки */
 .board-container {
     flex: 1;                    
-    padding: 0 0 16px 24px; /* Уменьшили нижний паддинг до 16px для соосности со скроллом */
+    /* Нижний отступ строго 16px (равен верхнему отступу .app-header) */
+    padding: 0 0 16px 24px; 
     overflow-x: auto;           
     overflow-y: hidden;
 }
@@ -4871,7 +4856,7 @@ body.is-dragging-attachment .attachment-item:not(.attachment-drag-clone) {
     display: flex;
     justify-content: center;
     align-items: center; 
-    padding: 20px; /* <--- ЗАЩИТА 1: Не даем окну прилипать к краям экрана */
+    padding: 20px;
     box-sizing: border-box;
     opacity: 1;
     visibility: visible;
@@ -4882,6 +4867,8 @@ body.is-dragging-attachment .attachment-item:not(.attachment-drag-clone) {
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
+    display: none;
+    transition: opacity 0.3s ease, visibility 0.3s ease, display 0.3s allow-discrete;
 }
 
 
@@ -5401,9 +5388,15 @@ body.is-dragging-attachment .attachment-item:not(.attachment-drag-clone) {
 /* Позиционирование настроек на экране Vault */
 .vault-settings-wrapper {
     position: absolute;
-    top: 32px; /* Совпадает с верхней границей логотипа (равно padding-top контейнера) */
-    left: 32px; /* Выравнивание строго по левому краю контента внутри карточки */
+    top: 16px; /* Совпадает с вертикальной линией хедера доски (padding-top: 16px) */
+    left: 24px; /* Стандартный отступ для Windows/Linux */
     z-index: 10;
+    transition: left var(--transition-apple);
+}
+
+/* На macOS позиционируем настройки ровно после желтой кнопки минимизации */
+.mac-os .vault-settings-wrapper {
+    left: 84px !important;
 }
 
 /* ФИКС: Чтобы выпадающее меню не обрезалось краями vault-screen */
@@ -7100,4 +7093,104 @@ mark.local-search-highlight.active {
 #task-desc-render > table {
     content-visibility: auto;
     contain-intrinsic-size: 1px 50px; /* Сообщаем браузеру примерную высоту скрытого блока, чтобы скроллбар не прыгал */
+}
+
+.app-header {
+    display: flex;
+    align-items: center;
+    /* Идеальная вертикальная симметрия: строго 16px сверху и 16px снизу */
+    padding: 16px 0 16px 24px; 
+    gap: 16px;
+}
+
+/* ==========================================
+   MACOS FRAMELESS WINDOW (Aesthetic Native UI)
+   ========================================== */
+
+/* 1) ВСЁ приложение по умолчанию НЕ таскает окно.
+   -webkit-app-region не наследуется, а в режиме easy_drag/movableByWindowBackground
+   WKWebView считает любой элемент без явного no-drag перетаскиваемым.
+   Поэтому глушим глобально, а drag включаем точечно ниже. */
+.mac-os * {
+    -webkit-app-region: no-drag;
+}
+
+/* 2) Перетаскивать окно можно ТОЛЬКО за фон шапки... */
+.mac-os .app-header {
+    padding-left: 106px !important;
+    -webkit-app-region: drag;
+}
+
+/* 3) ...и за фон экрана выбора хранилища (на нём окно тоже надо двигать).
+   Дочерние инпуты/кнопки уже no-drag благодаря правилу выше. */
+.mac-os .vault-screen {
+    -webkit-app-region: drag;
+}
+
+/* Контейнер светофора */
+.mac-traffic-lights {
+    position: absolute;
+    top: 27px; 
+    left: 24px; /* Вровень с левым краем колонок на доске */
+    display: none; /* Скрыто по умолчанию для Windows/Linux */
+    gap: 8px;
+    z-index: 9999999; /* Поверх всего */
+    -webkit-app-region: no-drag; 
+    transition: gap 0.3s ease;
+}
+
+/* Показываем светофор только на macOS */
+.mac-os .mac-traffic-lights {
+    display: flex !important;
+}
+
+/* Базовая кнопка (увеличена до 14px) */
+.traffic-btn {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    transition: background-color 0.2s, border-color 0.2s, transform 0.2s, opacity 0.2s, width 0.2s, height 0.2s;
+}
+
+/* Нативные цвета macOS Monterey+ */
+.traffic-btn.close    { background-color: #FF5F56; border: .5px solid #E0443E; color: #4D0000; }
+.traffic-btn.minimize { background-color: #FFBD2E; border: .5px solid #DEA123; color: #995700; }
+.traffic-btn.zoom     { background-color: #27C93F; border: .5px solid #1AAB29; color: #006500; }
+
+/* Иконки внутри кнопок (восстановлен оригинальный размер 12px) */
+.traffic-icon {
+    width: 12px;
+    height: 12px;
+    opacity: 0; /* Скрыты по умолчанию */
+    transition: opacity 0.1s ease;
+    color: rgba(0, 0, 0, 0.65); /* Делаем иконки не угольно-черными, а как в macOS */
+}
+
+/* Иконки появляются при наведении на ВСЮ ГРУППУ светофора */
+.mac-traffic-lights:hover .traffic-icon {
+    opacity: 1;
+}
+
+.traffic-btn:active {
+    filter: brightness(0.8);
+}
+
+/* ==========================================
+   VAULT MODE LIGHTS (Эстетика стартового экрана)
+   ========================================== */
+
+/* Скрываем только зеленую кнопку (zoom), сохраняя красную и желтую активными */
+.mac-traffic-lights.vault-mode .zoom {
+    opacity: 0;
+    width: 0;
+    margin: 0;
+    pointer-events: none;
+    border: none;
 }

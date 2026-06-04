@@ -1,5 +1,9 @@
 let state = { columns: [], workspaces: [], activeWorkspaceId: null };
 const API_BASE = '/api/v1';
+// Определяем macOS для применения нативных безрамочных отступов
+if (navigator.userAgent.toLowerCase().includes('mac')) {
+    document.documentElement.classList.add('mac-os');
+}
 let cmEditor = null; // Глобальный редактор
 
 const translations = {
@@ -7014,10 +7018,14 @@ document.addEventListener('click', async (e) => {
 // ==========================================
 
 async function showVaultScreen() {
+    // Включаем минималистичный крестик
+    const lights = document.getElementById('mac-traffic-lights');
+    if (lights) lights.classList.add('vault-mode');
+
     if (window.pywebview && window.pywebview.api && window.pywebview.api.open_vault_window) {
         window.pywebview.api.open_vault_window();
     } else {
-        window.location.href = "/app?mode=vault"; // Fallback для разработки в браузере
+        window.location.href = "/app?mode=vault";
     }
 }
 
@@ -7259,10 +7267,14 @@ async function renderVaultHistory() {
 }
 
 async function transitionToApp() {
+    // Убираем минималистичный режим, возвращаем цветной светофор с плавной анимацией
+    const lights = document.getElementById('mac-traffic-lights');
+    if (lights) lights.classList.remove('vault-mode');
+
     if (window.pywebview && window.pywebview.api && window.pywebview.api.open_main_window) {
         window.pywebview.api.open_main_window();
     } else {
-        window.location.href = "/app"; // Fallback для разработки в браузере
+        window.location.href = "/app"; 
     }
 }
 
@@ -8915,6 +8927,10 @@ document.getElementById('graph-trigger')?.addEventListener('click', (e) => {
     if (isVaultMode) {
         document.getElementById('vault-screen').classList.remove('hidden', 'content-hidden');
 
+        // Включаем Vault Mode для светофора при загрузке
+        const lights = document.getElementById('mac-traffic-lights');
+        if (lights) lights.classList.add('vault-mode');
+
         try {
             // Даже на экране входа мы запрашиваем глобальные настройки (тема/язык)
             const settingsData = await fetchSettings().catch(() => ({}));
@@ -9162,6 +9178,8 @@ async function renderRemindersDropdown() {
         list.appendChild(div);
     });
 }
+
+
 
 // Запускаем периодический опрос активных напоминаний раз в 3 секунды для моментальной синхронизации
 setInterval(updateBellBadge, 3000);
@@ -9592,3 +9610,42 @@ const Calendar = {
 document.addEventListener('DOMContentLoaded', () => {
     Calendar.init();
 });
+
+/* ── Ручное перетаскивание безрамочного окна macOS (easy_drag=False) ──
+   Координаты считает нативный код (AppKit) — JS только сигнализирует фазы.
+   Окно двигается ТОЛЬКО за фон шапки / экрана выбора хранилища. */
+(() => {
+    if (!document.documentElement.classList.contains('mac-os')) return;
+
+    let dragging = false, rafScheduled = false;
+
+    const NO_DRAG = 'button, input, textarea, select, a, [contenteditable="true"],' +
+        '.search-wrapper, .settings-wrapper, .tabs-wrapper, .board-tab,' +
+        '.vault-container, .menu-btn, .card-menu-btn, .traffic-btn';
+
+    document.addEventListener('mousedown', (e) => {
+        if (e.button !== 0) return;
+        if (!e.target.closest('.app-header, .vault-screen')) return;
+        if (e.target.closest(NO_DRAG)) return;
+        try { window.pywebview?.api?.begin_window_drag?.(); } catch (err) {}
+        dragging = true;
+        e.preventDefault();
+    }, true);
+
+    document.addEventListener('mousemove', () => {
+        if (!dragging || rafScheduled) return;
+        rafScheduled = true;
+        requestAnimationFrame(() => {
+            rafScheduled = false;
+            if (dragging) { try { window.pywebview?.api?.drag_window?.(); } catch (err) {} }
+        });
+    });
+
+    const stop = () => {
+        if (!dragging) return;
+        dragging = false;
+        try { window.pywebview?.api?.end_window_drag?.(); } catch (err) {}
+    };
+    document.addEventListener('mouseup', stop);
+    window.addEventListener('blur', stop);
+})();

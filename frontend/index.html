@@ -19,25 +19,44 @@
 
 <body class="preload">
 
+<div class="mac-traffic-lights" id="mac-traffic-lights">
+    <button class="traffic-btn close" onclick="if(window.pywebview) window.pywebview.api.close_window()">
+        <svg class="traffic-icon" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M4 4L10 10M10 4L4 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+    </button>
+    <button class="traffic-btn minimize" onclick="if(window.pywebview) window.pywebview.api.minimize_window()">
+        <svg class="traffic-icon" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <line x1="3" y1="7" x2="11" y2="7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+    </button>
+    <button class="traffic-btn zoom" onclick="if(window.pywebview) window.pywebview.api.toggle_fullscreen()">
+        <svg class="traffic-icon" viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg">
+            <polygon points="3.5,3.5 8,3.5 3.5,8" fill="currentColor"/>
+            <polygon points="10.5,10.5 6,10.5 10.5,6" fill="currentColor"/>
+        </svg>
+    </button>
+</div>
+
 <div class="vault-screen" id="vault-screen">
-    <div class="vault-container">
-        <!-- Кнопка настроек для экрана входа (перенесена внутрь контейнера) -->
-        <div class="vault-settings-wrapper settings-wrapper">
-            <button class="icon-btn settings-trigger" aria-label="Настройки">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
-            </button>
-            <div class="dropdown-menu">
-                <div class="menu-item" data-action="theme">
-                    <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
-                    <span data-i18n="theme">Тема</span>
-                </div>
-                <div class="menu-item" data-action="change-lang">
-                    <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-                    <span data-i18n="language">Язык</span>
-                </div>
+    <!-- Кнопка настроек вынесена на уровень всего экрана (будет зафиксирована в углу независимо от ширины контейнера) -->
+    <div class="vault-settings-wrapper settings-wrapper">
+        <button class="icon-btn settings-trigger" aria-label="Настройки">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
+        </button>
+        <div class="dropdown-menu">
+            <div class="menu-item" data-action="theme">
+                <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                <span data-i18n="theme">Тема</span>
+            </div>
+            <div class="menu-item" data-action="change-lang">
+                <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                <span data-i18n="language">Язык</span>
             </div>
         </div>
+    </div>
 
+    <div class="vault-container">
         <!-- Логотип и заголовок -->
         <div class="vault-hero">
             <img src="/doe.png" alt="Doe Logo" class="vault-logo-img">
@@ -133,8 +152,8 @@
         <div class="settings-wrapper" id="reminders-bell-wrapper">
             <button class="icon-btn" id="reminders-bell-trigger" aria-label="Напоминания">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M4 18V11a8 8 0 0 1 16 0v7Z"></path>
-                    <path d="M9 22h6"></path>
+                    <path d="M4 17c0-3.5 3-4.5 3-9a5 5 0 0 1 10 0c0 4.5 3 5.5 3 9H4z"></path>
+                    <line x1="10" y1="21" x2="14" y2="21"></line>
                 </svg>
                 <span class="bell-badge" id="bell-badge" style="display: none;"></span>
             </button>
@@ -380,8 +399,8 @@
                         </button>
                         <button class="modal-notify" aria-label="Уведомить">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M4 18V11a8 8 0 0 1 16 0v7Z"></path>
-                                <path d="M9 22h6"></path>
+                                <path d="M4 17c0-3.5 3-4.5 3-9a5 5 0 0 1 10 0c0 4.5 3 5.5 3 9H4z"></path>
+                                <line x1="10" y1="21" x2="14" y2="21"></line>
                             </svg>
                         </button>
                         <button class="modal-export" aria-label="Экспорт">
@@ -522,8 +541,8 @@
     </div>
     <div class="menu-item" data-action="notify-card">
         <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M4 18V11a8 8 0 0 1 16 0v7Z"></path>
-            <path d="M9 22h6"></path>
+            <path d="M4 17c0-3.5 3-4.5 3-9a5 5 0 0 1 10 0c0 4.5 3 5.5 3 9H4z"></path>
+            <line x1="10" y1="21" x2="14" y2="21"></line>
         </svg>
         <span data-i18n="menu.notify">Напомнить</span>
     </div>

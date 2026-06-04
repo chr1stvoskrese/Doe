@@ -588,6 +588,118 @@ def bind_resize_event(win):
 
 # --- ЗАМЕНИТЕ КЛАСС WindowAPI в wrapper.py на этот ---
 class WindowAPI:
+    def close_window(self):
+        """Закрывает окно (красная кнопка)"""
+        import sys
+        if sys.platform == 'darwin':
+            from PyObjCTools import AppHelper
+            def _close():
+                try:
+                    import AppKit
+                    app = AppKit.NSApplication.sharedApplication()
+                    win = app.keyWindow() or app.mainWindow()
+                    if win:
+                        win.performClose_(None)
+                except Exception as e:
+                    print(f"[Close] Cocoa error: {e}")
+            AppHelper.callAfter(_close)
+        else:
+            if webview.windows:
+                webview.windows[-1].destroy()
+
+    def minimize_window(self):
+        """Сворачивает окно в Dock (желтая кнопка)"""
+        import sys
+        if sys.platform == 'darwin':
+            from PyObjCTools import AppHelper
+            def _minimize():
+                try:
+                    import AppKit
+                    app = AppKit.NSApplication.sharedApplication()
+                    win = app.keyWindow() or app.mainWindow()
+                    if win:
+                        win.miniaturize_(None)
+                except Exception as e:
+                    print(f"[Minimize] Cocoa error: {e}")
+            AppHelper.callAfter(_minimize)
+        else:
+            if webview.windows:
+                webview.windows[-1].minimize()
+
+    def begin_window_drag(self):
+        """Старт ручного перетаскивания. Всю работу с окном выполняем СТРОГО
+           на главном потоке — иначе AppKit вешает приложение намертво."""
+        import sys
+        if sys.platform != 'darwin':
+            return False
+        from PyObjCTools import AppHelper
+
+        def _begin():
+            try:
+                import AppKit
+                app = AppKit.NSApplication.sharedApplication()
+                win = app.keyWindow() or app.mainWindow()
+                if win is None:
+                    return
+                frame = win.frame()
+                mouse = AppKit.NSEvent.mouseLocation()  # экранные коорд., origin снизу-слева
+                self._drag_win = win
+                self._drag_off_x = mouse.x - frame.origin.x
+                self._drag_off_y = mouse.y - frame.origin.y
+            except Exception as e:
+                print(f"[Drag] begin error: {e}")
+
+        AppHelper.callAfter(_begin)   # выполнится на главном потоке
+        return True
+
+    def drag_window(self):
+        """Двигаем окно к текущей позиции мыши на главном потоке.
+           Координаты целиком в системе Cocoa — без переворотов оси Y."""
+        import sys
+        if sys.platform != 'darwin':
+            return False
+        from PyObjCTools import AppHelper
+
+        def _move():
+            win = getattr(self, '_drag_win', None)
+            if win is None:
+                return
+            try:
+                import AppKit
+                mouse = AppKit.NSEvent.mouseLocation()
+                new_x = mouse.x - self._drag_off_x
+                new_y = mouse.y - self._drag_off_y
+                win.setFrameOrigin_(AppKit.NSMakePoint(new_x, new_y))
+            except Exception as e:
+                print(f"[Drag] move error: {e}")
+
+        AppHelper.callAfter(_move)
+        return True
+
+    def end_window_drag(self):
+        """Конец перетаскивания."""
+        self._drag_win = None
+        return True
+
+    def toggle_fullscreen(self):
+        """Разворачивает/сворачивает окно (зеленая кнопка)"""
+        import sys
+        if sys.platform == 'darwin':
+            from PyObjCTools import AppHelper
+            def _zoom():
+                try:
+                    import AppKit
+                    app = AppKit.NSApplication.sharedApplication()
+                    win = app.keyWindow() or app.mainWindow()
+                    if win:
+                        win.performZoom_(None)
+                except Exception as e:
+                    print(f"[Zoom] Cocoa error: {e}")
+            AppHelper.callAfter(_zoom)
+        else:
+            if webview.windows:
+                webview.windows[-1].toggle_fullscreen()
+
     def trigger_haptic(self):
         """Генерирует тактильный отклик на трекпадах macOS"""
         import sys
@@ -737,6 +849,8 @@ class WindowAPI:
             height=t_h,
             min_size=(800, 600),
             resizable=True,
+            frameless=(sys.platform == 'darwin'),
+            easy_drag=False,
             background_color=bg_color,
             text_select=True,
             hidden=True,
@@ -764,6 +878,8 @@ class WindowAPI:
             height=680,
             min_size=(760, 680),
             resizable=False,
+            frameless=(sys.platform == 'darwin'),
+            easy_drag=False,
             background_color=bg_color,
             text_select=True,
             hidden=True,
@@ -980,7 +1096,9 @@ if __name__ == '__main__':
             width=start_w,           
             height=start_h,          
             min_size=(min_w, min_h), 
-            resizable=is_resizable,     
+            resizable=is_resizable,
+            frameless=(sys.platform == 'darwin'),
+            easy_drag=False,     
             background_color=bg_color, 
             text_select=True,
             hidden=True,            
