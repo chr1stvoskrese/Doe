@@ -3,119 +3,6 @@ import subprocess
 import os
 import time
 
-if len(sys.argv) >= 5 and sys.argv[1] == "--notify":
-    try:
-        delay = int(sys.argv[2])
-        title = sys.argv[3]
-        message = sys.argv[4]
-        task_id = sys.argv[5] if len(sys.argv) >= 6 else None
-        vault_path = sys.argv[6] if len(sys.argv) >= 7 else None
-        
-        time.sleep(delay)
-        
-        import os
-        import json
-        from pathlib import Path
-
-        config_file = Path.home() / ".doe_config.json"
-        reminder_valid = False
-        current_vault_path = vault_path  # Фолбэк на старый путь
-
-        if task_id and config_file.exists():
-            try:
-                with open(config_file, 'r', encoding='utf-8') as f:
-                    config_data = json.load(f)
-                
-                reminders = config_data.get("active_reminders", [])
-                for r in reminders:
-                    if str(r.get("task_id")) == str(task_id):
-                        reminder_valid = True
-                        # Берем СВЕЖИЙ путь, если хранилище переехало
-                        if r.get("vault_path"):
-                            current_vault_path = r.get("vault_path")
-                        break
-            except Exception:
-                # Если конфиг поврежден или заблокирован, разрешаем показ (лучше показать, чем пропустить)
-                reminder_valid = True
-                
-        # Если напоминание было удалено пользователем
-        if task_id and not reminder_valid:
-            os._exit(0)
-            
-        # Если папка была удалена из системы или перенесена (но НЕ перепривязана в приложении)
-        if current_vault_path and not os.path.exists(current_vault_path):
-            os._exit(0)
-            
-        # Обновляем переменную для использования в кликах по уведомлению
-        vault_path = current_vault_path
-        
-        if sys.platform == 'darwin':
-            try:
-                import subprocess
-                import json
-                import urllib.request
-                
-                safe_title = title.replace('"', '\\"')
-                safe_message = message.replace('"', '\\"')
-                
-                # 1. Показываем нативное уведомление macOS через AppleScript (НЕ создает иконку в Dock)
-                apple_script = f'display notification "{safe_message}" with title "{safe_title}"'
-                subprocess.call(["osascript", "-e", apple_script])
-                
-                # 2. Отправляем сигнал на подсветку карточки в фоне
-                payload = json.dumps({"task_id": int(task_id) if task_id else None, "vault_path": vault_path})
-                req = urllib.request.Request(
-                    "http://127.0.0.1:8000/api/v1/system/highlight-task",
-                    data=payload.encode('utf-8'),
-                    headers={'Content-Type': 'application/json'}
-                )
-                urllib.request.urlopen(req, timeout=1.0)
-            except Exception:
-                pass
-        elif sys.platform == 'win32':
-            safe_title = title.replace("'", "''")
-            safe_message = message.replace("'", "''")
-            
-            import json
-            # Безопасно формируем JSON для PowerShell
-            ps_payload = json.dumps({"task_id": int(task_id) if task_id else None, "vault_path": vault_path})
-            ps_payload_safe = ps_payload.replace("'", "''")
-            
-            ps_script = f"""
-            Add-Type -AssemblyName System.Windows.Forms;
-            $notify = New-Object System.Windows.Forms.NotifyIcon;
-            $notify.Icon = [System.Drawing.SystemIcons]::Information;
-            $notify.BalloonTipTitle = '{safe_title}';
-            $notify.BalloonTipText = '{safe_message}';
-            $notify.Visible = $True;
-            
-            $action = {{
-                try {{
-                    $body = '{ps_payload_safe}'
-                    if ($body -match '"task_id": \\d+') {{
-                        Invoke-WebRequest -Uri 'http://127.0.0.1:8000/api/v1/system/highlight-task' -Method POST -Body $body -ContentType 'application/json' -UseBasicParsing | Out-Null
-                    }}
-                }} catch {{ 
-                    # Если приложение закрыто, пробуем его запустить
-                    Start-Process "Doe.exe" -ErrorAction SilentlyContinue
-                }}
-                $notify.Visible = $False;
-                [System.Windows.Forms.Application]::ExitThread();
-            }}
-            
-            $notify.add_BalloonTipClicked($action);
-            $notify.add_BalloonTipClosed({{ $notify.Visible = $False; [System.Windows.Forms.Application]::ExitThread(); }});
-            
-            $notify.ShowBalloonTip(10000);
-            [System.Windows.Forms.Application]::Run();
-            """
-            import os
-            os.system(f'powershell -WindowStyle Hidden -Command "{ps_script}"')
-    except Exception:
-        pass
-    import os
-    os._exit(0)
-
 if getattr(sys, 'frozen', False):
     bundle_dir = sys._MEIPASS
 else:
@@ -792,10 +679,30 @@ class WindowAPI:
         if not webview.windows:
             return
         
-        # Берем последнее созданное окно (надежнее при пересоздании окон)
+        # Берем последнее созданное окно
         window = webview.windows[-1]
         
-        if sys.platform == 'win32':
+        # 1. Показываем окно. Это безопасно делать прямо здесь (pywebview сам разрулит потоки)
+        window.show()
+        
+        # 2. Вытягиваем окно на передний план (только AppKit методы кидаем в главный поток)
+        import sys
+        if sys.platform == 'darwin':
+            try:
+                import AppKit
+                from Foundation import NSOperationQueue
+                
+                def _activate():
+                    try:
+                        AppKit.NSApp.activateIgnoringOtherApps_(True)
+                    except Exception:
+                        pass
+                        
+                NSOperationQueue.mainQueue().addOperationWithBlock_(_activate)
+            except Exception as e:
+                print(f"[System] macOS UI Sync failed: {e}")
+                
+        elif sys.platform == 'win32':
             import ctypes
             try:
                 hwnd = ctypes.windll.user32.FindWindowW(None, window.title)
@@ -812,8 +719,6 @@ class WindowAPI:
                     ctypes.windll.dwmapi.DwmSetWindowAttribute(hwnd, 35, ctypes.byref(ctypes.c_int(colorref)), 4)
             except Exception as e:
                 print(f"[WebView] Windows UI Sync failed: {e}")
-
-        window.show()
 
     def open_main_window(self):
         """Порождает новое окно приложения и убивает ВСЕ старые окна (включая окно выбора хранилища)"""
@@ -898,6 +803,14 @@ class APIServerThread(threading.Thread):
 if __name__ == '__main__':
     multiprocessing.freeze_support()
     print("[System] Starting main thread...")
+    
+    # --- Восстановление напоминаний при старте ---
+    try:
+        from src.core.config import restore_all_reminders
+        restore_all_reminders()
+        print("[System] Active reminders verified and restored.")
+    except Exception as e:
+        print(f"[System] Failed to restore active reminders: {e}")
     
     # Регистрируем себя в sys.modules под именем 'wrapper' даже когда запущены как __main__.
     # Это нужно, чтобы src/api/v1/system.py мог найти WindowAPI через sys.modules['wrapper'].

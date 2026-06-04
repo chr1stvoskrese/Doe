@@ -66,6 +66,12 @@ else
     CURRENT_STEP=$((CURRENT_STEP + 1)) # Компенсируем второй шаг
 fi
 
+update_progress "Сборка тихого воркера уведомлений..."
+pyinstaller --noconfirm \
+    --console \
+    --name "notify_worker" \
+    notify_worker.py >> "$LOG_FILE" 2>&1
+
 update_progress "Сборка через PyInstaller (это может занять время)..."
 pyinstaller --noconfirm \
     --windowed \
@@ -139,6 +145,14 @@ with open(plist_path, 'wb') as f:
 
 update_progress "Копирование ресурсов и Touch..."
 cp doe.icns "dist/Doe.app/Contents/Resources/doe.icns" >> "$LOG_FILE" 2>&1
+
+# Вот то самое действие:
+# Копируем "тихий" бинарник из его временной папки прямиком внутрь Doe.app
+cp "dist/notify_worker/notify_worker" "dist/Doe.app/Contents/MacOS/" >> "$LOG_FILE" 2>&1
+
+# (Опционально) Удаляем папку notify_worker снаружи, чтобы она не мозолила глаза в папке dist
+rm -rf "dist/notify_worker" >> "$LOG_FILE" 2>&1
+
 touch dist/Doe.app >> "$LOG_FILE" 2>&1
 
 update_progress "Локальная подпись (codesign)..."

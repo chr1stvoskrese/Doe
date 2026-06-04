@@ -102,52 +102,33 @@ from datetime import datetime, timedelta
 from src.db.models import TaskModel
 from sqlalchemy import select
 from src.core.config import add_active_reminder, get_active_vault
+import uuid
 
 @router.post("/{task_id}/notify")
 async def schedule_notification_endpoint(task_id: int, req: TaskNotifyReq, db: AsyncSession = Depends(get_session)):
     try:
-        # 1. Получаем заголовок задачи для сохранения в истории напоминаний
         res = await db.execute(select(TaskModel).where(TaskModel.id == task_id))
         task = res.scalar_one_or_none()
         task_title = task.title if task else "Doe Task"
 
-        # 2. Вычисляем точное UTC-время срабатывания
         due_time = datetime.utcnow() + timedelta(seconds=req.delay_seconds)
         due_time_iso = due_time.isoformat() + "Z"
-
-        # 3. Вычисляем текущее хранилище
         vault_path = get_active_vault()
+        
+        reminder_id = str(uuid.uuid4())
 
-        if sys.platform == 'darwin':
-            import json
-            # Экранируем кавычки для безопасного bash-вызова
-            safe_title = req.title.replace('"', '\\"').replace("'", "")
-            safe_msg = req.message.replace('"', '\\"').replace("'", "")
-            payload = json.dumps({"task_id": task_id, "vault_path": vault_path})
+        from src.core.config import spawn_notification_worker, add_active_reminder
+        
+        pid = spawn_notification_worker(
+            task_id=task_id,
+            task_title=task_title,
+            message=req.message,
+            due_time_iso=due_time_iso,
+            vault_path=vault_path,
+            reminder_id=reminder_id
+        )
             
-            # В macOS запуск собранного бинарника неизбежно вызывает появление иконки в Dock.
-            # Поэтому мы используем нативный bash-скрипт, который спит в фоне, 
-            # вызывает уведомление и отправляет сигнал обратно через curl.
-            sh_script = f'''
-sleep {req.delay_seconds}
-osascript -e 'display notification "{safe_msg}" with title "{safe_title}"'
-curl -s -X POST http://127.0.0.1:8000/api/v1/system/highlight-task -H "Content-Type: application/json" -d '{payload}' > /dev/null
-'''
-            p = subprocess.Popen(['sh', '-c', sh_script], start_new_session=True)
-        else:
-            executable = sys.executable
-            if getattr(sys, 'frozen', False):
-                args = [executable, "--notify", str(req.delay_seconds), req.title, req.message, str(task_id), vault_path]
-            else:
-                wrapper_path = os.path.abspath(sys.argv[0])
-                args = [executable, wrapper_path, "--notify", str(req.delay_seconds), req.title, req.message, str(task_id), vault_path]
-            
-            # Порождаем полностью отсоединённый процесс
-            creationflags = 0x08000000 | 0x00000008 if sys.platform == 'win32' else 0
-            p = subprocess.Popen(args, creationflags=creationflags, start_new_session=(sys.platform != 'win32'))
-            
-        # 4. Сохраняем в список активных с указанием PID процесса и пути
-        add_active_reminder(task_id, task_title, req.message, due_time_iso, p.pid, vault_path)
+        add_active_reminder(task_id, task_title, req.message, due_time_iso, pid, vault_path, reminder_id)
             
         return {"success": True}
     except Exception as e:

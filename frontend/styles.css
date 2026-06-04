@@ -2385,22 +2385,13 @@ body.is-dragging-card .column-header {
     background: rgba(255, 255, 255, 0.1);
 }
 
-/* ==========================================
-   АНИМАЦИЯ СОЗДАНИЯ КАРТОЧКИ (Двухфазная хореография)
-   ========================================== */
-
-/* ==========================================
-   АНИМАЦИЯ СОЗДАНИЯ КАРТОЧКИ (Двухфазная хореография - Оптимизированная)
-   ========================================== */
-
-/* Форма создания новой карточки */
-
 .card.card-entering {
     background: transparent;
     border: 1.5px dashed transparent; 
     box-shadow: none;
     opacity: 0;
     transform: scale(0.97) translateZ(0);
+    flex-shrink: 0; /* 🛡 Форма не сплющивается, когда колонка заполнена */
     
     /* 🔥 ФИКС ФРИЗОВ: CSS Grid + Компенсация Flex Gap */
     display: grid !important;
@@ -2419,12 +2410,13 @@ body.is-dragging-card .column-header {
     
     /* Единая плавная кривая без рассинхрона фаз */
     transition:
-        grid-template-rows 0.2s cubic-bezier(0.2, 0.8, 0.2, 1),
-        padding 0.2s cubic-bezier(0.2, 0.8, 0.2, 1),
-        margin-top 0.2s cubic-bezier(0.2, 0.8, 0.2, 1),
-        opacity 0.15s ease-out 0.05s,
-        transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1),
-        border-color 0.2s ease-out;
+        grid-template-rows 0.12s cubic-bezier(0.2, 0.8, 0.2, 1),
+        padding 0.12s cubic-bezier(0.2, 0.8, 0.2, 1),
+        margin-top 0.12s cubic-bezier(0.2, 0.8, 0.2, 1),
+        border-width 0.12s cubic-bezier(0.2, 0.8, 0.2, 1),
+        opacity 0.1s ease-out,
+        transform 0.12s cubic-bezier(0.2, 0.8, 0.2, 1),
+        border-color 0.1s ease-out;
 }
 
 /* Убиваем паразитные псевдоэлементы (защита Grid-потока) */
@@ -2451,33 +2443,25 @@ body.is-dragging-card .column-header {
 }
 
 .card.card-entering.is-exiting {
-    opacity: 0;
-    transform: scale(0.96) translateZ(0);
     pointer-events: none;
-    grid-template-rows: 0fr !important;
-    padding: 0 14px !important; 
-    border-color: transparent !important;
-    
-    /* Идеальная математика: 12px gap + 2px border (верх и низ) = 14px, которые нужно съесть */
-    margin-top: -14px !important;
-    margin-bottom: 0 !important;
-    
-    transition:
-        grid-template-rows 0.2s cubic-bezier(0.2, 0.8, 0.2, 1),
-        padding 0.2s cubic-bezier(0.2, 0.8, 0.2, 1),
-        margin-top 0.2s cubic-bezier(0.2, 0.8, 0.2, 1),
-        opacity 0.15s ease-out,
-        transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1),
-        border-color 0.15s ease-out;
-}
 
-/* Жёстко зануляем габариты инпута, чтобы он позволил сетке сжаться в абсолютный ноль */
-.card.card-entering.is-exiting .card-input {
-    min-height: 0 !important;
-    height: 0 !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    transition: height 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), min-height 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+    /* Сводим в ноль ширину прозрачной рамки (1.5px сверху + 1.5px снизу).
+       Это и есть тот «невидимый остаток», в который упирались соседние карточки
+       и который давал второй рывок при удалении формы из DOM. */
+    border-width: 0 !important;
+
+    /* Всё остальное (grid 0fr, padding, margin-top -12px, scale 0.97, opacity 0,
+       border-color transparent) НЕ переопределяем — оно наследуется из базового
+       .card-entering, то есть из стартовой точки появления. Поэтому уход —
+       это точный обратный повтор появления, без рассинхрона. */
+    transition:
+        grid-template-rows 0.12s ease-out,
+        padding 0.12s ease-out,
+        margin-top 0.12s ease-out,
+        border-width 0.12s ease-out,
+        opacity 0.08s ease-out,
+        transform 0.12s ease-out,
+        border-color 0.08s ease-out;
 }
 
 

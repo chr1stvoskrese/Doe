@@ -31,12 +31,59 @@ class HighlightReq(BaseModel):
 @router.post("/highlight-task")
 async def trigger_highlight(req: HighlightReq):
     pending_highlights.append({"task_id": req.task_id, "vault_path": req.vault_path})
+    
+    def _bring_to_front():
+        try:
+            import webview
+            import sys
+            for w in webview.windows:
+                if 'Kanban' in w.title or 'Select Vault' in w.title:
+                    w.restore()
+                    w.show()
+                    if sys.platform == 'win32':
+                        import ctypes
+                        hwnd = ctypes.windll.user32.FindWindowW(None, w.title)
+                        if hwnd:
+                            ctypes.windll.user32.ShowWindow(hwnd, 9)
+                            ctypes.windll.user32.SetForegroundWindow(hwnd)
+                    elif sys.platform == 'darwin':
+                        import AppKit
+                        AppKit.NSApp.activateIgnoringOtherApps_(True)
+                    break
+        except Exception as e:
+            print(f"[System] Failed to bring window to front: {e}")
+
+    import sys
+    if sys.platform == 'darwin':
+        try:
+            from Foundation import NSOperationQueue
+            NSOperationQueue.mainQueue().addOperationWithBlock_(_bring_to_front)
+        except Exception:
+            pass
+    else:
+        import threading
+        threading.Timer(0.1, _bring_to_front).start()
+
     return {"success": True}
 
 @router.get("/pending-highlights")
 async def get_pending_highlights():
+    # Быстрая память (горячий старт)
     if pending_highlights:
         return pending_highlights.pop(0)
+    
+    # Фолбэк для холодного старта (когда бэкенд поднимался с нуля)
+    try:
+        from src.core.config import _load_config, _save_config
+        config_data = _load_config()
+        ph = config_data.get("pending_highlight")
+        if ph:
+            config_data.pop("pending_highlight", None)
+            _save_config(config_data)
+            return ph
+    except Exception:
+        pass
+        
     return {"task_id": None}
 
 class VaultResponse(BaseModel):
@@ -690,7 +737,8 @@ from src.core.config import get_active_reminders, remove_active_reminder, remove
 
 @router.post("/vault/history/remove")
 async def remove_vault_history_endpoint(req: RemoveHistoryReq):
-    remove_all_vault_reminders(req.path)
+    # УДАЛЕНО: remove_all_vault_reminders(req.path) — при удалении пути из истории,
+    # напоминания не должны уничтожаться на случай повторного открытия папки.
     remove_vault_from_history(req.path)
     return {"success": True}
 
@@ -701,10 +749,11 @@ async def get_reminders_endpoint():
     return get_active_reminders()
 
 
-@router.delete("/reminders/{task_id}")
-async def cancel_reminder_endpoint(task_id: int, vault_path: Optional[str] = None):
-    """Отменяет запланированное напоминание."""
-    remove_active_reminder(task_id, vault_path)
+# Внимание: путь меняется с {task_id} на {reminder_id}
+@router.delete("/reminders/{reminder_id}")
+async def cancel_reminder_endpoint(reminder_id: str):
+    """Отменяет запланированное напоминание по его UUID."""
+    remove_active_reminder(reminder_id)
     return {"success": True}
 
 

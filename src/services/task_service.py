@@ -259,7 +259,7 @@ async def delete_task(db: AsyncSession, task_id: int) -> list[int]:
     # Собираем все ID (самой задачи и всех её потомков) ДО удаления
     deleted_ids = await _get_all_child_ids(db, task_id)
 
-    from src.core.config import remove_active_reminder, get_active_vault
+    from src.core.config import remove_reminders_for_task, get_active_vault
 
     # Каскад в БД автоматически уничтожит все подзадачи
     await db.delete(task)
@@ -271,9 +271,8 @@ async def delete_task(db: AsyncSession, task_id: int) -> list[int]:
     await db.commit()
     
     # Убиваем системные напоминания для удаляемых задач
-    current_vault = get_active_vault()
     for d_id in deleted_ids:
-        remove_active_reminder(d_id, current_vault)
+        remove_reminders_for_task(d_id)
     
     # 🧹 Вызываем сборщик мусора. Он автоматически удалит с диска все файлы,
     # которые были привязаны к удаленной карточке и ВСЕМ её подзадачам,

@@ -195,50 +195,24 @@ def set_vault_geometry(vault_path: str, width: int, height: int) -> None:
 
 
 def get_active_reminders() -> list:
-    """Возвращает список запланированных напоминаний, очищая просроченные."""
+    """Возвращает список запланированных напоминаний."""
     data = _load_config()
-    reminders = data.get("active_reminders", [])
-    now = datetime.utcnow()
-    
-    valid = []
-    for r in reminders:
-        try:
-            # Оставляем напоминания актуальными в течение 2 минут после срабатывания,
-            # чтобы избежать гонки состояний при запуске фонового процесса.
-            due = datetime.fromisoformat(r["due_time"].replace("Z", ""))
-            if due > now - timedelta(minutes=2):
-                valid.append(r)
-        except Exception:
-            valid.append(r)
-            
-    if len(valid) != len(reminders):
-        data["active_reminders"] = valid
-        _save_config(data)
-        
-    return valid
-
+    # Фильтрация по времени удалена. Воркер сам удалит себя из списка 
+    # в момент срабатывания, чтобы мгновенно очистить индикатор.
+    return data.get("active_reminders", [])
 
 import os
 import signal
+import uuid
 
-def add_active_reminder(task_id: int, task_title: str, message: str, due_time_iso: str, pid: int, vault_path: str) -> None:
-    """Регистрирует новое активное напоминание с привязкой к процессу ОС и хранилищу."""
+def add_active_reminder(task_id: int, task_title: str, message: str, due_time_iso: str, pid: int, vault_path: str, reminder_id: str) -> None:
     data = _load_config()
     reminders = data.get("active_reminders", [])
     
-    # Жестко убиваем старый процесс напоминания для этой задачи (если он был)
-    for r in reminders:
-        if r.get("task_id") == task_id and r.get("vault_path") == vault_path:
-            old_pid = r.get("pid")
-            if old_pid:
-                try:
-                    os.kill(old_pid, signal.SIGTERM)
-                except Exception:
-                    pass
-
-    reminders = [r for r in reminders if not (r.get("task_id") == task_id and r.get("vault_path") == vault_path)]
+    # [БАГ 1] Больше не убиваем процессы других напоминаний для этой же карточки!
     
     reminders.append({
+        "reminder_id": reminder_id, # Уникальный ID
         "task_id": task_id,
         "vault_path": vault_path,
         "pid": pid,
@@ -250,15 +224,34 @@ def add_active_reminder(task_id: int, task_title: str, message: str, due_time_is
     data["active_reminders"] = reminders
     _save_config(data)
 
-
-def remove_active_reminder(task_id: int, vault_path: str = None) -> None:
-    """Удаляет напоминание из списка и убивает фоновый процесс."""
+def remove_reminders_for_task(task_id: int) -> None:
+    """Удаляет все напоминания, связанные с конкретной карточкой."""
     data = _load_config()
     reminders = data.get("active_reminders", [])
     
     new_reminders = []
     for r in reminders:
-        if r.get("task_id") == task_id and (vault_path is None or r.get("vault_path") == vault_path):
+        if r.get("task_id") == task_id:
+            pid = r.get("pid")
+            if pid:
+                try:
+                    os.kill(pid, signal.SIGTERM)
+                except Exception:
+                    pass
+        else:
+            new_reminders.append(r)
+            
+    data["active_reminders"] = new_reminders
+    _save_config(data)
+
+def remove_active_reminder(reminder_id: str) -> None:
+    data = _load_config()
+    reminders = data.get("active_reminders", [])
+    
+    new_reminders = []
+    for r in reminders:
+        # [БАГ 2] Удаляем только совпадение по конкретному UUID
+        if r.get("reminder_id") == reminder_id:
             pid = r.get("pid")
             if pid:
                 try:
@@ -291,3 +284,95 @@ def remove_all_vault_reminders(vault_path: str) -> None:
     data["active_reminders"] = new_reminders
     _save_config(data)
 
+def spawn_notification_worker(task_id: int, task_title: str, message: str, due_time_iso: str, vault_path: str, reminder_id: str) -> int:
+    """Централизованный запуск фонового процесса напоминания."""
+    import sys
+    import subprocess
+    import os
+    
+    title = "Doe"
+    
+    if getattr(sys, 'frozen', False):
+        if sys.platform == 'darwin':
+            worker_path = os.path.join(os.path.dirname(sys.executable), "notify_worker")
+            args = [worker_path, due_time_iso, title, message, str(task_id), vault_path, reminder_id]
+        else:
+            worker_path = os.path.join(os.path.dirname(sys.executable), "notify_worker.exe")
+            args = [worker_path, due_time_iso, title, message, str(task_id), vault_path, reminder_id]
+    else:
+        # Режим разработки
+        project_root = Path(__file__).resolve().parent.parent.parent
+        worker_path = os.path.join(project_root, "notify_worker.py")
+        args = [sys.executable, worker_path, due_time_iso, title, message, str(task_id), vault_path, reminder_id]
+    
+    creationflags = 0x08000000 | 0x00000008 if sys.platform == 'win32' else 0
+    p = subprocess.Popen(args, creationflags=creationflags, start_new_session=(sys.platform != 'win32'))
+    return p.pid
+
+def restore_all_reminders() -> None:
+    """Восстановление фоновых процессов напоминаний при запуске приложения."""
+    data = _load_config()
+    reminders = data.get("active_reminders", [])
+    if not reminders:
+        return
+        
+    import sys
+    import os
+    import datetime
+    
+    now = datetime.datetime.utcnow()
+    updated_reminders = []
+    
+    for r in reminders:
+        due_time_str = r.get("due_time")
+        if not due_time_str:
+            continue
+        try:
+            due_time = datetime.datetime.fromisoformat(due_time_str.replace("Z", ""))
+        except Exception:
+            continue
+        
+        # Если время уже наступило во время отключения компьютера - запускаем через 1 секунду
+        if due_time <= now:
+            fire_time = now + datetime.timedelta(seconds=1)
+            due_time_iso = fire_time.isoformat() + "Z"
+        else:
+            due_time_iso = due_time_str
+            
+        pid = r.get("pid")
+        is_running = False
+        if pid:
+            try:
+                if sys.platform != 'win32':
+                    os.kill(pid, 0)
+                    is_running = True
+                else:
+                    import ctypes
+                    PROCESS_QUERY_INFORMATION = 0x0400
+                    handle = ctypes.windll.kernel32.OpenProcess(PROCESS_QUERY_INFORMATION, False, pid)
+                    if handle:
+                        ctypes.windll.kernel32.CloseHandle(handle)
+                        is_running = True
+            except Exception:
+                pass
+                
+        if not is_running:
+            try:
+                new_pid = spawn_notification_worker(
+                    task_id=r.get("task_id"),
+                    task_title=r.get("task_title"),
+                    message=r.get("message"),
+                    due_time_iso=due_time_iso,
+                    vault_path=r.get("vault_path"),
+                    reminder_id=r.get("reminder_id")
+                )
+                r["pid"] = new_pid
+                r["due_time"] = due_time_iso
+                print(f"[System] Restored reminder {r.get('reminder_id')} with new PID: {new_pid}")
+            except Exception as e:
+                print(f"[System] Failed to restore reminder {r.get('reminder_id')}: {e}")
+                
+        updated_reminders.append(r)
+        
+    data["active_reminders"] = updated_reminders
+    _save_config(data)
