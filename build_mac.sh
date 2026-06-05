@@ -132,6 +132,11 @@ pl['CFBundleDocumentTypes'] = [{
     'NSDocumentClass': '',                  # пустой класс документа — явный сигнал, что NSDocument не нужен
 }]
 
+# Корректная версия и копирайт для нативного окна "About" в macOS
+pl['CFBundleShortVersionString'] = '1.0'
+pl['CFBundleVersion'] = '1.0'
+pl['NSHumanReadableCopyright'] = '© 2026 Doe Kanban Sanctuary. All rights reserved.'
+
 # КЛЮЧЕВАЯ СТРОКА: запрещаем AppKit автоматически вызывать NSDocumentController.
 # Именно он показывает диалог "could not be opened ... in the Doe Vault format",
 # когда не находит зарегистрированного класса NSDocument. Мы используем AppleEventManager,

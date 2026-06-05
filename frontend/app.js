@@ -7743,6 +7743,63 @@ window.updateDatePickerTrigger = function() {
 
 // Привязка обработчиков для пикера (выполняется один раз)
 document.addEventListener('DOMContentLoaded', () => {
+    // === НАЧАЛО ВСТАВКИ: Оформление логики напоминаний ===
+    
+    // Автозамена на 15 происходит только при потере фокуса (клике вне поля)
+    const amountInput = document.getElementById('notify-amount');
+    if (amountInput) {
+        amountInput.addEventListener('blur', () => {
+            const rawValue = amountInput.value.trim();
+            
+            // Если поле полностью стерто или введено некорректное значение (<= 0)
+            if (rawValue === '') {
+                amountInput.value = '15';
+                return;
+            }
+            
+            const val = parseInt(rawValue);
+            if (isNaN(val) || val <= 0) {
+                amountInput.value = '15';
+            }
+        });
+    }
+
+    // Логика работы кастомного выпадающего списка единиц времени
+    const trigger = document.getElementById('notify-unit-trigger');
+    const menu = document.getElementById('notify-unit-menu');
+
+    if (trigger && menu) {
+        trigger.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isShowing = menu.classList.contains('show');
+            closeAllDropdowns();
+            if (!isShowing) {
+                menu.classList.add('show');
+            }
+        });
+
+        menu.querySelectorAll('.menu-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const val = item.dataset.value;
+                const i18nKey = item.dataset.i18n;
+
+                const labelSpan = document.getElementById('notify-unit-label');
+                labelSpan.textContent = item.textContent;
+                labelSpan.setAttribute('data-i18n', i18nKey);
+
+                document.getElementById('notify-unit').value = val;
+
+                menu.querySelectorAll('.menu-item').forEach(i => i.classList.remove('selected'));
+                item.classList.add('selected');
+
+                menu.classList.remove('show');
+            });
+        });
+    }
+
+    // === КОНЕЦ ВСТАВКИ ===
+
     // --- Переключение месяцев ---
     document.getElementById('dp-prev').onclick = (e) => {
         e.stopPropagation();
@@ -7881,7 +7938,7 @@ function openNotifyModal(taskId, taskTitle) {
             const amount = parseInt(document.getElementById('notify-amount').value) || 0;
             const unitSelect = document.getElementById('notify-unit');
             const multiplier = parseInt(unitSelect.value) || 60;
-            const unitText = unitSelect.options[unitSelect.selectedIndex].text;
+            const unitText = document.getElementById('notify-unit-label').textContent;
             
             delaySeconds = amount * multiplier;
             timeText = currentLang === 'ru' ? `через ${amount} ${unitText}` : `in ${amount} ${unitText}`;

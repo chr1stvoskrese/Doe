@@ -4,9 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Doe — Aesthetic Kanban</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"> 
     <link rel="stylesheet" href="/static/styles.css?v=searchfix">
     <link rel="stylesheet" href="static/prism.min.css">
     <link rel="stylesheet" href="/static/codemirror.min.css">
@@ -561,7 +558,13 @@
 <div class="modal-overlay" id="notify-modal">
     <div class="modal-card">
         <div class="modal-header">
-            <span class="modal-title" data-i18n="modals.notifyTitle">Напомнить</span>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-secondary); flex-shrink: 0;">
+                    <path d="M4 17c0-3.5 3-4.5 3-9a5 5 0 0 1 10 0c0 4.5 3 5.5 3 9H4z"></path>
+                    <line x1="10" y1="21" x2="14" y2="21"></line>
+                </svg>
+                <span class="modal-title" data-i18n="modals.notifyTitle">Напомнить</span>
+            </div>
             <button class="modal-close" aria-label="Закрыть">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
             </button>
@@ -577,27 +580,32 @@
             <!-- Вкладка "Через время" -->
             <div id="notify-relative" class="notify-tab-content active">
                 <div class="notify-input-group">
-                    <input type="number" id="notify-amount" class="column-input" value="15" min="1" style="width: 80px; text-align: center;">
-                    <select id="notify-unit" class="column-input" style="flex: 1; cursor: pointer;">
-                        <option value="1" data-i18n="timeUnitsFull.s">секунд</option>
-                        <option value="60" data-i18n="timeUnitsFull.m" selected>минут</option>
-                        <option value="3600" data-i18n="timeUnitsFull.h">часов</option>
-                        <option value="86400" data-i18n="timeUnitsFull.d">дней</option>
-                        <option value="604800" data-i18n="timeUnitsFull.w">недель</option>
-                        <option value="2592000" data-i18n="timeUnitsFull.mo">месяцев</option>
-                        <option value="31536000" data-i18n="timeUnitsFull.y">лет</option>
-                    </select>
+                    <input type="number" id="notify-amount" class="notify-field" value="15" min="1" style="width: 80px; text-align: center;">
+                    <div class="custom-select" id="notify-unit-select" style="flex: 1;">
+                        <button class="notify-field custom-select-trigger" type="button" id="notify-unit-trigger">
+                            <span id="notify-unit-label" data-i18n="timeUnitsFull.m">минут</span>
+                        </button>
+                        <input type="hidden" id="notify-unit" value="60">
+                        <div class="dropdown-menu custom-select-menu" id="notify-unit-menu" style="top: 44px; left: 0; transform-origin: top center;">
+                            <div class="menu-item" data-value="1" data-i18n="timeUnitsFull.s">секунд</div>
+                            <div class="menu-item selected" data-value="60" data-i18n="timeUnitsFull.m">минут</div>
+                            <div class="menu-item" data-value="3600" data-i18n="timeUnitsFull.h">часов</div>
+                            <div class="menu-item" data-value="86400" data-i18n="timeUnitsFull.d">дней</div>
+                            <div class="menu-item" data-value="604800" data-i18n="timeUnitsFull.w">недель</div>
+                            <div class="menu-item" data-value="2592000" data-i18n="timeUnitsFull.mo">месяцев</div>
+                            <div class="menu-item" data-value="31536000" data-i18n="timeUnitsFull.y">лет</div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
             <!-- Вкладка "Точная дата" -->
             <div id="notify-absolute" class="notify-tab-content">
-                <div class="column-input datepicker-trigger" id="datepicker-trigger"></div>
+                <div class="notify-field datepicker-trigger" id="datepicker-trigger"></div>
             </div>
 
-            <div class="confirm-actions" style="padding: 16px 0 0 0;">
-                <button class="confirm-btn cancel-btn" onclick="document.getElementById('notify-modal').classList.remove('show')" data-i18n="cancel">Отмена</button>
-                <button class="confirm-btn vault-submit-btn" style="color: white;" id="btn-confirm-notify" data-i18n="modals.btnSet">Установить</button>
+            <div class="confirm-actions" style="padding: 0;">
+                <button class="confirm-btn cancel-btn" id="btn-confirm-notify" data-i18n="modals.btnSet">Установить</button>
             </div>
         </div>
     </div>

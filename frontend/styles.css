@@ -16,7 +16,10 @@
     --timer-bg: rgba(194, 122, 98, 0.1); /* Фон подложки таймера */
     --success-done: #89A085;            /* Цвет для выполненных задач (приглушенный зеленый) */
 
-    --font-main: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; /* Основной системный шрифт */
+    /* --font-main: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; Основной системный шрифт  */
+    /* --font-mono: 'SF Mono', 'JetBrains Mono', monospace; Моноширинный шрифт для таймеров */
+
+    --font-main: -apple-system, BlinkMacSystemFont, "SF Pro", "Segoe UI", Roboto, Helvetica, Arial, sans-serif; /* Нативный системный шрифт (San Francisco на Apple-устройствах) */
     --font-mono: 'SF Mono', 'JetBrains Mono', monospace; /* Моноширинный шрифт для таймеров */
 
     --shadow-card: 0 2px 6px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04); /* Легкая тень карточки */
@@ -7193,4 +7196,100 @@ mark.local-search-highlight.active {
     margin: 0;
     pointer-events: none;
     border: none;
+}
+
+/* Новые стили для полей ввода напоминания */
+.notify-input-group {
+    display: flex;
+    gap: 12px;
+    position: relative;
+}
+
+.notify-field {
+    background: transparent !important;
+    border: 1.5px dashed rgba(74, 90, 72, 0.25) !important;
+    border-radius: 10px !important;
+    font-family: var(--font-main) !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    color: var(--text-primary) !important;
+    outline: none !important;
+    box-shadow: none !important;
+    transition: none !important;
+    height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+}
+
+/* Отключение ховеров и фокусов для сохранения цвета */
+.notify-field:hover, .notify-field:focus, .notify-field:active {
+    background: transparent !important;
+    border-color: rgba(74, 90, 72, 0.25) !important;
+    box-shadow: none !important;
+    outline: none !important;
+}
+
+[data-theme="dark"] .notify-field {
+    border-color: rgba(137, 160, 133, 0.25) !important;
+}
+
+[data-theme="dark"] .notify-field:hover,
+[data-theme="dark"] .notify-field:focus,
+[data-theme="dark"] .notify-field:active {
+    border-color: rgba(137, 160, 133, 0.25) !important;
+}
+
+input#notify-amount.notify-field {
+    cursor: text;
+    -moz-appearance: textfield;
+}
+
+input#notify-amount.notify-field::-webkit-outer-spin-button,
+input#notify-amount.notify-field::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.custom-select {
+    position: relative;
+}
+
+.custom-select-trigger {
+    width: 100%;
+    cursor: pointer;
+    user-select: none;
+}
+
+.custom-select-menu {
+    width: 100% !important;
+    max-height: 200px;
+    overflow-y: auto;
+    box-sizing: border-box; /* Учитывает внутренние отступы и границы */
+    left: 0 !important;     /* Выравнивание строго по левому краю */
+}
+
+/* Разрешаем выпадающему списку выходить за границы окна уведомлений */
+#notify-modal .modal-card {
+    overflow: visible !important;
+}
+
+/* Явно скругляем верхние углы шапки, задаем строго одинаковый отступ 16px */
+#notify-modal .modal-header {
+    border-top-left-radius: var(--radius-card) !important;
+    border-top-right-radius: var(--radius-card) !important;
+    padding: 12px !important; /* Ровно 16px со всех четырех сторон (сверху, снизу, слева, справа) */
+}
+
+/* Строго одинаковая сетка для тела модалки */
+#notify-modal .modal-body {
+    padding: 12px !important; /* Ровно 16px со всех четырех сторон */
+    display: flex;
+    flex-direction: column;
+    gap: 12px !important; /* Зазоры между элементами внутри ровно 16px */
+}
+
+#notify-modal .segmented-control {
+    margin-bottom: 0 !important; /* Убираем старый маргин, чтобы шаг сетки не удваивался */
 }

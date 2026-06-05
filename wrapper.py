@@ -682,20 +682,27 @@ class WindowAPI:
         return True
 
     def toggle_fullscreen(self):
-        """Разворачивает/сворачивает окно (зеленая кнопка)"""
+        """Переключает нативный полноэкранный режим на macOS (зеленая кнопка)"""
         import sys
         if sys.platform == 'darwin':
             from PyObjCTools import AppHelper
-            def _zoom():
+            def _toggle():
                 try:
                     import AppKit
                     app = AppKit.NSApplication.sharedApplication()
                     win = app.keyWindow() or app.mainWindow()
                     if win:
-                        win.performZoom_(None)
+                        # Разрешаем окну переходить в нативный полноэкранный режим
+                        # NSWindowCollectionBehaviorFullScreenPrimary = 128 (1 << 7)
+                        behavior = win.collectionBehavior()
+                        if not (behavior & 128):
+                            win.setCollectionBehavior_(behavior | 128)
+                        
+                        # Вызываем нативный переход в полноэкранный режим
+                        win.toggleFullScreen_(None)
                 except Exception as e:
-                    print(f"[Zoom] Cocoa error: {e}")
-            AppHelper.callAfter(_zoom)
+                    print(f"[Fullscreen] Cocoa error: {e}")
+            AppHelper.callAfter(_toggle)
         else:
             if webview.windows:
                 webview.windows[-1].toggle_fullscreen()
