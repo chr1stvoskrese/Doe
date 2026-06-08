@@ -70,7 +70,7 @@ def main():
     vault_path = rem_info.get("vault_path")
 
     if vault_path and os.path.exists(vault_path):
-        db_files = [f for f in Path(vault_path).glob("*.db.doe") if not f.name.endswith(".backup.db.doe")]
+        db_files = [f for f in Path(vault_path).glob("*.db.doe") if not f.name.endswith(".backup.db.doe") and not f.name.startswith("._")]
         if not db_files:
             remove_reminder_from_config(reminder_id)
             os._exit(0)

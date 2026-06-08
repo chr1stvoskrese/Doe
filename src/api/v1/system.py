@@ -130,7 +130,7 @@ async def switch_vault_endpoint(req: SwitchVaultRequest):
 
     has_db = any(
         f for f in vault_dir.iterdir()
-        if f.is_file() and (f.name.endswith(".db.doe") or f.name.endswith(".db")) and "backup" not in f.name
+        if f.is_file() and (f.name.endswith(".db.doe") or f.name.endswith(".db")) and "backup" not in f.name and not f.name.startswith("._")
     )
     if not has_db:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="INVALID_VAULT")
@@ -672,7 +672,7 @@ async def get_vault_history_endpoint():
             exists = False
             # Проверяем, что папка жива и в ней есть рабочая база
             if vault_dir.exists() and vault_dir.is_dir():
-                if any(f for f in vault_dir.iterdir() if f.is_file() and (f.name.endswith(".db.doe") or f.name.endswith(".db")) and "backup" not in f.name):
+                if any(f for f in vault_dir.iterdir() if f.is_file() and (f.name.endswith(".db.doe") or f.name.endswith(".db")) and "backup" not in f.name and not f.name.startswith("._")):
                     exists = True
 
             name = vault_dir.name
@@ -698,7 +698,7 @@ async def relink_vault_history_endpoint(req: RelinkHistoryReq):
     # 1. Проверяем валидность новой папки
     if not vault_dir.exists() or not vault_dir.is_dir():
         raise HTTPException(status_code=400, detail="INVALID_VAULT")
-    if not any(f for f in vault_dir.iterdir() if f.is_file() and (f.name.endswith(".db.doe") or f.name.endswith(".db")) and "backup" not in f.name):
+    if not any(f for f in vault_dir.iterdir() if f.is_file() and (f.name.endswith(".db.doe") or f.name.endswith(".db")) and "backup" not in f.name and not f.name.startswith("._")):
         raise HTTPException(status_code=400, detail="INVALID_VAULT")
         
     from src.core.config import _load_config, _save_config

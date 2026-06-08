@@ -50,7 +50,7 @@ def _resolve_db_path(vault_path: str) -> Path:
     vault_dir = Path(vault_path)
     
     # 0.1 БЕСШОВНАЯ МИГРАЦИЯ со старого .doe.db на новый .db.doe
-    doe_db_candidates = [f for f in vault_dir.glob("*.doe.db")]
+    doe_db_candidates = [f for f in vault_dir.glob("*.doe.db") if not f.name.startswith("._")]
     if doe_db_candidates:
         old_db = max(doe_db_candidates, key=lambda p: p.stat().st_mtime)
         new_db_name = old_db.name.replace(".doe.db", ".db.doe")
@@ -63,7 +63,7 @@ def _resolve_db_path(vault_path: str) -> Path:
             return old_db
 
     # 0.2 БЕСШОВНАЯ МИГРАЦИЯ: Если есть старый .db (не backup), переименовываем в .db.doe
-    legacy_candidates = [f for f in vault_dir.glob("*.db") if not f.name.endswith(".db.doe") and not f.name.endswith(".backup.db") and not f.name.endswith(".doe.db")]
+    legacy_candidates = [f for f in vault_dir.glob("*.db") if not f.name.endswith(".db.doe") and not f.name.endswith(".backup.db") and not f.name.endswith(".doe.db") and not f.name.startswith("._")]
     if legacy_candidates:
         old_db = max(legacy_candidates, key=lambda p: p.stat().st_mtime)
         new_db_name = old_db.stem + ".db.doe"
@@ -76,7 +76,7 @@ def _resolve_db_path(vault_path: str) -> Path:
             return old_db # Фолбэк на старый файл, если нет прав
 
     # 1. Ищем все .db.doe файлы в папке
-    candidates = [f for f in vault_dir.glob("*.db.doe") if not _is_backup_file(f)]
+    candidates = [f for f in vault_dir.glob("*.db.doe") if not _is_backup_file(f) and not f.name.startswith("._")]
     
     if candidates:
         target_db = max(candidates, key=lambda p: p.stat().st_mtime)
