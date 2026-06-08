@@ -605,8 +605,25 @@ class WindowAPI:
             AppHelper.callAfter(_close)
         else:
             if webview.windows:
-                webview.windows[-1].destroy()
-
+                import threading
+                try:
+                    import ctypes
+                    hwnd = self._win_hwnd()
+                    if hwnd:
+                        # Нативное асинхронное закрытие средствами Windows.
+                        # PostMessageW не блокирует поток, мост pywebview спокойно 
+                        # возвращает ответ в JS, а ОС сама закрывает окно.
+                        WM_CLOSE = 0x0010
+                        ctypes.windll.user32.PostMessageW(hwnd, WM_CLOSE, 0, 0)
+                        return
+                except Exception as e:
+                    print(f"[Close] WinAPI error: {e}")
+                
+                # ФОЛБЭК: Если WinAPI недоступен, откладываем destroy на 0.15с.
+                # Этого времени достаточно, чтобы pywebview завершил JS-транзакцию
+                # и избежал KeyError: 'child_...'
+                win = webview.windows[-1]
+                threading.Timer(0.15, win.destroy).start()
     def minimize_window(self):
         """Сворачивает окно в Dock (желтая кнопка)"""
         import sys
@@ -625,6 +642,220 @@ class WindowAPI:
         else:
             if webview.windows:
                 webview.windows[-1].minimize()
+
+    def _win_hwnd(self):
+        """Достаём HWND текущего окна (тем же способом, что и reveal_window)."""
+        import ctypes
+        try:
+            title = webview.windows[-1].title
+            return ctypes.windll.user32.FindWindowW(None, title)
+        except Exception:
+            return None
+
+    def start_window_drag(self):
+        """Нативное перетаскивание безрамочного окна (Aero Snap включён)."""
+        import sys
+        if sys.platform != 'win32':
+            return False
+        import ctypes
+        
+        # 1. Надежно получаем активное окно (оно всегда в фокусе, раз мы по нему кликнули)
+        hwnd = ctypes.windll.user32.GetForegroundWindow()
+        if not hwnd:
+            return False
+        
+        self._win_maximized = False
+        
+        # 2. Обходим защиту Windows (ReleaseCapture работает только в UI-потоке)
+        gui_thread_id = ctypes.windll.user32.GetWindowThreadProcessId(hwnd, None)
+        current_thread_id = ctypes.windll.kernel32.GetCurrentThreadId()
+        
+        ctypes.windll.user32.AttachThreadInput(current_thread_id, gui_thread_id, True)
+        ctypes.windll.user32.ReleaseCapture()
+        ctypes.windll.user32.AttachThreadInput(current_thread_id, gui_thread_id, False)
+        
+        # 3. Передаем точные координаты мыши, чтобы окно не прыгнуло в (0,0)
+        class POINT(ctypes.Structure):
+            _fields_ = [("x", ctypes.c_long), ("y", ctypes.c_long)]
+        pt = POINT()
+        ctypes.windll.user32.GetCursorPos(ctypes.byref(pt))
+        lparam = (pt.y << 16) | (pt.x & 0xFFFF)
+        
+        WM_NCLBUTTONDOWN, HTCAPTION = 0x00A1, 2
+        ctypes.windll.user32.PostMessageW(hwnd, WM_NCLBUTTONDOWN, HTCAPTION, lparam)
+        return True
+
+    def start_window_resize(self, ht):
+        """Нативный ресайз за край без визуальных артефактов."""
+        import sys
+        if sys.platform != 'win32':
+            return False
+        import ctypes
+        
+        hwnd = ctypes.windll.user32.GetForegroundWindow()
+        if not hwnd:
+            return False
+            
+        self._win_maximized = False
+        
+        gui_thread_id = ctypes.windll.user32.GetWindowThreadProcessId(hwnd, None)
+        current_thread_id = ctypes.windll.kernel32.GetCurrentThreadId()
+        
+        ctypes.windll.user32.AttachThreadInput(current_thread_id, gui_thread_id, True)
+        ctypes.windll.user32.ReleaseCapture()
+        ctypes.windll.user32.AttachThreadInput(current_thread_id, gui_thread_id, False)
+        
+        class POINT(ctypes.Structure):
+            _fields_ = [("x", ctypes.c_long), ("y", ctypes.c_long)]
+        pt = POINT()
+        ctypes.windll.user32.GetCursorPos(ctypes.byref(pt))
+        lparam = (pt.y << 16) | (pt.x & 0xFFFF)
+        
+        WM_NCLBUTTONDOWN = 0x00A1
+        ctypes.windll.user32.PostMessageW(hwnd, WM_NCLBUTTONDOWN, int(ht), lparam)
+        return True
+
+    def _win_rect(self, hwnd):
+        import ctypes
+        from ctypes import wintypes
+        user32 = ctypes.windll.user32
+        user32.GetWindowRect.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.RECT)]
+        r = wintypes.RECT()
+        user32.GetWindowRect(hwnd, ctypes.byref(r))
+        return r.left, r.top, r.right, r.bottom
+
+    def _cursor(self):
+        import ctypes
+        from ctypes import wintypes
+        user32 = ctypes.windll.user32
+        user32.GetCursorPos.argtypes = [ctypes.POINTER(wintypes.POINT)]
+        p = wintypes.POINT()
+        user32.GetCursorPos(ctypes.byref(p))
+        return p.x, p.y
+
+    def _set_bounds(self, hwnd, x, y, w, h):
+        import ctypes
+        from ctypes import wintypes
+        user32 = ctypes.windll.user32
+        user32.SetWindowPos.argtypes = [wintypes.HWND, wintypes.HWND,
+                                        ctypes.c_int, ctypes.c_int,
+                                        ctypes.c_int, ctypes.c_int, ctypes.c_uint]
+        SWP_NOZORDER, SWP_NOACTIVATE = 0x0004, 0x0010
+        user32.SetWindowPos(hwnd, 0, int(x), int(y), int(w), int(h),
+                            SWP_NOZORDER | SWP_NOACTIVATE)
+
+    def begin_win_move(self):
+        import sys
+        if sys.platform != 'win32':
+            return False
+        hwnd = self._win_hwnd()
+        if not hwnd:
+            return False
+        l, t, r, b = self._win_rect(hwnd)
+        cx, cy = self._cursor()
+        self._winmv = {'hwnd': hwnd, 'x': l, 'y': t, 'cx': cx, 'cy': cy}
+        self._win_maximized = False
+        return True
+
+    def update_win_move(self):
+        import sys, ctypes
+        if sys.platform != 'win32':
+            return False
+        mv = getattr(self, '_winmv', None)
+        if not mv:
+            return False
+        cx, cy = self._cursor()
+        nx = mv['x'] + (cx - mv['cx'])
+        ny = mv['y'] + (cy - mv['cy'])
+        from ctypes import wintypes
+        user32 = ctypes.windll.user32
+        user32.SetWindowPos.argtypes = [wintypes.HWND, wintypes.HWND,
+                                        ctypes.c_int, ctypes.c_int,
+                                        ctypes.c_int, ctypes.c_int, ctypes.c_uint]
+        SWP_NOSIZE, SWP_NOZORDER, SWP_NOACTIVATE = 0x0001, 0x0004, 0x0010
+        user32.SetWindowPos(mv['hwnd'], 0, int(nx), int(ny), 0, 0,
+                            SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE)
+        return True
+
+    def begin_win_resize(self, edges):
+        import sys
+        if sys.platform != 'win32':
+            return False
+        hwnd = self._win_hwnd()
+        if not hwnd:
+            return False
+        l, t, r, b = self._win_rect(hwnd)
+        cx, cy = self._cursor()
+        self._winrz = {'hwnd': hwnd, 'l': l, 't': t, 'r': r, 'b': b,
+                       'cx': cx, 'cy': cy, 'edges': str(edges)}
+        self._win_maximized = False
+        return True
+
+    def update_win_resize(self):
+        import sys
+        if sys.platform != 'win32':
+            return False
+        rz = getattr(self, '_winrz', None)
+        if not rz:
+            return False
+        cx, cy = self._cursor()
+        dx, dy = cx - rz['cx'], cy - rz['cy']
+        l, t, r, b = rz['l'], rz['t'], rz['r'], rz['b']
+        e = rz['edges']
+        if 'l' in e: l = rz['l'] + dx
+        if 'r' in e: r = rz['r'] + dx
+        if 't' in e: t = rz['t'] + dy
+        if 'b' in e: b = rz['b'] + dy
+        MINW, MINH = 800, 600
+        if r - l < MINW:
+            if 'l' in e: l = r - MINW
+            else: r = l + MINW
+        if b - t < MINH:
+            if 't' in e: t = b - MINH
+            else: b = t + MINH
+        self._set_bounds(rz['hwnd'], l, t, r - l, b - t)
+        return True
+
+    def toggle_maximize_window(self):
+        """Разворот/восстановление. Разворачиваем в рабочую область монитора,
+           чтобы безрамочное окно НЕ перекрывало панель задач."""
+        import sys
+        if sys.platform != 'win32':
+            return False
+        import ctypes
+        from ctypes import wintypes
+        hwnd = self._win_hwnd()
+        if not hwnd:
+            return False
+        user32 = ctypes.windll.user32
+        SWP_FRAMECHANGED = 0x0020
+
+        if getattr(self, '_win_maximized', False):
+            r = getattr(self, '_win_restore_rect', None)
+            if r:
+                user32.SetWindowPos(hwnd, 0, r[0], r[1], r[2], r[3], SWP_FRAMECHANGED)
+            self._win_maximized = False
+        else:
+            rect = wintypes.RECT()
+            user32.GetWindowRect(hwnd, ctypes.byref(rect))
+            self._win_restore_rect = (rect.left, rect.top,
+                                      rect.right - rect.left, rect.bottom - rect.top)
+            MONITOR_DEFAULTTONEAREST = 2
+            hmon = user32.MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST)
+
+            class MONITORINFO(ctypes.Structure):
+                _fields_ = [("cbSize", wintypes.DWORD),
+                            ("rcMonitor", wintypes.RECT),
+                            ("rcWork", wintypes.RECT),
+                            ("dwFlags", wintypes.DWORD)]
+            mi = MONITORINFO()
+            mi.cbSize = ctypes.sizeof(MONITORINFO)
+            user32.GetMonitorInfoW(hmon, ctypes.byref(mi))
+            w = mi.rcWork
+            user32.SetWindowPos(hwnd, 0, w.left, w.top,
+                                w.right - w.left, w.bottom - w.top, SWP_FRAMECHANGED)
+            self._win_maximized = True
+        return True
 
     def begin_window_drag(self):
         """Старт ручного перетаскивания. Всю работу с окном выполняем СТРОГО
@@ -801,10 +1032,10 @@ class WindowAPI:
         # Берем последнее созданное окно
         window = webview.windows[-1]
         
-        # 1. Показываем окно. Это безопасно делать прямо здесь (pywebview сам разрулит потоки)
+        # 1. Показываем окно
         window.show()
         
-        # 2. Вытягиваем окно на передний план (только AppKit методы кидаем в главный поток)
+        # 2. Вытягиваем окно на передний план
         import sys
         if sys.platform == 'darwin':
             try:
@@ -823,6 +1054,7 @@ class WindowAPI:
                 
         elif sys.platform == 'win32':
             import ctypes
+            from ctypes import wintypes
             try:
                 hwnd = ctypes.windll.user32.FindWindowW(None, window.title)
                 if hwnd:
@@ -832,23 +1064,112 @@ class WindowAPI:
                         ctypes.windll.user32.SendMessageW(hwnd, 0x0080, 0, hicon)
                         ctypes.windll.user32.SendMessageW(hwnd, 0x0080, 1, hicon)
 
-                    hex_color = bg_color.lstrip('#')
-                    r, g, b = tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
-                    colorref = (b << 16) | (g << 8) | r
-                    ctypes.windll.dwmapi.DwmSetWindowAttribute(hwnd, 35, ctypes.byref(ctypes.c_int(colorref)), 4)
+                    # Разделяем логику: окно выбора хранилищ не должно менять размеры
+                    is_resizable = "Select Vault" not in window.title
+
+                    if is_resizable:
+                        # 🌟 СТИЛИ ДЛЯ ГЛАВНОГО ОКНА (Разрешен ресайз + Aero Snap + Фикс полосы) 🌟
+                        GWL_STYLE = -16
+                        WS_CAPTION = 0x00C00000     
+                        WS_THICKFRAME = 0x00040000  
+                        WS_MINIMIZEBOX = 0x00020000
+                        WS_MAXIMIZEBOX = 0x00010000
+                        WS_SYSMENU = 0x00080000     
+                        
+                        style = ctypes.windll.user32.GetWindowLongW(hwnd, GWL_STYLE)
+                        new_style = (style & ~WS_CAPTION) | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_SYSMENU
+                        ctypes.windll.user32.SetWindowLongW(hwnd, GWL_STYLE, new_style)
+
+                        # WndProc Hook для удаления белой полосы (растягивает контент на 100% окна)
+                        if ctypes.sizeof(ctypes.c_void_p) == 8:
+                            GetWindowLongPtr = ctypes.windll.user32.GetWindowLongPtrW
+                            GetWindowLongPtr.argtypes = [wintypes.HWND, ctypes.c_int]
+                            GetWindowLongPtr.restype = ctypes.c_void_p
+
+                            SetWindowLongPtr = ctypes.windll.user32.SetWindowLongPtrW
+                            SetWindowLongPtr.argtypes = [wintypes.HWND, ctypes.c_int, ctypes.c_void_p]
+                            SetWindowLongPtr.restype = ctypes.c_void_p
+                        else:
+                            GetWindowLongPtr = ctypes.windll.user32.GetWindowLongW
+                            GetWindowLongPtr.argtypes = [wintypes.HWND, ctypes.c_int]
+                            GetWindowLongPtr.restype = ctypes.c_void_p
+
+                            SetWindowLongPtr = ctypes.windll.user32.SetWindowLongW
+                            SetWindowLongPtr.argtypes = [wintypes.HWND, ctypes.c_int, ctypes.c_void_p]
+                            SetWindowLongPtr.restype = ctypes.c_void_p
+
+                        GWLP_WNDPROC = -4
+                        WM_NCCALCSIZE = 0x0083
+
+                        old_proc = GetWindowLongPtr(hwnd, GWLP_WNDPROC)
+
+                        call_wnd_proc = ctypes.windll.user32.CallWindowProcW
+                        call_wnd_proc.argtypes = [ctypes.c_void_p, wintypes.HWND, ctypes.c_uint, ctypes.c_void_p, ctypes.c_void_p]
+                        call_wnd_proc.restype = ctypes.c_void_p
+
+                        def custom_wndproc(h, msg, wp, lp):
+                            if msg == WM_NCCALCSIZE and wp:
+                                return 0
+                            return call_wnd_proc(old_proc, h, msg, wp, lp)
+
+                        WNDPROC_TYPE = ctypes.WINFUNCTYPE(ctypes.c_void_p, wintypes.HWND, ctypes.c_uint, ctypes.c_void_p, ctypes.c_void_p)
+                        new_proc = WNDPROC_TYPE(custom_wndproc)
+
+                        self._wndproc_keepalive = new_proc
+                        SetWindowLongPtr(hwnd, GWLP_WNDPROC, ctypes.cast(new_proc, ctypes.c_void_p))
+                        
+                        ctypes.windll.user32.SetWindowPos(hwnd, 0, 0, 0, 0, 0, 0x0027) # SWP_FRAMECHANGED | NOMOVE | NOSIZE
+                    else:
+                        # 🔒 СТИЛИ ДЛЯ ОКНА ВЫБОРА ХРАНИЛИЩ (Ресайз заблокирован, Aero Snap выключен) 🔒
+                        GWL_STYLE = -16
+                        WS_CAPTION = 0x00C00000     
+                        WS_THICKFRAME = 0x00040000  
+                        WS_MAXIMIZEBOX = 0x00010000 
+                        
+                        style = ctypes.windll.user32.GetWindowLongW(hwnd, GWL_STYLE)
+                        # Полностью убираем рамку изменения размеров (WS_THICKFRAME) и кнопку развертывания (WS_MAXIMIZEBOX)
+                        new_style = style & ~WS_CAPTION & ~WS_THICKFRAME & ~WS_MAXIMIZEBOX
+                        ctypes.windll.user32.SetWindowLongW(hwnd, GWL_STYLE, new_style)
+                        
+                        ctypes.windll.user32.SetWindowPos(hwnd, 0, 0, 0, 0, 0, 0x0027) # SWP_FRAMECHANGED
+
+                    # --- ОБЩИЕ СТИЛИ ДЛЯ ОБОИХ ОКОН (Визуальное оформление) ---
+                    # Убираем стандартную рамку Windows 11
+                    ctypes.windll.dwmapi.DwmSetWindowAttribute(hwnd, 34, ctypes.byref(ctypes.c_uint(0xFFFFFFFE)), 4)
+                    
+                    # Тень вокруг окна
+                    class MARGINS(ctypes.Structure):
+                        _fields_ = [("cxLeftWidth", ctypes.c_int),
+                                    ("cxRightWidth", ctypes.c_int),
+                                    ("cyTopHeight", ctypes.c_int),
+                                    ("cyBottomHeight", ctypes.c_int)]
+                    margins = MARGINS(0, 0, 1, 0)
+                    ctypes.windll.dwmapi.DwmExtendFrameIntoClientArea(hwnd, ctypes.byref(margins))
+                    
+                    # Темный режим нативной подложки
+                    is_dark = 1 if bg_color == '#161815' else 0
+                    ctypes.windll.dwmapi.DwmSetWindowAttribute(hwnd, 20, ctypes.byref(ctypes.c_int(is_dark)), 4)
+
+                    # Скругление углов Windows 11
+                    DWMWA_WINDOW_CORNER_PREFERENCE = 33
+                    DWMWCP_ROUND = 2
+                    ctypes.windll.dwmapi.DwmSetWindowAttribute(
+                        hwnd, DWMWA_WINDOW_CORNER_PREFERENCE,
+                        ctypes.byref(ctypes.c_int(DWMWCP_ROUND)), 4
+                    )
             except Exception as e:
                 print(f"[WebView] Windows UI Sync failed: {e}")
 
     def open_main_window(self):
         """Порождает новое окно приложения и убивает ВСЕ старые окна (включая окно выбора хранилища)"""
         old_windows = list(webview.windows)
-        
+
         try:
             from src.core.config import get_vault_geometry, get_active_vault
             t_w, t_h = get_vault_geometry(get_active_vault())
         except Exception:
             t_w, t_h = 1200, 800
-            
+
         new_win = webview.create_window(
             title='Doe — Aesthetic Kanban',
             url=URL,
@@ -856,7 +1177,7 @@ class WindowAPI:
             height=t_h,
             min_size=(800, 600),
             resizable=True,
-            frameless=(sys.platform == 'darwin'),
+            frameless=(sys.platform in ('darwin', 'win32')),
             easy_drag=False,
             background_color=bg_color,
             text_select=True,
@@ -868,12 +1189,17 @@ class WindowAPI:
         except Exception:
             pass
 
-        # Уничтожаем все ранее открытые окна
-        for w in old_windows:
-            try:
-                w.destroy()
-            except Exception:
-                pass
+        # Отложенное уничтожение старых окон. Если убить их прямо здесь, мост
+        # pywebview (util._call) попытается вернуть результат этого вызова в уже
+        # удалённое окно 'master' через evaluate_js → KeyError: 'master'.
+        # Даём вызову завершить round-trip, потом чистим окна.
+        def _kill_old():
+            for w in old_windows:
+                try:
+                    w.destroy()
+                except Exception:
+                    pass
+        threading.Timer(0.4, _kill_old).start()
 
     def open_vault_window(self):
         """Порождает маленькое окно выбора хранилища и убивает ВСЕ основные окна"""
@@ -885,18 +1211,23 @@ class WindowAPI:
             height=680,
             min_size=(760, 680),
             resizable=False,
-            frameless=(sys.platform == 'darwin'),
+            frameless=(sys.platform in ('darwin', 'win32')),
             easy_drag=False,
             background_color=bg_color,
             text_select=True,
             hidden=True,
             js_api=WindowAPI()
         )
-        for w in old_windows:
-            try:
-                w.destroy()
-            except Exception:
-                pass
+
+        # См. комментарий в open_main_window: отложенный destroy, иначе
+        # evaluate_js моста попадёт в уже мёртвое окно → KeyError: 'master'.
+        def _kill_old():
+            for w in old_windows:
+                try:
+                    w.destroy()
+                except Exception:
+                    pass
+        threading.Timer(0.4, _kill_old).start()
 
 class APIServerThread(threading.Thread):
     def __init__(self):
@@ -1104,7 +1435,7 @@ if __name__ == '__main__':
             height=start_h,          
             min_size=(min_w, min_h), 
             resizable=is_resizable,
-            frameless=(sys.platform == 'darwin'),
+            frameless=(sys.platform in ('darwin', 'win32')),
             easy_drag=False,     
             background_color=bg_color, 
             text_select=True,

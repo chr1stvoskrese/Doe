@@ -33,6 +33,8 @@ pyinstaller --noconfirm ^
     --hidden-import "uvicorn.lifespan.on" ^
     --hidden-import "uvicorn.lifespan.off" ^
     --hidden-import "aiosqlite" ^
+    --hidden-import "watchdog" ^
+    --hidden-import "websockets" ^
     wrapper.py
 
 echo "Build completed!"

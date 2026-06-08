@@ -19,6 +19,7 @@ from src.core.config import (
     DEFAULT_VAULT,
 )
 import shutil
+from src.core.watcher import vault_observer # <-- ИМПОРТ НАШЕГО WATCHER'A
 
 _engine = None
 _session_factory = None
@@ -162,6 +163,9 @@ async def init_database(vault_path: str):
         dbapi_conn.create_function("LOWER_RU", 1, lower_ru, deterministic=True)
     
     _session_factory = async_sessionmaker(_engine, class_=AsyncSession, expire_on_commit=False)
+    
+    # Запускаем системного "слушателя" папки для iCloud Sync
+    vault_observer.start(vault_path)
     
     # ВНИМАНИЕ: Base.metadata.create_all УБРАНО! Теперь всем рулит Alembic.
     

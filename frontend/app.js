@@ -6,6 +6,11 @@ if (navigator.userAgent.toLowerCase().includes('mac')) {
 }
 let cmEditor = null; // Глобальный редактор
 
+if (navigator.userAgent.toLowerCase().includes('windows')) {
+    document.documentElement.classList.add('win-os');
+}
+
+
 const translations = {
     ru: {
         searchPlaceholder: 'Поиск...',
@@ -8893,12 +8898,68 @@ document.getElementById('graph-trigger')?.addEventListener('click', (e) => {
     openGraphModal();
 });
 
+// 🔥 ГЛОБАЛЬНЫЙ ПЕРЕХВАТ FETCH: Игнорируем эхо своих же изменений в БД
+const originalFetch = window.fetch;
+window._lastLocalEdit = 0;
+window.fetch = async function(...args) {
+    const url = args[0] || '';
+    const options = args[1] || {};
+    const method = options.method || 'GET';
+    
+    // Если мы отправляем команду на изменение данных (POST, PUT, DELETE)
+    if (method !== 'GET' && typeof url === 'string' && url.includes('/api/v1/')) {
+        window._lastLocalEdit = Date.now();
+    }
+    return originalFetch.apply(this, args);
+};
+
+// 🔥 WEBSOCKET КЛИЕНТ ДЛЯ ICLOUD SYNC
+function initCloudSync() {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//127.0.0.1:8000/api/v1/system/ws`;
+    const ws = new WebSocket(wsUrl);
+    
+    ws.onmessage = (event) => {
+        if (event.data === "db_updated") {
+            // 1. Защита от "эха": Если мы сами меняли БД менее 2.5 сек назад — игнорируем
+            if (Date.now() - window._lastLocalEdit < 2500) return;
+            
+            // 2. UX Защита: Не мешаем пользователю, если он сейчас работает руками
+            if (typeof isDragging !== 'undefined' && isDragging) return;
+            if (document.querySelector('.is-renaming')) return;
+            if (document.querySelector('.card-entering:not(.is-exiting)')) return;
+            if (document.querySelector('.column-entering:not(.is-exiting)')) return;
+            
+            const activeEl = document.activeElement;
+            if (activeEl && (activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'INPUT')) {
+                // Пользователь печатает, тихий рефреш лучше отложить
+                return;
+            }
+
+            console.log("[iCloud Sync] Обнаружено внешнее изменение файла БД. Перерисовываем UI...");
+            
+            // Если мы на главном экране — перерисовываем доску (тихо, без сброса скролла)
+            if (document.getElementById('vault-screen').classList.contains('hidden')) {
+                refreshBoard();
+            } else {
+                // Если мы на экране хранилищ — обновляем список (там могла измениться дата последнего входа)
+                renderVaultHistory();
+            }
+        }
+    };
+
+    ws.onclose = () => {
+        setTimeout(initCloudSync, 3000); // Авто-реконнект при потере связи
+    };
+}
+
 (async () => {
     initTooltip();
     initTabsScrollbar();
     initBoardScrollbar();
     initTaskModalDragAndResize();
     initGlobalSearch();
+    initCloudSync(); // <-- ЗАПУСКАЕМ НАШ СИНХРОНИЗАТОР
 
     // Проверяем, в каком режиме открыто текущее окно (App или Vault Selector)
     const urlParams = new URLSearchParams(window.location.search);
@@ -9705,4 +9766,86 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     document.addEventListener('mouseup', stop);
     window.addEventListener('blur', stop);
+})();
+
+// ==========================================
+// WINDOWS НАТИВНЫЙ ХРОМ (только .win-os; macOS не затрагивается)
+// ==========================================
+(function setupWindowsChrome() {
+    if (!document.documentElement.classList.contains('win-os')) return;
+
+    const isVault = new URLSearchParams(location.search).get('mode') === 'vault';
+    const api = () => (window.pywebview && window.pywebview.api) || null;
+
+    const style = document.createElement('style');
+    style.textContent = `
+      html.win-os .app-header { padding-right: 150px; }
+      .win-controls { position: fixed; top: 0; right: 0; height: 40px; display: flex; z-index: 2147483647; user-select: none; -webkit-user-select: none; }
+      .win-ctrl { width: 46px; height: 100%; border: none; background: transparent; display: flex; align-items: center; justify-content: center; cursor: default; color: #333; transition: background .12s; padding: 0; }
+      .win-ctrl:hover { background: rgba(128,128,128,.18); }
+      .win-ctrl.close:hover { background: #e81123; color: #fff; }
+      .win-ctrl svg { width: 11px; height: 11px; }
+      html[data-theme="dark"] .win-ctrl { color: #ddd; }
+      .win-rh { position: fixed; z-index: 2147483646; }
+      .win-rh-t{top:0;left:8px;right:8px;height:6px;cursor:ns-resize}
+      .win-rh-b{bottom:0;left:8px;right:8px;height:6px;cursor:ns-resize}
+      .win-rh-l{left:0;top:8px;bottom:8px;width:6px;cursor:ew-resize}
+      .win-rh-r{right:0;top:8px;bottom:8px;width:6px;cursor:ew-resize}
+      .win-rh-tl{top:0;left:0;width:10px;height:10px;cursor:nwse-resize}
+      .win-rh-tr{top:0;right:0;width:10px;height:10px;cursor:nesw-resize}
+      .win-rh-bl{bottom:0;left:0;width:10px;height:10px;cursor:nesw-resize}
+      .win-rh-br{bottom:0;right:0;width:10px;height:10px;cursor:nwse-resize}
+    `;
+    document.head.appendChild(style);
+
+    // --- Кнопки управления окном ---
+    const controls = document.createElement('div');
+    controls.className = 'win-controls';
+    const maxBtn = isVault ? '' :
+      `<button class="win-ctrl max" title="Развернуть"><svg viewBox="0 0 10 10"><rect x="0.5" y="0.5" width="9" height="9" fill="none" stroke="currentColor"/></svg></button>`;
+    controls.innerHTML = `
+      <button class="win-ctrl min" title="Свернуть"><svg viewBox="0 0 10 10"><rect x="0" y="5" width="10" height="1" fill="currentColor"/></svg></button>
+      ${maxBtn}
+      <button class="win-ctrl close" title="Закрыть"><svg viewBox="0 0 10 10"><path d="M0 0 L10 10 M10 0 L0 10" stroke="currentColor" stroke-width="1.2"/></svg></button>
+    `;
+    document.body.appendChild(controls);
+    controls.querySelector('.min').onclick = () => api()?.minimize_window?.();
+    controls.querySelector('.close').onclick = () => api()?.close_window?.();
+    controls.querySelector('.max')?.addEventListener('click', () => api()?.toggle_maximize_window?.());
+
+    // --- Нативный ресайз за края через DWM (без визуальных разрывов) ---
+    if (!isVault) {
+        // Карта WinAPI HitTest кодов
+        const htMap = {
+            'l': 10, 'r': 11, 't': 12, 'tl': 13,
+            'tr': 14, 'b': 15, 'bl': 16, 'br': 17
+        };
+        
+        ['t','b','l','r','tl','tr','bl','br'].forEach((cls) => {
+            const h = document.createElement('div');
+            h.className = `win-rh win-rh-${cls}`;
+            h.addEventListener('pointerdown', (e) => {
+                if (e.button !== 0) return;
+                e.preventDefault();
+                // Передаем управление размерностью самой ОС Windows
+                api()?.start_window_resize?.(htMap[cls]);
+            });
+            document.body.appendChild(h);
+        });
+    }
+
+    // --- Нативное перетаскивание окна за шапку ---
+    const NO_DRAG = 'button, input, textarea, select, a, [contenteditable="true"],' +
+        '.search-wrapper, .settings-wrapper, .tabs-wrapper, .board-tab,' +
+        '.vault-container, .menu-btn, .card-menu-btn, .win-controls, .win-rh';
+
+    document.addEventListener('pointerdown', (e) => {
+        if (e.button !== 0) return;
+        if (!e.target.closest('.app-header, .vault-screen')) return;
+        if (e.target.closest(NO_DRAG)) return;
+        e.preventDefault();
+        
+        // Передаем перемещение (с поддержкой прилипания к краям экрана) в Windows DWM
+        api()?.start_window_drag?.();
+    }, true);
 })();

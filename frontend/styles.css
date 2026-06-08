@@ -5402,6 +5402,16 @@ body.is-dragging-attachment .attachment-item:not(.attachment-drag-clone) {
     left: 84px !important;
 }
 
+/* На Windows (только экран хранилищ): шестерёнка в верхне-левый угол КОНТЕНТА,
+   а не окна. Окно нерастягиваемое (760x680), контейнер 680px отцентрован,
+   padding 32px -> угол контента = (top 52, left 72) от края окна.
+   Верх кнопки = верх логотипа, левый край = левый край карточек.
+   Стили самой кнопки родные. */
+.win-os .vault-settings-wrapper {
+    top: 52px !important;
+    left: 72px !important;
+}
+
 /* ФИКС: Чтобы выпадающее меню не обрезалось краями vault-screen */
 .vault-settings-wrapper .dropdown-menu {
     top: 44px;
@@ -5939,7 +5949,7 @@ body.is-dragging-vault-history * {
 
 .board-scrollbar {
     position: absolute;
-    bottom: 0;
+    bottom: 4px;
     left: 0;
     right: 0;
     height: 4px;

@@ -1,5 +1,6 @@
-from fastapi import APIRouter, HTTPException, status, UploadFile, File, Depends  # Добавили Depends
-from sqlalchemy.ext.asyncio import AsyncSession # Добавили
+from fastapi import APIRouter, HTTPException, status, UploadFile, File, Depends, WebSocket, WebSocketDisconnect
+from sqlalchemy.ext.asyncio import AsyncSession
+from src.core.watcher import ws_manager  # <-- ДОБАВИТЬ ЭТО
 from src.db.database import get_session # Добавили
 from src.services.task_service import cleanup_orphaned_attachments # Добавили
 from pydantic import BaseModel
@@ -1241,3 +1242,16 @@ async def get_calendar_events(db: AsyncSession = Depends(get_session)):
         
     return events
 
+# ==========================================
+# WEBSOCKET ДЛЯ ICLOUD SYNC
+# ==========================================
+@router.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    """Канал связи с фронтендом для передачи эвентов от ОС (iCloud Sync)"""
+    await ws_manager.connect(websocket)
+    try:
+        while True:
+            # Просто держим соединение живым
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        ws_manager.disconnect(websocket)

@@ -102,6 +102,8 @@ pyinstaller --noconfirm \
     --hidden-import "uvicorn.lifespan.on" \
     --hidden-import "uvicorn.lifespan.off" \
     --hidden-import "aiosqlite" \
+    --hidden-import "watchdog" \
+    --hidden-import "websockets" \
     wrapper.py >> "$LOG_FILE" 2>&1
 
 update_progress "Регистрация UTI в Info.plist..."

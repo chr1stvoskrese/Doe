@@ -14,6 +14,7 @@ from src.db.database import init_dev_database, close_database
 from fastapi import Response
 
 from src.core.config import get_active_vault, get_attachments_dir
+from src.core.watcher import vault_observer # <-- ИМПОРТ
 
 
 
@@ -25,6 +26,7 @@ async def lifespan(app: FastAPI):
     
     yield
     
+    vault_observer.stop() # <-- ГЛУШИМ WATCHER
     await close_database()
     print("🛑 Сервер останавливается...")
 
