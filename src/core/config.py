@@ -1,3 +1,4 @@
+# src/core/config.py
 import json
 import os
 from pathlib import Path
@@ -29,7 +30,6 @@ def set_active_vault(vault_path: str) -> None:
     
     history = data.get("vault_history", [])
     
-    # Очистка от дублей и миграция старого формата (список строк) в список словарей
     cleaned = []
     for item in history:
         if isinstance(item, str):
@@ -39,12 +39,10 @@ def set_active_vault(vault_path: str) -> None:
             if item.get("path") != vault_path:
                 cleaned.append(item)
                 
-    # Формируем текущую дату в формате ISO + Z (для фронтенда)
     now_iso = datetime.utcnow().isoformat() + "Z"
-    # Добавляем текущее хранилище на самый верх
     cleaned.insert(0, {"path": vault_path, "last_opened": now_iso})
     
-    data["vault_history"] = cleaned[:10]  # Храним только 10 последних
+    data["vault_history"] = cleaned[:10]
     _save_config(data)
 
 def remove_vault_from_history(vault_path: str) -> None:
@@ -60,10 +58,6 @@ def remove_vault_from_history(vault_path: str) -> None:
             
     data["vault_history"] = cleaned
     
-    # Если удаляемое хранилище = активному, стираем active_vault
-    # и привязку активной вкладки именно для этого пути. Иначе при следующем
-    # запуске приложение увидит "active_vault" в конфиге, откроет главное окно
-    # и init_dev_database() молча пересоздаст удалённую папку как пустое хранилище.
     if data.get("active_vault") == vault_path:
         data.pop("active_vault", None)
         active_ws = data.get("active_workspaces", {})
@@ -79,11 +73,8 @@ def get_vault_history() -> list[str]:
 def get_attachments_dir() -> Path:
     data = _load_config()
     custom_path = data.get("global_attachments_path")
-    # Если путь задан и папка физически существует - используем её
     if custom_path and os.path.exists(custom_path):
         return Path(custom_path)
-    # Иначе фолбэк на стандартную локальную папку внутри хранилища.
-    # Папка называется "doe" — это файлы, принадлежащие приложению.
     return Path(get_active_vault()) / "doe"
 
 def get_ui_settings() -> dict:
@@ -119,7 +110,6 @@ def reorder_vault_history(ordered_paths: list[str]) -> None:
     data = _load_config()
     history = data.get("vault_history", [])
     
-    # Создаем словарь для быстрого поиска, чтобы не потерять даты при Drag&Drop
     history_map = {}
     for item in history:
         if isinstance(item, str):
@@ -140,7 +130,6 @@ def reorder_vault_history(ordered_paths: list[str]) -> None:
 def relink_vault_history(old_path: str, new_path: str) -> None:
     data = _load_config()
     
-    # 1. Обновляем пути в истории хранилищ
     history = data.get("vault_history", [])
     new_history = []
     for item in history:
@@ -157,28 +146,23 @@ def relink_vault_history(old_path: str, new_path: str) -> None:
                 new_history.append(item)
     data["vault_history"] = new_history
 
-    # 2. Обновляем пути в ждущих напоминаниях (ЧТОБЫ ОНИ ВЫЖИЛИ ПРИ ПЕРЕЕЗДЕ ПАПКИ)
     reminders = data.get("active_reminders", [])
     for r in reminders:
         if r.get("vault_path") == old_path:
             r["vault_path"] = new_path
     data["active_reminders"] = reminders
 
-    # 3. Обновляем привязку вкладок
     active_ws = data.get("active_workspaces", {})
     if old_path in active_ws:
         active_ws[new_path] = active_ws.pop(old_path)
     data["active_workspaces"] = active_ws
 
-    # 4. Обновляем текущее хранилище (если оно открыто)
     if data.get("active_vault") == old_path:
         data["active_vault"] = new_path
         
     _save_config(data)
 
-
 def get_vault_geometry(vault_path: str) -> tuple[int, int]:
-    """Возвращает сохраненную геометрию окна для конкретного хранилища. По умолчанию 1200x800."""
     data = _load_config()
     geom = data.get("vault_geometry", {}).get(vault_path)
     if geom:
@@ -186,33 +170,22 @@ def get_vault_geometry(vault_path: str) -> tuple[int, int]:
     return 1200, 800
 
 def set_vault_geometry(vault_path: str, width: int, height: int) -> None:
-    """Сохраняет геометрию окна для конкретного хранилища."""
     data = _load_config()
     if "vault_geometry" not in data:
         data["vault_geometry"] = {}
     data["vault_geometry"][vault_path] = {"width": width, "height": height}
     _save_config(data)
 
-
 def get_active_reminders() -> list:
-    """Возвращает список запланированных напоминаний."""
     data = _load_config()
-    # Фильтрация по времени удалена. Воркер сам удалит себя из списка 
-    # в момент срабатывания, чтобы мгновенно очистить индикатор.
     return data.get("active_reminders", [])
-
-import os
-import signal
-import uuid
 
 def add_active_reminder(task_id: int, task_title: str, message: str, due_time_iso: str, pid: int, vault_path: str, reminder_id: str) -> None:
     data = _load_config()
     reminders = data.get("active_reminders", [])
     
-    # [БАГ 1] Больше не убиваем процессы других напоминаний для этой же карточки!
-    
     reminders.append({
-        "reminder_id": reminder_id, # Уникальный ID
+        "reminder_id": reminder_id,
         "task_id": task_id,
         "vault_path": vault_path,
         "pid": pid,
@@ -224,8 +197,10 @@ def add_active_reminder(task_id: int, task_title: str, message: str, due_time_is
     data["active_reminders"] = reminders
     _save_config(data)
 
+import os
+import signal
+
 def remove_reminders_for_task(task_id: int) -> None:
-    """Удаляет все напоминания, связанные с конкретной карточкой."""
     data = _load_config()
     reminders = data.get("active_reminders", [])
     
@@ -250,7 +225,6 @@ def remove_active_reminder(reminder_id: str) -> None:
     
     new_reminders = []
     for r in reminders:
-        # [БАГ 2] Удаляем только совпадение по конкретному UUID
         if r.get("reminder_id") == reminder_id:
             pid = r.get("pid")
             if pid:
@@ -265,7 +239,6 @@ def remove_active_reminder(reminder_id: str) -> None:
     _save_config(data)
 
 def remove_all_vault_reminders(vault_path: str) -> None:
-    """Удаляет все напоминания, связанные с конкретным хранилищем (при его удалении)."""
     data = _load_config()
     reminders = data.get("active_reminders", [])
     
@@ -285,32 +258,19 @@ def remove_all_vault_reminders(vault_path: str) -> None:
     _save_config(data)
 
 def spawn_notification_worker(task_id: int, task_title: str, message: str, due_time_iso: str, vault_path: str, reminder_id: str) -> int:
-    """Централизованный запуск фонового процесса напоминания."""
     import sys
     import subprocess
-    import os
     
     title = "Doe"
+    args = [sys.executable, "--worker", due_time_iso, title, message, str(task_id), vault_path, reminder_id]
     
-    if getattr(sys, 'frozen', False):
-        if sys.platform == 'darwin':
-            worker_path = os.path.join(os.path.dirname(sys.executable), "notify_worker")
-            args = [worker_path, due_time_iso, title, message, str(task_id), vault_path, reminder_id]
-        else:
-            worker_path = os.path.join(os.path.dirname(sys.executable), "notify_worker.exe")
-            args = [worker_path, due_time_iso, title, message, str(task_id), vault_path, reminder_id]
-    else:
-        # Режим разработки
-        project_root = Path(__file__).resolve().parent.parent.parent
-        worker_path = os.path.join(project_root, "notify_worker.py")
-        args = [sys.executable, worker_path, due_time_iso, title, message, str(task_id), vault_path, reminder_id]
-    
-    creationflags = 0x08000000 | 0x00000008 if sys.platform == 'win32' else 0
+    # 0x00000008: DETACHED_PROCESS (Полная отвязка процесса от консоли и главного окна)
+    # Это позволяет процессу "выжить" после закрытия приложения.
+    creationflags = 0x00000008 if sys.platform == 'win32' else 0
     p = subprocess.Popen(args, creationflags=creationflags, start_new_session=(sys.platform != 'win32'))
     return p.pid
 
 def restore_all_reminders() -> None:
-    """Восстановление фоновых процессов напоминаний при запуске приложения."""
     data = _load_config()
     reminders = data.get("active_reminders", [])
     if not reminders:
@@ -332,7 +292,6 @@ def restore_all_reminders() -> None:
         except Exception:
             continue
         
-        # Если время уже наступило во время отключения компьютера - запускаем через 1 секунду
         if due_time <= now:
             fire_time = now + datetime.timedelta(seconds=1)
             due_time_iso = fire_time.isoformat() + "Z"

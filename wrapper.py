@@ -2,6 +2,224 @@ import sys
 import subprocess
 import os
 import time
+import json
+import urllib.request
+import sqlite3
+from datetime import datetime
+from pathlib import Path
+
+# =========================================================================
+# 1. ФОНОВЫЙ РЕЖИМ (WORKER) - Срабатывает мгновенно, без загрузки UI
+# =========================================================================
+if len(sys.argv) >= 8 and sys.argv[1] == "--worker":
+    due_time_iso = sys.argv[2]
+    title = sys.argv[3]
+    message = sys.argv[4]
+    task_id = sys.argv[5]
+    vault_path = sys.argv[6]
+    reminder_id = sys.argv[7]
+
+    due_time = datetime.fromisoformat(due_time_iso.replace("Z", ""))
+    while datetime.utcnow() < due_time:
+        time.sleep(1)
+
+    config_file = Path.home() / ".doe_config.json"
+    
+    def remove_self_from_config():
+        if config_file.exists():
+            try:
+                with open(config_file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                rems = data.get("active_reminders", [])
+                new_rems = [r for r in rems if r.get("reminder_id") != reminder_id]
+                if len(new_rems) != len(rems):
+                    data["active_reminders"] = new_rems
+                    with open(config_file, 'w', encoding='utf-8') as f:
+                        json.dump(data, f, ensure_ascii=False, indent=2)
+            except Exception:
+                pass
+
+    is_active = False
+    if config_file.exists():
+        try:
+            with open(config_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            for r in data.get("active_reminders", []):
+                if r.get("reminder_id") == reminder_id:
+                    is_active = True
+                    break
+        except Exception:
+            pass
+
+    if not is_active:
+        os._exit(0)
+
+    if vault_path and os.path.exists(vault_path):
+        db_files = [f for f in Path(vault_path).glob("*.db.doe") if not f.name.endswith(".backup.db.doe")]
+        if not db_files:
+            remove_self_from_config()
+            os._exit(0)
+    else:
+        os._exit(0)
+
+    remove_self_from_config()
+
+    payload = json.dumps({"task_id": int(task_id), "vault_path": vault_path}).encode('utf-8')
+
+    def send_highlight_request():
+        try:
+            req = urllib.request.Request(
+                "http://127.0.0.1:8000/api/v1/system/highlight-task",
+                data=payload,
+                headers={'Content-Type': 'application/json'}
+            )
+            urllib.request.urlopen(req, timeout=1.0)
+            return True
+        except Exception:
+            return False
+
+    def write_pending_highlight():
+        if config_file.exists():
+            try:
+                with open(config_file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                data["pending_highlight"] = {"task_id": task_id, "vault_path": vault_path}
+                with open(config_file, 'w', encoding='utf-8') as f:
+                    json.dump(data, f, ensure_ascii=False, indent=2)
+            except Exception:
+                pass
+
+    if sys.platform == 'darwin':
+        import AppKit
+        from Foundation import NSObject, NSRunLoop, NSDate
+        
+        global_state = {"keep_running": True}
+
+        class NotificationDelegate(NSObject):
+            def userNotificationCenter_didActivateNotification_(self, center, notification):
+                write_pending_highlight()
+                if not send_highlight_request():
+                    subprocess.Popen(['open', '-n', '-a', str(Path(sys.executable).parent.parent.parent)])
+                else:
+                    subprocess.Popen(['open', '-a', str(Path(sys.executable).parent.parent.parent)])
+                global_state["keep_running"] = False
+                
+            def userNotificationCenter_shouldPresentNotification_(self, center, notification): return True
+            def userNotificationCenter_didDismissNotification_(self, center, notification): global_state["keep_running"] = False
+            def timeout_(self, timer): global_state["keep_running"] = False
+
+        notification = AppKit.NSUserNotification.alloc().init()
+        notification.setTitle_(title)
+        notification.setInformativeText_(message)
+        notification.setSoundName_(AppKit.NSUserNotificationDefaultSoundName)
+        
+        delegate = NotificationDelegate.alloc().init()
+        globals()['_mac_delegate_retained'] = delegate
+        center = AppKit.NSUserNotificationCenter.defaultUserNotificationCenter()
+        center.setDelegate_(delegate)
+        center.deliverNotification_(notification)
+        
+        AppKit.NSTimer.scheduledTimerWithTimeInterval_target_selector_userInfo_repeats_(60.0, delegate, "timeout:", None, False)
+        run_loop = NSRunLoop.currentRunLoop()
+        while global_state["keep_running"]:
+            run_loop.runUntilDate_(NSDate.dateWithTimeIntervalSinceNow_(0.5))
+        os._exit(0)
+    
+    elif sys.platform == 'win32':
+        import ctypes
+        from ctypes import wintypes
+        import winreg
+
+        # Используем c_void_p вместо отсутствующих в wintypes хэндлов
+        HCURSOR = ctypes.c_void_p
+        HICON = ctypes.c_void_p
+        HBRUSH = ctypes.c_void_p
+
+        bundle_dir = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
+        icon_path = os.path.join(bundle_dir, "favicon.ico")
+        doe_exe_path = sys.executable
+
+        aumid = 'doe.aesthetic.kanban.app.1'
+        try:
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(aumid)
+        except Exception:
+            pass
+
+        WM_USER, WM_DESTROY = 0x0400, 0x0002
+        NIM_ADD, NIM_DELETE = 0x00000000, 0x00000002
+        NIF_MESSAGE, NIF_ICON, NIF_TIP, NIF_INFO = 0x0001, 0x0002, 0x0004, 0x0010
+        NIIF_INFO = 0x00000001
+        NIN_BALLOONTIMEOUT, NIN_BALLOONUSERCLICK = WM_USER + 4, WM_USER + 5
+        WM_TRAYMSG = WM_USER + 20
+
+        class NOTIFYICONDATAW(ctypes.Structure):
+            _fields_ = [("cbSize", wintypes.DWORD), ("hWnd", wintypes.HWND), ("uID", wintypes.UINT),
+                        ("uFlags", wintypes.UINT), ("uCallbackMessage", wintypes.UINT), ("hIcon", HICON),
+                        ("szTip", wintypes.WCHAR * 128), ("dwState", wintypes.DWORD), ("dwStateMask", wintypes.DWORD),
+                        ("szInfo", wintypes.WCHAR * 256), ("uTimeout", wintypes.UINT), ("szInfoTitle", wintypes.WCHAR * 64),
+                        ("dwInfoFlags", wintypes.DWORD), ("guidItem", ctypes.c_byte * 16), ("hBalloonIcon", HICON)]
+
+        WNDPROC = ctypes.WINFUNCTYPE(ctypes.c_int, wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM)
+
+        class WNDCLASSW(ctypes.Structure):
+            _fields_ = [("style", wintypes.UINT), ("lpfnWndProc", WNDPROC), ("cbClsExtra", ctypes.c_int),
+                        ("cbWndExtra", ctypes.c_int), ("hInstance", ctypes.c_void_p), ("hIcon", HICON),
+                        ("hCursor", HCURSOR), ("hbrBackground", HBRUSH), ("lpszMenuName", wintypes.LPCWSTR),
+                        ("lpszClassName", wintypes.LPCWSTR)]
+
+        def wnd_proc(hwnd, msg, wparam, lparam):
+            if msg == WM_TRAYMSG:
+                if lparam == NIN_BALLOONUSERCLICK:
+                    write_pending_highlight()
+                    if not send_highlight_request():
+                        subprocess.Popen([doe_exe_path])
+                    nid = NOTIFYICONDATAW(); nid.cbSize = ctypes.sizeof(NOTIFYICONDATAW); nid.hWnd = hwnd; nid.uID = 1
+                    ctypes.windll.shell32.Shell_NotifyIconW(NIM_DELETE, ctypes.byref(nid))
+                    ctypes.windll.user32.PostQuitMessage(0)
+                elif lparam in (NIN_BALLOONTIMEOUT, NIN_BALLOONTIMEOUT + 1):
+                    nid = NOTIFYICONDATAW(); nid.cbSize = ctypes.sizeof(NOTIFYICONDATAW); nid.hWnd = hwnd; nid.uID = 1
+                    ctypes.windll.shell32.Shell_NotifyIconW(NIM_DELETE, ctypes.byref(nid))
+                    ctypes.windll.user32.PostQuitMessage(0)
+            elif msg == WM_DESTROY:
+                ctypes.windll.user32.PostQuitMessage(0)
+            return ctypes.windll.user32.DefWindowProcW(hwnd, msg, wparam, lparam)
+
+        wc = WNDCLASSW()
+        wc.lpfnWndProc = WNDPROC(wnd_proc)
+        wc.lpszClassName = "DoeNotificationWindowClass"
+        wc.hInstance = None
+        
+        _global_wndproc_ref = wc.lpfnWndProc
+        ctypes.windll.user32.RegisterClassW(ctypes.byref(wc))
+        
+        hwnd = ctypes.windll.user32.CreateWindowExW(0, ctypes.c_wchar_p(wc.lpszClassName), ctypes.c_wchar_p("DoeNotificationWindow"), 0, 0, 0, 0, 0, 0, 0, 0, 0)
+
+        hIcon = ctypes.windll.user32.LoadImageW(0, ctypes.c_wchar_p(icon_path), 1, 0, 0, 0x0010 | 0x8000) if os.path.exists(icon_path) else ctypes.windll.user32.LoadIconW(0, 32512)
+
+        nid = NOTIFYICONDATAW()
+        nid.cbSize = ctypes.sizeof(NOTIFYICONDATAW)
+        nid.hWnd = hwnd
+        nid.uID = 1
+        nid.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP | NIF_INFO
+        nid.uCallbackMessage = WM_TRAYMSG
+        nid.hIcon = hIcon
+        nid.szTip = "Doe"[:127]
+        nid.szInfo = message[:255]
+        nid.szInfoTitle = title[:63]
+        nid.dwInfoFlags = NIIF_INFO
+
+        ctypes.windll.shell32.Shell_NotifyIconW(NIM_ADD, ctypes.byref(nid))
+
+        msg = wintypes.MSG()
+        while ctypes.windll.user32.GetMessageW(ctypes.byref(msg), 0, 0, 0) > 0:
+            ctypes.windll.user32.TranslateMessage(ctypes.byref(msg))
+            ctypes.windll.user32.DispatchMessageW(ctypes.byref(msg))
+            
+        os._exit(0)
+
+# =========================================================================
+# 2. ОСНОВНОЕ ПРИЛОЖЕНИЕ (GUI)
+# =========================================================================
 
 if getattr(sys, 'frozen', False):
     bundle_dir = sys._MEIPASS
