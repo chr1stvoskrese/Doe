@@ -107,48 +107,60 @@ pyinstaller --noconfirm \
     wrapper.py >> "$LOG_FILE" 2>&1
 
 update_progress "Регистрация UTI в Info.plist..."
-python3 -c "
+cat << 'EOF' > patch_plist.py
 import plistlib
+import sys
+
 plist_path = 'dist/Doe.app/Contents/Info.plist'
-with open(plist_path, 'rb') as f:
-    pl = plistlib.load(f)
 
-pl['UTExportedTypeDeclarations'] = [{
-    'UTTypeIdentifier': 'com.aesthetic.doe.vault',
-    'UTTypeDescription': 'Doe Vault Database',
-    'UTTypeIconFile': 'doe.icns',
-    'UTTypeConformsTo': ['public.data', 'public.content'],
-    'UTTypeTagSpecification': {
-        'public.filename-extension': ['db.doe', 'doe']
-    }
-}]
+try:
+    with open(plist_path, 'rb') as f:
+        pl = plistlib.load(f)
+        
+    pl['UTExportedTypeDeclarations'] = [{
+        'UTTypeIdentifier': 'com.aesthetic.doe.vault',
+        'UTTypeDescription': 'Doe Vault Database',
+        'UTTypeIconFile': 'doe.icns',
+        'UTTypeConformsTo': ['public.data', 'public.content'],
+        'UTTypeTagSpecification': {
+            'public.filename-extension': ['db.doe', 'doe']
+        }
+    }]
 
-pl['CFBundleDocumentTypes'] = [{
-    'CFBundleTypeName': 'Doe Vault',
-    'CFBundleTypeRole': 'Viewer',           # Viewer вместо Editor — AppKit не лезет в NSDocumentController
-    'CFBundleTypeIconFile': 'doe.icns',
-    'LSHandlerRank': 'Owner',
-    'LSItemContentTypes': ['com.aesthetic.doe.vault'],
-    'CFBundleTypeExtensions': ['db.doe', 'doe'],
-    'LSTypeIsPackage': False,
-    'NSDocumentClass': '',                  # пустой класс документа — явный сигнал, что NSDocument не нужен
-}]
+    pl['CFBundleDocumentTypes'] = [{
+        'CFBundleTypeName': 'Doe Vault',
+        'CFBundleTypeRole': 'Viewer',
+        'CFBundleTypeIconFile': 'doe.icns',
+        'LSHandlerRank': 'Owner',
+        'LSItemContentTypes': ['com.aesthetic.doe.vault'],
+        'CFBundleTypeExtensions': ['db.doe', 'doe'],
+        'LSTypeIsPackage': False,
+        'NSDocumentClass': '',
+    }]
 
-# Корректная версия и копирайт для нативного окна "About" в macOS
-pl['CFBundleShortVersionString'] = '1.0'
-pl['CFBundleVersion'] = '1.0'
-pl['NSHumanReadableCopyright'] = '© 2026 Doe Kanban Sanctuary. All rights reserved.'
+    # Основная мета-информация
+    pl['CFBundleName'] = 'Doe'
+    pl['CFBundleDisplayName'] = 'Doe'
+    pl['CFBundleIdentifier'] = 'com.aesthetic.doe'
+    pl['CFBundleShortVersionString'] = '1.0.0'
+    pl['CFBundleVersion'] = '1.0.0'
+    pl['CFBundleGetInfoString'] = '1.0.0, © 2026 Doe Kanban Sanctuary'
+    pl['NSHumanReadableCopyright'] = '© 2026 Doe Kanban Sanctuary. All rights reserved.'
+    
+    # Системные флаги
+    pl['NSSupportsAutomaticTermination'] = False
+    pl['NSSupportsSuddenTermination'] = False
 
-# КЛЮЧЕВАЯ СТРОКА: запрещаем AppKit автоматически вызывать NSDocumentController.
-# Именно он показывает диалог "could not be opened ... in the Doe Vault format",
-# когда не находит зарегистрированного класса NSDocument. Мы используем AppleEventManager,
-# поэтому NSDocumentController нам только мешает.
-pl['NSSupportsAutomaticTermination'] = False
-pl['NSSupportsSuddenTermination'] = False
+    with open(plist_path, 'wb') as f:
+        plistlib.dump(pl, f)
+        
+except Exception as e:
+    print(f"ERROR updating Info.plist: {e}")
+    sys.exit(1)
+EOF
 
-with open(plist_path, 'wb') as f:
-    plistlib.dump(pl, f)
-" >> "$LOG_FILE" 2>&1
+python3 patch_plist.py >> "$LOG_FILE" 2>&1
+rm patch_plist.py
 
 update_progress "Копирование ресурсов и Touch..."
 cp doe.icns "dist/Doe.app/Contents/Resources/doe.icns" >> "$LOG_FILE" 2>&1
@@ -169,7 +181,8 @@ update_progress "Снятие атрибута карантина..."
 xattr -cr dist/Doe.app >> "$LOG_FILE" 2>&1
 
 update_progress "Сброс кэшей (LaunchServices, Finder)..."
-/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister -f dist/Doe.app >> "$LOG_FILE" 2>&1
+# Более современный и надежный путь для форсированного сброса кэша в macOS
+/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f -r -v -app dist/Doe.app >> "$LOG_FILE" 2>&1
 killall Finder 2>/dev/null || true >> "$LOG_FILE" 2>&1
 
 update_progress "Финализация!"

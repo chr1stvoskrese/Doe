@@ -974,15 +974,22 @@ body {
     box-shadow: var(--shadow-card);
     border: 1px solid var(--border-light);
     cursor: grab;
-    transition: transform var(--transition-apple), box-shadow var(--transition-apple), background-color var(--transition-apple);
+    transition: transform var(--transition-apple), box-shadow var(--transition-apple), background-color var(--transition-apple), border-color var(--transition-apple);
     display: flex;
     flex-direction: column; 
     align-items: stretch;   
     gap: 0;                 /* УБРАЛИ ГЭП — это корень дёрганья */
     user-select: none;
-    will-change: transform, box-shadow;
     pointer-events: auto;
     position: relative;     /* <--- Добавлено для абсолютного позиционирования инлайн-триггеров создания */
+}
+
+/* Эстетичная подсветка при переходе по уведомлению или поиску */
+.card.is-highlighted {
+    /* Создаем благородную полупрозрачную рамку в 1px (40% от основного цвета) */
+    border-color: color-mix(in srgb, var(--brand-pine) 40%, transparent) !important;
+    /* Оставляем только стандартную мягкую тень карточки, без внешних колец */
+    box-shadow: var(--shadow-card) !important;
 }
 
 /* ==========================================
@@ -7280,24 +7287,27 @@ input#notify-amount.notify-field::-webkit-inner-spin-button {
     left: 0 !important;     /* Выравнивание строго по левому краю */
 }
 
-/* Разрешаем выпадающему списку выходить за границы окна уведомлений */
-#notify-modal .modal-card {
+/* Разрешаем выпадающему списку (календарю) выходить за границы окон */
+#notify-modal .modal-card,
+#due-date-modal .modal-card {
     overflow: visible !important;
 }
 
-/* Явно скругляем верхние углы шапки, задаем строго одинаковый отступ 16px */
-#notify-modal .modal-header {
+/* Явно скругляем верхние углы шапки, задаем строго одинаковый отступ */
+#notify-modal .modal-header,
+#due-date-modal .modal-header {
     border-top-left-radius: var(--radius-card) !important;
     border-top-right-radius: var(--radius-card) !important;
-    padding: 12px !important; /* Ровно 16px со всех четырех сторон (сверху, снизу, слева, справа) */
+    padding: 12px !important;
 }
 
-/* Строго одинаковая сетка для тела модалки */
-#notify-modal .modal-body {
-    padding: 12px !important; /* Ровно 16px со всех четырех сторон */
+/* Строго одинаковая сетка для тела обеих модалок */
+#notify-modal .modal-body,
+#due-date-modal .modal-body {
+    padding: 12px !important;
     display: flex;
     flex-direction: column;
-    gap: 12px !important; /* Зазоры между элементами внутри ровно 16px */
+    gap: 12px !important;
 }
 
 #notify-modal .segmented-control {

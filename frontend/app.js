@@ -21,7 +21,7 @@ const translations = {
             delete: 'Удалить', clear: 'Очистить', open: 'Открыть', 
             deleteCard: 'Удалить карточку', clearTimer: 'Очистить таймер',
             exportCard: 'Экспорт в Markdown', attachmentsSettings: 'Хранилище вложений',
-            copyCardLink: 'Скопировать ссылку', dueDate: 'Установить дедлайн', notify: 'Напомнить',
+            copyCardLink: 'Скопировать ссылку', dueDate: 'Установить дедлайн', clearDueDate: 'Очистить дедлайн', notify: 'Напомнить',
             reminders: 'Активные напоминания', remindersEmpty: 'Нет активных напоминаний'
         },
         copied: 'Скопировано!',
@@ -99,7 +99,7 @@ const translations = {
             delete: 'Delete', clear: 'Clear', open: 'Open', 
             deleteCard: 'Delete card', clearTimer: 'Clear timer',
             exportCard: 'Export to Markdown', attachmentsSettings: 'Attachments Storage',
-            copyCardLink: 'Copy link', dueDate: 'Set deadline', notify: 'Remind me',
+            copyCardLink: 'Copy link', dueDate: 'Set deadline', clearDueDate: 'Clear deadline', notify: 'Remind me',
             reminders: 'Active Reminders', remindersEmpty: 'No active reminders'
         },
         copied: 'Copied!',
@@ -3954,6 +3954,17 @@ document.addEventListener('click', async (e) => {
         };
         updatePos();
 
+        // Умное переключение кнопок дедлайна
+        const menuSetDueDate = document.getElementById('menu-set-due-date');
+        const menuClearDueDate = document.getElementById('menu-clear-due-date');
+        if (task && task.due_date) {
+            menuSetDueDate.style.display = 'none';
+            menuClearDueDate.style.display = 'flex';
+        } else {
+            menuSetDueDate.style.display = 'flex';
+            menuClearDueDate.style.display = 'none';
+        }
+
         return;
     }
 
@@ -4141,6 +4152,31 @@ document.addEventListener('click', async (e) => {
                     // Берем задачу из стейта, чтобы пробросить её текущую дату, если есть
                     const task = state.columns.find(c => c.id === parseInt(colEl.dataset.columnId))?.tasks.find(t => t.id === taskId);
                     openDueDateModal(taskId, task?.due_date);
+                }
+                else if (action === 'clear-due-date') {
+                    try {
+                        await updateTask(taskId, { due_date: null });
+                        
+                        // Обновляем локальный стейт
+                        for (let col of state.columns) {
+                            let t = col.tasks.find(task => task.id == taskId);
+                            if (t) {
+                                t.due_date = null;
+                                const cardEl = document.querySelector(`.card[data-card-id="${taskId}"]`);
+                                if (cardEl) updateCardAppearance(cardEl, t, col.mode);
+                                break;
+                            }
+                        }
+                        
+                        // Если карточка открыта в модалке, обновляем и её
+                        const taskModal = document.getElementById('task-modal');
+                        if (taskModal.classList.contains('show') && parseInt(taskModal.dataset.taskId) === taskId) {
+                            loadTaskIntoModal(taskId, false); 
+                        }
+                        
+                    } catch (e) {
+                        window.showToast(t('alerts.error'), 'Не удалось очистить срок', true);
+                    }
                 }
             }
             closeAllDropdowns();
@@ -7595,9 +7631,8 @@ window.navigateToEntityGlobal = async function(wsId, colId, taskId, highlightQue
                     // Подсвечиваем саму карточку (миниатюру на доске)
                     const cardEl = document.querySelector(`.card[data-card-id="${taskId}"]`);
                     if (cardEl) {
-                        cardEl.style.transition = 'box-shadow 0.3s';
-                        cardEl.style.boxShadow = '0 0 0 2px var(--brand-pine)';
-                        setTimeout(() => cardEl.style.boxShadow = '', 1500);
+                        cardEl.classList.add('is-highlighted');
+                        setTimeout(() => cardEl.classList.remove('is-highlighted'), 2000);
                     }
 
                     if (openModal) {
@@ -8114,51 +8149,7 @@ function openDueDateModal(taskId, currentDueDate) {
         }
     };
 
-    // Кнопка Очистить / Отмена
-            const clearBtn = document.getElementById('btn-clear-due-date');
-            const newClearBtn = clearBtn.cloneNode(true);
-            clearBtn.replaceWith(newClearBtn);
-            
-            if (currentDueDate) {
-                // Если срок был задан ранее — показываем кнопку "Очистить"
-                newClearBtn.textContent = t('modals.dueDateClear');
-                newClearBtn.setAttribute('data-i18n', 'modals.dueDateClear');
-                newClearBtn.onclick = async () => {
-                    newClearBtn.style.opacity = '0.5';
-                    newClearBtn.disabled = true;
-                    try {
-                        await updateTask(taskId, { due_date: null });
-                        
-                        // Обновляем локальный стейт
-                        for (let col of state.columns) {
-                            let t = col.tasks.find(task => task.id == taskId);
-                            if (t) {
-                                t.due_date = null;
-                                const cardEl = document.querySelector(`.card[data-card-id="${taskId}"]`);
-                                if (cardEl) updateCardAppearance(cardEl, t, col.mode);
-                                break;
-                            }
-                        }
-                        
-                        loadTaskIntoModal(taskId, false);
-                        modal.classList.remove('show');
-                    } catch (e) {
-                        window.showToast(t('alerts.error'), 'Не удалось очистить срок', true);
-                    } finally {
-                        newClearBtn.style.opacity = '1';
-                        newClearBtn.disabled = false;
-                    }
-                };
-            } else {
-                // Если срок не задан — показываем кнопку "Отмена"
-                newClearBtn.textContent = t('cancel');
-                newClearBtn.setAttribute('data-i18n', 'cancel');
-                newClearBtn.onclick = () => {
-                    modal.classList.remove('show');
-                };
-            }
-            
-            modal.classList.add('show');
+    modal.classList.add('show');
 }
 
 // ==========================================

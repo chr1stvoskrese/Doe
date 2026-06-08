@@ -530,11 +530,19 @@
         <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         <span data-i18n="menu.exportCard">Экспорт в Markdown</span>
     </div>
-    <div class="menu-item" data-action="set-due-date">
+    <div class="menu-item" data-action="set-due-date" id="menu-set-due-date">
         <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 22c-4.42 0-8-3.58-8-8 0-3.1 1.76-5.8 4.36-7.14.33-.17.7-.06.88.24.41.69 1.05 1.34 1.7 1.15.65-.19.96-1.55 1.4-3.13C12.8 3.42 13.5 2 14.5 2c.28 0 .54.12.72.32 1.41 1.6 3.1 3.96 4.13 6.08C20.44 10.64 20 12.3 20 14c0 4.42-3.58 8-8 8z"></path>
         </svg>
         <span data-i18n="menu.dueDate">Установить дедлайн</span>
+    </div>
+    <!-- Очистить дедлайн перенесен строго на место кнопки Установить -->
+    <div class="menu-item" data-action="clear-due-date" id="menu-clear-due-date" style="display: none;">
+        <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22c-4.42 0-8-3.58-8-8 0-3.1 1.76-5.8 4.36-7.14.33-.17.7-.06.88.24.41.69 1.05 1.34 1.7 1.15.65-.19.96-1.55 1.4-3.13C12.8 3.42 13.5 2 14.5 2c.28 0 .54.12.72.32 1.41 1.6 3.1 3.96 4.13 6.08C20.44 10.64 20 12.3 20 14c0 4.42-3.58 8-8 8z"></path>
+            <line x1="3" y1="3" x2="21" y2="21"></line>
+        </svg>
+        <span data-i18n="menu.clearDueDate">Очистить дедлайн</span>
     </div>
     <div class="menu-item" data-action="notify-card">
         <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -543,6 +551,7 @@
         </svg>
         <span data-i18n="menu.notify">Напомнить</span>
     </div>
+
     <div class="menu-item" data-action="clear-card-timer">
         <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
         <span data-i18n="menu.clearTimer">Очистить таймер</span>
@@ -615,17 +624,25 @@
 <div class="modal-overlay" id="due-date-modal">
     <div class="modal-card">
         <div class="modal-header">
-            <span class="modal-title" data-i18n="modals.dueDateTitle">Срок выполнения</span>
+            <!-- Добавлена обертка с иконкой, как в модалке уведомлений -->
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-secondary); flex-shrink: 0;">
+                    <path d="M12 22c-4.42 0-8-3.58-8-8 0-3.1 1.76-5.8 4.36-7.14.33-.17.7-.06.88.24.41.69 1.05 1.34 1.7 1.15.65-.19.96-1.55 1.4-3.13C12.8 3.42 13.5 2 14.5 2c.28 0 .54.12.72.32 1.41 1.6 3.1 3.96 4.13 6.08C20.44 10.64 20 12.3 20 14c0 4.42-3.58 8-8 8z"></path>
+                </svg>
+                <span class="modal-title" data-i18n="modals.dueDateTitle">Срок выполнения</span>
+            </div>
             <button class="modal-close" aria-label="Закрыть">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
             </button>
         </div>
-        <div class="modal-body" style="padding: 16px;">
-            <div class="column-input datepicker-trigger" id="due-datepicker-trigger"></div>
+        <!-- Убраны жесткие inline-паддинги -->
+        <div class="modal-body">
+            <!-- Изменен класс с column-input на notify-field для применения пунктирного стиля -->
+            <div class="notify-field datepicker-trigger" id="due-datepicker-trigger"></div>
             
-            <div class="confirm-actions" style="padding: 16px 0 0 0;">
-                <button class="confirm-btn cancel-btn" id="btn-clear-due-date" data-i18n="modals.dueDateClear">Очистить</button>
-                <button class="confirm-btn vault-submit-btn" style="color: white;" id="btn-confirm-due-date" data-i18n="modals.btnSet">Установить</button>
+            <div class="confirm-actions" style="padding: 0;">
+                <button class="confirm-btn cancel-btn" onclick="document.getElementById('due-date-modal').classList.remove('show')" data-i18n="cancel">Отмена</button>
+                <button class="confirm-btn cancel-btn" id="btn-confirm-due-date" data-i18n="modals.btnSet">Установить</button>
             </div>
         </div>
     </div>
