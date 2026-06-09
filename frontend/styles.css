@@ -1274,7 +1274,7 @@ body[class*="is-dragging-"] .card-inline-trigger {
     top: 0 !important;
     left: 0 !important;
     transform-origin: top left; /* Точка трансформации - курсор */
-    z-index: 9999;              /* Поверх всего */
+    z-index: 2147483640 !important; /* 🔥 ФИКС: Абсолютный приоритет над светофором и элементами интерфейса */
     pointer-events: none !important; /* Клон не должен мешать событиям мыши под ним */
     margin: 0 !important;
     width: 288px;               /* Чуть уже оригинала для эффекта "взятия" */
@@ -1293,7 +1293,7 @@ body[class*="is-dragging-"] .card-inline-trigger {
     top: 0 !important;
     left: 0 !important;
     transform-origin: top left !important;
-    z-index: 9999;
+    z-index: 2147483640 !important; /* 🔥 ФИКС: Гарантированно выше светофора */
     pointer-events: none !important;
     margin: 0 !important;
     box-shadow: var(--shadow-drag) !important;
@@ -1568,7 +1568,8 @@ body[class*="is-dragging-"] .card-inline-trigger {
 .modal-copy-link,
 .modal-search,
 .modal-detach,
-.modal-notify {
+.modal-notify,
+.modal-due-date {
     background: transparent;
     border: none;
     cursor: pointer;
@@ -1592,7 +1593,8 @@ body[class*="is-dragging-"] .card-inline-trigger {
 .modal-copy-link svg,
 .modal-search svg,
 .modal-detach svg,
-.modal-notify svg {
+.modal-notify svg,
+.modal-due-date svg {
     width: 16px !important;
     height: 16px !important;
 }
@@ -1603,7 +1605,8 @@ body[class*="is-dragging-"] .card-inline-trigger {
 .modal-copy-link:hover,
 .modal-search:hover,
 .modal-detach:hover,
-.modal-notify:hover {
+.modal-notify:hover,
+.modal-due-date:hover {
     background: rgba(0, 0, 0, 0.05);
     color: var(--text-primary);
 }
@@ -1617,7 +1620,8 @@ body[class*="is-dragging-"] .card-inline-trigger {
 [data-theme="dark"] .modal-copy-link:hover,
 [data-theme="dark"] .modal-search:hover,
 [data-theme="dark"] .modal-detach:hover,
-[data-theme="dark"] .modal-notify:hover {
+[data-theme="dark"] .modal-notify:hover,
+[data-theme="dark"] .modal-due-date:hover {
     background: rgba(255, 255, 255, 0.08);
 }
 
@@ -2762,7 +2766,7 @@ body:not(.is-dragging-tab) .add-tab-btn:hover {
     top: 0 !important;
     left: 0 !important;
     transform-origin: top left !important;
-    z-index: 9999;
+    z-index: 2147483640 !important; /* 🔥 ФИКС: Выше светофора */
     pointer-events: none !important;
     margin: 0 !important;
     box-shadow: var(--shadow-drag) !important;
@@ -4447,7 +4451,7 @@ body.is-dragging-modal * {
     top: 0 !important;
     left: 0 !important;
     transform-origin: top left !important;
-    z-index: 99999999 !important; /* 🔥 ФИКС: Гарантированно выше модалки (8 девяток) */
+    z-index: 2147483640 !important; /* 🔥 ФИКС: Гарантированно выше модалки и светофора */
     pointer-events: none !important;
     margin: 0 !important;
     
@@ -4757,7 +4761,7 @@ body.is-dragging-attachment .attachment-item {
     top: 0 !important;
     left: 0 !important;
     transform-origin: top left !important;
-    z-index: 99999999 !important; /* 🔥 ФИКС: Гарантированно выше модалки (8 девяток) */
+    z-index: 2147483640 !important; /* 🔥 ФИКС: Гарантированно выше модалки и светофора */
     pointer-events: none !important;
     margin: 0 !important;
     
@@ -5538,7 +5542,7 @@ body.is-dragging-vault-history * {
     top: 0 !important;
     left: 0 !important;
     transform-origin: top left !important;
-    z-index: 999999 !important; /* Поверх модального окна выбора */
+    z-index: 2147483640 !important; /* 🔥 ФИКС: Поверх системных кнопок экрана выбора */
     pointer-events: none !important;
     margin: 0 !important;
     background: var(--surface-card) !important;
@@ -6402,21 +6406,6 @@ mark.local-search-highlight.active {
     border: none !important;
 }
 
-/* ==========================================
-   ФИКС ГАБАРИТОВ КНОПКИ СРОКА В МОДАЛКЕ
-   ========================================== */
-.modal-time-tracker .due-date-pill {
-    height: auto; /* Сбрасываем жесткие 22px маленькой пилюли */
-    padding: 4px 12px;
-    border-radius: 8px;
-    font-size: 13px;
-}
-
-.modal-time-tracker .due-date-pill svg {
-    width: 14px;
-    height: 14px;
-}
-
 [data-theme="dark"] mark.local-search-highlight {
     background-color: rgba(92, 99, 90, 0.4);
     color: #FFFFFF;
@@ -7091,6 +7080,10 @@ mark.local-search-highlight.active {
     background-color: #C3C6BC;
     color: var(--text-primary);
 }
+::highlight(global-search-highlight) {
+    background-color: rgba(195, 198, 188, 0.7);
+    color: var(--text-primary);
+}
 
 [data-theme="dark"] ::highlight(local-search) {
     background-color: rgba(92, 99, 90, 0.5);
@@ -7098,6 +7091,10 @@ mark.local-search-highlight.active {
 }
 [data-theme="dark"] ::highlight(local-search-active) {
     background-color: #5C635A;
+    color: #FFFFFF;
+}
+[data-theme="dark"] ::highlight(global-search-highlight) {
+    background-color: rgba(92, 99, 90, 0.7);
     color: #FFFFFF;
 }
 

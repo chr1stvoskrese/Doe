@@ -400,6 +400,11 @@
                                 <line x1="10" y1="21" x2="14" y2="21"></line>
                             </svg>
                         </button>
+                        <button class="modal-due-date" id="modal-due-date" aria-label="Установить дедлайн">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 22c-4.42 0-8-3.58-8-8 0-3.1 1.76-5.8 4.36-7.14.33-.17.7-.06.88.24.41.69 1.05 1.34 1.7 1.15.65-.19.96-1.55 1.4-3.13C12.8 3.42 13.5 2 14.5 2c.28 0 .54.12.72.32 1.41 1.6 3.1 3.96 4.13 6.08C20.44 10.64 20 12.3 20 14c0 4.42-3.58 8-8 8z"></path>
+                            </svg>
+                        </button>
                         <button class="modal-export" aria-label="Экспорт">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                         </button>
@@ -443,15 +448,7 @@
             </div>
 
             <div class="modal-time-tracker" id="modal-time-tracker">
-                <!-- НОВАЯ ПИЛЮЛЯ СРОКА -->
-                <div class="due-date-pill clickable" id="modal-due-date" title="Дедлайн">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M12 22c-4.42 0-8-3.58-8-8 0-3.1 1.76-5.8 4.36-7.14.33-.17.7-.06.88.24.41.69 1.05 1.34 1.7 1.15.65-.19.96-1.55 1.4-3.13C12.8 3.42 13.5 2 14.5 2c.28 0 .54.12.72.32 1.41 1.6 3.1 3.96 4.13 6.08C20.44 10.64 20 12.3 20 14c0 4.42-3.58 8-8 8z"></path>
-                    </svg>
-                    <span data-i18n="modals.dueDateSet">Установить дедлайн</span>
-                </div>
-                <!-- /НОВАЯ ПИЛЮЛЯ СРОКА -->
-                <span class="modal-time-label" data-i18n="card.timeSpent" style="margin-left: auto;">Времени потрачено:</span>
+                <span class="modal-time-label" data-i18n="card.timeSpent">Времени потрачено:</span>
                 <div class="modal-timer-pill" id="modal-task-timer" title="Кликните для редактирования">00:00:00</div>
                 <input type="text" id="modal-task-timer-input" class="modal-timer-input" data-i18n="taskModal.timerPlaceholder" placeholder="1h 30m" style="display: none;" autocomplete="off" spellcheck="false" />
             </div>
@@ -540,7 +537,8 @@
     <div class="menu-item" data-action="clear-due-date" id="menu-clear-due-date" style="display: none;">
         <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 22c-4.42 0-8-3.58-8-8 0-3.1 1.76-5.8 4.36-7.14.33-.17.7-.06.88.24.41.69 1.05 1.34 1.7 1.15.65-.19.96-1.55 1.4-3.13C12.8 3.42 13.5 2 14.5 2c.28 0 .54.12.72.32 1.41 1.6 3.1 3.96 4.13 6.08C20.44 10.64 20 12.3 20 14c0 4.42-3.58 8-8 8z"></path>
-            <line x1="3" y1="3" x2="21" y2="21"></line>
+            <!-- Правильное зачеркивание -->
+            <line x1="21" y1="3" x2="3" y2="21"></line>
         </svg>
         <span data-i18n="menu.clearDueDate">Очистить дедлайн</span>
     </div>

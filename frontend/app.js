@@ -562,6 +562,32 @@ async function updateTask(id, data) {
     return res.json();
 }
 
+async function handleClearDueDate(taskId) {
+    try {
+        await updateTask(taskId, { due_date: null });
+        
+        // Обновляем локальный стейт на доске
+        for (let col of state.columns) {
+            let t = col.tasks.find(task => task.id == taskId);
+            if (t) {
+                t.due_date = null;
+                const cardEl = document.querySelector(`.card[data-card-id="${taskId}"]`);
+                if (cardEl) updateCardAppearance(cardEl, t, col.mode);
+                break;
+            }
+        }
+        
+        // Если карточка сейчас открыта в модалке, обновляем её содержимое
+        const taskModal = document.getElementById('task-modal');
+        if (taskModal.classList.contains('show') && parseInt(taskModal.dataset.taskId) === taskId) {
+            loadTaskIntoModal(taskId, false); 
+        }
+        
+    } catch (e) {
+        window.showToast(t('alerts.error'), 'Не удалось очистить срок', true);
+    }
+}
+
 async function deleteTask(id) { 
     const res = await fetch(`${API_BASE}/tasks/${id}`, { method: 'DELETE' }); 
     if (!res.ok) throw new Error('Error'); 
@@ -4154,29 +4180,7 @@ document.addEventListener('click', async (e) => {
                     openDueDateModal(taskId, task?.due_date);
                 }
                 else if (action === 'clear-due-date') {
-                    try {
-                        await updateTask(taskId, { due_date: null });
-                        
-                        // Обновляем локальный стейт
-                        for (let col of state.columns) {
-                            let t = col.tasks.find(task => task.id == taskId);
-                            if (t) {
-                                t.due_date = null;
-                                const cardEl = document.querySelector(`.card[data-card-id="${taskId}"]`);
-                                if (cardEl) updateCardAppearance(cardEl, t, col.mode);
-                                break;
-                            }
-                        }
-                        
-                        // Если карточка открыта в модалке, обновляем и её
-                        const taskModal = document.getElementById('task-modal');
-                        if (taskModal.classList.contains('show') && parseInt(taskModal.dataset.taskId) === taskId) {
-                            loadTaskIntoModal(taskId, false); 
-                        }
-                        
-                    } catch (e) {
-                        window.showToast(t('alerts.error'), 'Не удалось очистить срок', true);
-                    }
+                    await handleClearDueDate(taskId);
                 }
             }
             closeAllDropdowns();
@@ -4374,113 +4378,82 @@ document.addEventListener('click', async (e) => {
 });
 
 function applyHighlight(container, query) {
-    if (!query) return;
-    const words = query.trim().split(/\s+/).filter(w => w.length > 0);
+    if (!query || !CSS.highlights) return;
+    const words = query.trim().split(/\s+/).filter(w => w.length > 0).map(w => w.toLowerCase());
     if (words.length === 0) return;
 
-    const regexWords = words.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-    const regex = new RegExp(`(${regexWords.join('|')})`, 'gi');
+    // Быстрый выход: проверяем наличие текста на уровне C++ браузера
+    const fullText = container.textContent.toLowerCase();
+    if (!words.some(w => fullText.includes(w))) return;
 
     const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null, false);
-    const nodesToProcess = [];
-    
+    const ranges = [];
     let node;
-    while (node = walker.nextNode()) {
-        const parent = node.parentNode;
-        if (['CODE', 'MARK', 'TEXTAREA', 'PRE', 'SCRIPT', 'STYLE'].includes(parent.tagName)) continue;
-        if (parent.classList.contains('search-highlight')) continue;
-        if (regex.test(node.nodeValue)) {
-            nodesToProcess.push(node);
+
+    while ((node = walker.nextNode())) {
+        const nodeText = node.nodeValue.toLowerCase();
+        if (!nodeText.trim()) continue;
+
+        for (const word of words) {
+            if (!nodeText.includes(word)) continue;
+            let pos = 0;
+            while ((pos = nodeText.indexOf(word, pos)) !== -1) {
+                const range = new Range();
+                range.setStart(node, pos);
+                range.setEnd(node, pos + word.length);
+                ranges.push(range);
+                pos += word.length;
+            }
         }
+        if (ranges.length > 5000) break; // Жесткий лимит для защиты RAM
     }
 
-    nodesToProcess.forEach(textNode => {
-        const parent = textNode.parentNode;
-        if (!parent) return;
+    if (ranges.length === 0) return;
 
-        const content = textNode.nodeValue;
-        const fragment = document.createDocumentFragment();
-        let lastIndex = 0;
+    // Отрисовка на уровне GPU без изменения DOM-дерева
+    const highlight = new Highlight(...ranges);
+    CSS.highlights.set('global-search-highlight', highlight);
 
-        content.replace(regex, (match, p1, offset) => {
-            fragment.appendChild(document.createTextNode(content.substring(lastIndex, offset)));
-            const span = document.createElement('span');
-            span.className = 'search-highlight';
-            span.textContent = match;
-            fragment.appendChild(span);
-            lastIndex = offset + match.length;
-        });
-
-        fragment.appendChild(document.createTextNode(content.substring(lastIndex)));
-        parent.replaceChild(fragment, textNode);
-    });
-
-    const highlights = container.querySelectorAll('.search-highlight');
-    if (highlights.length === 0) return;
-
-    // 🔥 АВТО-СКРОЛЛ К ПЕРВОМУ РЕЗУЛЬТАТУ ПОИСКА И РАЗВОРАЧИВАНИЕ
     setTimeout(() => {
-        if (container.id === 'task-desc-render') {
-            const firstMatch = highlights[0];
-            if (firstMatch) {
-                // 1. Умное разворачивание всех родительских H1-H6, если текст был скрыт
-                let block = firstMatch.closest('p, ul, ol, pre, blockquote, h1, h2, h3, h4, h5, h6, div, span');
-                if (block) {
-                    let prev = block.previousElementSibling;
-                    while (prev && block.classList.contains('is-hidden-by-fold')) {
-                        if (prev.tagName.match(/^H[1-6]$/) && prev.classList.contains('is-folded')) {
-                            prev.click(); // Имитируем клик для разворачивания
-                        }
-                        prev = prev.previousElementSibling;
+        const firstMatch = ranges[0];
+        let block = firstMatch.startContainer.parentElement;
+        
+        // Разворачиваем скрытые блоки
+        while (block && block !== container) {
+            if (block.classList.contains('is-hidden-by-fold')) {
+                let prev = block.previousElementSibling;
+                while (prev) {
+                    if (prev.classList.contains('foldable-heading') && prev.classList.contains('is-folded')) {
+                        prev.click();
                     }
-                }
-
-                // 2. Скроллим внутренний контейнер текста (markdown-body)
-                const mdBody = firstMatch.closest('.markdown-body');
-                if (mdBody) {
-                    const rect = firstMatch.getBoundingClientRect();
-                    const containerRect = mdBody.getBoundingClientRect();
-                    const relativeTop = rect.top - containerRect.top + mdBody.scrollTop;
-                    mdBody.scrollTo({
-                        top: relativeTop - (containerRect.height / 2),
-                        behavior: 'smooth'
-                    });
-                }
-
-                // 3. Скроллим внешнюю модалку (task-detail-body)
-                const scrollParent = document.querySelector('.task-detail-body');
-                if (scrollParent) {
-                    setTimeout(() => {
-                        const rect = firstMatch.getBoundingClientRect();
-                        const parentRect = scrollParent.getBoundingClientRect();
-                        if (rect.top < parentRect.top + 50 || rect.bottom > parentRect.bottom - 50) {
-                            const relativeTop = rect.top - parentRect.top + scrollParent.scrollTop;
-                            scrollParent.scrollTo({
-                                top: relativeTop - (parentRect.height / 2),
-                                behavior: 'smooth'
-                            });
-                        }
-                    }, 50);
+                    prev = prev.previousElementSibling;
                 }
             }
+            block = block.parentElement;
         }
-    }, 50);
 
-    setTimeout(() => {
-        highlights.forEach(h => {
-            if (h.parentNode) {
-                h.style.backgroundColor = 'transparent';
-                h.style.color = 'inherit';
-                setTimeout(() => {
-                    if (h.parentNode) {
-                        const txt = document.createTextNode(h.textContent);
-                        h.parentNode.replaceChild(txt, h);
-                        container.normalize();
-                    }
-                }, 550);
+        // Замеряем позицию строго ПОСЛЕ разворачивания
+        const rect = firstMatch.getBoundingClientRect();
+        if (rect.top === 0) return; 
+
+        const scrollParent = document.querySelector('.task-detail-body');
+        if (scrollParent) {
+            const parentRect = scrollParent.getBoundingClientRect();
+            const relativeTop = rect.top - parentRect.top + scrollParent.scrollTop;
+            scrollParent.scrollTo({
+                top: relativeTop - (parentRect.height / 2),
+                behavior: 'smooth'
+            });
+        }
+
+        // Мягкое снятие подсветки
+        setTimeout(() => {
+            if (CSS.highlights.has('global-search-highlight')) {
+                CSS.highlights.delete('global-search-highlight');
             }
-        });
-    }, 2000);
+        }, 2500);
+
+    }, 50);
 }
 
 async function loadTaskIntoModal(taskId, pushToStack = true, highlightQuery = null) {
@@ -4529,32 +4502,69 @@ async function loadTaskIntoModal(taskId, pushToStack = true, highlightQuery = nu
         if (datesMetaEl) {
             const createdStr = formatDateTime(task.created_at);
             const updatedStr = formatDateTime(task.updated_at);
-            datesMetaEl.innerHTML = `<div><span>${t('taskModal.created')}: ${createdStr}</span><span id="task-updated-text">${t('taskModal.updated')}: ${updatedStr}</span></div>`;
-        }
-        
-        const modalDueDatePill = document.getElementById('modal-due-date');
-        if (modalDueDatePill) {
-            const flameIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c-4.42 0-8-3.58-8-8 0-3.1 1.76-5.8 4.36-7.14.33-.17.7-.06.88.24.41.69 1.05 1.34 1.7 1.15.65-.19.96-1.55 1.4-3.13C12.8 3.42 13.5 2 14.5 2c.28 0 .54.12.72.32 1.41 1.6 3.1 3.96 4.13 6.08C20.44 10.64 20 12.3 20 14c0 4.42-3.58 8-8 8z"></path></svg>';
-            const warningIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>';
+            
+            let datesHtml = `<div><span>${t('taskModal.created')}: ${createdStr}</span><span id="task-updated-text">${t('taskModal.updated')}: ${updatedStr}</span>`;
             
             if (task.due_date) {
                 const dateStr = task.due_date + (task.due_date.endsWith('Z') || task.due_date.includes('+') ? '' : 'Z');
                 const isOverdue = !task.completed_at && new Date(dateStr) < new Date();
-                modalDueDatePill.classList.toggle('overdue', isOverdue);
+                const overdueStyle = isOverdue ? 'style="color: #D35446; font-weight: 700;"' : '';
                 
-                const icon = isOverdue ? warningIcon : flameIcon;
-                modalDueDatePill.innerHTML = `${icon}<span>${formatShortDate(task.due_date)}</span>`;
-            } else {
-                modalDueDatePill.classList.remove('overdue');
-                modalDueDatePill.innerHTML = `${flameIcon}<span data-i18n="modals.dueDateSet">${t('modals.dueDateSet')}</span>`;
+                // Эстетичная точка-разделитель и сам срок
+                datesHtml += `<span> &middot; </span><span ${overdueStyle} id="task-due-text">Срок: ${formatShortDate(task.due_date)}</span>`;
             }
-            
-            const newDueDatePill = modalDueDatePill.cloneNode(true);
-            modalDueDatePill.replaceWith(newDueDatePill);
-            newDueDatePill.onclick = (e) => {
-                e.stopPropagation();
-                openDueDateModal(task.id, task.due_date);
-            };
+            datesHtml += `</div>`;
+            datesMetaEl.innerHTML = datesHtml;
+        }
+        
+        const modalDueDateBtn = document.getElementById('modal-due-date');
+        if (modalDueDateBtn) {
+            // Предотвращаем дублирование обработчиков через клонирование
+            const newBtn = modalDueDateBtn.cloneNode(true);
+            modalDueDateBtn.replaceWith(newBtn);
+
+            // Очищаем старое содержимое кнопки
+            newBtn.innerHTML = '';
+
+            // Создаем SVG через пространство имен, чтобы сохранить регистр viewBox
+            const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+            svg.setAttribute("viewBox", "0 0 24 24");
+            svg.setAttribute("fill", "none");
+            svg.setAttribute("stroke", "currentColor");
+            svg.setAttribute("stroke-width", "2");
+            svg.setAttribute("stroke-linecap", "round");
+            svg.setAttribute("stroke-linejoin", "round");
+
+            const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            path.setAttribute("d", "M12 22c-4.42 0-8-3.58-8-8 0-3.1 1.76-5.8 4.36-7.14.33-.17.7-.06.88.24.41.69 1.05 1.34 1.7 1.15.65-.19.96-1.55 1.4-3.13C12.8 3.42 13.5 2 14.5 2c.28 0 .54.12.72.32 1.41 1.6 3.1 3.96 4.13 6.08C20.44 10.64 20 12.3 20 14c0 4.42-3.58 8-8 8z");
+            svg.appendChild(path);
+
+            if (task.due_date) {
+                // Дедлайн установлен -> добавляем перечеркивающую линию
+                newBtn.title = t('menu.clearDueDate');
+                
+                const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                line.setAttribute("x1", "21");
+                line.setAttribute("y1", "3");
+                line.setAttribute("x2", "3");
+                line.setAttribute("y2", "21");
+                svg.appendChild(line);
+
+                newBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    handleClearDueDate(task.id);
+                };
+            } else {
+                // Дедлайн не установлен
+                newBtn.title = t('modals.dueDateSet');
+                
+                newBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    openDueDateModal(task.id, task.due_date);
+                };
+            }
+
+            newBtn.appendChild(svg);
         }
 
         inputArea.value = task.description || "";
@@ -8284,11 +8294,29 @@ function initLocalSearchLogic() {
 
     let matchRanges = [];
     let currentMatchIndex = -1;
+    
+    // --- SENIOR OPTIMIZATION: VS Code Text Model Approach ---
+    let searchId = 0;              // Защита от Data Race
+    let cachedTextNodes = null;    // Кеш для молниеносного прохода
+    let searchDebounce = null;     // Debounce для инпута
 
     window.openLocalSearch = () => {
         if (renderDiv.style.display === 'none') return;
         widget.classList.add('show');
         setTimeout(() => { input.focus(); input.select(); }, 50);
+        
+        // 1. Строим индекс ОДИН РАЗ при открытии.
+        // Итерация по JS-массиву строк будет в 1000 раз быстрее, чем TreeWalker при каждом поиске.
+        cachedTextNodes = [];
+        const walker = document.createTreeWalker(renderDiv, NodeFilter.SHOW_TEXT, null, false);
+        let node;
+        while ((node = walker.nextNode())) {
+            const text = node.nodeValue.toLowerCase();
+            if (text.trim()) {
+                cachedTextNodes.push({ node, text });
+            }
+        }
+
         if (input.value.trim()) performLocalSearch(input.value);
     };
 
@@ -8296,6 +8324,8 @@ function initLocalSearchLogic() {
         widget.classList.remove('show');
         clearLocalSearch();
         input.value = '';
+        cachedTextNodes = null; // Очищаем RAM
+        searchId++; // Убиваем фоновые лупы
     };
 
     function clearLocalSearch() {
@@ -8309,47 +8339,64 @@ function initLocalSearchLogic() {
 
     function performLocalSearch(query) {
         clearLocalSearch();
-        if (!query.trim()) return;
+        if (!query.trim() || !cachedTextNodes) return;
 
         const textLower = query.toLowerCase();
-        const walker = document.createTreeWalker(renderDiv, NodeFilter.SHOW_TEXT, null, false);
+        const currentSearchId = ++searchId;
         
-        // Асинхронный поиск порциями, чтобы не вешать UI
-        function searchNextChunk() {
-            const startTime = performance.now();
-            let node;
+        // Быстрый выход: проверяем наличие текста на уровне C++ движка браузера
+        if (!renderDiv.textContent.toLowerCase().includes(textLower)) {
+            countEl.textContent = '0/0';
+            return;
+        }
+
+        function searchNextChunk(startIndex) {
+            // Если юзер ввел новую букву - этот процесс устарел, убиваем
+            if (currentSearchId !== searchId) return;
             
-            // Ищем, пока не исчерпаем 10 миллисекунд (оставляем время на отрисовку кадров)
-            while ((node = walker.nextNode()) && (performance.now() - startTime < 10)) {
-                const nodeText = node.nodeValue.toLowerCase();
-                let startIndex = 0;
-                while ((startIndex = nodeText.indexOf(textLower, startIndex)) !== -1) {
+            const startTime = performance.now();
+            let i = startIndex;
+            
+            for (; i < cachedTextNodes.length; i++) {
+                // Бюджет 12мс на кадр для плавных 60 FPS
+                if (performance.now() - startTime > 12) break;
+                
+                const item = cachedTextNodes[i];
+                if (!item.text.includes(textLower)) continue;
+                
+                let pos = 0;
+                while ((pos = item.text.indexOf(textLower, pos)) !== -1) {
                     const range = new Range();
-                    range.setStart(node, startIndex);
-                    range.setEnd(node, startIndex + query.length);
+                    range.setStart(item.node, pos);
+                    range.setEnd(item.node, pos + query.length);
                     matchRanges.push(range);
-                    startIndex += query.length;
+                    pos += query.length;
                 }
+                
+                // VS Code Style: Защита RAM от "мертвых" зависаний на 1 букве
+                if (matchRanges.length >= 10000) break;
             }
 
-            if (node) {
-                // Если не успели дойти до конца текста - планируем продолжение на следующий кадр
-                requestAnimationFrame(searchNextChunk);
+            if (i < cachedTextNodes.length && matchRanges.length < 10000) {
+                requestAnimationFrame(() => searchNextChunk(i));
             } else {
-                // Поиск завершен
                 if (matchRanges.length > 0) {
                     currentMatchIndex = 0;
                     if (CSS.highlights) {
                         CSS.highlights.set('local-search', new Highlight(...matchRanges));
                     }
                     updateLocalSearchUI();
+                    
+                    if (matchRanges.length >= 10000) {
+                        countEl.textContent = `1/10000+`;
+                    }
                 } else {
                     countEl.textContent = '0/0';
                 }
             }
         }
         
-        requestAnimationFrame(searchNextChunk);
+        requestAnimationFrame(() => searchNextChunk(0));
     }
 
     function updateLocalSearchUI() {
@@ -8357,23 +8404,19 @@ function initLocalSearchLogic() {
 
         const activeRange = matchRanges[currentMatchIndex];
 
-        // Подсвечиваем активный элемент (если поддерживается API)
         if (CSS.highlights) {
             const highlightActive = new Highlight(activeRange);
             CSS.highlights.set('local-search-active', highlightActive);
         }
 
-        // Автоскролл к элементу (Range имеет getBoundingClientRect)
-        const rect = activeRange.getBoundingClientRect();
-        
-        // Разворачивание скрытых заголовков
+        // 1. СНАЧАЛА разворачиваем скрытые заголовки (раскрываем физический размер блоков)
         let block = activeRange.startContainer.parentElement;
         while (block && block !== renderDiv) {
             if (block.classList.contains('is-hidden-by-fold')) {
                 let prev = block.previousElementSibling;
                 while (prev) {
                     if (prev.classList.contains('foldable-heading') && prev.classList.contains('is-folded')) {
-                        prev.click();
+                        prev.click(); 
                     }
                     prev = prev.previousElementSibling;
                 }
@@ -8381,19 +8424,56 @@ function initLocalSearchLogic() {
             block = block.parentElement;
         }
 
-        // Скроллим родителя
-        if (scrollParent && rect.top !== 0) {
-            const parentRect = scrollParent.getBoundingClientRect();
-            if (rect.top < parentRect.top + 50 || rect.bottom > parentRect.bottom - 50) {
-                const relativeTop = rect.top - parentRect.top + scrollParent.scrollTop;
-                scrollParent.scrollTo({
-                    top: relativeTop - (parentRect.height / 2),
-                    behavior: 'smooth'
+        // 2. ДВУХУРОВНЕВЫЙ МГНОВЕННЫЙ СКРОЛЛИНГ С ФОЛБЭКОМ НА DOM
+        requestAnimationFrame(() => {
+            const innerScroll = renderDiv;       // Окно самого текста описания (.markdown-body)
+            const outerScroll = scrollParent;     // Вся модалка (.task-detail-body)
+            const descWrapper = document.querySelector('.description-wrapper');
+
+            let rangeRect = activeRange.getBoundingClientRect();
+
+            // ⚡ СВЕРХНАДЕЖНЫЙ ФОЛБЭК (Obsidian/VS Code Engine Trick):
+            // Если Range находится глубоко в невидимой (еще не отрендеренной) части огромного CSS/кода,
+            // браузер вернет нулевые координаты. В этом случае мы мгновенно берем координаты родительского
+            // DOM-элемента (тега <span>, в который Prism завернул свой токен). Их браузер знает всегда!
+            if (rangeRect.top === 0 || rangeRect.height === 0) {
+                const parentEl = activeRange.startContainer.parentElement;
+                if (parentEl) {
+                    rangeRect = parentEl.getBoundingClientRect();
+                }
+            }
+
+            if (rangeRect.top === 0) return; // Окончательный предохранитель
+
+            // Шаг А: Скроллим внутренний viewport (текст внутри окна описания)
+            if (innerScroll) {
+                const innerRect = innerScroll.getBoundingClientRect();
+                const relativeTop = rangeRect.top - innerRect.top + innerScroll.scrollTop;
+                innerScroll.scrollTo({
+                    top: relativeTop - (innerRect.height / 2), // Идеально центрируем строку кода по вертикали
+                    behavior: 'auto'                           // Мгновенный снайперский сдвиг без конфликтов
                 });
             }
-        }
 
-        countEl.textContent = `${currentMatchIndex + 1}/${matchRanges.length}`;
+            // Шаг Б: Скроллим внешний viewport (подтягиваем само окно описания в видимую зону всей модалки)
+            if (outerScroll && descWrapper) {
+                const wrapperRect = descWrapper.getBoundingClientRect();
+                const outerRect = outerScroll.getBoundingClientRect();
+
+                // Если само окно описания уехало вверх или вниз в модалке — аккуратно возвращаем его в фокус
+                if (wrapperRect.top < outerRect.top + 16 || wrapperRect.bottom > outerRect.bottom - 16) {
+                    const relativeWrapperTop = wrapperRect.top - outerRect.top + outerScroll.scrollTop;
+                    outerScroll.scrollTo({
+                        top: relativeWrapperTop - 16, // Выравниваем по верхней границе описания с отступом в 16px
+                        behavior: 'auto'
+                    });
+                }
+            }
+        });
+
+        if (matchRanges.length < 10000) {
+            countEl.textContent = `${currentMatchIndex + 1}/${matchRanges.length}`;
+        }
     }
 
     function nextMatch() {
@@ -8408,11 +8488,17 @@ function initLocalSearchLogic() {
         updateLocalSearchUI();
     }
 
-    input.addEventListener('input', () => performLocalSearch(input.value));
+    // --- DEBOUNCE ДЛЯ ОПТИМИЗАЦИИ ВВОДА ---
+    input.addEventListener('input', () => {
+        clearTimeout(searchDebounce);
+        searchDebounce = setTimeout(() => performLocalSearch(input.value), 120);
+    });
+    
     input.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') { e.preventDefault(); e.shiftKey ? prevMatch() : nextMatch(); }
         if (e.key === 'Escape') { e.preventDefault(); window.closeLocalSearch(); }
     });
+    
     btnNext.addEventListener('click', nextMatch);
     btnPrev.addEventListener('click', prevMatch);
     btnClose.addEventListener('click', window.closeLocalSearch);
