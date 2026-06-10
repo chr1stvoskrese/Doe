@@ -8,6 +8,24 @@ import sqlite3
 from datetime import datetime
 from pathlib import Path
 
+# DPI FIX (Windows, 4K/мульти-мониторы): объявляем Per-Monitor V2 awareness
+# ДО создания первого окна. Без этого при запуске `python wrapper.py` Windows
+# виртуализирует координаты со скейлингом, и сохранённая геометрия означает
+# разные физические размеры в разных запусках ("ерунда с размерами").
+if sys.platform == 'win32':
+    import ctypes
+    try:
+        # Per-Monitor V2 (Windows 10 1703+): у каждого монитора свой DPI
+        ctypes.windll.user32.SetProcessDpiAwarenessContext(ctypes.c_void_p(-4))
+    except Exception:
+        try:
+            ctypes.windll.shcore.SetProcessDpiAwareness(2)  # Per-Monitor (8.1+)
+        except Exception:
+            try:
+                ctypes.windll.user32.SetProcessDPIAware()  # System-aware (легаси)
+            except Exception:
+                pass
+
 # =========================================================================
 # 1. ФОНОВЫЙ РЕЖИМ (WORKER) - Срабатывает мгновенно, без загрузки UI
 # =========================================================================
@@ -663,13 +681,18 @@ class LoggerWriter:
         if self.file:
             try:
                 self.file.write(message)
-                self.file.flush()
+                # PERF: flush не чаще раза в секунду вместо каждой строки.
+                # Это убирает постоянное дисковое I/O (и iCloud-синхронизацию,
+                # если vault лежит в облачной папке). Контент лога идентичен.
+                now = time.time()
+                if now - getattr(self, '_last_flush', 0) >= 1.0:
+                    self._last_flush = now
+                    self.file.flush()
             except Exception:
                 pass
         if self.terminal:
             try:
                 self.terminal.write(message)
-                self.terminal.flush()
             except Exception:
                 pass
 
@@ -702,6 +725,10 @@ class LoggerWriter:
 
 # Глобальный перехват вывода для ВСЕХ ОС (включая macOS)
 sys.stdout = LoggerWriter(sys.__stdout__, is_main=True)
+
+# PERF: т.к. flush теперь троттлится, гарантируем сброс хвоста лога при выходе
+import atexit
+atexit.register(lambda: (sys.stdout.flush(), sys.stderr.flush()))
 sys.stderr = LoggerWriter(sys.__stderr__, is_main=False)
 
 # NullReader требуется только для PyInstaller windowed mode на Windows
@@ -781,27 +808,323 @@ def _trigger_macos_hardware_haptic():
     return False
 
 
+
+MAIN_WINDOW_TITLE = 'Doe — Aesthetic Kanban'
+
+def _dump_geometry_diagnostics():
+    """Однократный дамп DPI-состояния и карты мониторов в лог (Windows)."""
+    if sys.platform != 'win32':
+        return
+    try:
+        import ctypes
+        from ctypes import wintypes
+        user32 = ctypes.windll.user32
+        aware = bool(user32.IsProcessDPIAware())
+
+        monitors = []
+
+        class MONITORINFO(ctypes.Structure):
+            _fields_ = [("cbSize", wintypes.DWORD), ("rcMonitor", wintypes.RECT),
+                        ("rcWork", wintypes.RECT), ("dwFlags", wintypes.DWORD)]
+
+        # Правильные типы для callback (BOOL, HMONITOR, HDC, LPRECT, LPARAM)
+        MonitorEnumProc = ctypes.WINFUNCTYPE(
+            wintypes.BOOL, ctypes.c_void_p, ctypes.c_void_p,
+            ctypes.POINTER(wintypes.RECT), wintypes.LPARAM)
+
+        # Явно указываем типы аргументов, чтобы избежать OverflowError на 64-битных системах
+        user32.GetMonitorInfoW.argtypes = [ctypes.c_void_p, ctypes.POINTER(MONITORINFO)]
+
+        def _cb(hmon, hdc, lprc, lparam):
+            mi = MONITORINFO()
+            mi.cbSize = ctypes.sizeof(MONITORINFO)
+            
+            # Явный каст hmon в c_void_p защищает от сбоев
+            hmon_ptr = ctypes.c_void_p(hmon)
+            
+            if user32.GetMonitorInfoW(hmon_ptr, ctypes.byref(mi)):
+                dpi_x = wintypes.UINT()
+                dpi_y = wintypes.UINT()
+                scale = None
+                try:
+                    ctypes.windll.shcore.GetDpiForMonitor.argtypes = [
+                        ctypes.c_void_p, ctypes.c_uint, 
+                        ctypes.POINTER(wintypes.UINT), ctypes.POINTER(wintypes.UINT)
+                    ]
+                    ctypes.windll.shcore.GetDpiForMonitor(
+                        hmon_ptr, 0, ctypes.byref(dpi_x), ctypes.byref(dpi_y))
+                    scale = round(dpi_x.value / 96.0, 2)
+                except Exception:
+                    pass
+                r = mi.rcMonitor
+                w_area = mi.rcWork
+                monitors.append(
+                    f"({r.left},{r.top})-({r.right},{r.bottom}) "
+                    f"work={w_area.right - w_area.left}x{w_area.bottom - w_area.top} "
+                    f"scale={scale}")
+            return 1
+
+        user32.EnumDisplayMonitors(None, None, MonitorEnumProc(_cb), 0)
+        print(f"[Geometry] engine v3 | DPI-aware process: {aware}")
+        for i, m in enumerate(monitors, 1):
+            print(f"[Geometry] monitor {i}: {m}")
+    except Exception as e:
+        print(f"[Geometry] diagnostics failed: {e}")
+
+
+def _win32_monitor_dpi_scale(x, y, w, h):
+    """DPI-масштаб монитора, на котором окажется центр окна (1.0 = 100%)."""
+    try:
+        import ctypes
+        from ctypes import wintypes
+        class POINT(ctypes.Structure):
+            _fields_ = [("x", ctypes.c_long), ("y", ctypes.c_long)]
+        pt = POINT(int(x + w // 2), int(y + h // 2))
+        hmon = ctypes.windll.user32.MonitorFromPoint(pt, 2)  # MONITOR_DEFAULTTONEAREST
+        dpi_x = ctypes.c_uint(96)
+        dpi_y = ctypes.c_uint(96)
+        # MDT_EFFECTIVE_DPI = 0
+        ctypes.windll.shcore.GetDpiForMonitor.argtypes = [
+            ctypes.c_void_p, ctypes.c_uint, 
+            ctypes.POINTER(ctypes.c_uint), ctypes.POINTER(ctypes.c_uint)
+        ]
+        if ctypes.windll.shcore.GetDpiForMonitor(ctypes.c_void_p(hmon), 0, ctypes.byref(dpi_x), ctypes.byref(dpi_y)) == 0:
+            return max(0.5, dpi_x.value / 96.0)
+    except Exception:
+        pass
+    return 1.0
+
+def _win32_hwnd_for(win):
+    """HWND конкретного окна pywebview: сначала точно по uid через внутренности
+    winforms-бэкенда (надёжно при пересоздании окон с одинаковым заголовком),
+    затем фолбэк по заголовку."""
+    try:
+        from webview.platforms.winforms import BrowserView
+        bv = BrowserView.instances.get(win.uid)
+        if bv is not None:
+            return int(bv.Handle.ToInt32())
+    except Exception:
+        pass
+    try:
+        import ctypes
+        hwnd = ctypes.windll.user32.FindWindowW(None, MAIN_WINDOW_TITLE)
+        return hwnd or None
+    except Exception:
+        return None
+
+def _win32_get_rect(hwnd):
+    import ctypes
+    from ctypes import wintypes
+    rect = wintypes.RECT()
+    if not ctypes.windll.user32.GetWindowRect(hwnd, ctypes.byref(rect)):
+        return None
+    return (rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top)
+
+def _win32_workarea_for_hwnd(hwnd):
+    import ctypes
+    from ctypes import wintypes
+    class MONITORINFO(ctypes.Structure):
+        _fields_ = [("cbSize", wintypes.DWORD), ("rcMonitor", wintypes.RECT),
+                    ("rcWork", wintypes.RECT), ("dwFlags", wintypes.DWORD)]
+    user32 = ctypes.windll.user32
+    user32.GetMonitorInfoW.argtypes = [ctypes.c_void_p, ctypes.POINTER(MONITORINFO)]
+    hmon = user32.MonitorFromWindow(hwnd, 2)
+    mi = MONITORINFO()
+    mi.cbSize = ctypes.sizeof(MONITORINFO)
+    if not user32.GetMonitorInfoW(ctypes.c_void_p(hmon), ctypes.byref(mi)):
+        return None
+    w = mi.rcWork
+    return (w.left, w.top, w.right - w.left, w.bottom - w.top)
+
+def bind_geometry_enforcement(win, target_rect):
+    """pywebview/WinForms (AutoScaleMode.Dpi) умножает размер окна на DPI-масштаб
+    при создании — на 4K со 150% окно «распухает» с каждым циклом запуска.
+    После показа окна принудительно выставляем ТОЧНЫЙ физический прямоугольник
+    через SetWindowPos — тот же API, которым пользуется toggle_maximize_window."""
+    if sys.platform != 'win32' or not target_rect:
+        return
+    x, y, w, h = (int(v) for v in target_rect)
+
+    def _matches(cur):
+        return cur and all(abs(a - b) <= 2 for a, b in zip(cur, (x, y, w, h)))
+
+    def _enforce(*args):
+        import threading
+        def _loop(attempt=0):
+            try:
+                import ctypes
+                hwnd = _win32_hwnd_for(win)
+                if hwnd:
+                    cur = _win32_get_rect(hwnd)
+                    if _matches(cur):
+                        if attempt > 0:
+                            print(f"[Geometry] enforced OK after {attempt} attempts: {cur}")
+                        return
+                    SWP_NOZORDER = 0x0004
+                    SWP_NOACTIVATE = 0x0010
+                    ctypes.windll.user32.SetWindowPos(
+                        hwnd, 0, x, y, w, h, SWP_NOZORDER | SWP_NOACTIVATE)
+                    after = _win32_get_rect(hwnd)
+                    if attempt == 0:
+                        print(f"[Geometry] target={(x, y, w, h)} was={cur} now={after}")
+                    if _matches(after):
+                        return
+            except Exception as e:
+                print(f"[Geometry] enforce error: {e}")
+            # WinForms/WebView2 могут перетирать размер на поздних стадиях
+            # инициализации — повторяем, пока не победим (до ~3 секунд)
+            if attempt < 14:
+                threading.Timer(0.2, _loop, args=(attempt + 1,)).start()
+            else:
+                print("[Geometry] enforce gave up after 14 attempts")
+        _loop()
+
+    for ev_name in ('shown', 'loaded'):
+        try:
+            ev = getattr(win.events, ev_name)
+            ev += _enforce
+        except Exception:
+            pass
+
+
+
+def get_safe_geometry():
+    """Возвращает (width, height, x, y) с валидацией под текущие мониторы (Windows).
+    Гарантирует: окно не шире/выше рабочей области своего монитора и целиком
+    внутри неё. Если сохранённой позиции нет или монитор отключили —
+    центрирует на подходящем мониторе. На macOS позицию не трогаем (x=y=None)."""
+    try:
+        from src.core.config import get_vault_geometry_full, get_active_vault
+        g = get_vault_geometry_full(get_active_vault())
+        w, h = int(g["width"]), int(g["height"])
+        x, y = g.get("x"), g.get("y")
+    except Exception:
+        w, h, x, y = 1200, 800, None, None
+
+    if sys.platform != 'win32':
+        return w, h, None, None
+
+    try:
+        import ctypes
+        from ctypes import wintypes
+
+        class POINT(ctypes.Structure):
+            _fields_ = [("x", ctypes.c_long), ("y", ctypes.c_long)]
+
+        class MONITORINFO(ctypes.Structure):
+            _fields_ = [
+                ("cbSize", wintypes.DWORD),
+                ("rcMonitor", wintypes.RECT),
+                ("rcWork", wintypes.RECT),
+                ("dwFlags", wintypes.DWORD),
+            ]
+
+        user32 = ctypes.windll.user32
+        MONITOR_DEFAULTTOPRIMARY = 1
+        MONITOR_DEFAULTTONEAREST = 2
+
+        if x is not None and y is not None:
+            pt = POINT(int(x + w // 2), int(y + h // 2))
+            hmon = user32.MonitorFromPoint(pt, MONITOR_DEFAULTTONEAREST)
+        else:
+            hmon = user32.MonitorFromPoint(POINT(0, 0), MONITOR_DEFAULTTOPRIMARY)
+
+        user32.GetMonitorInfoW.argtypes = [ctypes.c_void_p, ctypes.POINTER(MONITORINFO)]
+        mi = MONITORINFO()
+        mi.cbSize = ctypes.sizeof(MONITORINFO)
+        if not user32.GetMonitorInfoW(ctypes.c_void_p(hmon), ctypes.byref(mi)):
+            return w, h, None, None
+
+        work_left = mi.rcWork.left
+        work_top = mi.rcWork.top
+        work_w = mi.rcWork.right - mi.rcWork.left
+        work_h = mi.rcWork.bottom - mi.rcWork.top
+
+        # Размер не больше рабочей области ОДНОГО монитора
+        w = max(800, min(w, work_w))
+        h = max(600, min(h, work_h))
+
+        if x is None or y is None:
+            x = work_left + (work_w - w) // 2
+            y = work_top + (work_h - h) // 2
+        else:
+            # Окно целиком внутри рабочей области своего монитора
+            x = max(work_left, min(int(x), work_left + work_w - w))
+            y = max(work_top, min(int(y), work_top + work_h - h))
+
+        return int(w), int(h), int(x), int(y)
+    except Exception:
+        return w, h, None, None
+
+
 _resize_timer = None
 def bind_resize_event(win):
-    """Дебаунс-сохранение геометрии окна без нагрузки на диск (срабатывает через 1с после остановки мыши)."""
-    def _on_resized(width, height):
+    """Дебаунс-сохранение геометрии окна (размер + позиция) через 1с после остановки мыши.
+    Развёрнутое (maximized) окно не сохраняется: иначе на 4K в конфиг попадает 3840x2160,
+    и следующий запуск создаёт гигантское обычное окно, расползающееся на два монитора."""
+    state = {"maximized": False}
+
+    def _do_save():
+        try:
+            if state["maximized"]:
+                return
+            if sys.platform == 'win32':
+                import ctypes
+                hwnd = _win32_hwnd_for(win)
+                if not hwnd:
+                    return
+                # Настоящий maximize (Win+Up и т.п.) не сохраняем
+                if ctypes.windll.user32.IsZoomed(hwnd):
+                    return
+                rect = _win32_get_rect(hwnd)
+                if not rect:
+                    return
+                x, y, w, h = rect
+                # РУЧНОЙ maximize (toggle_maximize_window растягивает окно SetWindowPos'ом
+                # до рабочей области — IsZoomed его не видит): окно, покрывающее
+                # ~всю рабочую область своего монитора, не считаем "размером пользователя"
+                work = _win32_workarea_for_hwnd(hwnd)
+                if work and w >= work[2] - 8 and h >= work[3] - 8:
+                    return
+            else:
+                w, h = win.width, win.height
+                try:
+                    x, y = win.x, win.y
+                except Exception:
+                    x, y = None, None
+            # Защита: не сохраняем размеры маленького окна выбора хранилищ
+            if w <= 760 and h <= 680:
+                return
+            from src.core.config import set_vault_geometry, get_active_vault
+            vault = get_active_vault()
+            if vault:
+                set_vault_geometry(vault, w, h, x, y)
+                print(f"[Geometry] saved {w}x{h} @ ({x},{y}) for vault: {vault}")
+        except Exception:
+            pass
+
+    def _schedule(*args):
         global _resize_timer
         if _resize_timer:
             _resize_timer.cancel()
-        def _save():
-            try:
-                from src.core.config import set_vault_geometry, get_active_vault
-                # Защита: не сохраняем размеры маленького окна выбора хранилищ
-                if width > 760 or height > 680:
-                    vault = get_active_vault()
-                    if vault:
-                        set_vault_geometry(vault, width, height)
-            except Exception:
-                pass
         import threading
-        _resize_timer = threading.Timer(1.0, _save)
+        _resize_timer = threading.Timer(1.0, _do_save)
         _resize_timer.start()
-    win.events.resized += _on_resized
+
+    win.events.resized += _schedule
+    try:
+        win.events.moved += _schedule
+    except Exception:
+        pass
+    try:
+        win.events.maximized += (lambda *a: state.update(maximized=True))
+        win.events.restored += (lambda *a: state.update(maximized=False))
+    except Exception:
+        pass
+    try:
+        win.events.closing += (lambda *a: _do_save())
+    except Exception:
+        pass
 
 
 # --- ЗАМЕНИТЕ КЛАСС WindowAPI в wrapper.py на этот ---
@@ -1057,7 +1380,7 @@ class WindowAPI:
             rect = wintypes.RECT()
             user32.GetWindowRect(hwnd, ctypes.byref(rect))
             self._win_restore_rect = (rect.left, rect.top,
-                                      rect.right - rect.left, rect.bottom - rect.top)
+                                        rect.right - rect.left, rect.bottom - rect.top)
             MONITOR_DEFAULTTONEAREST = 2
             hmon = user32.MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST)
 
@@ -1066,9 +1389,10 @@ class WindowAPI:
                             ("rcMonitor", wintypes.RECT),
                             ("rcWork", wintypes.RECT),
                             ("dwFlags", wintypes.DWORD)]
+            user32.GetMonitorInfoW.argtypes = [ctypes.c_void_p, ctypes.POINTER(MONITORINFO)]
             mi = MONITORINFO()
             mi.cbSize = ctypes.sizeof(MONITORINFO)
-            user32.GetMonitorInfoW(hmon, ctypes.byref(mi))
+            user32.GetMonitorInfoW(ctypes.c_void_p(hmon), ctypes.byref(mi))
             w = mi.rcWork
             user32.SetWindowPos(hwnd, 0, w.left, w.top,
                                 w.right - w.left, w.bottom - w.top, SWP_FRAMECHANGED)
@@ -1382,17 +1706,21 @@ class WindowAPI:
         """Порождает новое окно приложения и убивает ВСЕ старые окна (включая окно выбора хранилища)"""
         old_windows = list(webview.windows)
 
-        try:
-            from src.core.config import get_vault_geometry, get_active_vault
-            t_w, t_h = get_vault_geometry(get_active_vault())
-        except Exception:
-            t_w, t_h = 1200, 800
+        t_w, t_h, t_x, t_y = get_safe_geometry()
+        c_w, c_h = t_w, t_h
+        if sys.platform == 'win32' and t_x is not None:
+            # WinForms (AutoScaleMode.Dpi) умножит размер на DPI-масштаб монитора —
+            # делим заранее, чтобы итог совпал с целевым физическим размером
+            _scale = _win32_monitor_dpi_scale(t_x, t_y, t_w, t_h)
+            c_w, c_h = max(800, round(t_w / _scale)), max(600, round(t_h / _scale))
 
         new_win = webview.create_window(
-            title='Doe — Aesthetic Kanban',
+            title=MAIN_WINDOW_TITLE,
             url=URL,
-            width=t_w,
-            height=t_h,
+            width=c_w,
+            height=c_h,
+            x=t_x,
+            y=t_y,
             min_size=(800, 600),
             resizable=True,
             frameless=(sys.platform in ('darwin', 'win32')),
@@ -1404,6 +1732,8 @@ class WindowAPI:
         )
         try:
             bind_resize_event(new_win)
+            if sys.platform == 'win32' and t_x is not None:
+                bind_geometry_enforcement(new_win, (t_x, t_y, t_w, t_h))
         except Exception:
             pass
 
@@ -1455,8 +1785,11 @@ class APIServerThread(threading.Thread):
             app, 
             host="127.0.0.1", 
             port=PORT, 
-            log_level="info",
-            access_log=True
+            # PERF: access-лог писал строку + flush на диск при КАЖДОМ запросе.
+            # Фронтенд поллит API каждую секунду => постоянная запись в папку vault
+            # (плюс лишние события для watchdog и churn для iCloud).
+            log_level="warning",
+            access_log=False
         )
         self.server = uvicorn.Server(config)
 
@@ -1574,6 +1907,10 @@ if __name__ == '__main__':
                 pass
                 
         time.sleep(0.2)
+        try:
+            sys.stdout.flush(); sys.stderr.flush()  # PERF: добиваем буфер лога
+        except Exception:
+            pass
         os._exit(0)
 
     def sigint_handler(signum, frame):
@@ -1623,6 +1960,7 @@ if __name__ == '__main__':
             print("[Main] ❌ WARNING: Server did not respond within 5 seconds. Port might be in use or DB is broken.")
 
         print("[WebView] Creating invisible browser window...")
+        _dump_geometry_diagnostics()
         
         # Проверяем, есть ли у нас уже активное хранилище
         from src.core.config import _load_config
@@ -1631,26 +1969,28 @@ if __name__ == '__main__':
 
         # Задаем параметры в зависимости от того, первый ли это запуск
         if is_configured:
-            from src.core.config import get_vault_geometry, get_active_vault
-            try:
-                t_w, t_h = get_vault_geometry(get_active_vault())
-            except Exception:
-                t_w, t_h = 1200, 800
+            t_w, t_h, t_x, t_y = get_safe_geometry()
         else:
-            t_w, t_h = 760, 680
+            t_w, t_h, t_x, t_y = 760, 680, None, None
 
         start_url = URL if is_configured else f"{URL}?mode=vault"
         start_w = t_w
         start_h = t_h
+        if sys.platform == 'win32' and is_configured and t_x is not None:
+            _scale = _win32_monitor_dpi_scale(t_x, t_y, t_w, t_h)
+            start_w = max(800, round(t_w / _scale))
+            start_h = max(600, round(t_h / _scale))
         min_w = 800 if is_configured else 760
         min_h = 600 if is_configured else 680
         is_resizable = is_configured
 
         window = webview.create_window(
-            title='Doe — Aesthetic Kanban' if is_configured else 'Doe — Select Vault',
+            title=MAIN_WINDOW_TITLE if is_configured else 'Doe — Select Vault',
             url=start_url,
             width=start_w,           
             height=start_h,          
+            x=t_x,
+            y=t_y,
             min_size=(min_w, min_h), 
             resizable=is_resizable,
             frameless=(sys.platform in ('darwin', 'win32')),
@@ -1661,6 +2001,8 @@ if __name__ == '__main__':
             js_api=WindowAPI()      
         )
         bind_resize_event(window)
+        if sys.platform == 'win32' and is_configured and t_x is not None:
+            bind_geometry_enforcement(window, (t_x, t_y, t_w, t_h))
         
         try:
             print("[WebView] Starting GUI engine...")
@@ -1694,6 +2036,10 @@ if __name__ == '__main__':
                 server_thread.stop()
                 server_thread.join(timeout=0.2)
             print("[System] Server stopped. Exiting.")
+            try:
+                sys.stdout.flush(); sys.stderr.flush()  # PERF: добиваем буфер лога (os._exit обходит atexit)
+            except Exception:
+                pass
             os._exit(0)
             
     except Exception as e:

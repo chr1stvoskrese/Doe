@@ -7,18 +7,41 @@ from datetime import datetime, timedelta
 CONFIG_FILE = Path.home() / ".doe_config.json"
 DEFAULT_VAULT = Path.home() / "DoeDevVault"
 
+import copy
+
+_config_cache = {"stat": None, "data": None}
+
 def _load_config() -> dict:
-    if CONFIG_FILE.exists():
-        try:
-            with open(CONFIG_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception:
-            pass
-    return {}
+    try:
+        st = CONFIG_FILE.stat()
+        stat_key = (st.st_mtime_ns, st.st_size)
+    except OSError:
+        _config_cache["stat"] = None
+        _config_cache["data"] = None
+        return {}
+
+    if _config_cache["stat"] == stat_key and _config_cache["data"] is not None:
+        return copy.deepcopy(_config_cache["data"])
+
+    try:
+        with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        _config_cache["stat"] = stat_key
+        _config_cache["data"] = copy.deepcopy(data)
+        return data
+    except Exception:
+        return {}
 
 def _save_config(data: dict) -> None:
     with open(CONFIG_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
+    try:
+        st = CONFIG_FILE.stat()
+        _config_cache["stat"] = (st.st_mtime_ns, st.st_size)
+        _config_cache["data"] = copy.deepcopy(data)
+    except OSError:
+        _config_cache["stat"] = None
+        _config_cache["data"] = None
 
 def get_active_vault() -> str:
     data = _load_config()
@@ -85,13 +108,15 @@ def get_ui_settings() -> dict:
         "theme": data.get("theme", "light"),
         "language": data.get("language", "ru"),
         "active_workspace_id": active_workspaces.get(vault_path),
-        "global_attachments_path": data.get("global_attachments_path")
+        "global_attachments_path": data.get("global_attachments_path"),
+        "ui_font": data.get("ui_font", "")  # <-- Название системного шрифта
     }
 
-def set_ui_settings(theme: str = None, language: str = None, active_workspace_id: int = None, global_attachments_path: str = None, reset_attachments: bool = False) -> None:
+def set_ui_settings(theme: str = None, language: str = None, active_workspace_id: int = None, global_attachments_path: str = None, reset_attachments: bool = False, ui_font: str = None) -> None:
     data = _load_config()
     if theme is not None: data["theme"] = theme
     if language is not None: data["language"] = language
+    if ui_font is not None: data["ui_font"] = ui_font
     
     if reset_attachments:
         data.pop("global_attachments_path", None)
@@ -169,11 +194,26 @@ def get_vault_geometry(vault_path: str) -> tuple[int, int]:
         return geom.get("width", 1200), geom.get("height", 800)
     return 1200, 800
 
-def set_vault_geometry(vault_path: str, width: int, height: int) -> None:
+def get_vault_geometry_full(vault_path: str) -> dict:
+    """Полная геометрия окна: размер + позиция (x/y могут быть None для старых конфигов)."""
+    data = _load_config()
+    geom = data.get("vault_geometry", {}).get(vault_path) or {}
+    return {
+        "width": geom.get("width", 1200),
+        "height": geom.get("height", 800),
+        "x": geom.get("x"),
+        "y": geom.get("y"),
+    }
+
+def set_vault_geometry(vault_path: str, width: int, height: int, x: int = None, y: int = None) -> None:
     data = _load_config()
     if "vault_geometry" not in data:
         data["vault_geometry"] = {}
-    data["vault_geometry"][vault_path] = {"width": width, "height": height}
+    geom = {"width": int(width), "height": int(height)}
+    if x is not None and y is not None:
+        geom["x"] = int(x)
+        geom["y"] = int(y)
+    data["vault_geometry"][vault_path] = geom
     _save_config(data)
 
 def get_active_reminders() -> list:

@@ -86,6 +86,19 @@ else:
 frontend_path = base_dir / "frontend"
 app.mount("/static", StaticFiles(directory=frontend_path), name="static")
 
+# PERF: читаем index.html с диска один раз и держим в памяти.
+# Раньше каждый показ окна (старт, смена vault, reload) ходил на диск.
+_index_html_cache = {"mtime": None, "content": None}
+
+def _get_index_html() -> str:
+    index_file = frontend_path / "index.html"
+    mtime = index_file.stat().st_mtime
+    if _index_html_cache["mtime"] != mtime:
+        with open(index_file, "r", encoding="utf-8") as f:
+            _index_html_cache["content"] = f.read()
+        _index_html_cache["mtime"] = mtime
+    return _index_html_cache["content"]
+
 @app.get("/app", response_class=HTMLResponse)
 async def serve_index():
     settings = get_ui_settings()
@@ -95,9 +108,7 @@ async def serve_index():
     # Тот самый цвет из wrapper.py и CSS
     bg_color = '#161815' if theme == 'dark' else '#F4F3EF'
     
-    index_file = frontend_path / "index.html"
-    with open(index_file, "r", encoding="utf-8") as f:
-        html_content = f.read()
+    html_content = _get_index_html()
 
     # Мы добавляем стиль фона ПРЯМО В HEAD. 
     # Это гарантирует, что даже если CSS еще не загружен, 
@@ -129,4 +140,3 @@ async def root():
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
-

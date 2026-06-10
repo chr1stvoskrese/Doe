@@ -355,16 +355,77 @@ class SettingsUpdate(BaseModel):
     active_workspace_id: Optional[int] = None
     global_attachments_path: Optional[str] = None
     reset_attachments: Optional[bool] = False
+    ui_font: Optional[str] = None
 
 class SettingsResponse(BaseModel):
     theme: str
     language: str
     active_workspace_id: Optional[int] = None
     global_attachments_path: Optional[str] = None
+    custom_font: Optional[str] = None
+    ui_font: Optional[str] = ""
 
 @router.get("/settings", response_model=SettingsResponse)
 async def get_settings_endpoint():
-    return SettingsResponse(**get_ui_settings())
+    settings = get_ui_settings()
+    
+    # Ищем кастомный шрифт в папке хранилища (doe/)
+    att_dir = get_attachments_dir()
+    custom_font = None
+    if att_dir.exists():
+        for ext in ['.ttf', '.otf', '.woff', '.woff2']:
+            if (att_dir / f"custom_font{ext}").exists():
+                custom_font = f"doe/custom_font{ext}"
+                break
+    settings["custom_font"] = custom_font
+    
+    return SettingsResponse(**settings)
+
+# === Эндпоинты управления шрифтами ===
+class SetFontReq(BaseModel):
+    absolute_path: str
+
+@router.post("/font/set")
+async def set_custom_font(req: SetFontReq):
+    att_dir = get_attachments_dir()
+    att_dir.mkdir(parents=True, exist_ok=True)
+    
+    src_path = Path(req.absolute_path)
+    if not src_path.exists() or not src_path.is_file():
+        raise HTTPException(status_code=404, detail="Файл шрифта не найден")
+        
+    ext = src_path.suffix.lower()
+    if ext not in ['.ttf', '.otf', '.woff', '.woff2']:
+        raise HTTPException(status_code=400, detail="Поддерживаются только шрифты .ttf, .otf, .woff, .woff2")
+        
+    # Удаляем старые шрифты перед копированием
+    for old_ext in ['.ttf', '.otf', '.woff', '.woff2']:
+        old_font = att_dir / f"custom_font{old_ext}"
+        if old_font.exists():
+            try:
+                old_font.unlink()
+            except Exception:
+                pass
+                
+    dest_path = att_dir / f"custom_font{ext}"
+    try:
+        shutil.copy2(src_path, dest_path)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка копирования: {e}")
+        
+    return {"success": True, "path": f"doe/{dest_path.name}"}
+
+@router.post("/font/clear")
+async def clear_custom_font():
+    att_dir = get_attachments_dir()
+    for ext in ['.ttf', '.otf', '.woff', '.woff2']:
+        font_path = att_dir / f"custom_font{ext}"
+        if font_path.exists():
+            try:
+                font_path.unlink()
+            except Exception:
+                pass
+    return {"success": True}
 
 from src.db.models import TaskModel
 from sqlalchemy import select
@@ -384,7 +445,8 @@ async def update_settings_endpoint(settings: SettingsUpdate, db: AsyncSession = 
         language=settings.language,
         active_workspace_id=settings.active_workspace_id,
         global_attachments_path=settings.global_attachments_path,
-        reset_attachments=settings.reset_attachments
+        reset_attachments=settings.reset_attachments,
+        ui_font=settings.ui_font
     )
 
     # 3. Узнаем НОВУЮ папку вложений
@@ -1216,30 +1278,59 @@ from sqlalchemy.orm import selectinload
 
 @router.get("/calendar")
 async def get_calendar_events(db: AsyncSession = Depends(get_session)):
-    """Возвращает все задачи с дедлайном для календаря."""
+    """Возвращает все задачи с дедлайном и/или сессиями учета времени для календаря."""
     from src.db.models import TaskModel, ColumnModel
+    from sqlalchemy import or_
+    from datetime import datetime
     
     stmt = select(TaskModel).options(
         selectinload(TaskModel.timer_sessions),
         selectinload(TaskModel.column)
-    ).where(TaskModel.due_date.isnot(None))
+    ).where(
+        or_(TaskModel.due_date.isnot(None), TaskModel.timer_sessions.any())
+    )
     
     res = await db.execute(stmt)
-    tasks = res.scalars().all()
+    tasks = res.scalars().unique().all()
     
     events = []
+    now = datetime.utcnow()
+
     for t in tasks:
-        total_sec = sum((s.end_time - s.start_time).total_seconds() for s in t.timer_sessions if s.end_time)
-        events.append({
-            "id": t.id,
-            "title": t.title,
-            "due_date": t.due_date.isoformat() + 'Z',
-            "completed": t.completed_at is not None,
-            "column_id": t.column_id,
-            "workspace_id": t.column.workspace_id if t.column else None,
-            "duration": int(total_sec)
-        })
+        has_timers = len(t.timer_sessions) > 0
         
+        # 1. Добавляем блоки таймера (Toggl Track style)
+        for s in t.timer_sessions:
+            start_time = s.start_time
+            end_time = s.end_time if s.end_time else now
+            duration = int((end_time - start_time).total_seconds())
+            
+            events.append({
+                "event_id": f"session_{s.id}",
+                "id": t.id,
+                "title": t.title,
+                "due_date": start_time.isoformat() + 'Z',
+                "completed": t.completed_at is not None,
+                "column_id": t.column_id,
+                "workspace_id": t.column.workspace_id if t.column else None,
+                "duration": duration,
+                "is_active": s.is_active
+            })
+            
+        # 2. Добавляем блок дедлайна, если нет таймеров (для обратной совместимости планирования)
+        if t.due_date and not has_timers:
+            events.append({
+                "event_id": f"deadline_{t.id}",
+                "id": t.id,
+                "title": t.title,
+                "due_date": t.due_date.isoformat() + 'Z',
+                "completed": t.completed_at is not None,
+                "column_id": t.column_id,
+                "workspace_id": t.column.workspace_id if t.column else None,
+                "duration": 3600,  # Дефолтная длительность 1 час для дедлайнов без таймера
+                "is_active": False
+            })
+            
     return events
 
 # ==========================================
@@ -1255,3 +1346,4 @@ async def websocket_endpoint(websocket: WebSocket):
             await websocket.receive_text()
     except WebSocketDisconnect:
         ws_manager.disconnect(websocket)
+

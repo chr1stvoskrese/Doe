@@ -1,26 +1,25 @@
 let state = { columns: [], workspaces: [], activeWorkspaceId: null };
 const API_BASE = '/api/v1';
-// Определяем macOS для применения нативных безрамочных отступов
 if (navigator.userAgent.toLowerCase().includes('mac')) {
     document.documentElement.classList.add('mac-os');
 }
-let cmEditor = null; // Глобальный редактор
+let cmEditor = null;
 
 if (navigator.userAgent.toLowerCase().includes('windows')) {
     document.documentElement.classList.add('win-os');
 }
 
-
 const translations = {
     ru: {
         searchPlaceholder: 'Поиск...',
+        loading: 'Загрузка...',
         settings: 'Настройки', theme: 'Тема', language: 'Язык', about: 'О приложении', workspace: 'Doe Board', cancel: 'Отмена',
         newColumn: '+ Создать колонку', newTask: '+ Новая карточка', subtasks: 'Чек-лист',
         menu: { 
             mode: 'Режим колонки', collapse: 'Свернуть колонку', rename: 'Переименовать', 
             delete: 'Удалить', clear: 'Очистить', open: 'Открыть', 
             deleteCard: 'Удалить карточку', clearTimer: 'Очистить таймер',
-            exportCard: 'Экспорт в Markdown', attachmentsSettings: 'Хранилище вложений',
+            exportCard: 'Экспорт в Markdown', attachmentsSettings: 'Хранилище вложений', fontSettings: 'Шрифт',
             copyCardLink: 'Скопировать ссылку', dueDate: 'Установить дедлайн', clearDueDate: 'Очистить дедлайн', notify: 'Напомнить',
             reminders: 'Активные напоминания', remindersEmpty: 'Нет активных напоминаний'
         },
@@ -92,6 +91,7 @@ const translations = {
     },
     en: {
         searchPlaceholder: 'Search...',
+        loading: 'Loading...',
         settings: 'Settings', theme: 'Theme', language: 'Language', about: 'About', workspace: 'Doe Board', cancel: 'Cancel',
         newColumn: '+ Create column', newTask: '+ New card', subtasks: 'Checklist',
         menu: { 
@@ -248,31 +248,45 @@ function applyTheme(theme, saveToBackend = false) {
 function renderMarkdownProgressively(text, container, onComplete) {
     window.isRenderingMarkdown = true;
 
-    const fullHtml = parseMarkdownWithMath(text);
-    
     if (text.length < 5000) {
-        container.innerHTML = fullHtml;
+        container._renderToken = null;
+        container.style.visibility = '';
+        container.innerHTML = parseMarkdownWithMath(text);
         enhanceCodeBlocks(container);
         window.isRenderingMarkdown = false;
         if (onComplete) onComplete();
         return;
     }
 
-    // 🌟 ФИКС: Используем visibility: hidden. 
-    // Браузер высчитает высоту для скролла, но не нарисует текст на экране.
-    container.style.visibility = 'hidden'; 
-    container.innerHTML = fullHtml;
-    
+    const token = Symbol();
+    container._renderToken = token;
+    container.style.visibility = '';
+    container.innerHTML = `<span class="markdown-empty">${t('loading')}</span>`;
+
     requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-            // 1. Применяем скролл (он вызовется внутри onComplete) ДО отрисовки
-            if (onComplete) onComplete();
-            
-            // 2. Делаем текст видимым - он появится мгновенно на нужном месте
-            container.style.visibility = '';
-            enhanceCodeBlocks(container);
-            window.isRenderingMarkdown = false;
-        });
+        setTimeout(() => {
+            if (container._renderToken !== token) return;
+
+            const fullHtml = parseMarkdownWithMath(text);
+            if (container._renderToken !== token) return;
+
+            container.style.visibility = 'hidden';
+            container.innerHTML = fullHtml;
+
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    if (container._renderToken !== token) {
+                        container.style.visibility = '';
+                        return;
+                    }
+                    if (onComplete) onComplete();
+
+                    container.style.visibility = '';
+                    enhanceCodeBlocks(container);
+                    window.isRenderingMarkdown = false;
+                });
+            });
+        }, 0);
     });
 }
 
@@ -497,18 +511,16 @@ async function updateColumn(id, data) {
 function formatTotalTime(seconds) {
     if (seconds === 0) return t('card.unknownTime');
 
-    const MAX_SECONDS = 31536000000; // 1000 лет
+    const MAX_SECONDS = 31536000000;
     if (seconds >= MAX_SECONDS) {
         return currentLang === 'ru' ? '1000+ лет' : '1000+ y';
     }
 
-    // Константы времени в секундах
-    const YEAR = 31536000; // 365 дней
-    const WEEK = 604800;   // 7 дней
-    const DAY = 86400;     // 24 часа
-    const HOUR = 3600;     // 60 минут
+    const YEAR = 31536000;
+    const WEEK = 604800;
+    const DAY = 86400;
+    const HOUR = 3600;
 
-    // Вычисляем все величины сверху вниз
     const y = Math.floor(seconds / YEAR);
     const w = Math.floor((seconds % YEAR) / WEEK);
     const d = Math.floor((seconds % WEEK) / DAY);
@@ -519,20 +531,54 @@ function formatTotalTime(seconds) {
     const units = t('timeUnits');
     const parts = [];
 
-    // Собираем массив существующих значений
     if (y > 0) parts.push(`${y}${units.y}`);
     if (w > 0) parts.push(`${w}${units.w}`);
     if (d > 0) parts.push(`${d}${units.d}`);
     if (h > 0) parts.push(`${h}${units.h}`);
     if (m > 0) parts.push(`${m}${units.m}`);
     
-    // Секунды оставляем для очень быстрых задач
     if (s > 0 || parts.length === 0) {
         parts.push(`${s}${units.s}`);
     }
 
-    // Возвращаем строго 2 самых крупных значения
     return parts.slice(0, 2).join(' ');
+}
+
+function formatExactDateTime(isoString) {
+    if (!isoString) return '';
+    let dateStr = isoString;
+    if (!dateStr.endsWith('Z') && !dateStr.includes('+')) dateStr += 'Z';
+    const date = new Date(dateStr);
+    const d = date.getDate().toString().padStart(2, '0');
+    const mo = (date.getMonth() + 1).toString().padStart(2, '0');
+    const y = date.getFullYear();
+    const h = date.getHours().toString().padStart(2, '0');
+    const m = date.getMinutes().toString().padStart(2, '0');
+    const s = date.getSeconds().toString().padStart(2, '0');
+    return `${d}.${mo}.${y}, ${h}:${m}:${s}`;
+}
+
+function formatDetailedDuration(seconds) {
+    if (!seconds) return "0с";
+    const Y = 31536000, M = 2592000, D = 86400, H = 3600, MIN = 60;
+    let y = Math.floor(seconds / Y); seconds %= Y;
+    let mo = Math.floor(seconds / M); seconds %= M;
+    let d = Math.floor(seconds / D); seconds %= D;
+    let h = Math.floor(seconds / H); seconds %= H;
+    let m = Math.floor(seconds / MIN);
+    let s = seconds % MIN;
+
+    let parts = [];
+    let started = false;
+    
+    if (y > 0) { parts.push(`${y}л`); started = true; }
+    if (mo > 0 || started) { parts.push(`${mo}мес`); started = true; }
+    if (d > 0 || started) { parts.push(`${d}д`); started = true; }
+    if (h > 0 || started) { parts.push(`${h}ч`); started = true; }
+    if (m > 0 || started) { parts.push(`${m}м`); started = true; }
+    parts.push(`${s}с`); 
+    
+    return parts.join(' ');
 }
 
 function formatShortDate(isoString) {
@@ -566,7 +612,6 @@ async function handleClearDueDate(taskId) {
     try {
         await updateTask(taskId, { due_date: null });
         
-        // Обновляем локальный стейт на доске
         for (let col of state.columns) {
             let t = col.tasks.find(task => task.id == taskId);
             if (t) {
@@ -577,7 +622,6 @@ async function handleClearDueDate(taskId) {
             }
         }
         
-        // Если карточка сейчас открыта в модалке, обновляем её содержимое
         const taskModal = document.getElementById('task-modal');
         if (taskModal.classList.contains('show') && parseInt(taskModal.dataset.taskId) === taskId) {
             loadTaskIntoModal(taskId, false); 
@@ -619,17 +663,14 @@ async function updateSettings(data) {
     if (!res.ok) throw new Error('Error saving settings');
 }
 
-
-
-function escapeHtml(text) { const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
+const _escapeDiv = document.createElement('div');
+function escapeHtml(text) { _escapeDiv.textContent = text; return _escapeDiv.innerHTML; }
 function unescapeHtml(html) { const div = document.createElement('div'); div.innerHTML = html; return div.textContent; }
 
 function applyTextExpansion() {
     const renderDiv = document.getElementById('task-desc-render');
-    // 🚀 Исключили inputArea, textarea больше не будет динамически растягиваться и лагать
     if (!renderDiv) return;
     
-    // Ищем самую широкую кастомную картинку
     const images = renderDiv.querySelectorAll('.image-resizer-wrapper.has-custom-size');
     let maxWidth = 0;
     images.forEach(img => {
@@ -637,7 +678,6 @@ function applyTextExpansion() {
         if (w > maxWidth) maxWidth = w;
     });
     
-    // Расширяем минимальную ширину ТОЛЬКО в режиме чтения
     if (maxWidth > 0) {
         renderDiv.style.minWidth = (maxWidth + 24) + 'px';
     } else {
@@ -650,15 +690,12 @@ function formatTime(task) {
     if (!startStr.endsWith('Z')) startStr += 'Z'; 
     const start = new Date(startStr); 
     
-    // Считаем сколько натикало с момента последнего запуска (или снятия с паузы)
     const activeSeconds = Math.max(0, Math.floor((Date.now() - start) / 1000));
-    // Берем "замороженное" время из прошлых сессий
     const closedSeconds = task.total_time_spent || 0;
     
-    // Складываем всё вместе! 
     const diff = activeSeconds + closedSeconds;
     
-    const MAX_SECONDS = 31536000000; // 1000 лет
+    const MAX_SECONDS = 31536000000;
     if (diff >= MAX_SECONDS) {
         return currentLang === 'ru' ? '1000+ лет' : '1000+ y';
     }
@@ -684,13 +721,9 @@ function bumpModalUpdatedDate() {
     }
 }
 
-// ---------- РЕНДЕРИНГ ДОСКИ ----------
-
 function formatDateTime(isoString) {
     if (!isoString) return '';
     
-    // Бэкенд отдает время в UTC (datetime.utcnow()), 
-    // поэтому гарантируем, что JS распарсит его как UTC и переведет в локальное время пользователя.
     let dateStr = isoString;
     if (!dateStr.endsWith('Z') && !dateStr.includes('+')) {
         dateStr += 'Z';
@@ -698,7 +731,6 @@ function formatDateTime(isoString) {
     
     const date = new Date(dateStr);
     
-    // Настройки форматирования (например: 7 мая 2026 г., 15:40)
     const options = { 
         year: 'numeric', 
         month: 'short', 
@@ -715,26 +747,25 @@ function renderBoard() {
     const savedScroll = board.scrollLeft;
 
     board.innerHTML = '';
+    const frag = document.createDocumentFragment();
     const sorted = [...state.columns].sort((a, b) => a.position - b.position);
-    for (const col of sorted) board.appendChild(createColumnElement(col));
+    for (const col of sorted) frag.appendChild(createColumnElement(col));
 
     const addColBtn = document.createElement('button');
     addColBtn.className = 'new-column-btn';
     addColBtn.textContent = t('newColumn');
     addColBtn.addEventListener('click', onCreateColumn);
-    board.appendChild(addColBtn);
+    frag.appendChild(addColBtn);
+    board.appendChild(frag);
     
     board.scrollLeft = savedScroll;
 
-    // 🔥 ФИКС: Межвкладочный Drag & Drop (Восстановление призрака)
-    // Если мы переключили вкладку туда-сюда во время драга,
-    // заново находим нашу карточку в свежем DOM и делаем её призраком.
     if (isDragging && draggedElement) {
         if (dragType === 'card') {
             const id = draggedElement.dataset.cardId;
             const newEl = board.querySelector(`.card[data-card-id="${id}"]`);
             if (newEl) {
-                draggedElement = newEl; // Подменяем сироту на новый узел
+                draggedElement = newEl;
                 draggedElement.classList.add('is-ghost');
             }
         } else if (dragType === 'column') {
@@ -747,7 +778,6 @@ function renderBoard() {
         }
     }
 
-    // Корректируем ширину свёрнутых колонок после layout
     requestAnimationFrame(() => {
         adjustCollapsedColumnWidths();
         clampExpandedTitles();
@@ -756,11 +786,9 @@ function renderBoard() {
 }
 
 function updateCardAppearance(cardElement, task, columnMode) {
-    // 1. Статус завершения
     if (task.completed_at) cardElement.classList.add('is-completed');
     else cardElement.classList.remove('is-completed');
 
-    // 2. Подготовка данных
     const subtasks = task.subtasks || [];
     const hasChecklist = subtasks.length > 0;
     const isTimerColumn = (columnMode === 'track_time');
@@ -768,7 +796,6 @@ function updateCardAppearance(cardElement, task, columnMode) {
     
     cardElement.classList.toggle('has-unknown-time', isCompletionTime && task.total_time_spent === 0);
 
-    // 3. Работа с футером
     let footer = cardElement.querySelector('.card-footer');
     if (!footer) {
         footer = document.createElement('div');
@@ -776,7 +803,6 @@ function updateCardAppearance(cardElement, task, columnMode) {
         cardElement.appendChild(footer);
     }
 
-    // Собираем новый контент в строку
     let newContent = '';
 
     if (hasChecklist) {
@@ -806,7 +832,6 @@ function updateCardAppearance(cardElement, task, columnMode) {
         newContent += `<div class="subtask-meta">${t('card.timeSpent')} ${formatTotalTime(task.total_time_spent)}</div>`;
     }
 
-    // Если контент реально изменился — обновляем мгновенно (Senior UX: без лишних задержек)
     if (footer.innerHTML !== newContent) {
         footer.innerHTML = newContent;
     }
@@ -816,7 +841,6 @@ function generateCardHtml(task, columnMode) {
     let extraClasses = [];
     if (task.completed_at) extraClasses.push('is-completed');
 
-    // 1. Чек-лист
     let checklistHtml = '';
     const subtasks = task.subtasks || [];
     if (subtasks.length > 0) {
@@ -825,7 +849,6 @@ function generateCardHtml(task, columnMode) {
         checklistHtml = `<div class="checklist-meta ${done === total ? 'all-done' : ''}"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:4px;"><line x1="6" y1="3" x2="6" y2="15"></line><circle cx="18" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><path d="M18 9a9 9 0 0 1-9 9"></path></svg><span>${done}/${total}</span></div>`;
     }
 
-    // 2. Срок выполнения (Due Date)
     let dueDateHtml = '';
     if (task.due_date) {
         const dateStr = task.due_date + (task.due_date.endsWith('Z') || task.due_date.includes('+') ? '' : 'Z');
@@ -837,17 +860,28 @@ function generateCardHtml(task, columnMode) {
         dueDateHtml = `<div class="due-date-pill ${overdueClass}">${icon}<span>${formatShortDate(task.due_date)}</span></div>`;
     }
 
-    // 3. Таймер (активный или остановленный)
     let timerHtml = '';
     if (columnMode === 'track_time') {
         const displayTime = task.active_timer ? formatTime(task) : formatExactTime(task.total_time_spent || 0);
         timerHtml = `<div class="card-timer" data-task-id="${task.id}">${displayTime}</div>`;
     }
 
-    // 4. Затраченное время (Completion)
     let spentTimeHtml = '';
     if (columnMode === 'completion' && task.total_time_spent !== undefined) {
-        spentTimeHtml = `<div class="subtask-meta">${t('card.timeSpent')} ${formatTotalTime(task.total_time_spent)}</div>`;
+        if (task.first_start && task.last_end && task.total_time_spent > 0) {
+            const startStr = formatExactDateTime(task.first_start);
+            const endStr = formatExactDateTime(task.last_end);
+            const durStr = formatDetailedDuration(task.total_time_spent);
+            spentTimeHtml = `
+                <div class="card-time-details">
+                    <div class="time-row"><span class="time-label">Начало:</span> <span>${startStr}</span></div>
+                    <div class="time-row"><span class="time-label">Конец:</span> <span>${endStr}</span></div>
+                    <div class="time-row"><span class="time-label">Затрачено:</span> <span>${durStr}</span></div>
+                </div>
+            `;
+        } else {
+            spentTimeHtml = `<div class="subtask-meta">${t('card.timeSpent')} ${formatTotalTime(task.total_time_spent)}</div>`;
+        }
         if (task.total_time_spent === 0) extraClasses.push('has-unknown-time');
     } 
 
@@ -897,7 +931,6 @@ function createColumnElement(column) {
 
     const sortedTasks = [...column.tasks].sort((a, b) => a.position - b.position);
     
-    // Рендерим карточки. Каждый инлайн-триггер находится строго внизу карточки.
     let tasksHtml = '';
     sortedTasks.forEach((task) => {
         tasksHtml += generateCardHtml(task, column.mode);
@@ -956,30 +989,36 @@ async function clearTaskTimerAPI(taskId) {
     return res.json();
 }
 
-async function refreshBoard(scrollToActive = false, newTabId = null) { // <--- ДОБАВИЛ newTabId = null
+async function refreshBoard(scrollToActive = false, newTabId = null) {
     try {
-        // 1. Запрашиваем вкладки
-        state.workspaces = await fetchWorkspaces();
+        const _prefetchWsId = state.activeWorkspaceId;
+        const [_wsList, _prefetchedColumns] = await Promise.all([
+            fetchWorkspaces(),
+            _prefetchWsId ? fetchColumns(_prefetchWsId).catch(() => null) : Promise.resolve(null)
+        ]);
+        state.workspaces = _wsList;
         
-        // Предохранитель (если БД пустая)
         if (state.workspaces.length === 0) {
-            // Было: const ws = await createWorkspaceAPI("Main");
-            // Стало: берем перевод из словаря
             const ws = await createWorkspaceAPI(t('defaultWorkspace'));
             state.workspaces.push(ws);
         }
 
-        // Если активная вкладка не выбрана или была удалена с другого устройства - берем первую
         if (!state.activeWorkspaceId || !state.workspaces.find(w => w.id === state.activeWorkspaceId)) {
             state.activeWorkspaceId = state.workspaces[0].id;
         }
 
         renderTabs(scrollToActive, newTabId);
 
-        // 2. Запрашиваем колонки только для активной вкладки
-        const columns = await fetchColumns(state.activeWorkspaceId);
+        const columns = (_prefetchedColumns !== null && state.activeWorkspaceId === _prefetchWsId)
+            ? _prefetchedColumns
+            : await fetchColumns(state.activeWorkspaceId);
         state.columns = columns.map(col => ({ ...col, collapsed: col.collapsed || false }));
         renderBoard();
+        
+        const calModal = document.getElementById('calendar-modal');
+        if (calModal && calModal.classList.contains('show') && Calendar.syncData) {
+            Calendar.syncData();
+        }
         
     } catch (e) { 
         console.error(e); 
@@ -1013,17 +1052,14 @@ async function onAddCardInline(plusBtn) {
 
     if (columnEl.dataset.ignoreNextAdd === 'true') return;
 
-    // Синхронно и чисто закрываем все открытые формы на доске перед созданием новой
     closeAllOpenCardForms();
 
     columnEl.setAttribute('draggable', 'false');
 
     const formCard = createCardFormElement();
     
-    // Вставляем форму строго под целевой карточкой (между текущей и следующей)
     cardEl.after(formCard);
 
-    // Плавная анимация появления формы
     requestAnimationFrame(() => {
         requestAnimationFrame(() => {
             formCard.classList.add('entered');
@@ -1068,18 +1104,16 @@ async function onAddCardInline(plusBtn) {
         formCard.classList.add('is-exiting');
 
         const onTransitionEnd = (e) => {
-            // Строго реагируем только на саму карточку (отсекаем всплытие от инпута)
             if (e.target === formCard && (e.propertyName === 'margin-top' || e.propertyName === 'grid-template-rows')) {
                 formCard.remove();
                 formCard.removeEventListener('transitionend', onTransitionEnd);
             }
         };
         formCard.addEventListener('transitionend', onTransitionEnd);
-        // Страховочный таймаут (120ms анимация CSS + 10ms запас)
         setTimeout(() => { if (formCard.parentNode) formCard.remove(); }, 130);
     };
 
-    formCard.cancelInline = cancel; // Сохраняем деструктор в DOM-элементе для вызова извне
+    formCard.cancelInline = cancel;
 
     const submit = async () => {
         const title = input.value.trim();
@@ -1104,7 +1138,6 @@ async function onAddCardInline(plusBtn) {
         input.disabled = true;
         formCard.classList.add('is-submitting');
 
-        // ВЫЧИСЛЯЕМ МАТЕМАТИЧЕСКУЮ ПОЗИЦИЮ (Ювелирная точность)
         let nextPosition = null;
         let prevPosition = null;
         
@@ -1112,7 +1145,6 @@ async function onAddCardInline(plusBtn) {
         const currentTask = colState.tasks.find(t => t.id === currentCardId);
         
         prevPosition = currentTask.position;
-        // Ищем карточку, следующую за формой (пропускаем саму форму)
         const nextCardEl = cardEl.nextElementSibling;
         if (nextCardEl && nextCardEl.classList.contains('card') && !nextCardEl.classList.contains('card-entering')) {
             const nextCardId = parseInt(nextCardEl.dataset.cardId);
@@ -1132,7 +1164,6 @@ async function onAddCardInline(plusBtn) {
         }
 
         try {
-            // Отправляем на бэкенд с указанием высчитанной позиции
             const res = await fetch(`${API_BASE}/tasks/`, { 
                 method: 'POST', 
                 headers: { 'Content-Type': 'application/json' }, 
@@ -1145,11 +1176,9 @@ async function onAddCardInline(plusBtn) {
             if (!res.ok) throw new Error('Create failed');
             const newTask = await res.json();
 
-            // Интегрируем в стейт и сортируем массив, чтобы сохранить математическую гармонию
             colState.tasks.push(newTask);
             colState.tasks.sort((a, b) => a.position - b.position);
 
-            // Создаем настоящую красивую карточку
             const realCardStr = generateCardHtml(newTask, colState.mode);
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = realCardStr.trim();
@@ -1157,11 +1186,9 @@ async function onAddCardInline(plusBtn) {
             
             realCard.classList.add('card-birth');
 
-            // Заменяем форму на карточку
             formCard.replaceWith(realCard);
             updateColumnCount(columnEl);
 
-            // Плавное рождение карточки из прозрачности
             requestAnimationFrame(() => {
                 requestAnimationFrame(() => {
                     realCard.classList.add('born');
@@ -1193,7 +1220,6 @@ async function onAddCardInline(plusBtn) {
         if (e.key === 'Escape') { e.preventDefault(); cancel(true); }
     });
 
-    // Полностью изолируем события мыши на инпуте от перетаскивания доски
     input.addEventListener('mousedown', (e) => e.stopPropagation());
     input.addEventListener('click', (e) => e.stopPropagation());
     input.addEventListener('mousemove', (e) => e.stopPropagation());
@@ -1212,22 +1238,17 @@ async function onAddCardInline(plusBtn) {
     });
 }
 
-// Новая анимированная функция добавления задачи
 async function onAddTask(columnId) {
     const columnEl = document.querySelector(`.column[data-column-id="${columnId}"]`);
     if (!columnEl) return;
 
-    // Игнорируем вызов, если только что закрыли пустую форму кликом по этой же кнопке
     if (columnEl.dataset.ignoreNextAdd === 'true') return;
 
-    // Закрываем формы во всех других колонках на доске, кроме текущей
     closeAllOpenCardForms(columnId);
 
-    // Сначала удаляем форму, если она в процессе исчезновения (чтобы не было перескока курсора)
     const exitingForm = columnEl.querySelector('.card-entering.is-exiting');
     if (exitingForm) exitingForm.remove();
 
-    // Если в этой колонке уже открыта (и не исчезает) форма ввода — просто фокусируемся на ней
     const existingForm = columnEl.querySelector('.card-entering:not(.is-exiting)');
     if (existingForm) {
         existingForm.querySelector('textarea')?.focus();
@@ -1239,15 +1260,11 @@ async function onAddTask(columnId) {
     const cardList = columnEl.querySelector('.card-list');
     const formCard = createCardFormElement();
     
-    // Добавляем форму в конец списка
     cardList.appendChild(formCard);
     
-    // Запускаем анимацию появления
     requestAnimationFrame(() => {
         requestAnimationFrame(() => {
             formCard.classList.add('entered');
-            // Плавно удерживаем растущую форму у нижнего края списка на всё время
-            // анимации раскрытия — она видна целиком с первого кадра и не дёргается
             const pinStart = performance.now();
             const pinToBottom = () => {
                 if (!formCard.isConnected) return;
@@ -1260,14 +1277,12 @@ async function onAddTask(columnId) {
 
     const input = formCard.querySelector('.card-input');
     
-    // Автоматическое изменение высоты textarea (Фикс вылетающего курсора и скролла)
     const autoResize = () => {
-        // Идеальная математика высоты для border-box без скачков
         const computed = window.getComputedStyle(input);
         const borders = parseFloat(computed.borderTopWidth) + parseFloat(computed.borderBottomWidth);
         input.style.height = '1px';
         const sh = input.scrollHeight + borders;
-        const maxHeight = 120; // Лимит высоты ввода
+        const maxHeight = 120;
         if (sh > maxHeight) {
             input.style.height = maxHeight + 'px';
             input.style.overflowY = 'auto';
@@ -1283,14 +1298,12 @@ async function onAddTask(columnId) {
 
     let isResolved = false;
 
-    // Функция отмены (скрытие с анимацией или без)
     const cancel = (animate = true) => {
         if (isResolved) return;
         isResolved = true;
 
         columnEl.setAttribute('draggable', 'true');
         
-        // Снимаем фокус с поля, чтобы мгновенно скрыть текстовый курсор перед анимацией
         input.blur();
 
         if (!animate) {
@@ -1302,18 +1315,16 @@ async function onAddTask(columnId) {
         formCard.classList.add('is-exiting');
 
         const onTransitionEnd = (e) => {
-            // Строго реагируем только на саму карточку (отсекаем всплытие от инпута)
             if (e.target === formCard && (e.propertyName === 'margin-top' || e.propertyName === 'grid-template-rows')) {
                 formCard.remove();
                 formCard.removeEventListener('transitionend', onTransitionEnd);
             }
         };
         formCard.addEventListener('transitionend', onTransitionEnd);
-        // Страховочный таймаут (120ms анимация CSS + 10ms запас)
         setTimeout(() => { if (formCard.parentNode) formCard.remove(); }, 130);
     };
 
-    formCard.cancelInline = cancel; // Сохраняем деструктор в DOM-элементе для вызова извне
+    formCard.cancelInline = cancel;
 
     const submit = async (reopen = false) => {
         const title = input.value.trim();
@@ -1322,17 +1333,15 @@ async function onAddTask(columnId) {
             return;
         }
 
-        // 🛡 МГНОВЕННАЯ ПРОВЕРКА НА 200 СИМВОЛОВ (Создание)
         if (title.length > 200) {
             formCard.classList.remove('is-error');
-            void formCard.offsetWidth; // 🪄 Сбрасываем DOM для гарантированного перезапуска анимации
+            void formCard.offsetWidth;
             formCard.classList.add('is-error');
             setTimeout(() => formCard.classList.remove('is-error'), 400);
             input.focus();
             return;
         }
 
-        // Единая проверка блокировки двойного клика
         if (isResolved) return;
         isResolved = true;
 
@@ -1344,13 +1353,11 @@ async function onAddTask(columnId) {
         try {
             const newTask = await createTask(title, columnId);
             
-            // Добавляем в стейт
             const columnState = state.columns.find(c => c.id === columnId);
             if (columnState) {
                 columnState.tasks.push(newTask);
             }
 
-            // Создаем настоящую карточку
             const realCardStr = generateCardHtml(newTask, columnState ? columnState.mode : 'default');
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = realCardStr.trim();
@@ -1358,11 +1365,9 @@ async function onAddTask(columnId) {
             
             realCard.classList.add('card-birth');
 
-            // Заменяем форму на готовую карточку
             formCard.replaceWith(realCard);
             updateColumnCount(columnEl);
 
-            // Анимация окончательного проявления карточки
             requestAnimationFrame(() => {
                 requestAnimationFrame(() => {
                     realCard.classList.add('born');
@@ -1378,7 +1383,6 @@ async function onAddTask(columnId) {
             realCard.addEventListener('transitionend', cleanup);
             setTimeout(() => realCard.classList.remove('card-birth', 'born'), 500);
 
-            // ⚡ После Enter сразу открываем новую форму создания карточки (в фокусе)
             if (reopen) {
                 onAddTask(columnId);
             }
@@ -1389,7 +1393,7 @@ async function onAddTask(columnId) {
             columnEl.setAttribute('draggable', 'false');
             input.disabled = false;
             formCard.classList.remove('is-submitting');
-            formCard.classList.add('is-error'); // Тряска при ошибке
+            formCard.classList.add('is-error');
             setTimeout(() => formCard.classList.remove('is-error'), 400);
             input.focus();
         }
@@ -1400,7 +1404,6 @@ async function onAddTask(columnId) {
         if (e.key === 'Escape') { e.preventDefault(); cancel(true); }
     });
 
-    // --- ДОБАВЛЕНО: Изолируем клики мыши, чтобы карточка не "захватывалась" ---
     input.addEventListener('mousedown', (e) => e.stopPropagation());
     input.addEventListener('click', (e) => e.stopPropagation());
     input.addEventListener('mousemove', (e) => e.stopPropagation());
@@ -1416,7 +1419,6 @@ async function onAddTask(columnId) {
             const thisAddBtn = columnEl.querySelector('.btn-add-card');
             const isThisAddBtn = active === thisAddBtn;
 
-            // Если кликнули на ДРУГУЮ кнопку "Добавить", закрываем без анимации
             if (active && active.closest('.btn-add-card') && !isThisAddBtn) {
                 cancel(false);
                 return;
@@ -1425,8 +1427,6 @@ async function onAddTask(columnId) {
             if (input.value.trim()) {
                 submit();
             } else {
-                // Если пустая и кликнули на СВОЮ ЖЕ кнопку "Добавить" - закрываем с анимацией
-                // и блокируем повторное открытие по событию click на 100мс
                 if (isThisAddBtn) {
                     columnEl.dataset.ignoreNextAdd = 'true';
                     setTimeout(() => delete columnEl.dataset.ignoreNextAdd, 100);
@@ -1454,16 +1454,15 @@ function createColumnFormElement() {
     return col;
 }
 
-// Вспомогательная функция для синхронного закрытия всех открытых форм создания карточек на доске
 function closeAllOpenCardForms(excludeColumnId = null) {
     document.querySelectorAll('.card-entering').forEach(form => {
         const col = form.closest('.column');
         const colId = col ? parseInt(col.dataset.columnId) : null;
         if (excludeColumnId && colId === excludeColumnId) {
-            return; // Пропускаем формы в целевой колонке при нажатии нижней кнопки добавления
+            return;
         }
         if (typeof form.cancelInline === 'function') {
-            form.cancelInline(false); // Закрываем мгновенно и без анимации, переводя статус в resolved
+            form.cancelInline(false);
         } else {
             form.remove();
         }
@@ -1489,7 +1488,6 @@ async function onCreateColumn() {
 
     const formCol = createColumnFormElement();
     
-    // Мгновенная замена кнопки на форму — ширина доски не меняется ни на пиксель
     addBtn.replaceWith(formCol);
 
     requestAnimationFrame(() => {
@@ -1515,7 +1513,6 @@ async function onCreateColumn() {
             return;
         }
 
-        // --- ИДЕАЛЬНО ПЛАВНЫЙ КРОСС-ФЕЙД ---
         formCol.classList.remove('entered');
         formCol.classList.add('is-exiting');
 
@@ -1529,9 +1526,7 @@ async function onCreateColumn() {
         }, 120);
     };
 
-    // Авто-resize со скроллом при превышении высоты экрана (Фикс вылетающего курсора)
     const autoResize = () => {
-        // Идеальная математика высоты для border-box без скачков
         const computed = window.getComputedStyle(input);
         const borders = parseFloat(computed.borderTopWidth) + parseFloat(computed.borderBottomWidth);
         input.style.height = '1px';
@@ -1551,8 +1546,6 @@ async function onCreateColumn() {
 
     input.addEventListener('input', autoResize);
     
-    // ФИКС: Вызываем замер scrollHeight на следующем кадре, 
-    // когда CSS (паддинги и line-height) уже гарантированно применены к DOM-узлу
     requestAnimationFrame(() => {
         autoResize();
     });
@@ -1653,7 +1646,6 @@ async function onCreateColumn() {
     });
 }
 
-// ---------- РЕНДЕРИНГ ВКЛАДОК ----------
 function renderTabs(scrollToActive = false, newTabId = null) {
     const container = document.getElementById('tabs-container');
     const savedScroll = container.scrollLeft; 
@@ -1665,7 +1657,6 @@ function renderTabs(scrollToActive = false, newTabId = null) {
         const tab = document.createElement('div');
         tab.className = `board-tab ${ws.id === state.activeWorkspaceId ? 'active' : ''}`;
         
-        // Добавляем класс анимации, если это свежесозданная вкладка
         if (ws.id === newTabId) {
             tab.classList.add('tab-birth');
         }
@@ -1683,27 +1674,22 @@ function renderTabs(scrollToActive = false, newTabId = null) {
         tab.addEventListener('click', async (e) => {
             if (e.target.closest('.tab-close-btn')) return;
             
-            // Если вкладка не активна - переключаемся на неё
             if (ws.id !== state.activeWorkspaceId) {
                 e.stopPropagation();
                 closeAllDropdowns();
                 
-                // 1. Оптимистичное обновление UI (мгновенно, без перерисовки всего DOM)
                 document.querySelectorAll('.board-tab').forEach(t => t.classList.remove('active'));
                 tab.classList.add('active');
                 
-                // 2. Обновляем стейт
                 state.activeWorkspaceId = ws.id;
                 updateSettings({ active_workspace_id: ws.id }).catch(console.error);
                 
-                // 3. Загружаем и рендерим ТОЛЬКО колонки для новой вкладки
                 try {
                     const columns = await fetchColumns(state.activeWorkspaceId);
                     state.columns = columns.map(col => ({ ...col, collapsed: col.collapsed || false }));
                     renderBoard();
                 } catch (err) {
                     console.error('Ошибка загрузки колонок:', err);
-                    // Фолбэк: если что-то пошло не так, перезагружаем всё полностью
                     refreshBoard(); 
                 }
             }
@@ -1713,42 +1699,32 @@ function renderTabs(scrollToActive = false, newTabId = null) {
             tab.querySelector('.tab-close-btn').addEventListener('click', async (e) => {
                 e.stopPropagation();
                 
-                // Подтверждение оставляем, но само удаление после него будет мгновенным
                 const isConfirmed = await showConfirmModal(t('prompts.deleteTabConfirm'), t('prompts.deleteTabDesc'));
                 if (!isConfirmed) return;
 
                 const currentIndex = state.workspaces.findIndex(w => w.id === ws.id);
                 const isActive = (ws.id === state.activeWorkspaceId);
 
-                // --- OPTIMISTIC UI: Мгновенное обновление стейта ---
                 state.workspaces.splice(currentIndex, 1);
 
                 if (isActive) {
-                    // Умный фокус: берем следующую (на то же место), если удалили последнюю — берем предыдущую
                     const nextIndex = Math.min(currentIndex, state.workspaces.length - 1);
                     state.activeWorkspaceId = state.workspaces[nextIndex].id;
                     
-                    // Синхронно перерисовываем только вкладки, чтобы UI не моргал
                     renderTabs(true); 
                     
-                    // Сразу запрашиваем и рисуем новую доску (без ожидания удаления старой)
                     try {
                         const columns = await fetchColumns(state.activeWorkspaceId);
                         state.columns = columns.map(col => ({ ...col, collapsed: col.collapsed || false }));
                         renderBoard();
-                        // Фоновое сохранение настроек
                         updateSettings({ active_workspace_id: state.activeWorkspaceId }).catch(() => {});
                     } catch (err) { console.error(err); }
                 } else {
-                    // Если удалили неактивную — просто перерисовываем ряд вкладок
                     renderTabs(false);
                 }
 
-                // --- ФОНОВЫЙ ЗАПРОС: Удаляем в базе без блокировки UI ---
                 deleteWorkspaceAPI(ws.id).catch(err => {
                     console.error("API Error:", err);
-                    // В случае жесткой ошибки API можно вызвать refreshBoard() для синхронизации, 
-                    // но для пользователя всё уже произошло.
                 });
             });
         }
@@ -1759,7 +1735,6 @@ function renderTabs(scrollToActive = false, newTabId = null) {
     addBtn.className = 'add-tab-btn';
     addBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>';
     
-    // ПРИВЯЗЫВАЕМ НОВУЮ КРАСИВУЮ ФУНКЦИЮ
     addBtn.addEventListener('click', onAddTabClick);
     
     container.appendChild(addBtn);
@@ -1783,7 +1758,6 @@ function renderTabs(scrollToActive = false, newTabId = null) {
         });
     }
 
-    // Если была создана новая вкладка — триггерим анимацию её появления
     if (newTabId) {
         requestAnimationFrame(() => {
             requestAnimationFrame(() => {
@@ -1797,7 +1771,6 @@ function renderTabs(scrollToActive = false, newTabId = null) {
     }
 }
 
-// Вспомогательная функция для мгновенного и плавного восстановления кнопки "+" во вкладках
 function restoreTabAddButton(container, replaceElement = null) {
     if (container.querySelector('.add-tab-btn')) return;
 
@@ -1823,13 +1796,11 @@ function onAddTabClick(e) {
 
     if (container.querySelector('.tab-entering:not(.is-exiting)')) return;
 
-    // 1. Создаем форму
     const formTab = document.createElement('div');
     formTab.className = 'board-tab tab-entering';
     const placeholder = t('prompts.newTabTitle').replace(/:$/, '');
     formTab.innerHTML = `<input type="text" class="tab-input" placeholder="${placeholder}" autocomplete="off" spellcheck="false" />`;
 
-    // ЗАМЕНА: Кнопка уходит, форма встает на её место.
     addBtn.replaceWith(formTab);
 
     const input = formTab.querySelector('.tab-input');
@@ -1867,32 +1838,24 @@ function onAddTabClick(e) {
             return;
         }
 
-        // --- ТЕХНИКА "WIDTH LOCK" ---
-        
-        // 1. Замеряем текущую ширину формы (широкая)
         const currentWidth = formTab.offsetWidth;
         
-        // 2. Создаем обертку-распорку с той же шириной
         const wrapper = document.createElement('div');
         wrapper.className = 'tab-spacer-wrapper';
         wrapper.style.width = `${currentWidth}px`;
 
-        // 3. Создаем новую кнопку плюса
         const newBtn = document.createElement('button');
         newBtn.className = 'add-tab-btn tab-btn-fade-in';
         newBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>';
         newBtn.addEventListener('click', onAddTabClick);
 
-        // 4. Кладем кнопку в распорку и подменяем форму распоркой
         wrapper.appendChild(newBtn);
         formTab.replaceWith(wrapper);
 
-        // 5. На следующем кадре "схлопываем" ширину распорки до размера кнопки (32px)
         requestAnimationFrame(() => {
             wrapper.style.width = '32px';
         });
 
-        // 6. Когда анимация закончилась, вынимаем кнопку и удаляем распорку
         const onEnd = (e) => {
             if (e.propertyName === 'width') {
                 newBtn.classList.remove('tab-btn-fade-in');
@@ -1946,16 +1909,13 @@ function onAddTabClick(e) {
 }
 
 function closeAllDropdowns() {
-    // Закрываем все стандартные меню
     document.querySelectorAll('.dropdown-menu.show').forEach(m => m.classList.remove('show'));
     document.querySelectorAll('.menu-btn.active').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.settings-trigger.active').forEach(b => b.classList.remove('active'));
     
-    // Закрываем меню напоминаний
     const bellTrigger = document.getElementById('reminders-bell-trigger');
     if (bellTrigger) bellTrigger.classList.remove('active');
     
-    // Специфичное для карточек
     document.querySelectorAll('.card-menu-btn.active').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.card.has-open-menu').forEach(c => {
         c.classList.remove('has-open-menu');
@@ -1976,53 +1936,42 @@ function toggleColumnMenu(e, columnEl) {
     }
 }
 
-// --- ФУНКЦИЯ КАСТОМНОГО ПОДТВЕРЖДЕНИЯ (Идеальная плавность) ---
 function showConfirmModal(title, message, confirmBtnText = t('menu.delete')) {
     return new Promise((resolve) => {
         const modal = document.getElementById('confirm-modal');
         modal.querySelector('.confirm-title').textContent = title;
         modal.querySelector('.confirm-text').textContent = message;
         
-        // Переводим кнопки на текущий язык
         modal.querySelector('.cancel-btn').textContent = t('cancel');
         modal.querySelector('.danger-btn').textContent = confirmBtnText;
         
-        activeConfirmResolve = resolve; // Запоминаем функцию завершения
-        modal.classList.add('show');    // Мгновенный показ
+        activeConfirmResolve = resolve;
+        modal.classList.add('show');
     });
 }
 
-// Функция разворачивания колонки
 async function onExpandColumn(columnEl) {
     const columnId = parseInt(columnEl.dataset.columnId);
     const column = state.columns.find(c => c.id === columnId);
     if (!column) return;
 
-    // 1. Убираем класс и обновляем состояние
     columnEl.classList.remove('collapsed');
     column.collapsed = false;
 
-    // 2. КРИТИЧНО: Сбрасываем инлайновые стили ширины, 
-    // чтобы колонка вернулась к своим CSS-ным 320px
     columnEl.style.width = '';
     columnEl.style.minWidth = '';
 
-    // 3. Восстанавливаем текст заголовка из dataset
     const titleEl = columnEl.querySelector('.column-title');
     if (titleEl) {
         titleEl.textContent = titleEl.dataset.fullTitle || titleEl.textContent;
-        // Убираем флаг обрезки для свернутого состояния
         titleEl.dataset.clamped = "false";
         
-        // Даем браузеру обновить layout и применяем стандартный clamping для развернутого вида
         requestAnimationFrame(() => clampSingleTitle(titleEl));
     }
     
-    // Показываем меню, если оно было скрыто инлайново при сворачивании
     const menu = columnEl.querySelector('.dropdown-menu');
     if (menu) menu.style.display = '';
 
-    // 4. Отправляем в базу
     try {
         await updateColumn(columnId, { collapsed: false });
     } catch (err) {
@@ -2030,7 +1979,6 @@ async function onExpandColumn(columnEl) {
     }
 }
 
-// --- ОБНОВЛЁННАЯ ФУНКЦИЯ МЕНЮ КОЛОНКИ ---
 async function handleColumnMenu(action, columnEl, menuItem) {
     const columnId = parseInt(columnEl.dataset.columnId);
     const column = state.columns.find(c => c.id === columnId);
@@ -2045,32 +1993,26 @@ async function handleColumnMenu(action, columnEl, menuItem) {
     } else if (action === 'collapse-column') {
         closeAllDropdowns();
         
-        // МГНОВЕННО прячем меню, чтобы оно не "улетало" за сужающейся колонкой
         const menu = columnEl.querySelector('.dropdown-menu');
         if (menu) menu.style.display = 'none';
 
-        // 🛑 ОТКЛЮЧАЕМ МЫШКУ И ХОВЕР НА 0.35 СЕК
         columnEl.style.pointerEvents = 'none';
-        columnEl.classList.add('is-collapsing'); // <--- ДОБАВИЛИ КЛАСС
+        columnEl.classList.add('is-collapsing');
         
         setTimeout(() => {
             columnEl.style.pointerEvents = '';
-            columnEl.classList.remove('is-collapsing'); // <--- УБРАЛИ КЛАСС
+            columnEl.classList.remove('is-collapsing');
         }, 350);
         
         column.collapsed = true;
         columnEl.classList.add('collapsed');
 
-        // Очищаем инлайновые стили от развернутого состояния
         const titleEl = columnEl.querySelector('.column-title');
         if (titleEl) {
             titleEl.style.display = '';
             titleEl.style.webkitLineClamp = '';
         }
         
-        // УБРАН setTimeout.
-        // Вызываем расчет мгновенно! Браузер зафиксирует размеры и обрежет 
-        // текст ДО того, как отрисует следующий кадр на экране.
         adjustCollapsedColumnWidths();
 
         updateColumn(columnId, { collapsed: true }).catch(err => {
@@ -2079,7 +2021,6 @@ async function handleColumnMenu(action, columnEl, menuItem) {
     } else if (action === 'clear-column') {
         closeAllDropdowns();
         
-        // 1. Показываем окно с текстом об очистке
         const isConfirmed = await showConfirmModal(
             t('prompts.clearConfirmTitle'), 
             t('prompts.clearConfirmDesc'),
@@ -2090,34 +2031,29 @@ async function handleColumnMenu(action, columnEl, menuItem) {
         const cardList = columnEl.querySelector('.card-list');
         const cards = cardList.querySelectorAll('.card');
         
-        // 2. Локальное удаление с плавной анимацией
         cards.forEach(card => {
             card.style.transition = 'opacity 0.25s ease, transform 0.25s ease';
             card.style.opacity = '0';
             card.style.transform = 'scale(0.95)';
         });
 
-        // Обновляем локальный стейт (очищаем массив задач)
         column.tasks = [];
         
-        // Обновляем счетчик задач в шапке колонки (ставим 0)
         updateColumnCount(columnEl, 0);
 
-        // 3. Отправляем запрос на сервер асинхронно
         clearColumn(columnId).catch(async e => {
             console.error("Очистка колонки не удалась:", e);
-            await refreshBoard(); // Если ошибка - откатываем UI
+            await refreshBoard();
             window.showToast(t('alerts.error'), 'Не удалось очистить колонку', true);
         });
 
-        // 4. Удаляем карточки из DOM после завершения анимации растворения
         setTimeout(() => {
             if (cardList) cardList.innerHTML = '';
         }, 250);
 
     } else if (action === 'delete-column') {
         
-        closeAllDropdowns(); // Обязательно закрываем меню до клонирования
+        closeAllDropdowns();
         
         const isConfirmed = await showConfirmModal(
             t('prompts.deleteConfirmTitle'), 
@@ -2126,10 +2062,8 @@ async function handleColumnMenu(action, columnEl, menuItem) {
         
         if (!isConfirmed) return;
 
-        // 1. Снимаем точные координаты и размеры удаляемой колонки
         const rect = columnEl.getBoundingClientRect();
 
-        // 2. Создаем визуального клона для красивого растворения
         const clone = columnEl.cloneNode(true);
         clone.classList.add('column-deleting-clone');
         clone.style.left = `${rect.left}px`;
@@ -2138,16 +2072,13 @@ async function handleColumnMenu(action, columnEl, menuItem) {
         clone.style.height = `${rect.height}px`;
         document.body.appendChild(clone);
 
-        // 3. Создаем невидимую пустую распорку для плавного сдвига соседей
         const spacer = document.createElement('div');
         spacer.className = 'column-spacer';
         spacer.style.width = `${rect.width}px`;
         spacer.style.minWidth = `${rect.width}px`;
         
-        // Моментально меняем настоящую колонку на пустую распорку
         columnEl.replaceWith(spacer);
 
-        // 4. Обновляем стейт и отправляем запрос на сервер
         state.columns = state.columns.filter(c => c.id !== columnId);
         deleteColumn(columnId).catch(async e => {
             console.error("Delete column failed:", e);
@@ -2155,15 +2086,13 @@ async function handleColumnMenu(action, columnEl, menuItem) {
             window.showToast(t('alerts.error'), 'Не удалось удалить колонку', true);
         });
 
-        // 5. Запускаем анимации на следующем кадре (чтобы браузер успел отрисовать DOM)
         requestAnimationFrame(() => {
             requestAnimationFrame(() => {
-                clone.classList.add('is-animating'); // Клон улетает в прозрачность
-                spacer.classList.add('is-shrinking'); // Соседи плавно смыкаются
+                clone.classList.add('is-animating');
+                spacer.classList.add('is-shrinking');
             });
         });
 
-        // 6. Убираем мусор из DOM после завершения анимации
         setTimeout(() => {
             if (clone.parentNode) clone.remove();
             if (spacer.parentNode) spacer.remove();
@@ -2171,17 +2100,12 @@ async function handleColumnMenu(action, columnEl, menuItem) {
     }
 }
 
-// ==========================================
-// ПЕРЕИМЕНОВАНИЕ ВКЛАДКИ
-// ==========================================
 function startTabRename(tabEl, ws) {
     const titleSpan = tabEl.querySelector('.tab-name');
     if (!titleSpan || tabEl.classList.contains('is-renaming')) return;
 
-    // 1. ЗАПОМИНАЕМ ТОЧНУЮ ШИРИНУ ИСХОДНОГО ТЕКСТА ДО МИКРОПИКСЕЛЯ
     const initialTextWidth = titleSpan.getBoundingClientRect().width;
 
-    // Создаем инпут для переименования
     const input = document.createElement('input');
     input.type = 'text';
     input.className = 'tab-name-input';
@@ -2189,16 +2113,11 @@ function startTabRename(tabEl, ws) {
     input.spellcheck = false;
     input.autocomplete = "off";
 
-    // Меняем текст на поле ввода
     titleSpan.replaceWith(input);
-    tabEl.setAttribute('draggable', 'false'); // Запрещаем драг во время ввода
+    tabEl.setAttribute('draggable', 'false');
     tabEl.classList.add('is-renaming');
 
-    // Функция авто-подстройки ширины инпута под текст
     const autoResize = () => {
-        // 2. ИДЕАЛЬНАЯ ГЛАДКОСТЬ ПРИ ОТКРЫТИИ: 
-        // Если текст еще не меняли, жестко задаем исходную ширину + 8px (компенсация padding: 0 4px)
-        // Это гарантирует, что крестик не сдвинется ни на долю пикселя.
         if (input.value === ws.name) {
             input.style.width = `${initialTextWidth + 8}px`;
             return;
@@ -2212,8 +2131,6 @@ function startTabRename(tabEl, ws) {
         span.textContent = input.value || ' ';
         document.body.appendChild(span);
         
-        // 3. ПРАВИЛЬНАЯ МАТЕМАТИКА ПРИ ВВОДЕ:
-        // ширина текста + 8px (padding слева и справа) + 1px запаса для каретки (курсора)
         input.style.width = Math.max(20, span.getBoundingClientRect().width + 9) + 'px';
         document.body.removeChild(span);
         
@@ -2221,15 +2138,13 @@ function startTabRename(tabEl, ws) {
     };
 
     input.addEventListener('input', autoResize);
-    autoResize(); // Подгоняем размер сразу при открытии
+    autoResize();
     
-    // Фокусируемся, но запрещаем браузеру мгновенно прыгать к полю
     input.focus({ preventScroll: true }); 
     input.setSelectionRange(input.value.length, input.value.length);
 
     let committed = false;
 
-    // Восстановление нормального вида вкладки
     const restore = (title) => {
         const span = document.createElement('span');
         span.className = 'tab-name';
@@ -2244,24 +2159,21 @@ function startTabRename(tabEl, ws) {
         if (window.updateTabsScrollbar) window.updateTabsScrollbar();
     };
 
-    // Сохранение изменений
     const commit = async () => {
         if (committed) return;
         committed = true;
         
         const newName = input.value.trim();
-        const finalName = newName || ws.name; // Если пусто, возвращаем старое имя
+        const finalName = newName || ws.name;
         
         restore(finalName);
 
         if (newName && newName !== ws.name) {
             try {
-                // Отправляем на бэкенд
                 await updateWorkspaceAPI(ws.id, newName);
-                ws.name = newName; // Обновляем локальный стейт
+                ws.name = newName;
             } catch (err) {
                 console.error("Ошибка при переименовании вкладки:", err);
-                // Откат UI при ошибке сервера
                 const span = tabEl.querySelector('.tab-name');
                 if (span) {
                     span.textContent = ws.name;
@@ -2271,25 +2183,21 @@ function startTabRename(tabEl, ws) {
         }
     };
 
-    // Отмена переименования (Escape)
     const cancel = () => {
         if (committed) return;
         committed = true;
         restore(ws.name);
     };
 
-    // Защита от перехвата драг-н-дропом и кликом
     input.addEventListener('mousedown', (e) => e.stopPropagation());
     input.addEventListener('click', (e) => e.stopPropagation());
 
-    // Обработка клавиш
     input.addEventListener('keydown', (e) => {
         e.stopPropagation();
         if (e.key === 'Enter')  { e.preventDefault(); commit(); }
         if (e.key === 'Escape') { e.preventDefault(); cancel(); }
     });
 
-    // Сохранение при клике мимо
     input.addEventListener('blur', () => {
         setTimeout(() => { if (!committed) commit(); }, 120);
     });
@@ -2309,17 +2217,14 @@ function startColumnRename(columnEl, column) {
     columnEl.setAttribute('draggable', 'false');
     columnEl.classList.add('is-renaming');
 
-    // Авто-resize по содержимому (Фикс сломанного скролла и курсора)
     let lastValidValue = input.value;
     const autoResize = () => {
-        // Идеальная математика высоты для border-box без скачков
         const computed = window.getComputedStyle(input);
         const borders = parseFloat(computed.borderTopWidth) + parseFloat(computed.borderBottomWidth);
         input.style.height = '1px';
         const sh = input.scrollHeight + borders;
         const boardHeight = document.getElementById('board').clientHeight;
         
-        // Здесь есть список и кнопка, вычитаем 140px, чтобы их не выдавило
         const maxAllowedHeight = Math.max(60, boardHeight - 250);
         
         if (sh > maxAllowedHeight) {
@@ -2332,7 +2237,6 @@ function startColumnRename(columnEl, column) {
     };
     input.addEventListener('input', autoResize);
 
-    // --- ИСПРАВЛЕНО: Считаем высоту моментально до отрисовки кадра ---
     autoResize(); 
     
     input.focus();
@@ -2348,7 +2252,6 @@ function startColumnRename(columnEl, column) {
         if (input.parentNode) input.replaceWith(span);
         columnEl.setAttribute('draggable', 'true');
         columnEl.classList.remove('is-renaming');
-        // Пересчитываем clamping после восстановления
         requestAnimationFrame(clampExpandedTitles);
     };
 
@@ -2422,9 +2325,8 @@ function startCardRename(cardEl, task) {
     };
     
     input.addEventListener('input', () => {
-        autoResize(); // Меняем высоту при вводе
+        autoResize();
         
-        // Закрываем меню ТОЛЬКО при реальном вводе с клавиатуры
         const globalMenu = document.getElementById('global-card-menu');
         if (globalMenu.classList.contains('show') && globalMenu.dataset.activeCardId == task.id) {
             closeAllDropdowns();
@@ -2433,23 +2335,19 @@ function startCardRename(cardEl, task) {
     autoResize();
     
     input.focus();
-    // Ставим курсор строго в самый конец строки
     input.setSelectionRange(input.value.length, input.value.length); 
 
     let committed = false;
 
-    // ВАЛИДАЦИЯ С КРАСИВЫМ ТЕКСТОМ
     const validateAndShake = () => {
         const val = input.value.trim();
         if (val.length > 200) {
-            // Ищем или создаем элемент подсказки
             let hint = cardEl.querySelector('.card-error-hint');
             if (!hint) {
                 hint = document.createElement('div');
                 hint.className = 'card-error-hint';
                 hint.textContent = t('errors.tooLong');
                 
-                // Вставляем ПОСЛЕ обертки заголовка, чтобы текст упал строго вниз
                 const wrapper = input.closest('.card-title-wrapper');
                 if (wrapper) {
                     wrapper.after(hint);
@@ -2459,7 +2357,7 @@ function startCardRename(cardEl, task) {
             }
 
             cardEl.classList.remove('is-error');
-            void cardEl.offsetWidth; // Force Reflow
+            void cardEl.offsetWidth;
             cardEl.classList.add('is-error');
             
             return false;
@@ -2472,7 +2370,6 @@ function startCardRename(cardEl, task) {
         div.className = 'card-title';
         div.textContent = title;
         
-        // Удаляем все следы редактирования
         const hint = cardEl.querySelector('.card-error-hint');
         if (hint) hint.remove();
         
@@ -2490,7 +2387,6 @@ function startCardRename(cardEl, task) {
 
         committed = true;
         
-        // 🌟 ГАРАНТИРОВАННОЕ ЗАКРЫТИЕ МЕНЮ при сохранении (Enter или клик мимо)
         closeAllDropdowns();
 
         const newTitle = input.value.trim();
@@ -2500,7 +2396,6 @@ function startCardRename(cardEl, task) {
 
         if (newTitle && newTitle !== task.title) {
             try {
-                // OPTIMISTIC UI: Мгновенно меняем название подзадачи в открытой модалке (если есть)
                 const subtaskTitleEl = document.querySelector(`.subtask-item[data-subtask-id="${task.id}"] .subtask-title`);
                 if (subtaskTitleEl) {
                     subtaskTitleEl.textContent = newTitle;
@@ -2513,7 +2408,6 @@ function startCardRename(cardEl, task) {
                 const div = cardEl.querySelector('.card-title');
                 if (div) div.textContent = task.title;
                 
-                // Откат в модалке при ошибке
                 const subtaskTitleEl = document.querySelector(`.subtask-item[data-subtask-id="${task.id}"] .subtask-title`);
                 if (subtaskTitleEl) {
                     subtaskTitleEl.textContent = task.title;
@@ -2534,7 +2428,6 @@ function startCardRename(cardEl, task) {
             e.preventDefault();
             committed = true;
             
-            // 🌟 ГАРАНТИРОВАННОЕ ЗАКРЫТИЕ МЕНЮ при отмене (Escape)
             closeAllDropdowns();
             
             restore(task.title);
@@ -2548,9 +2441,6 @@ function startCardRename(cardEl, task) {
     });
 }
 
-// ==========================================
-// ПЕРЕИМЕНОВАНИЕ ЗАГОЛОВКА ОТКРЫТОЙ КАРТОЧКИ
-// ==========================================
 function startModalTaskRename(titleEl) {
     const modal = document.getElementById('task-modal');
     if (modal.classList.contains('is-renaming')) return;
@@ -2567,7 +2457,6 @@ function startModalTaskRename(titleEl) {
     titleEl.replaceWith(input);
     modal.classList.add('is-renaming');
 
-    // Авто-ресайз по высоте (Фикс вылетающего курсора)
     const autoResize = () => {
         const offset = input.offsetHeight - input.clientHeight;
         input.style.height = '1px';
@@ -2575,7 +2464,6 @@ function startModalTaskRename(titleEl) {
     };
     input.addEventListener('input', () => {
         autoResize();
-        // Убираем ошибку, если текст стал допустимой длины
         if (input.value.trim().length <= 200) {
             const header = input.closest('.modal-header');
             if (header) header.classList.remove('is-error');
@@ -2594,7 +2482,6 @@ function startModalTaskRename(titleEl) {
         span.id = 'task-modal-title';
         span.textContent = title;
         
-        // Удаляем следы ошибки при выходе из режима редактирования
         const header = input.closest('.modal-header');
         if (header) {
             header.classList.remove('is-error');
@@ -2610,7 +2497,6 @@ function startModalTaskRename(titleEl) {
         if (committed) return;
         
         const newTitle = input.value.trim();
-        // Защита от переполнения с текстом-подсказкой и анимацией тряски
         if (newTitle.length > 200) {
             const header = input.closest('.modal-header');
             if (header) {
@@ -2621,7 +2507,7 @@ function startModalTaskRename(titleEl) {
                     header.appendChild(hint);
                 }
                 header.classList.remove('is-error');
-                void header.offsetWidth; // Force Reflow для перезапуска анимации
+                void header.offsetWidth;
                 header.classList.add('is-error');
             }
             input.focus();
@@ -2634,7 +2520,6 @@ function startModalTaskRename(titleEl) {
 
         if (newTitle && newTitle !== originalTitle) {
             try {
-                // OPTIMISTIC UI: Мгновенно обновляем название на самой доске
                 const boardCardTitle = document.querySelector(`.card[data-card-id="${taskId}"] .card-title`);
                 if (boardCardTitle) {
                     boardCardTitle.textContent = newTitle;
@@ -2644,7 +2529,6 @@ function startModalTaskRename(titleEl) {
                 
                 bumpModalUpdatedDate();
                 
-                // Обновляем задачу в локальном стейте (если она на главной доске)
                 for (let col of state.columns) {
                     let t = col.tasks.find(t => t.id === taskId);
                     if (t) {
@@ -2652,15 +2536,13 @@ function startModalTaskRename(titleEl) {
                         break;
                     }
                 }
-                refreshBoard(); // Обновляем доску в фоне для полной синхронизации
+                refreshBoard();
                 
-                // Обновляем графовые крошки внутри модалки
                 renderGraphBreadcrumbs(taskId);
             } catch (e) {
                 console.error("Ошибка при переименовании задачи", e);
                 restore(originalTitle);
                 
-                // Откат изменений на доске при ошибке
                 const boardCardTitle = document.querySelector(`.card[data-card-id="${taskId}"] .card-title`);
                 if (boardCardTitle) {
                     boardCardTitle.textContent = originalTitle;
@@ -2669,7 +2551,6 @@ function startModalTaskRename(titleEl) {
         }
     };
 
-    // Защита от перехвата драг-н-дропом модалки
     input.addEventListener('mousedown', (e) => e.stopPropagation());
     input.addEventListener('click', (e) => e.stopPropagation());
     input.addEventListener('pointerdown', (e) => e.stopPropagation());
@@ -2682,9 +2563,6 @@ function startModalTaskRename(titleEl) {
     input.addEventListener('blur', () => setTimeout(() => { if (!committed) commit(); }, 120));
 }
 
-// ==========================================
-// ПЕРЕИМЕНОВАНИЕ ПОДЗАДАЧИ
-// ==========================================
 function startSubtaskRename(subtaskEl) {
     const titleDiv = subtaskEl.querySelector('.subtask-title');
     if (!titleDiv || subtaskEl.classList.contains('is-renaming')) return;
@@ -2758,13 +2636,11 @@ function startSubtaskRename(subtaskEl) {
 
         if (newTitle && newTitle !== originalTitle) {
             try {
-                // 1. OPTIMISTIC UI: Мгновенно обновляем название на самой доске (если она вынесена)
                 const boardCardTitle = document.querySelector(`.card[data-card-id="${subtaskId}"] .card-title`);
                 if (boardCardTitle) {
                     boardCardTitle.textContent = newTitle;
                 }
 
-                // 2. Обновляем локальный стейт самой карточки на доске
                 for (let col of state.columns) {
                     let t = col.tasks.find(taskItem => taskItem.id === subtaskId);
                     if (t) {
@@ -2773,7 +2649,6 @@ function startSubtaskRename(subtaskEl) {
                     }
                 }
 
-                // 3. Обновляем стейт подзадачи внутри родительской карточки (модалки)
                 const modal = document.getElementById('task-modal');
                 const parentTaskId = parseInt(modal.dataset.taskId);
                 for (let col of state.columns) {
@@ -2787,16 +2662,13 @@ function startSubtaskRename(subtaskEl) {
                     }
                 }
 
-                // 4. Отправляем на бэкенд
                 await updateTask(subtaskId, { title: newTitle });
                 
-                // 5. Синхронизируем интерфейс в фоне
                 refreshBoard(); 
             } catch (e) {
                 console.error("Ошибка при переименовании подзадачи", e);
                 restore(originalTitle);
                 
-                // Откат изменений на доске при ошибке сети
                 const boardCardTitle = document.querySelector(`.card[data-card-id="${subtaskId}"] .card-title`);
                 if (boardCardTitle) {
                     boardCardTitle.textContent = originalTitle;
@@ -2818,27 +2690,24 @@ function startSubtaskRename(subtaskEl) {
 }
 
 function adjustCollapsedColumnWidths() {
-    const CHAR_HEIGHT = 18.2;  // 13px * 1.4 line-height
+    const CHAR_HEIGHT = 18.2;
     const MAX_LINES = 5;
-    const PADDING = 32;        // 16px с каждой стороны
-    const CHAR_WIDTH = 22;     // ширина одного вертикального столбца
+    const PADDING = 32;
+    const CHAR_WIDTH = 22;
 
     document.querySelectorAll('#board .column.collapsed').forEach(colEl => {
         const titleEl = colEl.querySelector('.column-title');
         if (!titleEl) return;
 
         const fullTitle = titleEl.dataset.fullTitle || titleEl.textContent;
-        const colHeight = colEl.getBoundingClientRect().height - 24; // минус padding колонки
+        const colHeight = colEl.getBoundingClientRect().height - 24;
         if (colHeight < 10) return;
 
         titleEl.style.maxHeight = colHeight + 'px';
 
-        // Сколько символов влезает в одну вертикальную линию
         const charsPerLine = Math.max(1, Math.floor(colHeight / CHAR_HEIGHT));
-        // Всего символов на 5 линий
         const maxChars = charsPerLine * MAX_LINES;
 
-        // Сохраняем оригинал
         if (!titleEl.dataset.fullTitle) {
             titleEl.dataset.fullTitle = fullTitle;
         }
@@ -2846,8 +2715,7 @@ function adjustCollapsedColumnWidths() {
         const isClamped = fullTitle.length > maxChars;
 
         if (isClamped) {
-            // Обрезаем и добавляем троеточие в конец последней строки
-            const visibleChars = maxChars - 1; // место для …
+            const visibleChars = maxChars - 1;
             titleEl.textContent = fullTitle.substring(0, visibleChars) + '…';
             titleEl.dataset.clamped = 'true';
         } else {
@@ -2855,7 +2723,6 @@ function adjustCollapsedColumnWidths() {
             titleEl.dataset.clamped = 'false';
         }
 
-        // Вычисляем ширину колонки по фактическому числу линий
         const actualLines = Math.min(MAX_LINES, Math.ceil(fullTitle.length / charsPerLine));
         const colWidth = Math.max(60, PADDING + actualLines * CHAR_WIDTH);
 
@@ -2864,7 +2731,6 @@ function adjustCollapsedColumnWidths() {
     });
 }
 
-// ---------- ПРОДВИНУТЫЙ DRAG & DROP (Pointer Events) ----------
 let isDragging = false;
 let dragType = null;
 let draggedElement = null;
@@ -2878,7 +2744,6 @@ let isPointerDown = false;
 let potentialDragTarget = null;
 let potentialDragType = null;
 
-// --- НОВЫЕ ПЕРЕМЕННЫЕ ДЛЯ КРОСС-ВКЛАДОЧНОГО DRAG&DROP ---
 let originalWorkspaceId = null;
 let isHoveringTabs = false;
 let draggedTaskObject = null; 
@@ -2888,42 +2753,33 @@ let dragCloneHeight = 0;
 let pendingSwitchTabId = null;
 let tabSwitchTimeout = null;
 
-// Переменные для идеальной математики точки хвата
 let originalOffsetX = 0;
 let originalOffsetY = 0;
 let currentOriginX = 0;
 let currentOriginY = 0;
 
-// ==========================================
-// ГЛОБАЛЬНАЯ БЛОКИРОВКА БРАУЗЕРНОГО DND
-// ==========================================
-// Запрещаем браузеру перехватывать элементы как "картинки" или "текст"
 document.addEventListener('dragstart', (e) => {
-    // Разрешаем нативный drag только внутри инпутов (хотя они обычно и так не перетаскиваются)
     if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
         e.preventDefault();
     }
 });
 
 document.addEventListener('pointerdown', (e) => {
-    if (e.button !== 0) return; // Только левый клик мыши
+    if (e.button !== 0) return;
 
-    // 1. Игнорируем клики по интерактивным элементам (чтобы кнопки и инпуты работали штатно)
-    // 🚀 SENIOR FIX: Добавили .description-wrapper, чтобы кастомный DND не ломал нативный ресайзер
     if (e.target.closest('button, input, textarea, .menu-btn, .card-menu-btn, .tab-close-btn, .column.is-renaming, .board-tab.is-renaming, .card.is-renaming, .card-entering, .column-entering, .description-wrapper')) return;
-    // 2. Ищем, на чем именно кликнули
     const vaultHistory = e.target.closest('.vault-history-item');
     const subtask = e.target.closest('.subtask-item');
-    const attachment = e.target.closest('.attachment-item'); // <--- ВОТ ЭТО НАДО ДОБАВИТЬ
+    const attachment = e.target.closest('.attachment-item');
     const card = e.target.closest('.card');
     const column = e.target.closest('.column');
     const tab = e.target.closest('.board-tab');
 
-    if (vaultHistory) { // <--- ВСТАВИТЬ НА ПЕРВОЕ МЕСТО!
+    if (vaultHistory) {
         potentialDragType = 'vault-history';
         potentialDragTarget = vaultHistory;
     }
-    else if (attachment) { // <--- ВОТ ЭТО НАДО ДОБАВИТЬ
+    else if (attachment) {
         potentialDragType = 'attachment';
         potentialDragTarget = attachment;
     }
@@ -2932,19 +2788,16 @@ document.addEventListener('pointerdown', (e) => {
         potentialDragTarget = subtask;
     }
     else if (card) {
-        // Кликнули в карточку -> тащим карточку
         potentialDragType = 'card';
         potentialDragTarget = card;
     } else if (column) {
-        // Кликнули НЕ в карточку, но в пределы колонки (пустое место, шапка и т.д.) -> тащим колонку
         potentialDragType = 'column';
         potentialDragTarget = column;
     } else if (tab) {
-        // Кликнули во вкладку -> тащим вкладку
         potentialDragType = 'tab';
         potentialDragTarget = tab;
     } else {
-        return; // Клик в "молоко" (фон доски)
+        return;
     }
 
     isPointerDown = true;
@@ -2955,7 +2808,6 @@ document.addEventListener('pointerdown', (e) => {
 document.addEventListener('pointermove', (e) => {
     if (!isPointerDown) return;
 
-    // Мертвая зона 5px (отличаем случайное дрожание мыши от реального намерения тащить)
     if (!isDragging) {
         if (Math.abs(e.clientX - startX) > 5 || Math.abs(e.clientY - startY) > 5) {
             startDrag(potentialDragTarget, potentialDragType, e);
@@ -2964,7 +2816,7 @@ document.addEventListener('pointermove', (e) => {
         }
     }
 
-    e.preventDefault(); // Защита от системного выделения текста
+    e.preventDefault();
     mouseX = e.clientX;
     mouseY = e.clientY;
 
@@ -2976,7 +2828,6 @@ document.addEventListener('pointerup', async (e) => {
     potentialDragTarget = null;
     
     if (isDragging) {
-        // 🔥 ФИКС: Блокируем случайные клики на 50мс после броска
         window._isAfterDrag = true;
         setTimeout(() => window._isAfterDrag = false, 50);
         await endDrag();
@@ -2984,7 +2835,6 @@ document.addEventListener('pointerup', async (e) => {
 });
 
 function startDrag(element, type, e) {
-    // Сворачиваем открытые выпадающие списки и убираем фокус с поиска перед началом перетаскивания
     closeAllDropdowns();
     if (document.activeElement && typeof document.activeElement.blur === 'function') {
         document.activeElement.blur();
@@ -2994,7 +2844,6 @@ function startDrag(element, type, e) {
     dragType = type;
     draggedElement = element;
 
-    // 🔥 ФИКС ТАЙМЕРА: Находим объект задачи в текущем стейте, чтобы таймер не замирал
     if (dragType === 'card') {
         const taskId = parseInt(element.dataset.cardId);
         for (const col of state.columns) {
@@ -3008,7 +2857,6 @@ function startDrag(element, type, e) {
         draggedTaskObject = null;
     }
     
-    // Сброс и захват данных для межвкладочного переноса
     originalWorkspaceId = state.activeWorkspaceId;
     isHoveringTabs = false;
     currentDragScale = 1;
@@ -3026,12 +2874,10 @@ function startDrag(element, type, e) {
     document.body.style.userSelect = 'none';
     document.body.classList.add(`is-dragging-${dragType}`);
 
-    // Фиксируем оригинальные размеры ЕДИНОЖДЫ
     const rect = draggedElement.getBoundingClientRect();
     dragCloneWidth = rect.width;
     dragCloneHeight = rect.height;
 
-    // 🔥 СОХРАНЯЕМ ИСХОДНУЮ ТОЧКУ ХВАТА
     originalOffsetX = e.clientX - rect.left;
     originalOffsetY = e.clientY - rect.top;
     currentOriginX = originalOffsetX;
@@ -3053,7 +2899,6 @@ function startDrag(element, type, e) {
     dragClone.style.margin = '0';
     dragClone.classList.add(`${dragType}-drag-clone`);
 
-    // 🔥 Сбрасываем origin в 0, чтобы полностью контролировать матрицу через translate3d
     dragClone.style.transformOrigin = '0 0'; 
     dragClone.style.transform = `translate3d(${mouseX}px, ${mouseY}px, 0) scale(1) translate3d(${-currentOriginX}px, ${-currentOriginY}px, 0)`;
 
@@ -3067,7 +2912,6 @@ function performHitTest() {
     const elemUnderMouse = document.elementFromPoint(mouseX, mouseY);
     if (!elemUnderMouse) return;
 
-    // --- ЛОГИКА МИНИАТЮР И МОРГАНИЯ ВКЛАДОК ---
     const tabsWrapper = elemUnderMouse.closest('#tabs-wrapper');
     if (tabsWrapper && (dragType === 'card' || dragType === 'column')) {
         isHoveringTabs = true;
@@ -3079,7 +2923,6 @@ function performHitTest() {
                 clearTimeout(tabSwitchTimeout);
                 pendingSwitchTabId = tabId;
 
-                // Отдача при наведении на заголовок вкладки (пересечение физического барьера)
                 if (window.pywebview && window.pywebview.api && window.pywebview.api.trigger_haptic) {
                     window.pywebview.api.trigger_haptic();
                 }
@@ -3100,7 +2943,6 @@ function performHitTest() {
         document.querySelectorAll('.board-tab.is-blinking').forEach(el => el.classList.remove('is-blinking'));
     }
 
-    // 1. ВКЛАДКИ
     if (dragType === 'tab') {
         const hoverTab = elemUnderMouse.closest('.board-tab:not(.is-ghost)');
         if (hoverTab && hoverTab !== draggedElement && hoverTab.closest('#tabs-container')) {
@@ -3112,7 +2954,6 @@ function performHitTest() {
             }
         }
     }
-    // 2. КОЛОНКИ (С поддержкой пустой доски)
     else if (dragType === 'column') {
         const hoverCol = elemUnderMouse.closest('.column:not(.is-ghost)');
         const board = document.getElementById('board');
@@ -3126,7 +2967,6 @@ function performHitTest() {
                 if (hoverCol.previousElementSibling !== draggedElement) hoverCol.before(draggedElement);
             }
         } 
-        // 🔥 ФИКС: Если мы над контейнером доски, но не над колонкой (доска пустая или навели мимо)
         else if (boardContainer && board && !board.contains(draggedElement)) {
             const addBtn = board.querySelector('.new-column-btn');
             if (addBtn) {
@@ -3136,7 +2976,6 @@ function performHitTest() {
             }
         }
     }
-    // 3. КАРТОЧКИ
     else if (dragType === 'card') {
         const hoverCard = elemUnderMouse.closest('.card:not(.is-ghost)');
         if (hoverCard && hoverCard !== draggedElement) {
@@ -3162,7 +3001,6 @@ function performHitTest() {
             }
         }
     }
-    // 4. ПОДЗАДАЧИ
     else if (dragType === 'subtask') {
         const hoverSub = elemUnderMouse.closest('.subtask-item:not(.is-ghost)');
         if (hoverSub && hoverSub !== draggedElement && hoverSub.closest('#subtasks-list')) {
@@ -3174,7 +3012,6 @@ function performHitTest() {
             }
         }
     }
-    // 5. ВЛОЖЕНИЯ
     else if (dragType === 'attachment') {
         const hoverAtt = elemUnderMouse.closest('.attachment-item:not(.is-ghost)');
         if (hoverAtt && hoverAtt !== draggedElement && hoverAtt.closest('#attachments-list')) {
@@ -3186,7 +3023,6 @@ function performHitTest() {
             }
         }
     }
-    // 6. ИСТОРИЯ ХРАНИЛИЩ
     else if (dragType === 'vault-history') {
         const hoverHist = elemUnderMouse.closest('.vault-history-item:not(.is-ghost)');
         if (hoverHist && hoverHist !== draggedElement && hoverHist.closest('#vault-history-list')) {
@@ -3200,7 +3036,6 @@ function performHitTest() {
     }
 }
 
-// Фоновая смена вкладки без убийства текущего DND
 async function switchToWorkspaceDuringDrag(wsId) {
     document.querySelectorAll('.board-tab').forEach(t => t.classList.remove('active'));
     const targetTab = document.querySelector(`.board-tab[data-workspace-id="${wsId}"]`);
@@ -3209,7 +3044,6 @@ async function switchToWorkspaceDuringDrag(wsId) {
         targetTab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
     }
 
-    // Отдача при успешном фоновом переключении активной вкладки под курсором
     if (window.pywebview && window.pywebview.api && window.pywebview.api.trigger_haptic) {
         window.pywebview.api.trigger_haptic();
     }
@@ -3221,9 +3055,6 @@ async function switchToWorkspaceDuringDrag(wsId) {
         const columns = await fetchColumns(wsId);
         state.columns = columns.map(col => ({ ...col, collapsed: col.collapsed || false }));
         renderBoard(); 
-        // ВНИМАНИЕ: draggedElement сейчас "вырван" из DOM из-за очистки доски.
-        // Он безопасно лежит в памяти. Как только мышь опустится с вкладок на новую доску, 
-        // performHitTest() подхватит его и автоматически "вживит" (appendChild) в новый DOM!
     } catch (err) {
         console.error('Ошибка смены вкладки при драге:', err);
     }
@@ -3237,35 +3068,29 @@ function handleEdgePanning() {
     let scrollZone = 80; 
     let maxSpeed = 20;
 
-    // --- ПРИОРИТЕТ 1: СКРОЛЛ ВКЛАДОК ПРИ НАВЕДЕНИИ МИНИАТЮРЫ ---
     if (isHoveringTabs && (dragType === 'card' || dragType === 'column')) {
         container = document.getElementById('tabs-container');
         axis = 'x';
         scrollZone = 60;
         maxSpeed = 15;
     }
-    // --- ПРИОРИТЕТ 2: СКРОЛЛ ВКЛАДОК ПРИ ПЕРЕТАСКИВАНИИ САМОЙ ВКЛАДКИ ---
     else if (dragType === 'tab') {
         container = document.getElementById('tabs-container');
         axis = 'x';
     } 
-    // --- ПРИОРИТЕТ 3: СКРОЛЛ ДОСКИ ПРИ ТАСКАНИИ КОЛОНКИ ---
     else if (dragType === 'column') {
         container = document.querySelector('.board-container');
         axis = 'x';
-        scrollZone = 120; // Большая зона для больших объектов
+        scrollZone = 120;
         maxSpeed = 25;
     } 
-    // --- ПРИОРИТЕТ 4: УМНЫЙ СКРОЛЛ КАРТОЧКИ (ДОСКА ИЛИ КОЛОНКА) ---
     else if (dragType === 'card') {
         const hoverCol = document.elementFromPoint(mouseX, mouseY)?.closest('.column:not(.is-ghost)');
-        // Если мы внутри колонки - скроллим её по вертикали
         if (hoverCol) {
             container = hoverCol.querySelector('.card-list');
             axis = 'y';
             scrollZone = 60;
         } else {
-            // Если между колонками - скроллим всю доску по горизонтали
             container = document.querySelector('.board-container');
             axis = 'x';
             scrollZone = 120;
@@ -3298,7 +3123,6 @@ function handleEdgePanning() {
             const prevScroll = container.scrollLeft;
             container.scrollLeft += speed;
             if (container.scrollLeft !== prevScroll) {
-                // Обновляем кастомный скроллбар вкладок, если скроллили их
                 if (container.id === 'tabs-container' && window.updateTabsScrollbar) {
                     window.updateTabsScrollbar();
                 }
@@ -3338,30 +3162,22 @@ function renderPhysics() {
 
     let targetScale = (dragType === 'column' || dragType === 'tab') ? 1.02 : 1.04;
     
-    // По умолчанию цель - вернуть элемент точно в место, где мы его схватили
     let targetOriginX = originalOffsetX;
     let targetOriginY = originalOffsetY;
 
     if (isHoveringTabs) {
         targetScale = 0.20; 
         dragClone.style.opacity = '0.7'; 
-        // 🔥 СТРОГО ПРАВЫЙ ВЕРХНИЙ УГОЛ: Меняем цель сжатия на правый верхний край элемента
         targetOriginX = dragCloneWidth;
         targetOriginY = 0;
     } else {
         dragClone.style.opacity = '1';
     }
 
-    // Плавно интерполируем масштаб и смещение оси координат
     currentDragScale += (targetScale - currentDragScale) * 0.15;
     currentOriginX += (targetOriginX - currentOriginX) * 0.15;
     currentOriginY += (targetOriginY - currentOriginY) * 0.15;
 
-    // 🔥 МАТРИЧНАЯ МАГИЯ (Double Translate):
-    // 1. Двигаем 0,0 элемента к курсору мыши.
-    // 2. Вращаем и масштабируем.
-    // 3. Откатываем назад на вычисленное смещение.
-    // Итог: курсор ВСЕГДА приклеен к нужной точке с точностью до пикселя при любом масштабе.
     dragClone.style.transform = `translate3d(${mouseX}px, ${mouseY}px, 0) rotate(${currentRotation}deg) scale(${currentDragScale}) translate3d(${-currentOriginX}px, ${-currentOriginY}px, 0)`;
     
     if (didScroll || isHoveringTabs) performHitTest(); 
@@ -3376,14 +3192,12 @@ async function endDrag() {
     document.body.classList.remove(`is-dragging-${dragType}`);
     document.body.style.userSelect = '';
 
-    // --- ЛОГИКА ОТМЕНЫ (Если бросили мимо доски или на вкладках) ---
     let isInvalidDrop = false;
     if (dragType === 'card' && !draggedElement.closest('.column')) isInvalidDrop = true;
     if (dragType === 'column' && !draggedElement.closest('.board')) isInvalidDrop = true;
 
     if (isInvalidDrop && (dragType === 'card' || dragType === 'column')) {
         (async () => {
-            // 1. Если вкладка была изменена, мгновенно переключаем интерфейс обратно
             if (state.activeWorkspaceId !== originalWorkspaceId) {
                 state.activeWorkspaceId = originalWorkspaceId;
                 document.querySelectorAll('.board-tab').forEach(t => t.classList.remove('active'));
@@ -3397,9 +3211,8 @@ async function endDrag() {
                 try {
                     const columns = await fetchColumns(originalWorkspaceId);
                     state.columns = columns.map(col => ({ ...col, collapsed: col.collapsed || false }));
-                    renderBoard(); // Перерисовываем родную доску со старыми колонками
+                    renderBoard();
                     
-                    // Заново находим DOM-узел нашей карточки/колонки после перерисовки
                     if (dragType === 'card') {
                         draggedElement = document.querySelector(`.card[data-card-id="${draggedElement.dataset.cardId}"]`);
                     } if (dragType === 'column') {
@@ -3407,11 +3220,8 @@ async function endDrag() {
                         const orderedIds = currentColumns.map(col => parseInt(col.dataset.columnId));
                         const colId = parseInt(draggedElement.dataset.columnId);
                         
-                        // 🔥 ГЛАВНЫЙ МОМЕНТ: Если ID активного воркспейса изменился, сохраняем привязку колонки
                         if (state.activeWorkspaceId !== originalWorkspaceId) {
                             try { 
-                                // Отправляем на бэкенд новый workspace_id. 
-                                // Схема ColumnUpdate уже поддерживает это поле.
                                 await updateColumn(colId, { workspace_id: state.activeWorkspaceId }); 
                             } 
                             catch (e) { console.error("Не удалось сменить вкладку для колонки:", e); }
@@ -3429,27 +3239,22 @@ async function endDrag() {
                 } catch (e) {}
             }
 
-            // 2. Ищем целевые координаты (куда лететь клону)
             let targetRect = null;
             if (draggedElement && document.body.contains(draggedElement)) {
                 targetRect = draggedElement.getBoundingClientRect();
             }
 
-            // 3. Анимируем возвращение клона на родное место
             if (dragClone) {
                 dragClone.style.transition = 'all 0.35s cubic-bezier(0.2, 0.8, 0.2, 1)';
                 if (targetRect) {
-                    // Раскручиваем Double Translate обратно в плоские координаты
                     dragClone.style.transform = `translate3d(${targetRect.left}px, ${targetRect.top}px, 0) rotate(0deg) scale(1) translate3d(0px, 0px, 0)`;
                     dragClone.style.opacity = '1';
                 } else {
-                    // Фолбэк: если место почему-то не найдено, просто улетаем вверх
                     dragClone.style.transform = `translate3d(${mouseX}px, -100px, 0) scale(0) translate3d(0px, 0px, 0)`;
                     dragClone.style.opacity = '0';
                 }
             }
 
-            // 4. Очистка после приземления
             setTimeout(() => {
                 if (dragClone) dragClone.remove();
                 dragClone = null;
@@ -3458,7 +3263,7 @@ async function endDrag() {
                 draggedElement = null;
             }, 350);
         })();
-        return; // Завершаем функцию: в базу ничего не сохраняем
+        return;
     }
 
     if (dragType === 'subtask') {
@@ -3574,10 +3379,6 @@ async function endDrag() {
             try { 
                 await saveColumnsOrder(orderedIds); 
                 
-                // 🔥 ФИКС КРОСС-ВКЛАДОЧНОГО ЗАЛИПАНИЯ КОЛОНОК:
-                // При переносе колонки в другую вкладку её DOM-элемент вставляется на новую доску,
-                // но локальный стейт (state.columns) о ней не знает, так как вкладка загрузилась ДО переноса.
-                // Бесшумно запрашиваем обновленные данные, чтобы восстановить интерактивность (разворачивание, карточки и т.д.)
                 if (state.activeWorkspaceId !== originalWorkspaceId) {
                     const freshColumns = await fetchColumns(state.activeWorkspaceId);
                     state.columns = freshColumns.map(c => ({ ...c, collapsed: c.collapsed || false }));
@@ -3627,7 +3428,6 @@ async function endDrag() {
                         updateCardAppearance(draggedElement, taskForUI, targetCol.mode);
                         draggedElement.dataset.sourceColumnId = newColumnId;
 
-                        // Синхронизация прогресса подзадач на родительской карточке
                         if (updatedTask.parent_ids && updatedTask.parent_ids.length > 0) {
                             updatedTask.parent_ids.forEach(parentId => {
                                 let parentTask = null;
@@ -3682,9 +3482,7 @@ document.addEventListener('mousedown', (e) => {
     }
 });
 
-// ---------- ГЛОБАЛЬНЫЕ КЛИКИ (меню, модалки) ----------
 document.addEventListener('click', async (e) => {
-    // 🔥 ФИКС: Игнорируем клик, если он был концом перетаскивания
     if (window._isAfterDrag) {
         e.stopPropagation();
         e.preventDefault();
@@ -3693,17 +3491,14 @@ document.addEventListener('click', async (e) => {
 
     const target = e.target;
 
-    // --- ДОБАВИТЬ СЮДА: Разворачивание колонки ---
     const collapsedCol = target.closest('.column.collapsed');
     if (collapsedCol) {
-        // Если кликнули не по кнопке меню (хотя в свернутой её нет, но на будущее)
         if (!target.closest('.menu-btn')) {
             onExpandColumn(collapsedCol);
             return;
         }
     }
 
-    // 1. ПЕРЕИМЕНОВАНИЕ КОЛОНКИ (по клику в заголовок)
     const titleEl = target.closest('.column:not(.collapsed) .column-title');
     if (titleEl) {
         const columnEl = titleEl.closest('.column');
@@ -3717,7 +3512,6 @@ document.addEventListener('click', async (e) => {
         }
     }
 
-    // 2. ПЕРЕИМЕНОВАНИЕ ВКЛАДКИ
     const tabNameEl = target.closest('.board-tab .tab-name');
     if (tabNameEl) {
         const tabEl = tabNameEl.closest('.board-tab');
@@ -3733,32 +3527,27 @@ document.addEventListener('click', async (e) => {
         }
     }
 
-    // ПЕРЕИМЕНОВАНИЕ ГЛАВНОГО ЗАГОЛОВКА В МОДАЛКЕ КАРТОЧКИ
     const modalTitleEl = target.closest('#task-modal-title');
     if (modalTitleEl) {
         startModalTaskRename(modalTitleEl);
         return;
     }
 
-    // ПЕРЕИМЕНОВАНИЕ ПОДЗАДАЧИ
     const subtaskTitleEl = target.closest('.subtask-title');
     if (subtaskTitleEl) {
         const subtaskEl = subtaskTitleEl.closest('.subtask-item');
-        // 🔥 ФИКС: Игнорируем клик, если это вложение (.attachment-item)
         if (subtaskEl && !subtaskEl.classList.contains('attachment-item') && !subtaskEl.classList.contains('is-renaming')) {
             startSubtaskRename(subtaskEl);
             return;
         }
     }
 
-    // ОТВЯЗКА КАРТОЧКИ (ПРЯМО ИЗ МОДАЛКИ)
     const detachModalBtn = target.closest('.modal-detach');
     if (detachModalBtn) {
         e.stopPropagation();
         const modal = document.getElementById('task-modal');
         const taskId = parseInt(modal.dataset.taskId);
         
-        // Красивая анимация исчезновения самой кнопки
         detachModalBtn.style.transition = 'all 0.2s ease-in';
         detachModalBtn.style.opacity = '0';
         detachModalBtn.style.transform = 'translateY(-10px)';
@@ -3772,9 +3561,8 @@ document.addEventListener('click', async (e) => {
         try {
             updateTask(taskId, { parent_ids: [], is_visible_on_board: true }).then(() => {
                 bumpModalUpdatedDate();
-                refreshBoard(); // Карточка моментально появится на доске
+                refreshBoard();
                 
-                // Перерисовываем пути с сервера (теперь это будет просто пустой граф)
                 renderGraphBreadcrumbs(taskId);
             });
         } catch (err) {
@@ -3784,7 +3572,28 @@ document.addEventListener('click', async (e) => {
         return;
     }
 
-    // ПОИСК ИЗ МОДАЛКИ КАРТОЧКИ
+    const calMenuDeleteBtn = target.closest('#cal-menu-delete');
+    if (calMenuDeleteBtn) {
+        e.stopPropagation();
+        const menu = document.getElementById('cal-context-menu');
+        const eventId = menu.dataset.eventId;
+
+        if (eventId) {
+            let hiddenEvents = JSON.parse(localStorage.getItem('doe_hidden_cal_events') || '[]');
+            if (!hiddenEvents.includes(eventId)) {
+                hiddenEvents.push(eventId);
+                localStorage.setItem('doe_hidden_cal_events', JSON.stringify(hiddenEvents));
+            }
+
+            Calendar.events = Calendar.events.filter(ev => ev.event_id !== eventId);
+
+            closeAllDropdowns();
+
+            Calendar.render();
+        }
+        return;
+    }
+
     const searchModalBtn = target.closest('.modal-search');
     if (searchModalBtn) {
         e.stopPropagation();
@@ -3792,7 +3601,6 @@ document.addEventListener('click', async (e) => {
         return;
     }
 
-    // ЭКСПОРТ ИЗ МОДАЛКИ КАРТОЧКИ
     const exportModalBtn = target.closest('.modal-export');
     if (exportModalBtn) {
         e.stopPropagation();
@@ -3803,7 +3611,6 @@ document.addEventListener('click', async (e) => {
         exportModal.classList.add('show');
         
         const confirmBtn = document.getElementById('btn-confirm-export');
-        // Снимаем старые обработчики (хак через замену узла)
         const newConfirmBtn = confirmBtn.cloneNode(true);
         confirmBtn.replaceWith(newConfirmBtn);
         
@@ -3814,7 +3621,7 @@ document.addEventListener('click', async (e) => {
             if (window.pywebview && window.pywebview.api && window.pywebview.api.choose_directory) {
                 const exportDir = await window.pywebview.api.choose_directory();
                 if (exportDir) {
-                    exportModalBtn.style.opacity = '0.5'; // Эффект загрузки на иконке кнопки экспорта
+                    exportModalBtn.style.opacity = '0.5';
                     fetch(`${API_BASE}/tasks/${taskId}/export`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -3839,14 +3646,12 @@ document.addEventListener('click', async (e) => {
         return;
     }
 
-    // УВЕДОМЛЕНИЕ ИЗ МОДАЛКИ КАРТОЧКИ
     const notifyModalBtn = target.closest('.modal-notify');
     if (notifyModalBtn) {
         e.stopPropagation();
         const modal = document.getElementById('task-modal');
         const taskId = parseInt(modal.dataset.taskId);
         
-        // Бронебойное чтение заголовка (учитывает режим редактирования)
         const titleNode = document.getElementById('task-modal-title') || document.querySelector('.task-modal-title-input');
         const taskTitle = (titleNode.value !== undefined ? titleNode.value : titleNode.textContent).trim();
         
@@ -3854,7 +3659,6 @@ document.addEventListener('click', async (e) => {
         return;
     }
 
-    // 3. ОБРАБОТКА КНОПОК ПОДТВЕРЖДЕНИЯ (Confirm Modal)
     if (target.closest('[data-action="confirm-cancel"]')) {
         if (activeConfirmResolve) { activeConfirmResolve(false); activeConfirmResolve = null; }
         document.getElementById('confirm-modal').classList.remove('show');
@@ -3866,7 +3670,6 @@ document.addEventListener('click', async (e) => {
         return;
     }
     
-    // ОБРАБОТКА КНОПОК УМНОЙ ОТВЯЗКИ
     if (target.closest('[data-action="detach-cancel"]')) {
         if (activeDetachResolve) { activeDetachResolve(null); activeDetachResolve = null; }
         document.getElementById('detach-modal').classList.remove('show');
@@ -3883,7 +3686,6 @@ document.addEventListener('click', async (e) => {
         return;
     }
 
-    // ОТКРЫТИЕ МЕНЮ НАПОМИНАНИЙ (Колокольчик)
     const bellTrigger = target.closest('#reminders-bell-trigger');
     if (bellTrigger) {
         e.stopPropagation();
@@ -3893,15 +3695,13 @@ document.addEventListener('click', async (e) => {
         if (!isShowing) {
             menu.classList.add('show');
             bellTrigger.classList.add('active');
-            renderRemindersDropdown(); // Загружаем список при открытии
+            renderRemindersDropdown();
         }
         return;
     }
 
-    // 4. ОТКРЫТИЕ МЕНЮ НАСТРОЕК (Header & Vault)
     const settingsTrigger = target.closest('.settings-trigger');
     if (settingsTrigger) {
-        // ФИКС: Ищем меню ИМЕННО внутри текущего враппера (чтобы работало и на стартовом экране)
         const wrapper = settingsTrigger.closest('.settings-wrapper');
         const menu = wrapper.querySelector('.dropdown-menu');
         
@@ -3914,23 +3714,19 @@ document.addEventListener('click', async (e) => {
         return; 
     }
 
-    // 5. ЛОГИКА ВЫПАДАЮЩЕГО МЕНЮ КАРТОЧКИ (Pencil Button)
     const cardMenuBtn = target.closest('.card-menu-btn');
     if (cardMenuBtn) {
         e.stopPropagation();
         const globalMenu = document.getElementById('global-card-menu');
         const cardEl = cardMenuBtn.closest('.card');
         
-        // 1. Сначала закрываем всё остальное
         closeAllDropdowns();
 
-        // 2. Подготавливаем меню
         globalMenu.dataset.activeCardId = cardEl.dataset.cardId;
         globalMenu.classList.add('show');
         cardMenuBtn.classList.add('active');
         cardEl.classList.add('has-open-menu');
         
-        // 3. Запускаем режим переименования (DOM-мутация происходит тут)
         const taskId = parseInt(cardEl.dataset.cardId);
         const colId = parseInt(cardEl.closest('.column').dataset.columnId);
         const col = state.columns.find(c => c.id === colId);
@@ -3942,7 +3738,6 @@ document.addEventListener('click', async (e) => {
             cardEl.querySelector('.card-title-input')?.focus({ preventScroll: true });
         }
 
-        // 4. ГЛАВНЫЙ ФИКС: Используем двойной requestAnimationFrame
         requestAnimationFrame(() => {
             requestAnimationFrame(() => {
                 cardEl.scrollIntoView({ 
@@ -3953,25 +3748,18 @@ document.addEventListener('click', async (e) => {
             });
         });
 
-        // 5. Цикл позиции меню
         const updatePos = () => {
             if (!globalMenu.classList.contains('show') || globalMenu.dataset.activeCardId != cardEl.dataset.cardId) return;
             const cardRect = cardEl.getBoundingClientRect();
 
-            // Высоту меню и границы окна читаем КАЖДЫЙ кадр — поэтому при ресайзе
-            // окна меню само пересчитывает позицию и плавно «отпускает» обратно вниз
             const margin = 12;
             const menuHeight = globalMenu.offsetHeight;
 
-            // По умолчанию равняем по верху карточки
             let top = cardRect.top;
 
-            // Если меню не влезает по низу окна — приподнимаем вверх ровно настолько,
-            // чтобы оно поместилось целиком
             const maxTop = window.innerHeight - menuHeight - margin;
             if (top > maxTop) top = maxTop;
 
-            // И не даём уехать выше верхнего края
             if (top < margin) top = margin;
 
             globalMenu.style.top = `${top}px`;
@@ -3980,7 +3768,6 @@ document.addEventListener('click', async (e) => {
         };
         updatePos();
 
-        // Умное переключение кнопок дедлайна
         const menuSetDueDate = document.getElementById('menu-set-due-date');
         const menuClearDueDate = document.getElementById('menu-clear-due-date');
         if (task && task.due_date) {
@@ -3994,18 +3781,15 @@ document.addEventListener('click', async (e) => {
         return;
     }
 
-    // 6. ОБРАБОТКА ДЕЙСТВИЙ (Меню, Колонки, Карточки, Системные)
     const menuItem = target.closest('.menu-item');
     const actionElement = target.closest('[data-action]');
     const action = actionElement?.dataset.action;
 
     if (menuItem && action) {
-        // ОПРЕДЕЛЯЕМ КОНТЕКСТ МЕНЮ
         const globalCardMenu = document.getElementById('global-card-menu');
         const isCardMenu = menuItem.closest('#global-card-menu');
         const columnEl = menuItem.closest('.column');
 
-        // А) Если это меню карточки
         if (isCardMenu) {
             const activeCardId = globalCardMenu.dataset.activeCardId;
             const cardEl = document.querySelector(`.card[data-card-id="${activeCardId}"]`);
@@ -4021,27 +3805,21 @@ document.addEventListener('click', async (e) => {
                     document.getElementById('task-modal').classList.add('show');
                 }
                 else if (action === 'delete-card') {
-                    // Запускаем красивое удаление (Клон + Spacer) мгновенно для кликнутой карточки
                     animateCardDeletion(cardEl);
                     
-                    // Вычищаем из локального стейта до ответа сервера (optimistic UI)
                     for (let col of state.columns) {
-                        // 1. Удаляем саму карточку из списка
                         col.tasks = col.tasks.filter(t => t.id !== taskId);
                         
-                        // 2. Ищем, не была ли эта карточка подзадачей в других карточках
                         col.tasks.forEach(parentTask => {
                             if (parentTask.subtasks) {
                                 const originalLength = parentTask.subtasks.length;
                                 parentTask.subtasks = parentTask.subtasks.filter(s => s.id !== taskId);
                                 
-                                // Если удалили из чек-листа — мгновенно обновляем пилюлю на родительской карточке
                                 if (parentTask.subtasks.length !== originalLength) {
                                     const parentCardEl = document.querySelector(`.card[data-card-id="${parentTask.id}"]`);
                                     if (parentCardEl) {
                                         updateCardAppearance(parentCardEl, parentTask, col.mode);
                                     }
-                                    // Если родитель сейчас открыт в модалке - обновляем счетчик
                                     const modal = document.getElementById('task-modal');
                                     if (modal && modal.classList.contains('show') && parseInt(modal.dataset.taskId) === parentTask.id) {
                                         const countEl = document.getElementById('subtasks-count');
@@ -4055,19 +3833,16 @@ document.addEventListener('click', async (e) => {
                     deleteTask(taskId).then(data => {
                         const deletedIds = data.deleted_ids || [];
                         
-                        // Удаляем с доски всё дерево превьюх (если у задачи были подзадачи на доске)
                         deletedIds.forEach(id => {
-                            if (id === taskId) return; // Эту мы уже анимировали выше
+                            if (id === taskId) return;
                             const boardCard = document.querySelector(`.card[data-card-id="${id}"]`);
                             if (boardCard) {
                                 animateCardDeletion(boardCard);
                             }
                             
-                            // Вычищаем остатки из локального стейта
                             for (let col of state.columns) {
                                 col.tasks = col.tasks.filter(t => t.id !== id);
                                 
-                                // Подчищаем каскадно удаленные задачи из чужих чек-листов
                                 col.tasks.forEach(parentTask => {
                                     if (parentTask.subtasks) {
                                         const originalLength = parentTask.subtasks.length;
@@ -4081,10 +3856,9 @@ document.addEventListener('click', async (e) => {
                             }
                         });
                         
-                        // Оптимистичный UI успешно отработал, полная перерисовка доски больше не нужна!
                     }).catch(err => { 
                         console.error(err); 
-                        refreshBoard(); // Оставляем refreshBoard ТОЛЬКО при ошибке сервера для отката сломанного UI
+                        refreshBoard();
                     });
                 }
                 else if (action === 'clear-card-timer') {
@@ -4093,7 +3867,6 @@ document.addEventListener('click', async (e) => {
                         if (col) {
                             const idx = col.tasks.findIndex(t => t.id === taskId);
                             if (idx !== -1) {
-                                // Бережно переносим массив подзадач из старого стейта в новый
                                 updatedTask.subtasks = col.tasks[idx].subtasks;
                                 col.tasks[idx] = updatedTask;
                             }
@@ -4102,13 +3875,11 @@ document.addEventListener('click', async (e) => {
                     });
                 }
                 else if (action === 'copy-card-link') {
-                    // 🚀 ФИКС: Учитываем, что при открытом меню карточка находится в режиме редактирования (textarea)
                     const titleNode = cardEl.querySelector('.card-title') || cardEl.querySelector('.card-title-input');
                     const taskTitle = (titleNode.value !== undefined ? titleNode.value : titleNode.textContent).trim();
                     const link = `[${taskTitle}](doe://task/${taskId})`;
                     
                     try {
-                        // 🚀 БРОНЕБОЙНОЕ КОПИРОВАНИЕ (Работает во всех WebView и браузерах)
                         if (navigator.clipboard && window.isSecureContext) {
                             await navigator.clipboard.writeText(link);
                         } else {
@@ -4123,7 +3894,6 @@ document.addEventListener('click', async (e) => {
                             textArea.remove();
                         }
 
-                        // Senior UX: Копируем и мгновенно закрываем меню без опасных таймеров
                         closeAllDropdowns();
                         return;
                     } catch (err) {
@@ -4137,7 +3907,6 @@ document.addEventListener('click', async (e) => {
                         exportModal.classList.add('show');
                         
                         const confirmBtn = document.getElementById('btn-confirm-export');
-                        // Снимаем старые обработчики (хак через замену узла)
                         const newConfirmBtn = confirmBtn.cloneNode(true);
                         confirmBtn.replaceWith(newConfirmBtn);
                         
@@ -4168,14 +3937,12 @@ document.addEventListener('click', async (e) => {
                     }
                 }
                 else if (action === 'notify-card') {
-                    // Бронебойное чтение заголовка (учитывает режим редактирования)
                     const titleNode = cardEl.querySelector('.card-title') || cardEl.querySelector('.card-title-input');
                     const taskTitle = (titleNode.value !== undefined ? titleNode.value : titleNode.textContent).trim();
                     
                     openNotifyModal(taskId, taskTitle);
                 }
                 else if (action === 'set-due-date') {
-                    // Берем задачу из стейта, чтобы пробросить её текущую дату, если есть
                     const task = state.columns.find(c => c.id === parseInt(colEl.dataset.columnId))?.tasks.find(t => t.id === taskId);
                     openDueDateModal(taskId, task?.due_date);
                 }
@@ -4184,23 +3951,20 @@ document.addEventListener('click', async (e) => {
                 }
             }
             closeAllDropdowns();
-            return; // Выходим только если это было меню карточки
+            return;
         }
 
-        // Б) Если это меню колонки
         if (columnEl) {
             handleColumnMenu(action, columnEl, menuItem);
             closeAllDropdowns();
-            return; // Выходим только если это было меню колонки
+            return;
         }
     }
 
-    // 7. СИСТЕМНЫЕ ДЕЙСТВИЯ (Воркспейс, Темы, Язык, О программе)
-    // Сюда код попадет, если это был клик по кнопке воркспейса или пункту настроек
     if (action) {
         if (action === 'switch-workspace') {
             closeAllDropdowns();
-            showVaultScreen(); // <--- Теперь просто показываем наш красивый экран!
+            showVaultScreen();
         }
         else if (action === 'theme') {
             const currentTheme = document.documentElement.hasAttribute('data-theme') ? 'dark' : 'light';
@@ -4221,11 +3985,11 @@ document.addEventListener('click', async (e) => {
                 const itemExternal = document.getElementById('setting-item-external');
 
                 if (data.global_attachments_path) {
-                    pathBox.textContent = data.global_attachments_path; // Показываем реальный путь
+                    pathBox.textContent = data.global_attachments_path;
                     itemLocal.classList.remove('active');
                     itemExternal.classList.add('active');
                 } else {
-                    pathBox.textContent = t('modals.attSelectBtn'); // "Выбрать папку..."
+                    pathBox.textContent = t('modals.attSelectBtn');
                     itemLocal.classList.add('active');
                     itemExternal.classList.remove('active');
                 }
@@ -4239,18 +4003,12 @@ document.addEventListener('click', async (e) => {
         }
     }
 
-    // ==========================================
-    // 🔥 ТОТ САМЫЙ ПРОПАВШИЙ БЛОК (КЛИКИ ВНУТРИ МОДАЛОК)
-    // ==========================================
     const themeItem = target.closest('#theme-list .lang-item');
     if (themeItem) {
         const theme = themeItem.dataset.themeValue;
         
-        // 1. Сначала запускаем плавное CSS-растворение модалки
         document.getElementById('theme-modal').classList.remove('show');
         
-        // 2. Ждем ровно 250мс (время fade-out из CSS) и запускаем красивый круг
-        // смены темы уже на абсолютно чистом интерфейсе
         setTimeout(() => {
             applyTheme(theme, true);
         }, 250);
@@ -4265,19 +4023,15 @@ document.addEventListener('click', async (e) => {
         setTimeout(() => document.getElementById('lang-modal').classList.remove('show'), 150);
         return;
     }
-    // ==========================================
 
-    // 8. ЗАКРЫТИЕ МОДАЛОК
     const modalCloseBtn = target.closest('.modal-close');
     const isOverlayClick = target.classList.contains('modal-overlay');
 
     if (modalCloseBtn || isOverlayClick) {
-        // Определяем, какую именно модалку нужно закрыть
         const modalToClose = modalCloseBtn ? modalCloseBtn.closest('.modal-overlay') : target;
         
         if (!modalToClose) return;
 
-        // 🔥 ФИКС: Если кликнули по серому фону (overlay) именно главной карточки — ничего не закрываем.
         if (modalToClose.id === 'task-modal' && isOverlayClick) {
             return; 
         }
@@ -4291,14 +4045,12 @@ document.addEventListener('click', async (e) => {
             activeDetachResolve = null;
         }
         
-        // --- СБРОС ГЕОМЕТРИИ И СОХРАНЕНИЕ ПРИ ЗАКРЫТИИ ГЛАВНОЙ КАРТОЧКИ ---
         if (modalToClose.id === 'task-modal') {
             if (window.closeLocalSearch) window.closeLocalSearch();
             
             document.getElementById('modal-tools-wrapper')?.classList.remove('expanded');
             triggerGarbageCollector();
 
-            // 🌟 СОХРАНЯЕМ СКРОЛЛ РЕЖИМА ЧТЕНИЯ ПЕРЕД ЗАКРЫТИЕМ
             const taskId = parseInt(modalToClose.dataset.taskId);
             const renderDiv = document.getElementById('task-desc-render');
             const detailBody = document.querySelector('.task-detail-body');
@@ -4349,11 +4101,9 @@ document.addEventListener('click', async (e) => {
             }
         }
 
-        // 🔥 ГЛАВНЫЙ ФИКС: Закрываем ТОЛЬКО ту модалку, с которой мы взаимодействовали
         modalToClose.classList.remove('show');
     }
 
-    // === ЛОГИКА ПАНЕЛИ ИНСТРУМЕНТОВ В КАРТОЧКЕ ===
     const toolsTrigger = target.closest('.modal-tools-trigger');
     const toolsWrapper = document.getElementById('modal-tools-wrapper');
     if (toolsTrigger) {
@@ -4361,17 +4111,15 @@ document.addEventListener('click', async (e) => {
         toolsWrapper.classList.toggle('expanded');
         return;
     }
-    // Закрываем панель инструментов при клике мимо неё
     if (toolsWrapper && toolsWrapper.classList.contains('expanded') && !target.closest('.modal-tools-wrapper')) {
         toolsWrapper.classList.remove('expanded');
     }
 
-    // 9. ЗАКРЫТИЕ ВСЕХ МЕНЮ ПРИ КЛИКЕ ВНЕ
     if (
         !target.closest('.dropdown-menu') && 
         !target.closest('.menu-btn') && 
         !target.closest('.card-menu-btn') &&
-        !target.closest('.card.has-open-menu') // 🔥 ФИКС: Игнорируем клики внутри карточки с активным меню
+        !target.closest('.card.has-open-menu')
     ) {
         closeAllDropdowns();
     }
@@ -4382,7 +4130,6 @@ function applyHighlight(container, query) {
     const words = query.trim().split(/\s+/).filter(w => w.length > 0).map(w => w.toLowerCase());
     if (words.length === 0) return;
 
-    // Быстрый выход: проверяем наличие текста на уровне C++ браузера
     const fullText = container.textContent.toLowerCase();
     if (!words.some(w => fullText.includes(w))) return;
 
@@ -4405,12 +4152,11 @@ function applyHighlight(container, query) {
                 pos += word.length;
             }
         }
-        if (ranges.length > 5000) break; // Жесткий лимит для защиты RAM
+        if (ranges.length > 5000) break;
     }
 
     if (ranges.length === 0) return;
 
-    // Отрисовка на уровне GPU без изменения DOM-дерева
     const highlight = new Highlight(...ranges);
     CSS.highlights.set('global-search-highlight', highlight);
 
@@ -4418,7 +4164,6 @@ function applyHighlight(container, query) {
         const firstMatch = ranges[0];
         let block = firstMatch.startContainer.parentElement;
         
-        // Разворачиваем скрытые блоки
         while (block && block !== container) {
             if (block.classList.contains('is-hidden-by-fold')) {
                 let prev = block.previousElementSibling;
@@ -4432,7 +4177,6 @@ function applyHighlight(container, query) {
             block = block.parentElement;
         }
 
-        // Замеряем позицию строго ПОСЛЕ разворачивания
         const rect = firstMatch.getBoundingClientRect();
         if (rect.top === 0) return; 
 
@@ -4446,7 +4190,6 @@ function applyHighlight(container, query) {
             });
         }
 
-        // Мягкое снятие подсветки
         setTimeout(() => {
             if (CSS.highlights.has('global-search-highlight')) {
                 CSS.highlights.delete('global-search-highlight');
@@ -4462,7 +4205,6 @@ async function loadTaskIntoModal(taskId, pushToStack = true, highlightQuery = nu
         if (!res.ok) return;
         const task = await res.json();
 
-        // 🌟 ИЩЕМ ЛОКАЛЬНУЮ ВЕРСИЮ ЗАДАЧИ, ЧТОБЫ ДОСТАТЬ СОХРАНЕННЫЙ СКРОЛЛ
         let localTask = null;
         for (let col of state.columns) {
             localTask = col.tasks.find(t => t.id === taskId);
@@ -4480,7 +4222,6 @@ async function loadTaskIntoModal(taskId, pushToStack = true, highlightQuery = nu
         const descWrapper = document.querySelector('.description-wrapper');
         if (descWrapper) descWrapper.style.height = '';
 
-        // 🚀 Сбрасываем позиции внутренних скроллов для "чистого" старта.
         const bodyEl = document.querySelector('.task-detail-body');
         if (bodyEl) bodyEl.scrollTop = 0;
         if (renderDiv) renderDiv.scrollTop = 0;
@@ -4510,7 +4251,6 @@ async function loadTaskIntoModal(taskId, pushToStack = true, highlightQuery = nu
                 const isOverdue = !task.completed_at && new Date(dateStr) < new Date();
                 const overdueStyle = isOverdue ? 'style="color: #D35446; font-weight: 700;"' : '';
                 
-                // Эстетичная точка-разделитель и сам срок
                 datesHtml += `<span> &middot; </span><span ${overdueStyle} id="task-due-text">Срок: ${formatShortDate(task.due_date)}</span>`;
             }
             datesHtml += `</div>`;
@@ -4519,14 +4259,11 @@ async function loadTaskIntoModal(taskId, pushToStack = true, highlightQuery = nu
         
         const modalDueDateBtn = document.getElementById('modal-due-date');
         if (modalDueDateBtn) {
-            // Предотвращаем дублирование обработчиков через клонирование
             const newBtn = modalDueDateBtn.cloneNode(true);
             modalDueDateBtn.replaceWith(newBtn);
 
-            // Очищаем старое содержимое кнопки
             newBtn.innerHTML = '';
 
-            // Создаем SVG через пространство имен, чтобы сохранить регистр viewBox
             const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
             svg.setAttribute("viewBox", "0 0 24 24");
             svg.setAttribute("fill", "none");
@@ -4540,7 +4277,6 @@ async function loadTaskIntoModal(taskId, pushToStack = true, highlightQuery = nu
             svg.appendChild(path);
 
             if (task.due_date) {
-                // Дедлайн установлен -> добавляем перечеркивающую линию
                 newBtn.title = t('menu.clearDueDate');
                 
                 const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
@@ -4555,7 +4291,6 @@ async function loadTaskIntoModal(taskId, pushToStack = true, highlightQuery = nu
                     handleClearDueDate(task.id);
                 };
             } else {
-                // Дедлайн не установлен
                 newBtn.title = t('modals.dueDateSet');
                 
                 newBtn.onclick = (e) => {
@@ -4595,7 +4330,6 @@ async function loadTaskIntoModal(taskId, pushToStack = true, highlightQuery = nu
                 initHeadingFolding(renderDiv, task.folded_headings || []);
                 applyTextExpansion();
 
-                // 🌟 БЕЗ ЗАДЕРЖЕК: Высота уже просчитана, скролл применится мгновенно до отрисовки
                 if (localTask && localTask._readScrollTop !== undefined) {
                     renderDiv.scrollTop = localTask._readScrollTop;
                 } else {
@@ -4617,11 +4351,9 @@ async function loadTaskIntoModal(taskId, pushToStack = true, highlightQuery = nu
         
         renderDiv.style.display = 'block';
 
-        // 4. Рендер списка подзадач
         subtasksList.innerHTML = '';
         subtasksCount.textContent = task.subtasks.length;
         
-        // ВЫЧИСЛЯЕМ РЕЖИМ КОЛОНКИ РОДИТЕЛЯ
         const parentColumn = state.columns.find(c => c.id === task.column_id);
         const parentMode = parentColumn ? parentColumn.mode : 'default';
         
@@ -4630,31 +4362,24 @@ async function loadTaskIntoModal(taskId, pushToStack = true, highlightQuery = nu
             tempDiv.innerHTML = generateSubtaskHtml(sub, parentMode).trim();
             const subItem = tempDiv.firstChild;
             
-            // Привязка событий с передачей объекта задачи вместо простого ID
             bindSubtaskEvents(subItem, sub, task, parentMode);
             
             subtasksList.appendChild(subItem);
         });
 
-        // 5. Инициализация кнопки добавления (вместо старого инпута)
         renderSubtaskAddButton(formContainer);
 
-        // 6. Инициализация и логика Таймера (Редактируемого)
         const modalTimeTracker = document.getElementById('modal-time-tracker');
         const modalTimerPill = document.getElementById('modal-task-timer');
         const modalTimerInput = document.getElementById('modal-task-timer-input');
         
-        // Всегда показываем таймер (в других колонках он будет просто на паузе)
         modalTimeTracker.style.display = 'flex';
         
-        // Привязываем ID задачи к пилюле для живого обновления через updateTimers()
         modalTimerPill.dataset.taskId = task.id;
         
-        // Отображаем исходное значение
         const exactTime = task.active_timer ? formatTime(task) : formatExactTime(task.total_time_spent || 0);
         modalTimerPill.textContent = exactTime;
 
-        // Сбрасываем старые обработчики путем глубокого клонирования
         const newPill = modalTimerPill.cloneNode(true);
         const newInput = modalTimerInput.cloneNode(true);
         modalTimerPill.replaceWith(newPill);
@@ -4678,7 +4403,6 @@ async function loadTaskIntoModal(taskId, pushToStack = true, highlightQuery = nu
             
             const seconds = parseTimeToSeconds(newInput.value);
             
-            // Если ввели чушь - просто возвращаем как было
             if (seconds === null) {
                 newInput.style.display = 'none';
                 newPill.style.display = 'block';
@@ -4699,7 +4423,6 @@ async function loadTaskIntoModal(taskId, pushToStack = true, highlightQuery = nu
                     if (col) {
                         const idx = col.tasks.findIndex(t => t.id === updatedTask.id);
                         if (idx !== -1) {
-                            // Сохраняем подзадачи при записи обновленного времени
                             updatedTask.subtasks = col.tasks[idx].subtasks;
                             col.tasks[idx] = updatedTask;
                         }
@@ -4708,7 +4431,6 @@ async function loadTaskIntoModal(taskId, pushToStack = true, highlightQuery = nu
                     const displayTime = updatedTask.active_timer ? formatTime(updatedTask) : formatExactTime(updatedTask.total_time_spent || 0);
                     newPill.textContent = displayTime;
                     
-                    // Мгновенно обновляем карточку на самой доске (Senior UI: без ожидания сетевого refresh)
                     const boardCard = document.querySelector(`.card[data-card-id="${task.id}"]`);
                     if (boardCard) {
                         updateCardAppearance(boardCard, updatedTask, col.mode);
@@ -4742,7 +4464,6 @@ async function loadTaskIntoModal(taskId, pushToStack = true, highlightQuery = nu
     }
 }
 
-// ФУНКЦИЯ 2: Рисует сложный граф путей сверху модалки (с лимитом 15 символов)
 async function renderGraphBreadcrumbs(taskId) {
     const container = document.getElementById('task-breadcrumbs');
     container.innerHTML = '';
@@ -4762,16 +4483,13 @@ async function renderGraphBreadcrumbs(taskId) {
             path.forEach((node, index) => {
                 const isLast = index === path.length - 1;
                 
-                // Senior UI Truncate: лимит 15 символов
                 const rawTitle = node.title || "";
                 const displayTitle = rawTitle.length > 15 
                     ? rawTitle.substring(0, 14) + '…' 
                     : rawTitle;
 
-                // Обертка node, чтобы карточка и её стрелочка не разрывались при переносе строки
                 html += `<div class="breadcrumb-node">`;
                 
-                // Важно: записываем ОРИГИНАЛЬНЫЙ заголовок в data-full-title для тултипа (он уже подхватывается нашим initTooltip)
                 html += `<span class="breadcrumb-item ${isLast ? 'active' : ''}" 
                                data-id="${node.id}" 
                                data-full-title="${escapeHtml(rawTitle)}">${escapeHtml(displayTitle)}</span>`;
@@ -4791,7 +4509,6 @@ async function renderGraphBreadcrumbs(taskId) {
         container.querySelectorAll('.breadcrumb-item:not(.active)').forEach(el => {
             el.onclick = () => {
                 const id = parseInt(el.dataset.id);
-                // Подтягиваем контекст задачи (workspace_id, column_id) и вызываем супер-роутер
                 fetch(`${API_BASE}/tasks/${id}/context`)
                     .then(res => res.json())
                     .then(context => {
@@ -4799,7 +4516,6 @@ async function renderGraphBreadcrumbs(taskId) {
                     })
                     .catch(err => {
                         console.error("Не удалось найти контекст задачи", err);
-                        // Фолбэк на простое открытие
                         loadTaskIntoModal(id, true);
                     });
             };
@@ -4809,59 +4525,133 @@ async function renderGraphBreadcrumbs(taskId) {
     }
 }
 
-function updateTimers() {
-    // 1. Обновляем все таймеры на самой доске (в существующих колонках)
-    document.querySelectorAll('.card-timer').forEach(el => {
-        // Пропускаем таймеры внутри летящего клона (обновим их отдельно ниже)
-        if (el.closest('.card-drag-clone')) return;
+const _visibleTimerEls = new Set();
+let _timerIO = null;
 
-        const taskId = el.dataset.taskId;
-        for (const col of state.columns) {
-            const task = col.tasks.find(t => t.id == taskId);
-            if (task?.active_timer) {
-                el.textContent = formatTime(task);
-                break;
+function _buildTaskIndex() {
+    const map = new Map();
+    for (const col of state.columns) {
+        for (const t of col.tasks) map.set(String(t.id), t);
+    }
+    return map;
+}
+
+function _refreshTimerEl(el, index) {
+    const task = index.get(String(el.dataset.taskId));
+    if (task?.active_timer) {
+        const newText = formatTime(task);
+        if (el.textContent !== newText) el.textContent = newText;
+    }
+}
+
+function _collectTimerEls(node, out) {
+    if (node.nodeType !== 1) return;
+    if (node.classList && node.classList.contains('card-timer')) out.push(node);
+    if (node.querySelectorAll) {
+        node.querySelectorAll('.card-timer').forEach(t => out.push(t));
+    }
+}
+
+function initTimerCulling() {
+    if (!('IntersectionObserver' in window) || !('MutationObserver' in window)) return;
+    const board = document.getElementById('board');
+    if (!board) return;
+
+    _timerIO = new IntersectionObserver((entries) => {
+        let index = null;
+        for (const en of entries) {
+            if (en.isIntersecting) {
+                _visibleTimerEls.add(en.target);
+                if (!index) index = _buildTaskIndex();
+                _refreshTimerEl(en.target, index);
+            } else {
+                _visibleTimerEls.delete(en.target);
+            }
+        }
+    }, { root: null, rootMargin: '256px' });
+
+    const mo = new MutationObserver((mutations) => {
+        for (const m of mutations) {
+            for (const n of m.addedNodes) {
+                const added = [];
+                _collectTimerEls(n, added);
+                for (const t of added) _timerIO.observe(t);
+            }
+            for (const n of m.removedNodes) {
+                const removed = [];
+                _collectTimerEls(n, removed);
+                for (const t of removed) {
+                    _timerIO.unobserve(t);
+                    _visibleTimerEls.delete(t);
+                }
             }
         }
     });
+    mo.observe(board, { childList: true, subtree: true });
 
-    // 🔥 2. ОБНОВЛЯЕМ ТАЙМЕР В ЛЕТЯЩЕЙ КАРТОЧКЕ (Drag Clone)
-    // Это гарантирует, что время тикает при переходе между вкладками
-    if (isDragging && dragType === 'card' && draggedTaskObject?.active_timer) {
+    board.querySelectorAll('.card-timer').forEach(t => _timerIO.observe(t));
+}
+
+function updateTimers() {
+    if (document.hidden) return;
+
+    const modalTimerPill = document.getElementById('modal-task-timer');
+    const modalActive = !!(modalTimerPill && modalTimerPill.dataset.taskId && modalTimerPill.style.display !== 'none');
+    const dragActive = !!(isDragging && dragType === 'card' && draggedTaskObject?.active_timer);
+
+    if (_timerIO && _visibleTimerEls.size === 0 && !modalActive && !dragActive) return;
+
+    let _taskIndex = null;
+    const _getTask = (id) => {
+        if (!_taskIndex) _taskIndex = _buildTaskIndex();
+        return _taskIndex.get(String(id));
+    };
+
+    if (_timerIO) {
+        for (const el of _visibleTimerEls) {
+            if (!el.isConnected) { _visibleTimerEls.delete(el); continue; }
+            const task = _getTask(el.dataset.taskId);
+            if (task?.active_timer) {
+                const newText = formatTime(task);
+                if (el.textContent !== newText) el.textContent = newText;
+            }
+        }
+    } else {
+        document.querySelectorAll('.card-timer').forEach(el => {
+            if (el.closest('.card-drag-clone')) return;
+            const task = _getTask(el.dataset.taskId);
+            if (task?.active_timer) {
+                const newText = formatTime(task);
+                if (el.textContent !== newText) el.textContent = newText;
+            }
+        });
+    }
+
+    if (dragActive) {
         const newTime = formatTime(draggedTaskObject);
         
-        // Обновляем текст в клоне, который видит пользователь
         if (dragClone) {
             const timerEl = dragClone.querySelector('.card-timer');
             if (timerEl) timerEl.textContent = newTime;
         }
-        // Обновляем текст в "призраке", который лежит на доске (если он есть)
         if (draggedElement) {
             const timerEl = draggedElement.querySelector('.card-timer');
             if (timerEl) timerEl.textContent = newTime;
         }
     }
 
-    // 3. Обновляем таймер внутри модалки (если она открыта)
-    const modalTimerPill = document.getElementById('modal-task-timer');
-    if (modalTimerPill && modalTimerPill.dataset.taskId && modalTimerPill.style.display !== 'none') {
+    if (modalActive) {
         const taskId = modalTimerPill.dataset.taskId;
         
-        // Сначала ищем в текущей доске
-        let task = null;
-        for (const col of state.columns) {
-            task = col.tasks.find(t => t.id == taskId);
-            if (task) break;
-        }
+        let task = _getTask(taskId) || null;
         
-        // Если не нашли на доске (например, карточка из другой вкладки), 
-        // проверяем, не её ли мы сейчас тащим
         if (!task && draggedTaskObject && draggedTaskObject.id == taskId) {
             task = draggedTaskObject;
         }
 
         if (task && task.active_timer) {
-            modalTimerPill.textContent = formatTime(task);
+            const newText = formatTime(task);
+            if (modalTimerPill.textContent !== newText) modalTimerPill.textContent = newText;
         }
     }
 }
@@ -4874,14 +4664,11 @@ function updateColumnCount(columnEl, count = null) {
     }
 }
 
-// Универсальная функция плавного удаления карточки с доски (Clone + Spacer)
 function animateCardDeletion(boardCard) {
     if (!boardCard || !boardCard.parentNode) return;
     
-    // 1. Снимаем размеры и координаты
     const rect = boardCard.getBoundingClientRect();
     
-    // 2. Создаем клона
     const clone = boardCard.cloneNode(true);
     clone.classList.add('card-deleting-clone');
     clone.style.left = `${rect.left}px`;
@@ -4892,21 +4679,17 @@ function animateCardDeletion(boardCard) {
     clone.removeAttribute('data-card-id');
     document.body.appendChild(clone);
     
-    // 3. Создаем распорку
     const spacer = document.createElement('div');
     spacer.className = 'card-spacer';
     spacer.style.height = `${rect.height}px`;
     
-    // 4. Подменяем оригинал распоркой
     const parentCol = boardCard.closest('.column');
     boardCard.replaceWith(spacer);
     
-    // Мгновенно обновляем счетчик в шапке
     if (parentCol) {
         updateColumnCount(parentCol, parentCol.querySelectorAll('.card:not(.card-drag-clone)').length);
     }
     
-    // 5. Запускаем анимацию на следующем кадре
     requestAnimationFrame(() => {
         requestAnimationFrame(() => {
             clone.classList.add('is-animating');
@@ -4914,7 +4697,6 @@ function animateCardDeletion(boardCard) {
         });
     });
     
-    // 6. Убираем мусор
     setTimeout(() => {
         if (clone.parentNode) clone.remove();
         if (spacer.parentNode) spacer.remove();
@@ -4924,48 +4706,35 @@ function animateCardDeletion(boardCard) {
 function clampSingleTitle(titleEl) {
     if (!titleEl) return;
     
-    // Ограничиваем заголовок 25% высоты экрана
     const MAX_ALLOWED_HEIGHT = window.innerHeight * 0.25; 
 
     const fullTitle = titleEl.dataset.fullTitle || titleEl.textContent;
 
-    // 1. Сбрасываем стили для честного замера
     titleEl.style.webkitLineClamp = 'unset';
     titleEl.style.maxHeight = 'none';
 
-    // 2. Считаем реальную высоту одной строки
     const computedStyle = window.getComputedStyle(titleEl);
     const lineHeight = parseFloat(computedStyle.lineHeight) || 21.75;
 
-    // 3. Если контент превышает лимит
     if (titleEl.scrollHeight > MAX_ALLOWED_HEIGHT) {
-        // Вычисляем сколько ПОЛНЫХ строк влезет
-        // Вычитаем 2px из лимита для безопасности (запас на границы)
         const maxLines = Math.max(2, Math.floor((MAX_ALLOWED_HEIGHT - 2) / lineHeight));
 
-        // 4. Применяем зажим строк
         titleEl.style.webkitLineClamp = String(maxLines);
         
-        // 🔥 ГЛАВНЫЙ ФИКС: Принудительно устанавливаем высоту элемента 
-        // кратно количеству строк + наш padding из CSS.
-        // Это не даст контейнеру "обрезать" нижнюю строку на середине.
         titleEl.style.maxHeight = (maxLines * lineHeight) + "px";
 
         titleEl.dataset.fullTitle = fullTitle;
         titleEl.dataset.clamped = 'true';
     } else {
-        // Если текст короткий - снимаем все ограничения
         titleEl.style.webkitLineClamp = 'unset';
         titleEl.style.maxHeight = 'none';
         titleEl.dataset.clamped = 'false';
     }
 }
 
-// Оригинальная функция теперь просто вызывает clampSingleTitle для всех колонок (нужно при ресайзе окна)
 function clampExpandedTitles() {
     document.querySelectorAll('.column:not(.collapsed) .column-title').forEach(clampSingleTitle);
 }
-
 
 function initTabsScrollbar() {
     const wrapper = document.getElementById('tabs-wrapper');
@@ -4987,15 +4756,12 @@ function initTabsScrollbar() {
             return;
         }
         
-        // Вычисляем ширину ползунка
-        const thumbWidth = Math.max(container.clientWidth * scrollRatio, 40); // минимум 40px
+        const thumbWidth = Math.max(container.clientWidth * scrollRatio, 40);
         thumb.style.width = `${thumbWidth}px`;
         
-        // Вычисляем позицию
         const maxScrollLeft = container.scrollWidth - container.clientWidth;
         let scrollPercent = container.scrollLeft / maxScrollLeft;
         
-        // ФИКС ИНЕРЦИИ: Защита от вылета при резиновом скролле macOS
         scrollPercent = Math.max(0, Math.min(1, scrollPercent));
         
         const maxThumbLeft = container.clientWidth - thumbWidth;
@@ -5013,7 +4779,7 @@ function initTabsScrollbar() {
         if (!wrapper.matches(':hover') && !isDraggingThumb) {
             hideTimeout = setTimeout(() => {
                 scrollbar.classList.remove('visible');
-            }, 800); // Синхронизировано с основным скроллбаром (800мс)
+            }, 800);
         }
     }
 
@@ -5021,7 +4787,6 @@ function initTabsScrollbar() {
         updateThumb();
         showScrollbar();
         
-        // Логика затемнения края (маски)
         if (container.scrollLeft > 2) {
             container.classList.add('is-scrolled');
         } else {
@@ -5035,20 +4800,19 @@ function initTabsScrollbar() {
             clearTimeout(hideTimeout);
             hideTimeout = setTimeout(() => {
                 scrollbar.classList.remove('visible');
-            }, 400); // Ускоренное затухание, если мышь ушла с шапки
+            }, 400);
         }
     });
 
     window.addEventListener('resize', updateThumb);
-    window.updateTabsScrollbar = updateThumb; // Экспортируем для ручного вызова
+    window.updateTabsScrollbar = updateThumb;
 
-    // --- Логика перетаскивания (Drag) самого ползунка мышкой ---
     thumb.addEventListener('mousedown', (e) => {
         isDraggingThumb = true;
         startX = e.clientX;
         startScrollLeft = container.scrollLeft;
         thumb.classList.add('is-dragging');
-        document.body.style.userSelect = 'none'; // Блокируем выделение текста
+        document.body.style.userSelect = 'none';
         e.preventDefault();
         e.stopPropagation();
     });
@@ -5083,7 +4847,6 @@ function initTabsScrollbar() {
     });
 }
 
-
 function initBoardScrollbar() {
     const wrapper = document.getElementById('board-wrapper');
     const container = document.querySelector('.board-container');
@@ -5105,16 +4868,13 @@ function initBoardScrollbar() {
             return;
         }
 
-        // Ширина дорожки = реальная ширина DOM-элемента скроллбара
-        // (учитывает left:24px / right:24px из CSS)
         const trackWidth = scrollbar.clientWidth;
-        const thumbWidth = Math.max(trackWidth * scrollRatio, 40); // минимум 40px
+        const thumbWidth = Math.max(trackWidth * scrollRatio, 40);
         thumb.style.width = `${thumbWidth}px`;
 
         const maxScrollLeft = container.scrollWidth - container.clientWidth;
         let scrollPercent = container.scrollLeft / maxScrollLeft;
 
-        // Защита от вылета при инерционном скролле macOS
         scrollPercent = Math.max(0, Math.min(1, scrollPercent));
 
         const maxThumbLeft = trackWidth - thumbWidth;
@@ -5153,14 +4913,11 @@ function initBoardScrollbar() {
     window.addEventListener('resize', updateThumb);
     window.updateBoardScrollbar = updateThumb;
 
-    // 🚀 Автоматическое обновление при изменении ширины доски
-    // (добавление/удаление/сворачивание колонок, ресайз окна и т.д.)
     if (board && window.ResizeObserver) {
         const ro = new ResizeObserver(() => updateThumb());
         ro.observe(board);
     }
 
-    // --- Перетаскивание ползунка мышкой ---
     thumb.addEventListener('mousedown', (e) => {
         isDraggingThumb = true;
         startX = e.clientX;
@@ -5202,13 +4959,11 @@ function initBoardScrollbar() {
     });
 }
 
-
 function initTooltip() {
     const tooltip = document.createElement('div');
     tooltip.id = 'tooltip';
     tooltip.className = 'custom-tooltip';
     
-    // ДОБАВЛЕНО: Внутренний контейнер для чистого среза текста
     const tooltipInner = document.createElement('div');
     tooltipInner.className = 'tooltip-inner';
     tooltip.appendChild(tooltipInner);
@@ -5246,19 +5001,20 @@ function initTooltip() {
     document.addEventListener('mouseover', (e) => {
         if (typeof isDragging !== 'undefined' && isDragging) return;
 
-        // Добавили .vault-name-text и .vault-history-name в список отслеживаемых
-        const titleEl = e.target.closest('.column-title, .tab-name, .breadcrumb-item, .vault-name-text, .vault-history-name');
+        // Добавили .cal-event-chip, .cal-ev-title, .cal-ev-time
+        const titleEl = e.target.closest('.column-title, .tab-name, .breadcrumb-item, .vault-name-text, .vault-history-name, .cal-event-chip, .cal-ev-title, .cal-ev-time');
         if (!titleEl) return;
 
         let isActuallyClamped = false;
         
-        // Добавили проверку для названия хранилища (и в шапке, и в истории)
         if (titleEl.classList.contains('tab-name') || 
             titleEl.classList.contains('breadcrumb-item') || 
             titleEl.classList.contains('vault-name-text') ||
-            titleEl.classList.contains('vault-history-name')) {
+            titleEl.classList.contains('vault-history-name') ||
+            titleEl.classList.contains('cal-event-chip') ||
+            titleEl.classList.contains('cal-ev-title') ||
+            titleEl.classList.contains('cal-ev-time')) {
             
-            // Если текст заканчивается на троеточие (с защитой от пробелов) или физически не влезает
             isActuallyClamped = titleEl.textContent.trim().endsWith('…') || titleEl.scrollWidth > titleEl.clientWidth;
         } else if (titleEl.closest('.column.collapsed')) {
             isActuallyClamped = titleEl.dataset.clamped === 'true';
@@ -5267,11 +5023,9 @@ function initTooltip() {
         }
 
         if (!isActuallyClamped) return;
-        // -----------------------------------------------------
 
         activeTitle = titleEl;
         
-        // Сбрасываем лимит у внутреннего контейнера
         tooltipInner.style.webkitLineClamp = 'unset';
         tooltipInner.textContent = titleEl.dataset.fullTitle || titleEl.textContent;
         
@@ -5284,7 +5038,6 @@ function initTooltip() {
         
         const maxLines = Math.max(1, Math.floor(maxAvailableHeight / lineHeight));
         
-        // Применяем лимит к tooltipInner
         tooltipInner.style.webkitLineClamp = maxLines.toString();
 
         tooltip.classList.add('visible');
@@ -5303,8 +5056,8 @@ function initTooltip() {
     });
 
     document.addEventListener('mouseout', (e) => {
-        // ДОБАВИЛИ .vault-name-text и .vault-history-name в список. Теперь тултип поймет, что пора исчезать
-        const titleEl = e.target.closest('.column-title, .tab-name, .breadcrumb-item, .vault-name-text, .vault-history-name');
+        // Добавили .cal-event-chip, .cal-ev-title, .cal-ev-time
+        const titleEl = e.target.closest('.column-title, .tab-name, .breadcrumb-item, .vault-name-text, .vault-history-name, .cal-event-chip, .cal-ev-title, .cal-ev-time');
         if (titleEl && titleEl === activeTitle) {
             activeTitle = null;
             tooltip.classList.remove('visible');
@@ -5320,11 +5073,9 @@ function initTooltip() {
     
     document.addEventListener('mousedown', hideTooltip);
     
-    // Senior UX: Защита от залипания тултипа в воздухе при инерционном скролле на тачпаде Mac/Win
     document.addEventListener('wheel', hideTooltip, { passive: true });
 }
 
-// Выносим показ окна на самый верхний уровень, ДО любых await!
 let isRevealed = false;
 const triggerReveal = () => {
     if (isRevealed) return;
@@ -5332,18 +5083,14 @@ const triggerReveal = () => {
         isRevealed = true;
         document.body.classList.remove('preload');
         try {
-            // Вызываем Python-функцию для показа окна
             const call = window.pywebview.api.reveal_window();
             if (call && call.catch) call.catch(() => {});
         } catch (e) {}
     }
 };
 
-// 1. Ловим событие сразу же при старте скрипта!
 window.addEventListener('pywebviewready', triggerReveal);
 
-// 2. Страховка: используем setTimeout вместо requestAnimationFrame, 
-// так как macOS замораживает rAF для скрытых окон!
 const checkApi = () => {
     if (isRevealed) return;
     if (window.pywebview && window.pywebview.api) {
@@ -5367,7 +5114,6 @@ function initHeadingFolding(container, foldedHeadings = []) {
 
         const headingText = heading.textContent.replace(arrow.textContent || '', '').trim();
 
-        // Первоначальное сворачивание на основе сохраненного состояния
         if (foldedHeadings.includes(headingText)) {
             heading.classList.add('is-folded');
             const level = parseInt(heading.tagName.substring(1));
@@ -5385,14 +5131,13 @@ function initHeadingFolding(container, foldedHeadings = []) {
         }
 
         heading.addEventListener('click', (e) => {
-            if (e.target.closest('a')) return; // Игнорируем ссылки внутри заголовков
+            if (e.target.closest('a')) return;
 
             const isFolded = heading.classList.toggle('is-folded');
             const level = parseInt(heading.tagName.substring(1));
 
             let next = heading.nextElementSibling;
             while (next) {
-                // Если встретили заголовок такого же уровня или выше (меньший H-индекс) — останавливаемся
                 if (next.tagName.match(/^H[1-6]$/)) {
                     const nextLevel = parseInt(next.tagName.substring(1));
                     if (nextLevel <= level) {
@@ -5405,8 +5150,6 @@ function initHeadingFolding(container, foldedHeadings = []) {
                 } else {
                     next.classList.remove('is-hidden-by-fold');
                     
-                    // Если разворачиваем родительский блок, но встречаем вложенный заголовок,
-                    // который тоже свернут — не разворачиваем его дочерние элементы
                     if (next.tagName.match(/^H[1-6]$/) && next.classList.contains('is-folded')) {
                         const skipLevel = parseInt(next.tagName.substring(1));
                         let skipNext = next.nextElementSibling;
@@ -5425,7 +5168,6 @@ function initHeadingFolding(container, foldedHeadings = []) {
                 if (next) next = next.nextElementSibling;
             }
 
-            // Отправка нового состояния свернутых заголовков на бэкенд
             const taskId = document.getElementById('task-modal').dataset.taskId;
             if (taskId) {
                 const currentFolded = [];
@@ -5440,7 +5182,6 @@ function initHeadingFolding(container, foldedHeadings = []) {
                     body: JSON.stringify({ folded_headings: currentFolded })
                 }).then(res => {
                     if (res.ok) {
-                        // Локальная синхронизация состояния для избежания лишних перезапросов к БД
                         for (let col of state.columns) {
                             let t = col.tasks.find(taskItem => taskItem.id === parseInt(taskId));
                             if (t) {
@@ -5464,7 +5205,6 @@ function enhanceCodeBlocks(container) {
         }
     });
 
-    // Кнопка копирования
     container.querySelectorAll('pre').forEach(pre => {
         if (pre.querySelector('.code-copy-btn')) return;
         const btn = document.createElement('button');
@@ -5492,8 +5232,6 @@ function enhanceCodeBlocks(container) {
         while (prismIndex < codeBlocks.length && (performance.now() - sliceStart) < 16) {
             const block = codeBlocks[prismIndex++];
             if (block.isConnected) {
-                // Если код огромный (минифицированный CSS/JS), подсвечиваем его как Plain Text,
-                // чтобы регулярки Prism не повесили браузер
                 if (block.textContent.length > 20000) {
                     block.className = 'language-plain';
                 }
@@ -5560,7 +5298,6 @@ function generateSubtaskHtml(sub, parentMode = 'default') {
     `;
 }
 
-
 async function onAddSubtask() {
     const container = document.getElementById('subtask-form-container');
     const subtasksList = document.getElementById('subtasks-list');
@@ -5571,7 +5308,6 @@ async function onAddSubtask() {
 
     if (!addBtn) return;
 
-    // 1. Создаем форму-пунктир
     const formItem = document.createElement('div');
     formItem.className = 'subtask-item subtask-entering';
     formItem.innerHTML = `
@@ -5582,22 +5318,17 @@ async function onAddSubtask() {
     const input = formItem.querySelector('textarea');
     
     const autoResize = () => {
-        // ФИКС СКРОЛЛА: Запоминаем текущую позицию скролла модалки
         const scrollParent = formItem.closest('.task-detail-body');
         const currentScroll = scrollParent ? scrollParent.scrollTop : 0;
 
-        // Идеальный расчет высоты: сбрасываем до 1px, замеряем с учетом бордеров
         const offset = input.offsetHeight - input.clientHeight;
         input.style.height = '1px'; 
         input.style.height = (input.scrollHeight + offset) + 'px';
         
-        // Восстанавливаем скролл, чтобы интерфейс не прыгал
         if (scrollParent) scrollParent.scrollTop = currentScroll;
     };
 
     input.addEventListener('input', () => {
-        // Senior UX Fix: При любом вводе текста мы СРАЗУ убираем класс ошибки и удаляем элемент подсказки.
-        // Это заставляет Flexbox мгновенно пересчитать высоту контейнера до вызова autoResize.
         formItem.classList.remove('is-error');
         const hint = formItem.querySelector('.card-error-hint');
         if (hint) {
@@ -5607,10 +5338,8 @@ async function onAddSubtask() {
     });
     
     autoResize();
-    // ФИКС СКРОЛЛА: запрещаем браузеру мгновенно и резко прыгать к полю при фокусе
     input.focus({ preventScroll: true });
 
-    // Единожды плавно скроллим к новой форме, если она не влезла в экран
     requestAnimationFrame(() => {
         formItem.classList.add('entered');
         formItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -5629,23 +5358,18 @@ async function onAddSubtask() {
         const title = input.value.trim();
         if (!title) { cancel(); return; }
 
-        // МАГИЯ ССЫЛКИ ДЛЯ БЫСТРОГО ДОБАВЛЕНИЯ
         const linkMatch = title.match(/^\[(.*?)\]\(doe:\/\/task\/(\d+)\)$/) || title.match(/^doe:\/\/task\/(\d+)$/);
         if (linkMatch) {
             const linkedTaskId = parseInt(linkMatch[2] || linkMatch[1]);
             
-            // Проверка 1: Сама на себя
-            // Проверка 2: Уже есть в списке (дубликат)
             const isDuplicate = !!subtasksList.querySelector(`.subtask-item[data-subtask-id="${linkedTaskId}"]`);
 
             if (linkedTaskId === parentId || isDuplicate) {
-                // Senior UX: Разблокируем ввод и вызываем визуальный фидбек
                 input.disabled = false; 
                 formItem.classList.remove('is-error');
-                void formItem.offsetWidth; // Магия: заставляем браузер перезапустить анимацию тряски
+                void formItem.offsetWidth;
                 formItem.classList.add('is-error');
                 
-                // Очищаем класс ошибки после завершения анимации (400мс)
                 setTimeout(() => formItem.classList.remove('is-error'), 400);
 
                 input.focus({ preventScroll: true });
@@ -5657,13 +5381,11 @@ async function onAddSubtask() {
             input.disabled = true;
 
             try {
-                // Подтягиваем старых родителей и добавляем нового (Множественные связи)
                 const linkedTaskRes = await fetch(`${API_BASE}/tasks/${linkedTaskId}`);
-                if (!linkedTaskRes.ok) throw new Error("Task not found"); // Перехватываем 404
+                if (!linkedTaskRes.ok) throw new Error("Task not found");
                 
                 const linkedTask = await linkedTaskRes.json();
                 
-                // Страховка (fallback на []), если массив вдруг не пришел
                 const safeOldParents = Array.isArray(linkedTask.parent_ids) ? linkedTask.parent_ids : [];
                 const newParents = [...new Set([...safeOldParents, parentId])];
                 
@@ -5676,7 +5398,6 @@ async function onAddSubtask() {
                 formItem.remove();
                 renderSubtaskAddButton(container);
                 
-                // Перезагружаем модалку, чтобы отобразить новую структуру
                 await loadTaskIntoModal(parentId, false);
                 refreshBoard();
                 return;
@@ -5684,7 +5405,6 @@ async function onAddSubtask() {
                 isResolved = false;
                 input.disabled = false;
                 
-                // Эстетичный показ ошибки вместо системного alert
                 let hint = formItem.querySelector('.card-error-hint');
                 if (!hint) {
                     hint = document.createElement('div');
@@ -5699,7 +5419,7 @@ async function onAddSubtask() {
                 }
 
                 formItem.classList.remove('is-error');
-                void formItem.offsetWidth; // Магия: заставляем браузер перезапустить анимацию тряски
+                void formItem.offsetWidth;
                 formItem.classList.add('is-error');
                 
                 setTimeout(() => formItem.classList.remove('is-error'), 400);
@@ -5707,7 +5427,6 @@ async function onAddSubtask() {
                 return;
             }
         }
-        // ------------------------------------------
 
         if (title.length > 200) {
             if (!formItem.querySelector('.card-error-hint')) {
@@ -5751,7 +5470,6 @@ async function onAddSubtask() {
             formItem.remove();
             renderSubtaskAddButton(container);
 
-            // ФОКУС СКРОЛЛА: Когда родилась новая подзадача, плавно летим к ней
             requestAnimationFrame(() => {
                 realSub.classList.add('born');
                 realSub.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -5759,7 +5477,7 @@ async function onAddSubtask() {
 
             setTimeout(() => realSub.classList.remove('subtask-birth', 'born'), 500);
             document.getElementById('subtasks-count').textContent = parseInt(document.getElementById('subtasks-count').textContent) + 1;
-            refreshBoard(); // Обновляем индикатор на карточке доски
+            refreshBoard();
         } catch (err) {
             isResolved = false;
             input.disabled = false;
@@ -5782,15 +5500,12 @@ async function onAddSubtask() {
     });
 }
 
-// Вспомогательная функция отрисовки кнопки добавления
 function renderSubtaskAddButton(container) {
     container.innerHTML = `<button class="btn-add-subtask">${t('taskModal.subtasksPlaceholder')}</button>`;
     container.querySelector('.btn-add-subtask').onclick = onAddSubtask;
 }
 
-// Вспомогательная функция привязки событий (выносим из основного цикла)
 function bindSubtaskEvents(el, sub, parentTaskOrId, parentMode = 'default') {
-    // Нормализуем родительскую задачу для поддержки разных сценариев вызова
     let parentTask = null;
     let parentId = null;
     if (typeof parentTaskOrId === 'object' && parentTaskOrId !== null) {
@@ -5804,11 +5519,9 @@ function bindSubtaskEvents(el, sub, parentTaskOrId, parentMode = 'default') {
         }
     }
 
-    // 1. Чекбокс
     el.querySelector('.subtask-checkbox').onclick = (e) => {
         e.stopPropagation();
 
-        // --- БЛОКИРОВКА ТОЛЬКО ЕСЛИ КАРТОЧКА НА ДОСКЕ ---
         if (sub.is_visible_on_board) {
             el.classList.remove('is-error');
             void el.offsetWidth;
@@ -5819,24 +5532,19 @@ function bindSubtaskEvents(el, sub, parentTaskOrId, parentMode = 'default') {
 
         const isDone = !el.classList.contains('is-done');
         
-        // --- OPTIMISTIC UI: Мгновенное визуальное переключение ---
         el.classList.toggle('is-done', isDone);
         
         const timestamp = isDone ? new Date().toISOString() : null;
         const previousTimestamp = sub.completed_at;
         sub.completed_at = timestamp;
 
-        // --- МГНОВЕННОЕ ГЛОБАЛЬНОЕ ОБНОВЛЕНИЕ ВСЕХ КАРТОЧЕК НА ДОСКЕ ---
-        // Проходим по всему стейту, так как подзадача может быть привязана к нескольким родителям
         state.columns.forEach(col => {
             col.tasks.forEach(task => {
                 if (task.subtasks) {
                     const subIndex = task.subtasks.findIndex(s => s.id === sub.id);
                     if (subIndex !== -1) {
-                        // Обновляем статус подзадачи в локальном стейте этой карточки
                         task.subtasks[subIndex].completed_at = timestamp;
                         
-                        // Обновляем визуал пилюли на доске для этой карточки
                         const cardEl = document.querySelector(`.card[data-card-id="${task.id}"]`);
                         if (cardEl) {
                             updateCardAppearance(cardEl, task, col.mode);
@@ -5846,15 +5554,12 @@ function bindSubtaskEvents(el, sub, parentTaskOrId, parentMode = 'default') {
             });
         });
 
-        // --- АСИНХРОННЫЙ ЗАПРОС БЕЗ БЛОКИРОВКИ ИНТЕРФЕЙСА ---
         updateTask(sub.id, { completed_at: timestamp }).catch((err) => {
             console.error("Failed to update subtask status:", err);
             
-            // Откат состояния модалки UI в случае сетевой ошибки
             el.classList.toggle('is-done', !isDone);
             sub.completed_at = previousTimestamp;
             
-            // Откат глобального состояния UI на доске
             state.columns.forEach(col => {
                 col.tasks.forEach(task => {
                     if (task.subtasks) {
@@ -5875,13 +5580,11 @@ function bindSubtaskEvents(el, sub, parentTaskOrId, parentMode = 'default') {
         });
     };
 
-    // 2. УДАЛЕНИЕ (Корзина)
     el.querySelector('.subtask-delete-btn').onclick = async (e) => {
         e.stopPropagation();
 
         const parents = sub.parent_ids || [];
 
-        // 1. Визуальное удаление
         el.style.transition = 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)';
         el.style.opacity = '0';
         el.style.transform = 'translateX(30px) scale(0.95)';
@@ -5894,29 +5597,25 @@ function bindSubtaskEvents(el, sub, parentTaskOrId, parentMode = 'default') {
 
         try {
             if (parents.length > 1) {
-                // Если у подзадачи есть другие родители — просто отвязываем её от текущего (не удаляя глобально)
                 const newParentIds = parents.filter(id => id !== parentId);
                 await updateTask(sub.id, { parent_ids: newParentIds });
                 
                 bumpModalUpdatedDate();
-                sub.parent_ids = newParentIds; // Обновляем локально
+                sub.parent_ids = newParentIds;
                 refreshBoard();
             } else {
-                // Если это был последний родитель — удаляем задачу безвозвратно
                 const data = await deleteTask(sub.id);
                 
                 bumpModalUpdatedDate();
                 
                 const deletedIds = data.deleted_ids || [];
                 
-                // Если задача была вынесена на доску или имела подзадачи — вычищаем их с доски
                 deletedIds.forEach(id => {
                     const boardCard = document.querySelector(`.card[data-card-id="${id}"]`);
                     if (boardCard) {
                         animateCardDeletion(boardCard);
                     }
                     
-                    // Вычищаем из локального стейта
                     for (let col of state.columns) {
                         const taskIndex = col.tasks.findIndex(t => t.id === id);
                         if (taskIndex !== -1) col.tasks.splice(taskIndex, 1);
@@ -5929,36 +5628,25 @@ function bindSubtaskEvents(el, sub, parentTaskOrId, parentMode = 'default') {
         }
     };
 
-    // 3. ОТКРЫТИЕ (Expand)
     el.querySelector('.subtask-open-btn').onclick = (e) => {
         e.stopPropagation();
 
-        // 🔥 СЕНЬОР-ФИКС: Если подзадача не вынесена на доску (глазик выключен),
-        // просто открываем её поверх в модалке без смены контекста и вкладок.
-        // Бэкенд всё еще помнит её колонку, чтобы восстановить карточку при включении глазика.
         if (!sub.is_visible_on_board) {
             loadTaskIntoModal(sub.id, true);
             return;
         }
         
-        // 🚀 Узнаем контекст подзадачи (в какой вкладке и колонке она физически лежит)
         fetch(`${API_BASE}/tasks/${sub.id}/context`)
             .then(res => res.json())
             .then(context => {
-                // Используем наш глобальный навигатор:
-                // Он сам переключит вкладку, проскроллит к колонке,
-                // подсветит карточку на фоне и загрузит её в модалку.
-                // Параметр keepStack=true гарантирует, что хлебные крошки сохранятся!
                 window.navigateToEntityGlobal(context.workspace_id, context.column_id, sub.id, null, true);
             })
             .catch(err => {
                 console.error("Не удалось найти контекст задачи", err);
-                // Фолбэк, если бэкенд вдруг не ответил — просто открываем поверх
                 loadTaskIntoModal(sub.id, true);
             });
     };
 
-    // 4. ГЛАЗИК (Видимость на доске)
     el.querySelector('.subtask-eye-btn').onclick = (e) => {
         e.stopPropagation();
         const eyeBtn = e.currentTarget;
@@ -5975,11 +5663,9 @@ function bindSubtaskEvents(el, sub, parentTaskOrId, parentMode = 'default') {
         eyeBtn.classList.toggle('active-eye', sub.is_visible_on_board);
         el.classList.toggle('is-board-agent', sub.is_visible_on_board);
         
-        // Отправляем запрос на сервер и ЖДЕМ ответ 
         updateTask(sub.id, { 
             is_visible_on_board: sub.is_visible_on_board
         }).then(updatedSub => {
-            // Синхронизируем статус с БД
             sub.completed_at = updatedSub.completed_at;
             
             const isDone = sub.completed_at;
@@ -6000,7 +5686,6 @@ function bindSubtaskEvents(el, sub, parentTaskOrId, parentMode = 'default') {
         }).catch(console.error);
     };
 
-    // 5. ОТВЯЗКА (Сделать корневой задачей)
     const detachBtn = el.querySelector('.subtask-detach-btn');
     if (detachBtn) {
         detachBtn.onclick = async (e) => {
@@ -6009,13 +5694,11 @@ function bindSubtaskEvents(el, sub, parentTaskOrId, parentMode = 'default') {
             let parents = sub.parent_ids || [];
             let detachType = 'all';
 
-            // Если карточка привязана более чем к одному родителю — показываем умную модалку
             if (parents.length > 1) {
                 detachType = await showDetachModal();
-                if (!detachType) return; // Нажали Отмена или кликнули вне модалки
+                if (!detachType) return;
             }
 
-            // Визуальное удаление
             el.style.transition = 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)';
             el.style.opacity = '0';
             el.style.transform = 'translateY(-10px) scale(0.95)';
@@ -6029,10 +5712,8 @@ function bindSubtaskEvents(el, sub, parentTaskOrId, parentMode = 'default') {
             try {
                 let newParentIds = [];
                 if (detachType === 'current') {
-                    // Удаляем только текущего родителя
                     newParentIds = parents.filter(id => id !== parentId);
                 } else if (detachType === 'all') {
-                    // Очищаем массив, делая карточку полностью сиротой
                     newParentIds = [];
                 }
 
@@ -6054,19 +5735,44 @@ function initTaskDescriptionLogic() {
 
     let lastSavedValue = "";
 
-    // --- ИНИЦИАЛИЗАЦИЯ CODEMIRROR ---
     if (!cmEditor && window.CodeMirror) {
         cmEditor = CodeMirror.fromTextArea(inputArea, {
             lineWrapping: true,      
-            viewportMargin: 10,       // ВАЖНО: Рендерить только 10 строк за пределами экрана (по умолчанию он рендерит больше)
-            maxHighlightLength: 2000, // ВАЖНО: Не пытаться парсить синтаксис на строках длиннее 2000 символов (защита от зависания на минифицированном коде)
-            workTime: 10,             // Тратить не более 10мс на парсинг в фоне
-            workDelay: 100,           // Отдыхать 100мс между парсингом
+            viewportMargin: 50,
+            maxHighlightLength: 2000,
+            workTime: 10,
+            workDelay: 100,
             spellcheck: false,
             autocorrect: false
         });
         cmEditor.getWrapperElement().style.display = 'none';
     }
+
+    const _cmCalib = { gen: 0 };
+
+    const _calibrateEditorHeights = () => {
+        if (!cmEditor) return;
+        const lineCount = cmEditor.lineCount();
+        if (lineCount < 1000 || lineCount > 30000) return;
+        const gen = ++_cmCalib.gen;
+        let line = 0;
+        const idle = window.requestIdleCallback || ((cb) => setTimeout(cb, 50));
+        const step = () => {
+            if (gen !== _cmCalib.gen) return;
+            if (!cmEditor || cmEditor.getWrapperElement().style.display === 'none') return;
+            const t0 = performance.now();
+            try {
+                while (line < lineCount && performance.now() - t0 < 8) {
+                    cmEditor.charCoords({ line: line, ch: 0 }, 'local');
+                    line += 1;
+                }
+            } catch (e) {
+                return;
+            }
+            if (line < cmEditor.lineCount()) idle(step);
+        };
+        idle(step);
+    };
 
     const switchToEditMode = () => {
         if (window.closeLocalSearch) window.closeLocalSearch(); 
@@ -6079,7 +5785,6 @@ function initTaskDescriptionLogic() {
             if (currentTask) break;
         }
 
-        // 1. СОХРАНЯЕМ позицию скролла текста и самой модалки
         if (currentTask) {
             currentTask._readScrollTop = renderDiv.scrollTop;
             const detailBody = document.querySelector('.task-detail-body');
@@ -6092,7 +5797,6 @@ function initTaskDescriptionLogic() {
 
         window.getSelection().removeAllRanges();
         
-        // 2. ВОССТАНАВЛИВАЕМ последнюю позицию курсора
         const targetPos = currentTask && currentTask._editCursorPos 
             ? currentTask._editCursorPos 
             : { line: 0, ch: 0 };
@@ -6102,12 +5806,14 @@ function initTaskDescriptionLogic() {
         
         const info = cmEditor.getScrollInfo();
         cmEditor.scrollIntoView(targetPos, Math.round(info.clientHeight / 2));
+
+        if (!cmEditor._calibHooked) {
+            cmEditor._calibHooked = true;
+            cmEditor.on('change', () => { _cmCalib.gen++; });
+        }
+        _calibrateEditorHeights();
     };
 
-
-    // ==========================================
-    // ЛОГИКА ВСТАВКИ ФАЙЛОВ
-    // ==========================================
     const processFileForDescription = async (file) => {
         const isEditMode = renderDiv.style.display === 'none';
 
@@ -6217,13 +5923,9 @@ function initTaskDescriptionLogic() {
 
     descWrapper.addEventListener('drop', handleFileDrop);
     
-    // Перехватываем Paste внутри CodeMirror
     cmEditor.on('paste', (cm, e) => handleFilePaste(e));
     renderDiv.addEventListener('paste', handleFilePaste);
 
-    // ==========================================
-    // ЛОГИКА СОХРАНЕНИЯ ОПИСАНИЯ
-    // ==========================================
     const switchToReadMode = async () => {
         const newDesc = cmEditor.getValue();
         const taskId = modal.dataset.taskId;
@@ -6294,7 +5996,6 @@ function initTaskDescriptionLogic() {
             extracted.forEach(att => attachmentsList.appendChild(createAttachmentElement(att)));
         }
 
-        // 1. СОХРАНЯЕМ позицию курсора перед выходом
         if (currentTask && cmEditor) {
             currentTask._editCursorPos = cmEditor.getCursor();
         }
@@ -6311,7 +6012,6 @@ function initTaskDescriptionLogic() {
                 initHeadingFolding(renderDiv, localFolded);
                 applyTextExpansion(); 
                 
-                // 🌟 БЕЗ ЗАДЕРЖЕК: Мгновенное применение скролла
                 if (currentTask && currentTask._readScrollTop !== undefined) {
                     renderDiv.scrollTop = currentTask._readScrollTop;
                 } else {
@@ -6443,33 +6143,25 @@ function initTaskDescriptionLogic() {
         }
     });
 
-    // ==========================================
-    // ЛОГИКА БЛОКИРОВКИ СБРОСА ФОКУСА С РЕДАКТОРА
-    // ==========================================
     let preventBlurExit = false;
 
-    // Перехватываем клик мышкой в области описания
     descWrapper.addEventListener('mousedown', (e) => {
-        // Если мы в режиме редактирования, блокируем выход (чтобы клик по скроллбару не выкидывал нас)
         if (cmEditor && cmEditor.getWrapperElement().style.display === 'block') {
             preventBlurExit = true;
         }
     });
 
-    // Когда мышь отпустили (даже если утащили за пределы окна)
     window.addEventListener('mouseup', () => {
         if (preventBlurExit) {
             preventBlurExit = false;
-            // Принудительно возвращаем фокус редактору после прокрутки
             if (cmEditor && cmEditor.getWrapperElement().style.display === 'block') {
                 cmEditor.focus();
             }
         }
     });
 
-    // Сохранение при клике мимо редактора
     cmEditor.on('blur', () => {
-        if (preventBlurExit) return; // 🔥 Игнорируем blur при перетаскивании скроллбара
+        if (preventBlurExit) return;
         switchToReadMode();
     });
 }
@@ -6483,10 +6175,8 @@ function initTaskModalDragAndResize() {
     let currentResizer = null;
     let isDragging = false;
     
-    // Начальные параметры для позиционирования
     let startX, startY, startW, startH, startLeft, startTop;
 
-    // --- ФИЗИКА МОДАЛКИ ---
     let currentRotation = 0;
     let targetRotation = 0;
     let lastMouseX = 0;
@@ -6494,11 +6184,9 @@ function initTaskModalDragAndResize() {
     let currentMouseY = 0;
     let rafId = null;
     
-    // 🔥 ФИКС БАГА ПРЫЖКА: Переменные для контроля и отмены старых анимаций
     let dragCleanupTimeout = null;
     let dragCleanupFn = null;
 
-    // ЛОГИКА КНОПКИ РАЗВОРОТА И ПЛАВНОГО ЦЕНТРИРОВАНИЯ (FLIP-анимация)
     maximizeBtn.addEventListener('click', (e) => {
         e.stopPropagation();
 
@@ -6516,7 +6204,7 @@ function initTaskModalDragAndResize() {
                 card.style.transform = 'none';
             }
 
-            void card.offsetWidth; // Force Reflow
+            void card.offsetWidth;
             card.classList.add('maximized');
             maximizeBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 10 14 10 14 6"></polyline><polyline points="6 14 10 14 10 18"></polyline><line x1="14" y1="10" x2="18" y2="6"></line><line x1="10" y1="14" x2="6" y2="18"></line></svg>`;
         } else {
@@ -6613,8 +6301,6 @@ function initTaskModalDragAndResize() {
 
         e.preventDefault();
         
-        // 🔥 ФИКС ПРЫЖКА: Если юзер схватил карточку до того, как закончилась прошлая анимация
-        // отпускания (или "возврата" на место), отменяем её!
         if (dragCleanupFn) {
             card.removeEventListener('transitionend', dragCleanupFn);
             dragCleanupFn = null;
@@ -6624,17 +6310,15 @@ function initTaskModalDragAndResize() {
             dragCleanupTimeout = null;
         }
 
-        // 🔥 ФИКС ПРЫЖКА: ВСЕГДА читаем актуальные физические координаты карточки на экране!
-        // Это гарантирует, что мы подхватим её ровно там, где она летит в данный момент.
         const rect = card.getBoundingClientRect();
-        card.style.transition = 'none'; // Мгновенно убиваем CSS-анимации
+        card.style.transition = 'none';
         card.style.position = 'absolute';
         card.style.margin = '0';
         card.style.left = `${rect.left}px`;
         card.style.top = `${rect.top}px`;
         card.style.width = `${rect.width}px`;
         card.style.height = `${rect.height}px`;
-        card.style.transform = 'none';  // Сбрасываем CSS-translate
+        card.style.transform = 'none';
 
         isDragging = !resizer;
         currentResizer = resizer;
@@ -6716,8 +6400,6 @@ function initTaskModalDragAndResize() {
             card.style.transition = 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)';
             card.style.transform = `translate3d(${dx}px, ${dy}px, 0) rotate(0deg)`;
 
-            // 🔥 ФИКС ПРЫЖКА: Сохраняем ссылку на функцию очистки, чтобы отменить её,
-            // если юзер схватит карточку ДО того, как анимация завершится.
             dragCleanupFn = (ev) => {
                 if (ev && ev.target !== card) return; 
                 if (ev && ev.propertyName !== 'transform') return;
@@ -6753,18 +6435,16 @@ function initTaskModalDragAndResize() {
 }
 
 function extractAttachments(desc, savedOrder = []) {
-    // 1. Вырезаем блоки кода из поиска, чтобы вложения внутри них не попадали в UI-список
     let cleanDesc = desc.replace(/```[\s\S]*?```/g, '');
     cleanDesc = cleanDesc.replace(/`[^`]*`/g, '');
 
-    // 2. Регулярка учитывает возможные размеры {width, height}
     const regex = /(!?)\[([^\]]+)\]\((doe\/[^)]*)\)(?:\{[^}]+\})?(!?)/g;
     let match;
     const attachments = [];
     
     while ((match = regex.exec(cleanDesc)) !== null) {
         attachments.push({
-            fullMatch: match[0],       // Вся строка со скобками размеров (если есть)
+            fullMatch: match[0],
             isImage: match[1] === '!',
             label: match[2],
             path: match[3],
@@ -6783,7 +6463,6 @@ function extractAttachments(desc, savedOrder = []) {
     return attachments;
 }
 
-// Асинхронно обогащает сырые данные из Markdown реальными статусами с диска
 async function enrichAttachments(attachments) {
     if (attachments.length === 0) return attachments;
     const paths = attachments.map(a => a.path);
@@ -6805,14 +6484,12 @@ async function enrichAttachments(attachments) {
                 } else {
                     const status = validation[a.path];
                     a.exists = status ? status.exists : false;
-                    // ИМЯ БЕРЕМ С ДИСКА (ИЛИ ИЗ ПУТИ), А НЕ ИЗ КВАДРАТНЫХ СКОБОК МАРКДАУНА!
                     a.real_name = status ? status.real_name : a.label; 
                 }
             });
         }
     } catch (e) {
         console.error("Attachment validation failed", e);
-        // Фолбэк, если сервер не ответил
         attachments.forEach(a => { a.exists = true; a.real_name = a.name; }); 
     }
     return attachments;
@@ -6860,17 +6537,14 @@ function createAttachmentElement(att) {
         </div>
     `;
     
-    // Обработка клика
     div.addEventListener('click', async (e) => {
         if (e.target.closest('.subtask-delete-btn')) return;
         
-        // --- ЛОГИКА ПЕРЕПРИВЯЗКИ ФАЙЛА ---
         if (needsRelink) {
             let newAbsPath = null;
             if (window.pywebview && window.pywebview.api && window.pywebview.api.choose_file) {
                 newAbsPath = await window.pywebview.api.choose_file();
             } else {
-                // Fallback для браузера
                 return new Promise(resolve => {
                     const input = document.createElement('input');
                     input.type = 'file';
@@ -6904,7 +6578,6 @@ function createAttachmentElement(att) {
             return;
         }
 
-        // Если файл есть - просто открываем
         await fetch(`${API_BASE}/system/open-file`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
@@ -6912,18 +6585,15 @@ function createAttachmentElement(att) {
         });
     });
     
-    // Удаление вложения из текста
     div.querySelector('.subtask-delete-btn').addEventListener('click', async (e) => {
         e.stopPropagation();
         
-        // 1. Визуально скрываем элемент мгновенно
         div.style.transition = 'all 0.2s ease-out';
         div.style.opacity = '0';
         div.style.transform = 'translateX(20px)';
 
         const pathToDelete = att.path;
 
-        // 2. Отправляем запрос на физическое удаление с диска
         if (!isPending) {
             fetch(`${API_BASE}/system/delete-file`, {
                 method: 'POST',
@@ -6932,17 +6602,14 @@ function createAttachmentElement(att) {
             }).catch(err => console.error("Physical delete failed:", err));
         }
 
-        // 3. ПОЛНОСТЬЮ стираем упоминание файла из текста Markdown
         setTimeout(() => {
             const renderDiv = document.getElementById('task-desc-render');
             const isEditMode = renderDiv.style.display === 'none';
             
             const safePath = pathToDelete.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            // Регулярка захватывает всю конструкцию, включая ![...](...){...}!
             const pathRegex = new RegExp(`!?\\[[^\\]]*\\]\\(${safePath}\\)(?:\\{[^}]+\\})?!?`, 'g');
             
             const oldText = cmEditor.getValue();
-            // Заменяем на пустоту, чтобы не оставлять мусорный текст (label)
             const newText = oldText.replace(pathRegex, '');
             
             cmEditor.setValue(newText);
@@ -6951,7 +6618,7 @@ function createAttachmentElement(att) {
                 if (isEditMode) {
                     cmEditor.focus();
                 } else {
-                    cmEditor.getInputField().blur(); // Сохраняем в фоне
+                    cmEditor.getInputField().blur();
                 }
             } else {
                 if (div.parentNode) div.remove();
@@ -6969,22 +6636,18 @@ function replaceBrokenAttachment(att, newData) {
     const prefix = att.isImage ? '!' : '';
     const suffix = att.isHidden ? '!' : '';
 
-    // 🔥 БАГФИКС: Сохраняем кастомные размеры {width, height}, если они были
     const sizeMatch = att.fullMatch.match(/\{[^}]+\}$/);
     const sizeStr = sizeMatch ? sizeMatch[0] : '';
 
-    // Формируем новый валидный Markdown
     const newMarkdown = `${prefix}[${att.label}](${encodedNewPath})${sizeStr}${suffix}`;
     
     const currentVal = cmEditor.getValue();
     
-    // Используем callback чтобы символы доллара в путях не ломали замену
     cmEditor.setValue(currentVal.replace(att.fullMatch, () => newMarkdown));
     
     if (isEditMode) {
         cmEditor.focus();
     } else {
-        // Эмулируем blur для сохранения
         cmEditor.getInputField().blur(); 
     }
 }
@@ -7021,12 +6684,10 @@ function appendAttachmentToDescription(name, path) {
             else pfx = "\n\n";
         }
         cmEditor.setValue(text + pfx + attachmentMarkdown);
-        // Сохраняем
         cmEditor.getInputField().blur(); 
     }
 }
 
-// Обработчик кнопки "+ Добавить вложение"
 document.addEventListener('click', async (e) => {
     if (e.target.closest('#btn-add-attachment')) {
         if (window.pywebview && window.pywebview.api && window.pywebview.api.choose_file) {
@@ -7043,7 +6704,6 @@ document.addEventListener('click', async (e) => {
                 }
             }
         } else {
-            // Фолбэк для браузера (если запускать без pywebview)
             const input = document.createElement('input');
             input.type = 'file';
             input.onchange = async () => {
@@ -7064,12 +6724,7 @@ document.addEventListener('click', async (e) => {
     }
 });
 
-// ==========================================
-// ЛОГИКА ЭКРАНА ХРАНИЛИЩ (VAULT SELECTOR)
-// ==========================================
-
 async function showVaultScreen() {
-    // Включаем минималистичный крестик
     const lights = document.getElementById('mac-traffic-lights');
     if (lights) lights.classList.add('vault-mode');
 
@@ -7082,7 +6737,6 @@ async function showVaultScreen() {
 
 async function fetchVaultHistory() {
     try {
-        // Добавлен cache-buster и заголовки, чтобы браузер не отдавал старое состояние папок
         const res = await fetch(`${API_BASE}/system/vault/history?t=${Date.now()}`, {
             headers: {
                 'Cache-Control': 'no-cache',
@@ -7094,11 +6748,9 @@ async function fetchVaultHistory() {
     return [];
 }
 
-// Проверяет, нужен ли списку эффект затенения (если есть скролл)
 function updateVaultHistoryScrollState() {
     const list = document.getElementById('vault-history-list');
     if (!list) return;
-    // Если реальная высота контента больше видимой области контейнера
     if (list.scrollHeight > list.clientHeight) {
         list.classList.add('is-scrollable');
     } else {
@@ -7132,7 +6784,6 @@ async function renderVaultHistory() {
         div.className = `subtask-item vault-history-item${isMissing ? ' is-missing' : ''}`;
         div.dataset.path = item.path;
         
-        // Форматируем дату
         let dateStr = '';
         if (item.last_opened) {
             dateStr = formatDateTime(item.last_opened);
@@ -7160,7 +6811,6 @@ async function renderVaultHistory() {
             </div>
         `;
 
-        // Единый безопасный обработчик "Показать в папке"
         div.querySelector('.vault-hist-reveal').addEventListener('click', async (e) => {
             e.stopPropagation();
             try {
@@ -7178,16 +6828,13 @@ async function renderVaultHistory() {
             }
         });
 
-        // В обработчике КЛИКА нужно блокировать открытие, если мы только что бросили элемент
         div.addEventListener('click', async (e) => {
             if (window._isAfterDrag) return; 
             if (e.target.closest('.vault-hist-del')) return;
             if (e.target.closest('.vault-hist-reveal')) return;
             
-            // 🔥 СЕНЬОР ФИКС: Читаем статус прямо из DOM (он мог измениться фоновым поллером)
             const currentlyMissing = div.querySelector('.subtask-checkbox').classList.contains('missing');
             
-            // --- ЛОГИКА ПЕРЕПРИВЯЗКИ ---
             if (currentlyMissing) {
                 try {
                     let newPath = null;
@@ -7203,9 +6850,8 @@ async function renderVaultHistory() {
                     });
 
                     if (res.ok) {
-                        renderVaultHistory(); // Перерисовываем список, чтобы снять статус "потерянного"
+                        renderVaultHistory();
                     } else {
-                        // Трясем карточку, если папка не является хранилищем или уже есть в списке
                         div.classList.remove('is-error');
                         void div.offsetWidth;
                         div.classList.add('is-error');
@@ -7217,9 +6863,7 @@ async function renderVaultHistory() {
                 return;
             }
 
-            // --- ОБЫЧНАЯ ЛОГИКА ОТКРЫТИЯ ---
             try {
-                // Эффект загрузки (затемняем интерфейс)
                 div.style.opacity = '0.5';
                 div.style.pointerEvents = 'none';
 
@@ -7236,7 +6880,6 @@ async function renderVaultHistory() {
                     state.activeWorkspaceId = settings.active_workspace_id || null;
                     await transitionToApp();
                 } else if (res.status === 400) {
-                    // Папка удалена или повреждена (показываем ошибку тряской)
                     div.style.opacity = '1';
                     div.style.pointerEvents = 'auto';
                     div.classList.add('is-error');
@@ -7252,14 +6895,11 @@ async function renderVaultHistory() {
             }
         });
 
-        // Клик по корзине — удаление из истории
         div.querySelector('.vault-hist-del').addEventListener('click', async (e) => {
             e.stopPropagation();
             
-            // 1. Снимаем точные размеры
             const rect = div.getBoundingClientRect();
             
-            // 2. Создаем клона (падает вниз)
             const clone = div.cloneNode(true);
             clone.classList.add('vault-deleting-clone');
             clone.style.left = `${rect.left}px`;
@@ -7268,15 +6908,12 @@ async function renderVaultHistory() {
             clone.style.height = `${rect.height}px`;
             document.body.appendChild(clone);
             
-            // 3. Создаем умную распорку
             const spacer = document.createElement('div');
             spacer.className = 'vault-history-spacer';
             spacer.style.height = `${rect.height}px`;
             
-            // 4. Мгновенно подменяем оригинал распоркой
             div.replaceWith(spacer);
 
-            // 5. Запускаем анимации на следующем кадре
             requestAnimationFrame(() => {
                 requestAnimationFrame(() => {
                     clone.classList.add('is-animating');
@@ -7284,21 +6921,17 @@ async function renderVaultHistory() {
                 });
             });
 
-            // 6. Убираем мусор из DOM после анимации. 
-            // Благодаря отрицательному margin-top, в момент удаления spacer занимает 
-            // ровно 0 пикселей в физике списка, поэтому скачка не будет вообще.
             setTimeout(() => {
                 if (clone.parentNode) clone.remove();
                 if (spacer.parentNode) spacer.remove();
                 
-                updateVaultHistoryScrollState(); // Пересчитываем маску после удаления элемента
+                updateVaultHistoryScrollState();
                 
                 if (list.querySelectorAll('.vault-history-item').length === 0) {
                     renderVaultHistory();
                 }
             }, 450);
 
-            // 7. Фоновый запрос
             try {
                 await fetch(`${API_BASE}/system/vault/history/remove`, {
                     method: 'POST',
@@ -7313,12 +6946,10 @@ async function renderVaultHistory() {
         list.appendChild(div);
     });
     
-    // Замеряем геометрию после того, как браузер отрендерит добавленные элементы
     requestAnimationFrame(updateVaultHistoryScrollState);
 }
 
 async function transitionToApp() {
-    // Убираем минималистичный режим, возвращаем цветной светофор с плавной анимацией
     const lights = document.getElementById('mac-traffic-lights');
     if (lights) lights.classList.remove('vault-mode');
 
@@ -7356,7 +6987,6 @@ window.handleVaultAction = async (actionType) => {
                 const settings = await fetchSettings().catch(() => ({}));
                 state.activeWorkspaceId = settings.active_workspace_id || null;
                 
-                // ЗАПУСКАЕМ КРАСИВУЮ АНИМАЦИЮ ПЕРЕХОДА
                 await transitionToApp();
             } 
             else if (res.status === 400) {
@@ -7391,7 +7021,6 @@ window.cancelVaultCreate = () => {
     document.getElementById('new-vault-name').value = '';
 };
 
-// Финальное подтверждение создания
 window.confirmVaultCreate = async () => {
     const nameInput = document.getElementById('new-vault-name');
     const vaultName = nameInput.value.trim();
@@ -7421,10 +7050,8 @@ window.confirmVaultCreate = async () => {
         updateVaultName(result.name);
         state.activeWorkspaceId = null; 
         
-        // ЗАПУСКАЕМ КРАСИВУЮ АНИМАЦИЮ ПЕРЕХОДА
         await transitionToApp();
         
-        // Сброс формы в фоне для будущих открытий
         setTimeout(window.cancelVaultCreate, 500); 
 
     } catch (err) {
@@ -7433,7 +7060,6 @@ window.confirmVaultCreate = async () => {
     }
 };
 
-// Нажатие Enter в поле имени подтверждает создание
 document.getElementById('new-vault-name').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
         e.preventDefault();
@@ -7444,9 +7070,6 @@ document.getElementById('new-vault-name').addEventListener('keydown', (e) => {
     }
 });
 
-// ==========================================
-// ЛОГИКА ГЛОБАЛЬНОГО ПОИСКА (FTS5)
-// ==========================================
 function initGlobalSearch() {
     const input = document.getElementById('global-search-input');
     const dropdown = document.getElementById('search-dropdown');
@@ -7455,19 +7078,16 @@ function initGlobalSearch() {
 
     if (!input) return;
 
-    // Глобальный Hotkey: Cmd+F / Ctrl+F
     document.addEventListener('keydown', (e) => {
         if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'f') {
             e.preventDefault(); 
             
             const taskModal = document.getElementById('task-modal');
-            // Если открыта карточка — запускаем локальный поиск VS Code-style
             if (taskModal && taskModal.classList.contains('show')) {
                 if (window.openLocalSearch) window.openLocalSearch();
                 return;
             }
             
-            // Иначе фокусируемся на глобальном поиске
             input.focus();
             input.select();
         }
@@ -7489,14 +7109,13 @@ function initGlobalSearch() {
                 const res = await fetch(`${API_BASE}/system/search?q=${encodeURIComponent(query)}`);
                 if (!res.ok) throw new Error();
                 const data = await res.json();
-                renderSearchResults(data, query); // <--- ПЕРЕДАЕМ QUERY СЮДА
+                renderSearchResults(data, query);
             } catch (err) {
                 console.error("Search failed:", err);
             }
-        }, 250); // Debounce 250ms для снижения нагрузки
+        }, 250);
     });
 
-    // Закрытие при потере фокуса
     document.addEventListener('click', (e) => {
         if (!wrapper.contains(e.target)) {
             dropdown.classList.remove('show');
@@ -7514,11 +7133,8 @@ function initGlobalSearch() {
         const isTagSearch = data.search_mode === 'tags';
         const hasResults = data.workspaces.length || data.columns.length || data.tasks.length;
 
-        // Вспомогательная функция для подсветки текста в строке результатов
         const highlightString = (text, q) => {
             if (!text) return "";
-            // В тэг-режиме не подсвечиваем заголовки — пользователь ищет карточки по тегам,
-            // а не куски текста "tags" в названиях
             if (isTagSearch) return escapeHtml(text);
             if (!q) return escapeHtml(text);
             const words = q.trim().split(/\s+/).filter(w => w.length > 0);
@@ -7527,11 +7143,8 @@ function initGlobalSearch() {
             const regexWords = words.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
             const regex = new RegExp(`(${regexWords.join('|')})`, 'gi');
             
-            // Разбиваем оригинальный текст на куски, экранируем каждый кусок ОТДЕЛЬНО
-            // Это спасает от поломки HTML сущностей (когда поиск буквы "t" ломал "&lt;")
             const parts = text.split(regex);
             return parts.map((part, i) => {
-                // split с группой захвата возвращает совпадения на нечетных индексах
                 if (i % 2 !== 0) {
                     return `<mark>${escapeHtml(part)}</mark>`;
                 }
@@ -7572,30 +7185,22 @@ function initGlobalSearch() {
         const taskIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`;
 
         data.workspaces.forEach(w => {
-            // Подсвечиваем имя вкладки
             createItem(highlightString(w.name, query), `${wsIcon} Вкладка`, null, () => window.navigateToEntityGlobal(w.id, null, null));
         });
 
         data.columns.forEach(c => {
-            // Подсвечиваем имя колонки
             createItem(highlightString(c.title, query), `${colIcon} Колонка &middot; ${c.workspace_name}`, null, () => window.navigateToEntityGlobal(c.workspace_id, c.id, null));
         });
 
         data.tasks.forEach(t => {
             let desc = null;
-            // В тэг-режиме сниппеты не показываем — пользователь хочет просто список карточек,
-            // а не куски найденного текста
             if (!isTagSearch && t.snippet && t.snippet.trim()) {
-                // Экранируем всё, НО возвращаем обратно теги <mark> и </mark>, 
-                // которые прислал бэкенд из FTS5 (иначе они сломают вёрстку, если в тексте были символы < и >)
                 const safeSnippet = escapeHtml(t.snippet)
                     .replace(/&lt;mark&gt;/gi, '<mark>')
                     .replace(/&lt;\/mark&gt;/gi, '</mark>');
                 desc = `...${safeSnippet}...`;
             }
             
-            // При клике на тэг-карточку query НЕ передаём, чтобы внутри карточки 
-            // не подсвечивались буквы из слова "tags"
             createItem(highlightString(t.title, query), `${taskIcon} Карточка &middot; ${t.workspace_name} / ${t.column_title}`, desc, () => window.navigateToEntityGlobal(t.workspace_id, t.column_id, t.id, isTagSearch ? null : query));
         });
 
@@ -7603,11 +7208,9 @@ function initGlobalSearch() {
     }
 }
 
-// Супер-роутер: переходит на вкладку -> скроллит к колонке -> (опционально) открывает карточку
 window.navigateToEntityGlobal = async function(wsId, colId, taskId, highlightQuery = null, keepStack = false, openModal = true) {
     closeAllDropdowns();
     
-    // 1. Свитч вкладки, если мы не на ней
     if (wsId && wsId !== state.activeWorkspaceId) {
         document.querySelectorAll('.board-tab').forEach(t => t.classList.remove('active'));
         const targetTab = document.querySelector(`.board-tab[data-workspace-id="${wsId}"]`);
@@ -7619,26 +7222,21 @@ window.navigateToEntityGlobal = async function(wsId, colId, taskId, highlightQue
         state.activeWorkspaceId = wsId;
         updateSettings({ active_workspace_id: wsId }).catch(console.error);
         
-        // Ждем загрузки доски
         const columns = await fetchColumns(wsId);
         state.columns = columns.map(col => ({ ...col, collapsed: col.collapsed || false }));
         renderBoard();
     }
 
-    // 2. Скролл до колонки
     if (colId) {
-        // Даем DOM время на рендер (если был свитч)
         requestAnimationFrame(() => {
             const colEl = document.querySelector(`.column[data-column-id="${colId}"]`);
             if (colEl) {
                 if (colEl.classList.contains('collapsed') && taskId) {
-                    onExpandColumn(colEl); // Разворачиваем, если нужно показать карточку
+                    onExpandColumn(colEl);
                 }
                 colEl.scrollIntoView({ behavior: 'smooth', inline: 'center' });
                 
-                // 3. Обработка карточки
                 if (taskId) {
-                    // Подсвечиваем саму карточку (миниатюру на доске)
                     const cardEl = document.querySelector(`.card[data-card-id="${taskId}"]`);
                     if (cardEl) {
                         cardEl.classList.add('is-highlighted');
@@ -7655,13 +7253,11 @@ window.navigateToEntityGlobal = async function(wsId, colId, taskId, highlightQue
     }
 };
 
-
 window.chooseCustomAttFolder = async () => {
     if (!window.pywebview || !window.pywebview.api) return;
     const path = await window.pywebview.api.choose_directory();
     if (path) {
         try {
-            // Эффект загрузки (блокируем UI пока файлы мигрируют)
             document.getElementById('setting-item-external').style.opacity = '0.5';
             
             await fetch(`${API_BASE}/system/settings`, {
@@ -7670,7 +7266,6 @@ window.chooseCustomAttFolder = async () => {
                 body: JSON.stringify({ global_attachments_path: path, reset_attachments: false })
             });
             
-            // Обновляем UI
             document.getElementById('att-path-display').textContent = path;
             document.getElementById('setting-item-local').classList.remove('active');
             document.getElementById('setting-item-external').classList.add('active');
@@ -7683,11 +7278,9 @@ window.chooseCustomAttFolder = async () => {
 };
 
 window.resetAttFolder = async () => {
-    // Если уже локально, ничего не делаем
     if (document.getElementById('setting-item-local').classList.contains('active')) return;
 
     try {
-        // Эффект загрузки
         document.getElementById('setting-item-local').style.opacity = '0.5';
 
         await fetch(`${API_BASE}/system/settings`, {
@@ -7696,7 +7289,6 @@ window.resetAttFolder = async () => {
             body: JSON.stringify({ reset_attachments: true })
         });
         
-        // Обновляем UI
         document.getElementById('att-path-display').textContent = t('modals.attSelectBtn');
         document.getElementById('setting-item-external').classList.remove('active');
         document.getElementById('setting-item-local').classList.add('active');
@@ -7707,20 +7299,14 @@ window.resetAttFolder = async () => {
     }
 };
 
-// ==========================================
-// ЛОГИКА УВЕДОМЛЕНИЙ И КАСТОМНОГО КАЛЕНДАРЯ
-// ==========================================
-
-// Глобальное состояние пикера
 let dpCurrentDate = new Date();
 let dpSelectedDate = new Date();
-let activeDatePickerTrigger = null; // Хранит активное поле ввода даты
+let activeDatePickerTrigger = null;
 
 function renderDatePicker() {
     const locale = dpLocales[currentLang];
     document.getElementById('dp-time-label').textContent = locale.time;
     
-    // Отрисовка дней недели
     const weekdaysEl = document.getElementById('dp-weekdays');
     weekdaysEl.innerHTML = locale.days.map(d => `<span>${d}</span>`).join('');
 
@@ -7733,13 +7319,12 @@ function renderDatePicker() {
     grid.innerHTML = '';
 
     const firstDay = new Date(year, month, 1).getDay();
-    const startDay = firstDay === 0 ? 6 : firstDay - 1; // Пн - 0, Вс - 6
+    const startDay = firstDay === 0 ? 6 : firstDay - 1;
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const daysInPrevMonth = new Date(year, month, 0).getDate();
 
     const today = new Date();
     
-    // Предыдущий месяц
     for (let i = 0; i < startDay; i++) {
         const d = daysInPrevMonth - startDay + i + 1;
         const div = document.createElement('div');
@@ -7748,18 +7333,15 @@ function renderDatePicker() {
         grid.appendChild(div);
     }
 
-    // Текущий месяц
     for (let i = 1; i <= daysInMonth; i++) {
         const div = document.createElement('div');
         div.className = 'dp-cell';
         div.textContent = i;
         
-        // Проверка на "Сегодня"
         if (year === today.getFullYear() && month === today.getMonth() && i === today.getDate()) {
             div.classList.add('today');
         }
         
-        // Проверка на "Выбрано"
         if (year === dpSelectedDate.getFullYear() && month === dpSelectedDate.getMonth() && i === dpSelectedDate.getDate()) {
             div.classList.add('selected');
         }
@@ -7773,7 +7355,6 @@ function renderDatePicker() {
         grid.appendChild(div);
     }
 
-    // Следующий месяц (добиваем сетку)
     const totalCells = startDay + daysInMonth;
     const remaining = Math.ceil(totalCells / 7) * 7 - totalCells;
     for (let i = 1; i <= remaining; i++) {
@@ -7791,17 +7372,13 @@ window.updateDatePickerTrigger = function() {
     activeDatePickerTrigger.textContent = `${dateStr}, ${timeStr}`;
 };
 
-// Привязка обработчиков для пикера (выполняется один раз)
 document.addEventListener('DOMContentLoaded', () => {
-    // === НАЧАЛО ВСТАВКИ: Оформление логики напоминаний ===
     
-    // Автозамена на 15 происходит только при потере фокуса (клике вне поля)
     const amountInput = document.getElementById('notify-amount');
     if (amountInput) {
         amountInput.addEventListener('blur', () => {
             const rawValue = amountInput.value.trim();
             
-            // Если поле полностью стерто или введено некорректное значение (<= 0)
             if (rawValue === '') {
                 amountInput.value = '15';
                 return;
@@ -7814,7 +7391,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Логика работы кастомного выпадающего списка единиц времени
     const trigger = document.getElementById('notify-unit-trigger');
     const menu = document.getElementById('notify-unit-menu');
 
@@ -7848,9 +7424,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // === КОНЕЦ ВСТАВКИ ===
-
-    // --- Переключение месяцев ---
     document.getElementById('dp-prev').onclick = (e) => {
         e.stopPropagation();
         dpCurrentDate.setMonth(dpCurrentDate.getMonth() - 1);
@@ -7862,7 +7435,6 @@ document.addEventListener('DOMContentLoaded', () => {
         renderDatePicker();
     };
 
-    // --- Переключение годов ---
     document.getElementById('dp-prev-year').onclick = (e) => {
         e.stopPropagation();
         dpCurrentDate.setFullYear(dpCurrentDate.getFullYear() - 1);
@@ -7876,13 +7448,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('datepicker-trigger').onclick = (e) => {
         e.stopPropagation();
-        closeAllDropdowns(); // Закроет всё лишнее
+        closeAllDropdowns();
         
         const trigger = e.currentTarget;
         const rect = trigger.getBoundingClientRect();
         const dropdown = document.getElementById('datepicker-dropdown');
         
-        // Измеряем реальную высоту календаря (в скрытом виде)
         dropdown.style.visibility = 'hidden';
         dropdown.style.display = 'flex';
         dropdown.classList.add('show');
@@ -7894,7 +7465,6 @@ document.addEventListener('DOMContentLoaded', () => {
         let topPos = rect.bottom + 8;
         let transformOrigin = 'top center';
         
-        // Smart Collision: Если не влезает снизу - открываем наверх!
         if (topPos + dropHeight > window.innerHeight - 10) {
             topPos = rect.top - dropHeight - 8;
             transformOrigin = 'bottom center';
@@ -7904,18 +7474,15 @@ document.addEventListener('DOMContentLoaded', () => {
         dropdown.style.left = `${rect.left + (rect.width / 2)}px`;
         dropdown.style.transformOrigin = transformOrigin;
         
-        // Обязательный forced reflow перед добавлением класса анимации
         void dropdown.offsetWidth;
         
         dropdown.classList.add('show');
     };
 
-    // Запрет закрытия при клике внутри пикера
     document.getElementById('datepicker-dropdown').onclick = (e) => {
         e.stopPropagation();
     };
 
-    // Инпуты времени
     const hInput = document.getElementById('dp-hour');
     const mInput = document.getElementById('dp-minute');
 
@@ -7944,10 +7511,8 @@ function openNotifyModal(taskId, taskTitle) {
     modal.dataset.taskId = taskId;
     modal.dataset.taskTitle = taskTitle;
     
-    // Сброс инпутов "Через"
     document.getElementById('notify-amount').value = 15;
     
-    // Сброс Кастомного Календаря на "Сейчас + 1 минута"
     dpSelectedDate = new Date();
     dpSelectedDate.setMinutes(dpSelectedDate.getMinutes() + 1);
     dpSelectedDate.setSeconds(0);
@@ -7961,7 +7526,6 @@ function openNotifyModal(taskId, taskTitle) {
     renderDatePicker();
     updateDatePickerTrigger();
     
-    // Логика вкладок Segmented Control
     const btns = modal.querySelectorAll('.segmented-btn');
     const contents = modal.querySelectorAll('.notify-tab-content');
     
@@ -7974,14 +7538,13 @@ function openNotifyModal(taskId, taskTitle) {
         };
     });
     
-    // Кнопка подтверждения
     const confirmBtn = document.getElementById('btn-confirm-notify');
     const newConfirmBtn = confirmBtn.cloneNode(true);
     confirmBtn.replaceWith(newConfirmBtn);
     
     newConfirmBtn.onclick = async () => {
         let delaySeconds = 0;
-        let timeText = ''; // Текст для подтверждающего уведомления
+        let timeText = '';
         const isRelative = modal.querySelector('.segmented-btn.active').dataset.target === 'notify-relative';
         
         if (isRelative) {
@@ -7996,9 +7559,8 @@ function openNotifyModal(taskId, taskTitle) {
             let targetTime = dpSelectedDate.getTime();
             const nowTime = Date.now();
             
-            // Автоматическая корректировка, если время ушло в прошлое во время открытого окна
             if (targetTime < nowTime && (nowTime - targetTime) < 300000) {
-                dpSelectedDate = new Date(nowTime + 10000); // Сдвигаем на 10 секунд вперед
+                dpSelectedDate = new Date(nowTime + 10000);
                 targetTime = dpSelectedDate.getTime();
             }
             
@@ -8026,7 +7588,6 @@ function openNotifyModal(taskId, taskTitle) {
                 ? `Вы просили напомнить о карточке: "${taskTitle}"` 
                 : `Reminder for card: "${taskTitle}"`;
 
-            // 2. Само отложенное СИСТЕМНОЕ ОС-уведомление для задачи
             const res = await fetch(`${API_BASE}/tasks/${taskId}/notify`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -8039,7 +7600,6 @@ function openNotifyModal(taskId, taskTitle) {
             
             if (!res.ok) throw new Error('Network response was not ok');
 
-            // 1. Красивое ВНУТРИПРОГРАММНОЕ уведомление о постановке таймера (теперь не вызывает краш)
             window.showToast(
                 currentLang === 'ru' ? 'Напоминание установлено' : 'Reminder set',
                 `"${taskTitle}" сработает ${timeText}`
@@ -8047,10 +7607,8 @@ function openNotifyModal(taskId, taskTitle) {
 
             modal.classList.remove('show');
             
-            // Мгновенное обновление статуса индикатора в шапке
             updateBellBadge();
             
-            // Мигание зеленой галочкой у кнопки модалки (если открыта карточка)
             const bellBtn = document.querySelector('.modal-notify');
             if (bellBtn) {
                 bellBtn.style.color = 'var(--success-done)';
@@ -8072,7 +7630,6 @@ function openDueDateModal(taskId, currentDueDate) {
     const modal = document.getElementById('due-date-modal');
     modal.dataset.taskId = taskId;
     
-    // Настраиваем пикер
     if (currentDueDate) {
         const dateStr = currentDueDate + (currentDueDate.endsWith('Z') || currentDueDate.includes('+') ? '' : 'Z');
         dpSelectedDate = new Date(dateStr);
@@ -8087,11 +7644,9 @@ function openDueDateModal(taskId, currentDueDate) {
     document.getElementById('dp-hour').value = dpSelectedDate.getHours().toString().padStart(2, '0');
     document.getElementById('dp-minute').value = dpSelectedDate.getMinutes().toString().padStart(2, '0');
     
-    // Устанавливаем активный триггер для календаря
     activeDatePickerTrigger = document.getElementById('due-datepicker-trigger');
     const trigger = activeDatePickerTrigger;
     
-    // Вешаем открытие календаря на новый триггер
     trigger.onclick = (e) => {
         e.stopPropagation();
         closeAllDropdowns();
@@ -8126,7 +7681,6 @@ function openDueDateModal(taskId, currentDueDate) {
     renderDatePicker();
     updateDatePickerTrigger();
 
-    // Кнопка Установить
     const confirmBtn = document.getElementById('btn-confirm-due-date');
     const newConfirmBtn = confirmBtn.cloneNode(true);
     confirmBtn.replaceWith(newConfirmBtn);
@@ -8138,7 +7692,6 @@ function openDueDateModal(taskId, currentDueDate) {
             const isoString = dpSelectedDate.toISOString();
             await updateTask(taskId, { due_date: isoString });
             
-            // Обновляем локальный стейт
             for (let col of state.columns) {
                 let t = col.tasks.find(task => task.id == taskId);
                 if (t) {
@@ -8149,7 +7702,7 @@ function openDueDateModal(taskId, currentDueDate) {
                 }
             }
             
-            loadTaskIntoModal(taskId, false); // Обновляем пилюлю в модалке
+            loadTaskIntoModal(taskId, false);
             modal.classList.remove('show');
         } catch (e) {
             window.showToast(t('alerts.error'), 'Не удалось установить срок', true);
@@ -8162,9 +7715,6 @@ function openDueDateModal(taskId, currentDueDate) {
     modal.classList.add('show');
 }
 
-// ==========================================
-// ГЛОБАЛЬНЫЙ ОБРАБОТЧИК КНОПОК КОПИРОВАНИЯ ССЫЛОК (Для модалки)
-// ==========================================
 document.addEventListener('click', async (e) => {
     const copyBtn = e.target.closest('.modal-copy-link');
     if (copyBtn) {
@@ -8173,14 +7723,12 @@ document.addEventListener('click', async (e) => {
 
         const modal = document.getElementById('task-modal');
         const taskId = modal.dataset.taskId;
-        // 🚀 ФИКС: Учитываем, что заголовок модалки тоже может быть в режиме редактирования (textarea)
         const titleNode = document.getElementById('task-modal-title') || document.querySelector('.task-modal-title-input');
         const taskTitle = (titleNode.value !== undefined ? titleNode.value : titleNode.textContent).trim();
 
         const link = `[${taskTitle}](doe://task/${taskId})`;
 
         try {
-            // 🚀 БРОНЕБОЙНОЕ КОПИРОВАНИЕ
             if (navigator.clipboard && window.isSecureContext) {
                 await navigator.clipboard.writeText(link);
             } else {
@@ -8195,7 +7743,6 @@ document.addEventListener('click', async (e) => {
                 textArea.remove();
             }
             
-            // Анимация успешного копирования (короткая вспышка цвета без смены HTML)
             copyBtn.classList.add('copied');
             setTimeout(() => copyBtn.classList.remove('copied'), 600);
         } catch (err) {
@@ -8209,26 +7756,21 @@ function parseMarkdownWithMath(text) {
     const mathBlocks = [];
     const codeBlocks = [];
     
-    // 1. ИЗОЛИРУЕМ КОД (чтобы внутри него не парсились картинки, формулы и HTML)
     let processed = text.replace(/(```[\s\S]*?```|`[^`]*`)/g, (match) => {
         codeBlocks.push(match);
         return `DOECODEPLACEHOLDER${codeBlocks.length - 1}END`;
     });
 
-    // 2. Изолируем Блочные формулы ($$...$$)
     processed = processed.replace(/\$\$([\s\S]+?)\$\$/g, (match, math) => {
         mathBlocks.push({ math, displayMode: true });
         return `DOEMATHPLACEHOLDER${mathBlocks.length - 1}END`;
     });
 
-    // 3. Изолируем Инлайн формулы ($...$)
     processed = processed.replace(/\$([^$\n]+?)\$/g, (match, math) => {
         mathBlocks.push({ math, displayMode: false });
         return `DOEMATHPLACEHOLDER${mathBlocks.length - 1}END`;
     });
 
-    // 4. ПРЕ-ПРОЦЕССИНГ ИЗОБРАЖЕНИЙ С РЕСАЙЗОМ (и отсев не-изображений)
-    // Ищет: ![alt](doe/file.png){100, 200} или просто ![alt](doe/file.png)
     processed = processed.replace(/!\[([^\]]*)\]\(([^)]+)\)(?:\{(\d+)\s*,\s*(\d+)\})?/g, (match, alt, url, w, h) => {
         const ext = url.split('.').pop().toLowerCase();
         const isImage = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'ico'].includes(ext);
@@ -8249,16 +7791,12 @@ function parseMarkdownWithMath(text) {
         return `<span class="image-resizer-wrapper ${customClass}" style="${style}" data-md="${safeMatch}"><img src="/${url}" alt="${alt}" draggable="false"><span class="image-resize-handle" title="Потяните для изменения размера"></span></span>`;
     });
 
-    // 5. ВОЗВРАЩАЕМ КОД НА МЕСТО ДО ПАРСИНГА MARKED (Marked сам обернет его в <pre><code>)
     codeBlocks.forEach((code, i) => {
-        // Используем callback () => code, чтобы символы '$' в коде не ломали replace
         processed = processed.replace(`DOECODEPLACEHOLDER${i}END`, () => code);
     });
 
-    // 6. Парсим чистый Markdown
     let html = marked.parse(processed, { breaks: true });
 
-    // 7. Рендерим и возвращаем формулы на место
     if (window.katex) {
         mathBlocks.forEach((item, i) => {
             try {
@@ -8295,18 +7833,15 @@ function initLocalSearchLogic() {
     let matchRanges = [];
     let currentMatchIndex = -1;
     
-    // --- SENIOR OPTIMIZATION: VS Code Text Model Approach ---
-    let searchId = 0;              // Защита от Data Race
-    let cachedTextNodes = null;    // Кеш для молниеносного прохода
-    let searchDebounce = null;     // Debounce для инпута
+    let searchId = 0;
+    let cachedTextNodes = null;
+    let searchDebounce = null;
 
     window.openLocalSearch = () => {
         if (renderDiv.style.display === 'none') return;
         widget.classList.add('show');
         setTimeout(() => { input.focus(); input.select(); }, 50);
         
-        // 1. Строим индекс ОДИН РАЗ при открытии.
-        // Итерация по JS-массиву строк будет в 1000 раз быстрее, чем TreeWalker при каждом поиске.
         cachedTextNodes = [];
         const walker = document.createTreeWalker(renderDiv, NodeFilter.SHOW_TEXT, null, false);
         let node;
@@ -8324,8 +7859,8 @@ function initLocalSearchLogic() {
         widget.classList.remove('show');
         clearLocalSearch();
         input.value = '';
-        cachedTextNodes = null; // Очищаем RAM
-        searchId++; // Убиваем фоновые лупы
+        cachedTextNodes = null;
+        searchId++;
     };
 
     function clearLocalSearch() {
@@ -8344,21 +7879,18 @@ function initLocalSearchLogic() {
         const textLower = query.toLowerCase();
         const currentSearchId = ++searchId;
         
-        // Быстрый выход: проверяем наличие текста на уровне C++ движка браузера
         if (!renderDiv.textContent.toLowerCase().includes(textLower)) {
             countEl.textContent = '0/0';
             return;
         }
 
         function searchNextChunk(startIndex) {
-            // Если юзер ввел новую букву - этот процесс устарел, убиваем
             if (currentSearchId !== searchId) return;
             
             const startTime = performance.now();
             let i = startIndex;
             
             for (; i < cachedTextNodes.length; i++) {
-                // Бюджет 12мс на кадр для плавных 60 FPS
                 if (performance.now() - startTime > 12) break;
                 
                 const item = cachedTextNodes[i];
@@ -8373,7 +7905,6 @@ function initLocalSearchLogic() {
                     pos += query.length;
                 }
                 
-                // VS Code Style: Защита RAM от "мертвых" зависаний на 1 букве
                 if (matchRanges.length >= 10000) break;
             }
 
@@ -8409,7 +7940,6 @@ function initLocalSearchLogic() {
             CSS.highlights.set('local-search-active', highlightActive);
         }
 
-        // 1. СНАЧАЛА разворачиваем скрытые заголовки (раскрываем физический размер блоков)
         let block = activeRange.startContainer.parentElement;
         while (block && block !== renderDiv) {
             if (block.classList.contains('is-hidden-by-fold')) {
@@ -8424,18 +7954,13 @@ function initLocalSearchLogic() {
             block = block.parentElement;
         }
 
-        // 2. ДВУХУРОВНЕВЫЙ МГНОВЕННЫЙ СКРОЛЛИНГ С ФОЛБЭКОМ НА DOM
         requestAnimationFrame(() => {
-            const innerScroll = renderDiv;       // Окно самого текста описания (.markdown-body)
-            const outerScroll = scrollParent;     // Вся модалка (.task-detail-body)
+            const innerScroll = renderDiv;
+            const outerScroll = scrollParent;
             const descWrapper = document.querySelector('.description-wrapper');
 
             let rangeRect = activeRange.getBoundingClientRect();
 
-            // ⚡ СВЕРХНАДЕЖНЫЙ ФОЛБЭК (Obsidian/VS Code Engine Trick):
-            // Если Range находится глубоко в невидимой (еще не отрендеренной) части огромного CSS/кода,
-            // браузер вернет нулевые координаты. В этом случае мы мгновенно берем координаты родительского
-            // DOM-элемента (тега <span>, в который Prism завернул свой токен). Их браузер знает всегда!
             if (rangeRect.top === 0 || rangeRect.height === 0) {
                 const parentEl = activeRange.startContainer.parentElement;
                 if (parentEl) {
@@ -8443,28 +7968,25 @@ function initLocalSearchLogic() {
                 }
             }
 
-            if (rangeRect.top === 0) return; // Окончательный предохранитель
+            if (rangeRect.top === 0) return;
 
-            // Шаг А: Скроллим внутренний viewport (текст внутри окна описания)
             if (innerScroll) {
                 const innerRect = innerScroll.getBoundingClientRect();
                 const relativeTop = rangeRect.top - innerRect.top + innerScroll.scrollTop;
                 innerScroll.scrollTo({
-                    top: relativeTop - (innerRect.height / 2), // Идеально центрируем строку кода по вертикали
-                    behavior: 'auto'                           // Мгновенный снайперский сдвиг без конфликтов
+                    top: relativeTop - (innerRect.height / 2),
+                    behavior: 'auto'
                 });
             }
 
-            // Шаг Б: Скроллим внешний viewport (подтягиваем само окно описания в видимую зону всей модалки)
             if (outerScroll && descWrapper) {
                 const wrapperRect = descWrapper.getBoundingClientRect();
                 const outerRect = outerScroll.getBoundingClientRect();
 
-                // Если само окно описания уехало вверх или вниз в модалке — аккуратно возвращаем его в фокус
                 if (wrapperRect.top < outerRect.top + 16 || wrapperRect.bottom > outerRect.bottom - 16) {
                     const relativeWrapperTop = wrapperRect.top - outerRect.top + outerScroll.scrollTop;
                     outerScroll.scrollTo({
-                        top: relativeWrapperTop - 16, // Выравниваем по верхней границе описания с отступом в 16px
+                        top: relativeWrapperTop - 16,
                         behavior: 'auto'
                     });
                 }
@@ -8488,7 +8010,6 @@ function initLocalSearchLogic() {
         updateLocalSearchUI();
     }
 
-    // --- DEBOUNCE ДЛЯ ОПТИМИЗАЦИИ ВВОДА ---
     input.addEventListener('input', () => {
         clearTimeout(searchDebounce);
         searchDebounce = setTimeout(() => performLocalSearch(input.value), 120);
@@ -8504,13 +8025,9 @@ function initLocalSearchLogic() {
     btnClose.addEventListener('click', window.closeLocalSearch);
 }
 
-// Запускаем инициализацию (можно поместить вызов внутрь главной IIFE async функции внизу файла)
 initTaskDescriptionLogic();
 initLocalSearchLogic();
 
-// ==========================================
-// ГРАФ СВЯЗЕЙ (Obsidian-style, Canvas + физика)
-// ==========================================
 const G = {
     nodes: [], edges: [], nodeMap: {},
     scale: 1, offsetX: 0, offsetY: 0,
@@ -8519,7 +8036,7 @@ const G = {
     mouseDownPos: null, lastX: 0, lastY: 0,
     running: false,
     showArrows: false,
-    repulsionForce: 9000,         // <-- НОВОЕ: Текущая сила отталкивания
+    repulsionForce: 9000,
     nodeAt: null, graphNodeRadius: null
 };
 
@@ -8546,14 +8063,13 @@ function initGraphModal() {
         return { x: (mx - G.offsetX) / G.scale, y: (my - G.offsetY) / G.scale };
     }
     function graphNodeRadius(n) {
-        // Чем больше связей — тем жирнее точка
         return 5 + Math.min(n.degree || 0, 12) * 1.6;
     }
     function nodeAt(mx, my) {
         const w = screenToWorld(mx, my);
         for (let i = G.nodes.length - 1; i >= 0; i--) {
             const n = G.nodes[i];
-            const r = graphNodeRadius(n) + 4 / G.scale; // запас на попадание
+            const r = graphNodeRadius(n) + 4 / G.scale;
             const dx = n.x - w.x, dy = n.y - w.y;
             if (dx * dx + dy * dy <= r * r) return n;
         }
@@ -8562,7 +8078,6 @@ function initGraphModal() {
     G.nodeAt = nodeAt;
     G.graphNodeRadius = graphNodeRadius;
 
-    // ЗУМ (колесо мыши / тачпад) с центрированием на курсоре
     canvas.addEventListener('wheel', (e) => {
         e.preventDefault();
         const rect = canvas.getBoundingClientRect();
@@ -8581,9 +8096,9 @@ function initGraphModal() {
         G.mouseDownPos = { x: e.clientX, y: e.clientY };
         const n = nodeAt(mx, my);
         if (n) {
-            G.dragNode = n; // тащим узел
+            G.dragNode = n;
         } else {
-            G.isPanning = true; // двигаем "холст"
+            G.isPanning = true;
             canvas.style.cursor = 'grabbing';
         }
         G.lastX = e.clientX; G.lastY = e.clientY;
@@ -8618,7 +8133,6 @@ function initGraphModal() {
     });
 
     const endPointer = (e) => {
-        // Если мышь почти не сдвинулась — считаем это кликом
         if (G.mouseDownPos &&
             Math.abs(e.clientX - G.mouseDownPos.x) < 5 &&
             Math.abs(e.clientY - G.mouseDownPos.y) < 5) {
@@ -8628,7 +8142,6 @@ function initGraphModal() {
                 G.running = false;
                 modal.classList.remove('show');
                 tooltip.classList.remove('visible');
-                // Переход к карточке на доске + подсветка + открытие
                 window.navigateToEntityGlobal(n.workspace_id, n.column_id, n.id, null, true, true);
             }
         }
@@ -8649,7 +8162,6 @@ function initGraphModal() {
         if (modal.classList.contains('show')) resizeGraphCanvas();
     });
 
-    // Переключатель стрелок (со стрелками / без)
     const arrowsToggle = document.getElementById('graph-arrows-toggle');
     if (arrowsToggle) {
         arrowsToggle.classList.toggle('active', G.showArrows);
@@ -8660,13 +8172,11 @@ function initGraphModal() {
         });
     }
 
-    // Слушатель для ползунка силы отталкивания
     const repulsionSlider = document.getElementById('graph-repulsion-slider');
     if (repulsionSlider) {
         G.repulsionForce = parseInt(repulsionSlider.value);
         repulsionSlider.addEventListener('input', (e) => {
             G.repulsionForce = parseInt(e.target.value);
-            // Если физика уже уснула, даем микро-импульс для перестроения
             if (G.running) {
                 G.nodes.forEach(n => { n.vx += (Math.random() - 0.5) * 2; n.vy += (Math.random() - 0.5) * 2; });
             }
@@ -8681,7 +8191,6 @@ async function openGraphModal() {
 
     modal.classList.add('show');
 
-    // Даём модалке встать в layout, затем меряем canvas
     await new Promise(r => requestAnimationFrame(r));
     resizeGraphCanvas();
 
@@ -8693,7 +8202,6 @@ async function openGraphModal() {
         console.error("Graph load failed", e);
     }
 
-    // Раскидываем узлы вокруг центра
     const cx = G.W / 2, cy = G.H / 2;
     const spread = Math.min(600, Math.max(200, G.W));
     G.nodes = data.nodes.map(n => ({
@@ -8706,7 +8214,6 @@ async function openGraphModal() {
     G.nodes.forEach(n => G.nodeMap[n.id] = n);
     G.edges = data.edges.filter(e => G.nodeMap[e.source] && G.nodeMap[e.target]);
 
-    // Сброс камеры
     G.scale = 1; G.offsetX = 0; G.offsetY = 0;
     G.hoverNode = null; G.dragNode = null; G.isPanning = false;
 
@@ -8724,7 +8231,6 @@ async function openGraphModal() {
 function runGraphLoop() {
     const modal = document.getElementById('graph-modal');
     const canvas = document.getElementById('graph-canvas');
-    // Получаем контекст один раз, отключаем alpha чтение для скорости, если применимо
     const ctx = canvas.getContext('2d', { alpha: false });
 
     const styles = getComputedStyle(document.documentElement);
@@ -8733,8 +8239,7 @@ function runGraphLoop() {
     const colorEdge = (styles.getPropertyValue('--text-secondary') || '#828A80').trim();
     const bgColor = (styles.getPropertyValue('--bg-board') || '#EBEAE3').trim();
 
-    // Настройки Spatial Hash Grid
-    const CELL_SIZE = 300; // Дистанция, дальше которой узлы не отталкиваются
+    const CELL_SIZE = 300;
 
     function step() {
         if (!G.running || !modal.classList.contains('show')) {
@@ -8742,13 +8247,11 @@ function runGraphLoop() {
             return;
         }
 
-        const repulsion = G.repulsionForce; // Берем силу из ползунка
-        const k = 0.015;        // Притяжение по рёбрам
+        const repulsion = G.repulsionForce;
+        const k = 0.015;
         const nodes = G.nodes;
         const totalNodes = nodes.length;
 
-        // --- 1. ФИЗИКА: SPATIAL HASH GRID O(N) вместо O(N^2) ---
-        // Очищаем и строим сетку заново каждый кадр (быстрая операция)
         const grid = new Map();
         
         for (let i = 0; i < totalNodes; i++) {
@@ -8765,7 +8268,6 @@ function runGraphLoop() {
             cell.push(n);
         }
 
-        // Отталкивание только от узлов в текущей и 8 соседних ячейках
         for (let i = 0; i < totalNodes; i++) {
             const a = nodes[i];
             const cx = Math.floor(a.x / CELL_SIZE);
@@ -8785,7 +8287,6 @@ function runGraphLoop() {
                         let diffY = a.y - b.y;
                         let d2 = diffX * diffX + diffY * diffY;
                         
-                        // Если расстояние больше CELL_SIZE, сила = 0 (обрезаем физику)
                         if (d2 > CELL_SIZE * CELL_SIZE) continue;
                         
                         if (d2 < 0.01) { 
@@ -8795,7 +8296,6 @@ function runGraphLoop() {
                         }
                         
                         const d = Math.sqrt(d2);
-                        // Высчитываем силу (учитываем, что мы считаем это для каждой пары, поэтому делим силу)
                         const f = (repulsion / d2) * 0.5; 
                         
                         a.vx += (diffX / d) * f;
@@ -8805,7 +8305,6 @@ function runGraphLoop() {
             }
         }
 
-        // Притяжение по рёбрам (Пружины) O(E)
         const edgesCount = G.edges.length;
         for (let i = 0; i < edgesCount; i++) {
             const e = G.edges[i];
@@ -8817,7 +8316,6 @@ function runGraphLoop() {
             b.vx -= dx * k; b.vy -= dy * k;
         }
 
-        // Применение скоростей, затухание и легкое центрирование
         const cx = G.W / 2, cy = G.H / 2;
         let totalKineticEnergy = 0;
 
@@ -8834,27 +8332,22 @@ function runGraphLoop() {
             totalKineticEnergy += Math.abs(n.vx) + Math.abs(n.vy);
         }
 
-        // --- 2. РЕНДЕР: Frustum Culling (Отсечение невидимого) и LOD ---
         ctx.save();
         ctx.scale(G.dpr, G.dpr);
         
-        // Рисуем фон (так как alpha: false)
         ctx.fillStyle = bgColor;
         ctx.fillRect(0, 0, G.W, G.H);
         
         ctx.translate(G.offsetX, G.offsetY);
         ctx.scale(G.scale, G.scale);
 
-        // Вычисляем видимую область (View Frustum) в координатах мира
         const viewLeft = -G.offsetX / G.scale;
         const viewTop = -G.offsetY / G.scale;
         const viewRight = (G.W - G.offsetX) / G.scale;
         const viewBottom = (G.H - G.offsetY) / G.scale;
 
-        // Если узлов слишком много (>5000) и отдаление сильное, рисуем квадратами для экономии CPU
         const useFastLOD = (totalNodes > 5000 && G.scale < 0.2);
 
-        // Отрисовка Рёбер (Только те, которые попадают в экран)
         ctx.strokeStyle = colorEdge;
         ctx.globalAlpha = 0.35;
         ctx.lineWidth = 1 / G.scale;
@@ -8869,7 +8362,6 @@ function runGraphLoop() {
             const b = G.nodeMap[e.target];
             if (!a || !b) continue;
 
-            // Frustum Culling для рёбер (хотя бы один конец на экране)
             if ((a.x < viewLeft && b.x < viewLeft) || 
                 (a.x > viewRight && b.x > viewRight) || 
                 (a.y < viewTop && b.y < viewTop) || 
@@ -8897,30 +8389,25 @@ function runGraphLoop() {
         ctx.stroke();
         ctx.globalAlpha = 1;
 
-        // Отрисовка Узлов (С отсечением невидимого)
         ctx.fillStyle = colorNode;
         if (useFastLOD) {
-            // Сверхбыстрый рендер квадратами (без beginPath на каждый узел)
             for (let i = 0; i < totalNodes; i++) {
                 const n = nodes[i];
                 const r = G.graphNodeRadius(n);
-                // Culling
                 if (n.x + r < viewLeft || n.x - r > viewRight || n.y + r < viewTop || n.y - r > viewBottom) continue;
                 
                 if (n === G.hoverNode) {
                     ctx.fillStyle = colorText;
                     ctx.fillRect(n.x - r, n.y - r, r*2, r*2);
-                    ctx.fillStyle = colorNode; // Возвращаем цвет
+                    ctx.fillStyle = colorNode;
                 } else {
                     ctx.fillRect(n.x - r, n.y - r, r*2, r*2);
                 }
             }
         } else {
-            // Классический красивый рендер кругами
             for (let i = 0; i < totalNodes; i++) {
                 const n = nodes[i];
                 const r = G.graphNodeRadius(n);
-                // Culling
                 if (n.x + r < viewLeft || n.x - r > viewRight || n.y + r < viewTop || n.y - r > viewBottom) continue;
 
                 ctx.beginPath();
@@ -8930,7 +8417,6 @@ function runGraphLoop() {
             }
         }
 
-        // Отрисовка подписей (Они видны только вблизи, и только на экране)
         if (G.scale > 1.3) {
             ctx.fillStyle = colorText;
             ctx.textAlign = 'center';
@@ -8940,7 +8426,6 @@ function runGraphLoop() {
             for (let i = 0; i < totalNodes; i++) {
                 const n = nodes[i];
                 const r = G.graphNodeRadius(n);
-                // Строгий Culling для текста
                 if (n.x + r < viewLeft || n.x - r > viewRight || n.y + r < viewTop || n.y - r > viewBottom) continue;
 
                 let label = n.title || '';
@@ -8952,10 +8437,7 @@ function runGraphLoop() {
 
         ctx.restore();
 
-        // Спящий режим: если кинетическая энергия системы близка к нулю (и мышь не тащит),
-        // пропускаем кадры для экономии батареи, пока юзер не покрутит колесико или не тронет слайдер.
         if (totalKineticEnergy < 0.1 && !G.dragNode) {
-            // Мы не останавливаем requestAnimationFrame полностью, чтобы мгновенно проснуться при зуме
             requestAnimationFrame(step);
             return;
         }
@@ -8965,17 +8447,14 @@ function runGraphLoop() {
     step();
 }
 
-// Инициализация слушателей канваса (один раз)
 initGraphModal();
 
-// Открытие графа по кнопке в шапке
 document.getElementById('graph-trigger')?.addEventListener('click', (e) => {
     e.stopPropagation();
     closeAllDropdowns();
     openGraphModal();
 });
 
-// 🔥 ГЛОБАЛЬНЫЙ ПЕРЕХВАТ FETCH: Игнорируем эхо своих же изменений в БД
 const originalFetch = window.fetch;
 window._lastLocalEdit = 0;
 window.fetch = async function(...args) {
@@ -8983,14 +8462,12 @@ window.fetch = async function(...args) {
     const options = args[1] || {};
     const method = options.method || 'GET';
     
-    // Если мы отправляем команду на изменение данных (POST, PUT, DELETE)
     if (method !== 'GET' && typeof url === 'string' && url.includes('/api/v1/')) {
         window._lastLocalEdit = Date.now();
     }
     return originalFetch.apply(this, args);
 };
 
-// 🔥 WEBSOCKET КЛИЕНТ ДЛЯ ICLOUD SYNC
 function initCloudSync() {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${protocol}//127.0.0.1:8000/api/v1/system/ws`;
@@ -8998,10 +8475,8 @@ function initCloudSync() {
     
     ws.onmessage = (event) => {
         if (event.data === "db_updated") {
-            // 1. Защита от "эха": Если мы сами меняли БД менее 2.5 сек назад — игнорируем
             if (Date.now() - window._lastLocalEdit < 2500) return;
             
-            // 2. UX Защита: Не мешаем пользователю, если он сейчас работает руками
             if (typeof isDragging !== 'undefined' && isDragging) return;
             if (document.querySelector('.is-renaming')) return;
             if (document.querySelector('.card-entering:not(.is-exiting)')) return;
@@ -9009,24 +8484,21 @@ function initCloudSync() {
             
             const activeEl = document.activeElement;
             if (activeEl && (activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'INPUT')) {
-                // Пользователь печатает, тихий рефреш лучше отложить
                 return;
             }
 
             console.log("[iCloud Sync] Обнаружено внешнее изменение файла БД. Перерисовываем UI...");
             
-            // Если мы на главном экране — перерисовываем доску (тихо, без сброса скролла)
             if (document.getElementById('vault-screen').classList.contains('hidden')) {
                 refreshBoard();
             } else {
-                // Если мы на экране хранилищ — обновляем список (там могла измениться дата последнего входа)
                 renderVaultHistory();
             }
         }
     };
 
     ws.onclose = () => {
-        setTimeout(initCloudSync, 3000); // Авто-реконнект при потере связи
+        setTimeout(initCloudSync, 3000);
     };
 }
 
@@ -9036,19 +8508,16 @@ function initCloudSync() {
     initBoardScrollbar();
     initTaskModalDragAndResize();
     initGlobalSearch();
-    initCloudSync(); // <-- ЗАПУСКАЕМ НАШ СИНХРОНИЗАТОР
+    initCloudSync();
 
-    // Проверяем, в каком режиме открыто текущее окно (App или Vault Selector)
     const urlParams = new URLSearchParams(window.location.search);
     const isVaultMode = urlParams.get('mode') === 'vault';
 
-    // 1. Первичная настройка темы/языка из кэша (чтобы не моргало)
         try {
             applyLanguage(localStorage.getItem('doe-lang') || 'ru', false);
             applyTheme(localStorage.getItem('doe-theme') || 'light', false);
         } catch (e) {}
 
-        // Обработка карточки, если произошла перезагрузка страницы для смены хранилища по уведомлению
         const pendingHighlight = localStorage.getItem('doe-pending-highlight');
         if (pendingHighlight) {
             localStorage.removeItem('doe-pending-highlight');
@@ -9060,13 +8529,18 @@ function initCloudSync() {
                         window.navigateToEntityGlobal(context.workspace_id, context.column_id, parseInt(pendingHighlight), null, true, true);
                     }
                 } catch (e) {}
-            }, 800); // Даем UI время на полное построение доски
+            }, 800);
         }
 
-        // Глобальные лисенеры вешаем в любом случае
+        initTimerCulling();
         setInterval(updateTimers, 250);
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                updateTimers();
+                updateBellBadge();
+            }
+        });
         
-        // 🌟 МОСТ С ОПЕРАЦИОННОЙ СИСТЕМОЙ: Слушаем клики по системным уведомлениям
         setInterval(async () => {
             try {
                 const res = await fetch(`${API_BASE}/system/pending-highlights`);
@@ -9077,7 +8551,6 @@ function initCloudSync() {
                     const vaultRes = await fetch(`${API_BASE}/system/vault`);
                     const currentVault = await vaultRes.json();
                     
-                    // Если ОС-уведомление от другого хранилища, переключаем контекст
                     if (data.vault_path && data.vault_path !== currentVault.path) {
                         await fetch(`${API_BASE}/system/vault/switch`, {
                             method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -9088,27 +8561,22 @@ function initCloudSync() {
                         return;
                     }
                     
-                    // Запрашиваем контекст, чтобы знать в какой вкладке эта карточка
                     const ctxRes = await fetch(`${API_BASE}/tasks/${data.task_id}/context`);
                     if (!ctxRes.ok) return;
                     
                     const context = await ctxRes.json();
                     
-                    // Закрываем модалку карточки, если она открыта, чтобы юзер увидел доску
                     const taskModal = document.getElementById('task-modal');
                     if (taskModal && taskModal.classList.contains('show')) {
                         taskModal.classList.remove('show');
                     }
                     
-                    // Используем наш роутер: он переключит вкладку, доскроллит, 
-                    // подсветит миниатюру карточки на доске и ОТКРОЕТ модалку (последний параметр true)
                     window.navigateToEntityGlobal(context.workspace_id, context.column_id, data.task_id, null, true, true);
                     
-                    // Мгновенно обновляем индикатор колокольчика при переходе по клику
                     updateBellBadge();
                 }
             } catch (e) {}
-        }, 1000); // Опрашиваем раз в секунду
+        }, 1000);
 
         window.addEventListener('resize', () => {
             requestAnimationFrame(() => {
@@ -9118,16 +8586,13 @@ function initCloudSync() {
             });
         });
 
-    // Если это окно выбора хранилища — загружаем настройки, историю и показываем занавес
     if (isVaultMode) {
         document.getElementById('vault-screen').classList.remove('hidden', 'content-hidden');
 
-        // Включаем Vault Mode для светофора при загрузке
         const lights = document.getElementById('mac-traffic-lights');
         if (lights) lights.classList.add('vault-mode');
 
         try {
-            // Даже на экране входа мы запрашиваем глобальные настройки (тема/язык)
             const settingsData = await fetchSettings().catch(() => ({}));
             if (settingsData.theme) applyTheme(settingsData.theme, false);
             if (settingsData.language) applyLanguage(settingsData.language, false);
@@ -9135,13 +8600,10 @@ function initCloudSync() {
 
         renderVaultHistory();
 
-        // 🔥 СЕНЬОР ФИКС: Живая синхронизация с файловой системой ОС (Background Poller)
-        // Динамически обновляет DOM без перерисовки всего списка (не ломает фокусы и ховеры)
         setInterval(async () => {
             try {
                 const history = await fetchVaultHistory();
                 history.forEach(item => {
-                    // Экранируем слэши (особенно важно для путей Windows)
                     const safePath = item.path.replace(/\\/g, '\\\\');
                     const el = document.querySelector(`.vault-history-item[data-path="${safePath}"]`);
                     
@@ -9153,7 +8615,6 @@ function initCloudSync() {
                         const revealBtn = el.querySelector('.vault-hist-reveal');
 
                         if (isMissing && !checkbox.classList.contains('missing')) {
-                            // Хранилище пропало (удалили или переименовали в ОС)
                             checkbox.classList.add('missing');
                             el.classList.add('is-missing');
                             checkbox.title = currentLang === 'ru' ? 'Хранилище не найдено. Нажмите, чтобы перепривязать' : 'Vault not found. Click to relink';
@@ -9162,7 +8623,6 @@ function initCloudSync() {
                             pathEl.classList.add('missing-text');
                             if (revealBtn) revealBtn.style.display = 'none';
                         } else if (!isMissing && checkbox.classList.contains('missing')) {
-                            // Хранилище появилось (восстановили из корзины в ОС)
                             checkbox.classList.remove('missing');
                             el.classList.remove('is-missing');
                             checkbox.removeAttribute('title');
@@ -9174,81 +8634,63 @@ function initCloudSync() {
                     }
                 });
             } catch (e) {}
-        }, 1500); // Опрос раз в 1.5 секунды абсолютно не нагружает железо, но дает идеальный отклик
+        }, 1500);
 
         document.body.classList.remove('preload');
         setTimeout(triggerReveal, 50);
         return; 
     }
 
-    // Если это основное окно доски — гарантируем, что занавес выбора хранилища скрыт
     document.getElementById('vault-screen').classList.add('hidden', 'content-hidden');
 
     try {
-        // 🌟 ЗАПРОС РАЗРЕШЕНИЙ НА УВЕДОМЛЕНИЯ ПРИ ПЕРВОМ ЗАПУСКЕ
         if (!localStorage.getItem('doe-notif-requested')) {
             localStorage.setItem('doe-notif-requested', 'true');
-            // Web API запрос (если поддерживается)
             if (window.Notification && Notification.permission !== 'granted' && Notification.permission !== 'denied') {
                 Notification.requestPermission();
             }
         }
 
-        // 2. Загружаем системные данные и ВКЛАДКИ в первую очередь
         const [settingsData, vaultData, workspacesData] = await Promise.all([
             fetchSettings().catch(() => ({})),
             fetchVault().catch(() => ({ name: "Doe Board" })),
             fetchWorkspaces().catch(() => [])
         ]);
 
-        // Обновляем имя хранилища в UI
         updateVaultName(vaultData.name);
 
-        // Сохраняем воркспейсы в стейт
         state.workspaces = workspacesData;
 
-        // 3. ВЫБОР АКТИВНОЙ ВКЛАДКИ (Логика-предохранитель)
         let targetWorkspaceId = settingsData.active_workspace_id;
 
-        // Если в настройках пусто или такая вкладка была удалена, берем ID первой из списка
         if (!targetWorkspaceId || !state.workspaces.find(w => w.id === targetWorkspaceId)) {
             if (state.workspaces.length > 0) {
                 targetWorkspaceId = state.workspaces[0].id;
             }
         }
 
-        // Фиксируем ID в глобальном стейте ПЕРЕД запросом колонок
         state.activeWorkspaceId = targetWorkspaceId;
 
-        // Рендерим вкладки (теперь они точно есть в state.workspaces)
         renderTabs(true);
 
-        // 4. ЗАГРУЗКА КОЛОНОК (только если ID определен)
         if (state.activeWorkspaceId) {
                 const columnsData = await fetchColumns(state.activeWorkspaceId);
                 state.columns = columnsData.map(col => ({ ...col, collapsed: col.collapsed || false }));
                 
-                renderBoard(); // Рисуем доску
+                renderBoard();
                 
-                // Выполняем замеры высот и схлопывание (фикс вспышки макета)
                 adjustCollapsedColumnWidths();
                 clampExpandedTitles();
 
-                // 🌟 НОВОЕ: Запускаем фоновую очистку мусора при старте приложения, 
-                // когда хранилище и БД гарантированно подключены.
                 triggerGarbageCollector();
 
             } else {
-                // Если воркспейсов вообще нет (критическая ситуация)
                 console.error("No workspaces found even after initialization");
                 renderBoard(); 
             }
 
-            // Запрашиваем состояние напоминаний ДО удаления класса preload и показа окна.
-            // Это гарантирует, что индикатор отрисуется за кулисами и появится одновременно с доской.
             await updateBellBadge().catch(console.error);
 
-            // 5. ПОКАЗЫВАЕМ ОКНО (убираем preload)
             document.body.classList.remove('preload');
             setTimeout(triggerReveal, 50);
 
@@ -9259,11 +8701,8 @@ function initCloudSync() {
         }
 })();
 
-// Перехватываем нажатие на плюс в зазорах на этапе погружения (capture),
-// чтобы мгновенно открыть новую форму ДО того, как асинхронный blur старой формы
-// запустит анимацию схлопывания и сдвинет верстку под курсором мыши.
 document.addEventListener('pointerdown', (e) => {
-    if (e.button !== 0) return; // Только левый клик мыши
+    if (e.button !== 0) return;
     const plusBtn = e.target.closest('.divider-plus-btn');
     if (plusBtn) {
         e.preventDefault();
@@ -9272,8 +8711,6 @@ document.addEventListener('pointerdown', (e) => {
     }
 }, { capture: true });
 
-
-// --- ФУНКЦИОНАЛ НАПОМИНАНИЙ И КОЛОКОЛЬЧИКА ---
 async function fetchActiveReminders() {
     try {
         const res = await fetch(`${API_BASE}/system/reminders?t=${Date.now()}`);
@@ -9335,7 +8772,6 @@ async function renderRemindersDropdown() {
             <button class="subtask-delete-btn" title="${t('menu.delete')}">${trashIcon}</button>
         `;
         
-        // Клик по карточке напоминания перенаправляет к самой задаче на доске
         div.addEventListener('click', async (e) => {
             if (e.target.closest('.subtask-delete-btn')) return;
             document.getElementById('reminders-dropdown').classList.remove('show');
@@ -9344,7 +8780,6 @@ async function renderRemindersDropdown() {
             const vaultRes = await fetch(`${API_BASE}/system/vault`);
             const currentVault = await vaultRes.json();
             
-            // Если карточка из другого хранилища — сперва свитчимся
             if (r.vault_path && r.vault_path !== currentVault.path) {
                 await fetch(`${API_BASE}/system/vault/switch`, {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -9355,14 +8790,12 @@ async function renderRemindersDropdown() {
                 return;
             }
             
-            // Навигация внутри текущего хранилища
             fetch(`${API_BASE}/tasks/${r.task_id}/context`)
                 .then(res => res.json())
                 .then(context => {
                     window.navigateToEntityGlobal(context.workspace_id, context.column_id, r.task_id, null, true);
                 })
                 .catch(() => {
-                    // Фолбэк, если задача была удалена
                     loadTaskIntoModal(r.task_id, true);
                     document.getElementById('task-modal').classList.add('show');
                 });
@@ -9374,20 +8807,14 @@ async function renderRemindersDropdown() {
     });
 }
 
+setInterval(() => { if (!document.hidden) updateBellBadge(); }, 3000);
 
-
-// Запускаем периодический опрос активных напоминаний раз в 3 секунды для моментальной синхронизации
-setInterval(updateBellBadge, 3000);
-
-// ==========================================
-// ГЛОБАЛЬНЫЙ КАЛЕНДАРЬ
-// ==========================================
 const Calendar = {
     modal: null, body: null, titleLabel: null, zoomWrapper: null, zoomSlider: null,
     events: [],
     currentDate: new Date(),
-    view: 'month', // 'month', 'week', 'day'
-    zoomHourHeight: 60, // px per hour
+    view: 'month',
+    zoomHourHeight: 60,
     
     init() {
         this.modal = document.getElementById('calendar-modal');
@@ -9421,73 +8848,71 @@ const Calendar = {
             this.body.style.setProperty('--hour-height', `${this.zoomHourHeight}px`);
         });
 
-        // 🔥 ДОБАВЛЕНО: Обработка Pinch-to-Zoom (Сведение/разведение пальцев) на тачпаде
         this.body.addEventListener('wheel', (e) => {
-            // Браузеры транслируют жест pinch-to-zoom как wheel с зажатым ctrlKey
             if (e.ctrlKey && this.view !== 'month') {
-                e.preventDefault(); // Блокируем системный зум браузера всей страницы
+                e.preventDefault();
 
-                const zoomSpeed = 0.5; // Чувствительность зума
+                const zoomSpeed = 0.5;
                 let newZoom = this.zoomHourHeight - (e.deltaY * zoomSpeed);
                 
-                // Жесткие лимиты из ползунка (min: 30, max: 150)
                 newZoom = Math.max(30, Math.min(150, newZoom));
 
                 if (newZoom !== this.zoomHourHeight) {
                     const scrollContainer = this.body.querySelector('.cal-time-scroll');
                     
                     if (scrollContainer) {
-                        // 🚀 SENIOR UX: Зум с фокусом на курсор. 
-                        // Вычисляем, какая точка сетки времени сейчас под курсором, 
-                        // и подгоняем скролл так, чтобы после зума она осталась под ним.
                         const rect = scrollContainer.getBoundingClientRect();
-                        const cursorY = e.clientY - rect.top; // Позиция мыши относительно контейнера
-                        const scrollY = scrollContainer.scrollTop; // Текущий скролл
+                        const cursorY = e.clientY - rect.top;
+                        const scrollY = scrollContainer.scrollTop;
                         
-                        const absoluteY = scrollY + cursorY; // Абсолютная точка на виртуальном холсте
-                        const zoomRatio = newZoom / this.zoomHourHeight; // Коэффициент изменения
+                        const absoluteY = scrollY + cursorY;
+                        const zoomRatio = newZoom / this.zoomHourHeight;
                         
-                        // Применяем зум
                         this.zoomHourHeight = newZoom;
                         this.body.style.setProperty('--hour-height', `${this.zoomHourHeight}px`);
-                        this.zoomSlider.value = this.zoomHourHeight; // Синхронизируем ползунок
+                        this.zoomSlider.value = this.zoomHourHeight;
                         
-                        // Корректируем скролл с учетом нового масштаба
                         const newAbsoluteY = absoluteY * zoomRatio;
                         scrollContainer.scrollTop = newAbsoluteY - cursorY;
                     } else {
-                        // Фолбэк, если контейнер не найден
                         this.zoomHourHeight = newZoom;
                         this.body.style.setProperty('--hour-height', `${this.zoomHourHeight}px`);
                         this.zoomSlider.value = this.zoomHourHeight;
                     }
                 }
             }
-        }, { passive: false }); // КРИТИЧНО: passive: false позволяет вызывать e.preventDefault()
+        }, { passive: false });
     },
     
     async open() {
         closeAllDropdowns();
         this.modal.classList.add('show');
         
-        // Сброс на сегодня при открытии
         this.currentDate = new Date();
         this.body.innerHTML = `<div class="graph-empty" style="display:flex;">Загрузка данных...</div>`;
         
+        await this.syncData();
+    },
+
+    async syncData() {
         try {
             const res = await fetch(`${API_BASE}/system/calendar`);
             if (res.ok) {
                 const data = await res.json();
-                // Парсим даты
-                this.events = data.map(ev => ({
-                    ...ev,
-                    dateObj: new Date(ev.due_date)
-                }));
+                const hiddenEvents = JSON.parse(localStorage.getItem('doe_hidden_cal_events') || '[]');
+                this.events = data
+                    .filter(ev => !hiddenEvents.includes(ev.event_id))
+                    .map(ev => ({
+                        ...ev,
+                        dateObj: new Date(ev.due_date)
+                    }));
                 this.render();
             }
         } catch (e) {
             console.error("Calendar fetch error:", e);
-            this.body.innerHTML = `<div class="graph-empty" style="display:flex;">Ошибка загрузки</div>`;
+            if (!this.events || this.events.length === 0) {
+                this.body.innerHTML = `<div class="graph-empty" style="display:flex;">Ошибка загрузки</div>`;
+            }
         }
     },
     
@@ -9505,18 +8930,66 @@ const Calendar = {
     getStartOfWeek(date) {
         const d = new Date(date);
         const day = d.getDay();
-        const diff = d.getDate() - day + (day === 0 ? -6 : 1); // С понедельника
+        const diff = d.getDate() - day + (day === 0 ? -6 : 1);
         return new Date(d.setDate(diff));
     },
 
-    formatTimeText(date, durationSec) {
-        const h = date.getHours().toString().padStart(2, '0');
-        const m = date.getMinutes().toString().padStart(2, '0');
-        if (durationSec <= 3600) return `${h}:${m}`;
-        const end = new Date(date.getTime() + durationSec * 1000);
-        const eh = end.getHours().toString().padStart(2, '0');
-        const em = end.getMinutes().toString().padStart(2, '0');
-        return `${h}:${m} - ${eh}:${em}`;
+    formatTimeText(ev, isCompact = false) {
+        const start = ev.dateObj;
+        const end = new Date(start.getTime() + ev.duration * 1000);
+        const isActive = ev.is_active;
+        const now = new Date();
+
+        const h1 = start.getHours().toString().padStart(2, '0');
+        const m1 = start.getMinutes().toString().padStart(2, '0');
+        const t1 = `${h1}:${m1}`;
+
+        const h2 = end.getHours().toString().padStart(2, '0');
+        const m2 = end.getMinutes().toString().padStart(2, '0');
+        const t2 = `${h2}:${m2}`;
+
+        const isSameDay = start.getFullYear() === end.getFullYear() && 
+                          start.getMonth() === end.getMonth() && 
+                          start.getDate() === end.getDate();
+
+        const isStartToday = start.getFullYear() === now.getFullYear() && 
+                             start.getMonth() === now.getMonth() && 
+                             start.getDate() === now.getDate();
+
+        // Улучшенная очистка года для эстетики (убирает " г." или " г")
+        const formatDate = (d) => d.toLocaleDateString(currentLang, {day: 'numeric', month: 'short'}).replace(/\s*г\.?/, '').trim();
+
+        // Вычисляем полную длительность для скобочек (с поддержкой локализации)
+        const units = t('timeUnits');
+        const sec = Math.max(0, ev.duration);
+        const d = Math.floor(sec / 86400);
+        const h = Math.floor((sec % 86400) / 3600);
+        const m = Math.floor((sec % 3600) / 60);
+        const s = Math.floor(sec % 60);
+        
+        let durParts = [];
+        if (d > 0) durParts.push(`${d}${units.d}`);
+        if (h > 0 || d > 0) durParts.push(`${h}${units.h}`);
+        if (m > 0 || h > 0 || d > 0) durParts.push(`${m}${units.m}`);
+        durParts.push(`${s}${units.s}`);
+        const durationStr = `(${durParts.join(' ')})`;
+
+        if (!isActive) {
+            // Если закончился (используем среднее тире + показываем итоговую длительность)
+            if (isSameDay) {
+                return `${t1} – ${t2} ${durationStr}`;
+            } else {
+                return `${formatDate(start)} ${t1} – ${formatDate(end)} ${t2} ${durationStr}`;
+            }
+        } else {
+            // Если НЕ закончился (в процессе) — скрываем потраченное время, так как процесс еще идет
+            const suffix = isCompact ? ' – ...' : ' –';
+            if (isStartToday) {
+                return `${t1}${suffix}`;
+            } else {
+                return `${formatDate(start)} ${t1}${suffix}`;
+            }
+        }
     },
 
     render() {
@@ -9548,7 +9021,6 @@ const Calendar = {
         const addCell = (dNum, isOther, curDateObj) => {
             const isToday = !isOther && year === today.getFullYear() && month === today.getMonth() && dNum === today.getDate();
             
-            // Ищем события на этот день
             const dayEvents = this.events.filter(ev => 
                 ev.dateObj.getFullYear() === curDateObj.getFullYear() &&
                 ev.dateObj.getMonth() === curDateObj.getMonth() &&
@@ -9556,8 +9028,9 @@ const Calendar = {
             ).sort((a,b) => a.dateObj - b.dateObj);
             
             let evHtml = dayEvents.map(ev => {
-                const time = `${ev.dateObj.getHours().toString().padStart(2,'0')}:${ev.dateObj.getMinutes().toString().padStart(2,'0')}`;
-                return `<div class="cal-event-chip ${ev.completed ? 'is-done' : ''}" data-id="${ev.id}" data-ws="${ev.workspace_id}" data-col="${ev.column_id}">${time} ${escapeHtml(ev.title)}</div>`;
+                const timeText = this.formatTimeText(ev, true); // true означает компактный режим
+                const fullText = `${timeText} ${ev.title}`;
+                return `<div class="cal-event-chip ${ev.completed ? 'is-done' : ''}" data-id="${ev.id}" data-event-id="${ev.event_id}" data-ws="${ev.workspace_id}" data-col="${ev.column_id}" data-full-title="${escapeHtml(fullText)}">${timeText} ${escapeHtml(ev.title)}</div>`;
             }).join('');
 
             return `<div class="cal-day-cell ${isOther ? 'other-month' : ''} ${isToday ? 'is-today' : ''}">
@@ -9566,16 +9039,13 @@ const Calendar = {
             </div>`;
         };
 
-        // Предыдущий месяц
         for (let i = 0; i < startDay; i++) {
             const d = daysInPrevMonth - startDay + i + 1;
             html += addCell(d, true, new Date(year, month - 1, d));
         }
-        // Текущий месяц
         for (let i = 1; i <= daysInMonth; i++) {
             html += addCell(i, false, new Date(year, month, i));
         }
-        // Следующий месяц
         const totalCells = startDay + daysInMonth;
         const remaining = Math.ceil(totalCells / 7) * 7 - totalCells;
         for (let i = 1; i <= remaining; i++) {
@@ -9603,7 +9073,6 @@ const Calendar = {
             }
         } else {
             startDate = new Date(this.currentDate);
-            // Если есть родительный падеж (monthsGenitive) - используем его, иначе обычный массив
             const monthName = locale.monthsGenitive ? locale.monthsGenitive[startDate.getMonth()] : locale.months[startDate.getMonth()];
             this.titleLabel.textContent = `${startDate.getDate()} ${monthName} ${startDate.getFullYear()}`;
         }
@@ -9625,22 +9094,19 @@ const Calendar = {
                 <span>${dayName}</span><span>${d.getDate()}</span>
             </div>`;
         }
-        // ДОБАВЛЕНА РАСПОРКА В КОНЕЦ ШАПКИ ДЛЯ КОМПЕНСАЦИИ ШИРИНЫ СКРОЛЛБАРА (6px)
         headerHtml += `</div><div class="cal-header-scrollbar-spacer"></div></div>`;
         
         let gridHtml = `<div class="cal-time-scroll" id="cal-time-scroll"><div class="cal-time-grid">`;
         
-        // Линейка времени слева
         gridHtml += `<div class="cal-time-labels">`;
         for (let h = 0; h < 24; h++) {
             gridHtml += `<div class="cal-time-label" style="top: calc(${h} * var(--hour-height))">${h}:00</div>`;
         }
         gridHtml += `</div>`;
         
-        // Колонки дней
         gridHtml += `<div class="cal-time-columns">`;
         
-        let earliestEventHour = 24; // Для умного автоскролла
+        let earliestEventHour = 24;
 
         for (let i = 0; i < daysCount; i++) {
             const curDate = colDates[i];
@@ -9649,16 +9115,13 @@ const Calendar = {
             
             gridHtml += `<div class="cal-time-col">`;
             
-            // 1. Фильтруем события, которые ПЕРЕСЕКАЮТСЯ с текущими сутками
             const dayEvents = [];
             this.events.forEach(ev => {
                 const origDurSec = ev.duration > 0 ? ev.duration : 3600;
                 const evStartTs = ev.dateObj.getTime();
                 const evEndTs = evStartTs + origDurSec * 1000;
 
-                // Строгое условие пересечения отрезков времени
                 if (evStartTs < curDayEndTs && evEndTs > curDayStartTs) {
-                    // Вычисляем фактические рамки события внутри ЭТИХ суток
                     const effectiveStartTs = Math.max(evStartTs, curDayStartTs);
                     const effectiveEndTs = Math.min(evEndTs, curDayEndTs);
                     const effectiveDurSec = (effectiveEndTs - effectiveStartTs) / 1000;
@@ -9668,25 +9131,21 @@ const Calendar = {
                         dateObj: new Date(effectiveStartTs),
                         effectiveDurSec: effectiveDurSec,
                         origDurSec: origDurSec,
-                        isContinuation: evStartTs < curDayStartTs // Флаг: карточка пришла со вчерашнего дня
+                        isContinuation: evStartTs < curDayStartTs
                     });
                 }
             });
 
-            // Сортируем по фактическому началу в ЭТИХ сутках
             dayEvents.sort((a,b) => a.dateObj.getTime() - b.dateObj.getTime());
             
-            // --- АЛГОРИТМ ГРУППИРОВКИ ПЕРЕСЕКАЮЩИХСЯ СОБЫТИЙ (Overlap Logic) ---
             const groups = [];
             let currentGroup = [];
             let groupEnd = 0;
 
             dayEvents.forEach(mappedEv => {
                 const start = mappedEv.dateObj.getTime();
-                // Для расчета плотности пересечений используем эффективную длительность с визуальным запасом (40 мин)
                 const end = start + Math.max(mappedEv.effectiveDurSec * 1000, 2400000); 
 
-                // Обновляем статистику для умного скролла
                 if (mappedEv.dateObj.getHours() < earliestEventHour) earliestEventHour = mappedEv.dateObj.getHours();
 
                 if (currentGroup.length === 0) {
@@ -9707,7 +9166,6 @@ const Calendar = {
             });
             if (currentGroup.length > 0) groups.push(currentGroup);
 
-            // Рендерим группы с учетом разделения ширины
             groups.forEach(group => {
                 const columnsCount = Math.max(...group.map(item => item.colIndex)) + 1;
                 
@@ -9721,7 +9179,6 @@ const Calendar = {
                     const secondsInDay = 24 * 3600;
                     const maxAllowedDurSec = secondsInDay - startSecFromMidnight;
 
-                    // Используем эффективную длительность внутри этих суток
                     const visDurSec = Math.min(Math.max(mappedEv.effectiveDurSec, 2400), maxAllowedDurSec); 
                     
                     const topPos = `calc((${hours} + ${mins}/60) * var(--hour-height))`;
@@ -9730,34 +9187,29 @@ const Calendar = {
                     const widthPercent = 100 / columnsCount;
                     const leftPercent = item.colIndex * widthPercent;
                     
-                    // В тексте всегда показываем ОРИГИНАЛЬНОЕ время карточки для консистентности
-                    const timeText = this.formatTimeText(ev.dateObj, mappedEv.origDurSec);
+                    const timeText = this.formatTimeText(ev, false); // false означает подробный вид
                     
                     const positionStyle = `top: ${topPos}; height: ${heightPos}; left: ${leftPercent}%; width: calc(${widthPercent}% - 2px);`;
                     
-                    // Класс is-continuation указывает, что это визуальный "хвост" задачи
                     const continuationClass = mappedEv.isContinuation ? 'is-continuation' : '';
                     
                     gridHtml += `<div class="cal-abs-event ${ev.completed ? 'is-done' : ''} ${continuationClass}" 
-                                      data-id="${ev.id}" data-ws="${ev.workspace_id}" data-col="${ev.column_id}"
+                                      data-id="${ev.id}" data-event-id="${ev.event_id}" data-ws="${ev.workspace_id}" data-col="${ev.column_id}"
                                       style="${positionStyle}">
-                        <div class="cal-ev-title">${escapeHtml(ev.title)}</div>
-                        <div class="cal-ev-time">${timeText}</div>
+                        <div class="cal-ev-title" data-full-title="${escapeHtml(ev.title)}">${escapeHtml(ev.title)}</div>
+                        <div class="cal-ev-time" data-full-title="${escapeHtml(timeText)}">${timeText}</div>
                     </div>`;
                 });
             });
             
-            // Если это сегодня - рисуем красную линию времени
             if (curDate.getFullYear() === today.getFullYear() && curDate.getMonth() === today.getMonth() && curDate.getDate() === today.getDate()) {
                 const nowH = today.getHours();
                 const nowM = today.getMinutes();
                 const nowTop = `calc((${nowH} + ${nowM}/60) * var(--hour-height))`;
                 
-                // Формируем красивую строку времени
                 const timeStr = `${nowH.toString().padStart(2, '0')}:${nowM.toString().padStart(2, '0')}`;
                 gridHtml += `<div class="cal-now-line" style="top: ${nowTop}" data-time="${timeStr}"></div>`;
                 
-                // Если нет ранних событий, пытаемся скроллить к текущему времени
                 if (earliestEventHour === 24) earliestEventHour = Math.max(0, nowH - 1);
             }
             
@@ -9769,16 +9221,12 @@ const Calendar = {
         this.body.innerHTML = `<div class="cal-time-view">${headerHtml}${gridHtml}</div>`;
         this.attachEventClicks();
         
-        // Умный автоскролл
         setTimeout(() => {
             const scrollEl = document.getElementById('cal-time-scroll');
             if (scrollEl) {
-                // Пытаемся скроллить к самому раннему событию (с отступом в 1 час наверх)
-                // Если событий нет, скроллим к 8 утра
                 let targetHour = earliestEventHour === 24 ? 8 : earliestEventHour - 1;
-                targetHour = Math.max(0, targetHour); // Не ниже полуночи
+                targetHour = Math.max(0, targetHour);
                 
-                // Используем behavior: 'smooth' для эстетики открытия
                 scrollEl.scrollTo({
                     top: targetHour * this.zoomHourHeight,
                     behavior: 'smooth'
@@ -9798,6 +9246,38 @@ const Calendar = {
                 this.modal.classList.remove('show');
                 window.navigateToEntityGlobal(wsId, colId, id, null, true, true);
             });
+
+            el.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const eventId = el.dataset.eventId;
+                
+                if (eventId) {
+                    closeAllDropdowns(); // Закрываем другие меню
+                    
+                    const menu = document.getElementById('cal-context-menu');
+                    menu.dataset.eventId = eventId;
+                    
+                    // Показываем прозрачным, чтобы измерить ширину/высоту
+                    menu.style.visibility = 'hidden';
+                    menu.style.display = 'block';
+                    menu.classList.add('show');
+                    
+                    // Умное позиционирование (чтобы меню не уходило за экран)
+                    let left = e.clientX;
+                    let top = e.clientY;
+                    const rect = menu.getBoundingClientRect();
+                    
+                    if (left + rect.width > window.innerWidth - 10) left = window.innerWidth - rect.width - 10;
+                    if (top + rect.height > window.innerHeight - 10) top = window.innerHeight - rect.height - 10;
+                    
+                    menu.style.left = `${left}px`;
+                    menu.style.top = `${top}px`;
+                    
+                    // Делаем видимым
+                    menu.style.visibility = '';
+                }
+            });
         });
     }
 };
@@ -9806,9 +9286,6 @@ document.addEventListener('DOMContentLoaded', () => {
     Calendar.init();
 });
 
-/* ── Ручное перетаскивание безрамочного окна macOS (easy_drag=False) ──
-   Координаты считает нативный код (AppKit) — JS только сигнализирует фазы.
-   Окно двигается ТОЛЬКО за фон шапки / экрана выбора хранилища. */
 (() => {
     if (!document.documentElement.classList.contains('mac-os')) return;
 
@@ -9845,9 +9322,6 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('blur', stop);
 })();
 
-// ==========================================
-// WINDOWS НАТИВНЫЙ ХРОМ (только .win-os; macOS не затрагивается)
-// ==========================================
 (function setupWindowsChrome() {
     if (!document.documentElement.classList.contains('win-os')) return;
 
@@ -9875,7 +9349,6 @@ document.addEventListener('DOMContentLoaded', () => {
     `;
     document.head.appendChild(style);
 
-    // --- Кнопки управления окном ---
     const controls = document.createElement('div');
     controls.className = 'win-controls';
     const maxBtn = isVault ? '' :
@@ -9890,9 +9363,7 @@ document.addEventListener('DOMContentLoaded', () => {
     controls.querySelector('.close').onclick = () => api()?.close_window?.();
     controls.querySelector('.max')?.addEventListener('click', () => api()?.toggle_maximize_window?.());
 
-    // --- Нативный ресайз за края через DWM (без визуальных разрывов) ---
     if (!isVault) {
-        // Карта WinAPI HitTest кодов
         const htMap = {
             'l': 10, 'r': 11, 't': 12, 'tl': 13,
             'tr': 14, 'b': 15, 'bl': 16, 'br': 17
@@ -9904,14 +9375,12 @@ document.addEventListener('DOMContentLoaded', () => {
             h.addEventListener('pointerdown', (e) => {
                 if (e.button !== 0) return;
                 e.preventDefault();
-                // Передаем управление размерностью самой ОС Windows
                 api()?.start_window_resize?.(htMap[cls]);
             });
             document.body.appendChild(h);
         });
     }
 
-    // --- Нативное перетаскивание окна за шапку ---
     const NO_DRAG = 'button, input, textarea, select, a, [contenteditable="true"],' +
         '.search-wrapper, .settings-wrapper, .tabs-wrapper, .board-tab,' +
         '.vault-container, .menu-btn, .card-menu-btn, .win-controls, .win-rh';
@@ -9922,7 +9391,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target.closest(NO_DRAG)) return;
         e.preventDefault();
         
-        // Передаем перемещение (с поддержкой прилипания к краям экрана) в Windows DWM
         api()?.start_window_drag?.();
     }, true);
 })();

@@ -1,40 +1,31 @@
-/* ---------- ПАЛИТРА И ПЕРЕМЕННЫЕ (UI Kit) ---------- */
-/* Определяем глобальные переменные для светлой темы оформления */
 :root {
-    color-scheme: light;                /* Сообщаем браузеру использовать светлый системный UI */
-    --bg-canvas: #F4F3EF;               /* Цвет самого нижнего слоя (фон за доской) */
-    --bg-board: #EBEAE3;                /* Цвет фона контейнера доски и колонок */
-    --surface-card: #FFFFFF;            /* Цвет поверхности карточек (белый для контраста) */
-    --text-primary: #2A3029;            /* Основной цвет текста (глубокий темно-зеленый) */
-    --text-secondary: #828A80;          /* Вторичный цвет текста (для подписей и иконок) */
-    --border-light: rgba(0, 0, 0, 0.06); /* Цвет тонких границ (едва заметный черный) */
+    color-scheme: light;
+    --bg-canvas: #F4F3EF;
+    --bg-board: #EBEAE3;
+    --surface-card: #FFFFFF;
+    --text-primary: #2A3029;
+    --text-secondary: #828A80;
+    --border-light: rgba(0, 0, 0, 0.06);
 
-    --brand-pine: #4A5A48;              /* Фирменный хвойный цвет (основной акцент) */
-    --brand-pale: rgba(74, 90, 72, 0.08); /* Бледный оттенок фирменного цвета для выделения */
+    --brand-pine: #4A5A48;
+    --brand-pale: rgba(74, 90, 72, 0.08);
 
-    --timer-text: #C27A62;              /* Цвет текста таймера (терракотовый) */
-    --timer-bg: rgba(194, 122, 98, 0.1); /* Фон подложки таймера */
-    --success-done: #89A085;            /* Цвет для выполненных задач (приглушенный зеленый) */
+    --timer-text: #C27A62;
+    --timer-bg: rgba(194, 122, 98, 0.1);
+    --success-done: #89A085;
 
-    /* --font-main: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; Основной системный шрифт  */
-    /* --font-mono: 'SF Mono', 'JetBrains Mono', monospace; Моноширинный шрифт для таймеров */
+    --font-main: -apple-system, BlinkMacSystemFont, "SF Pro", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --font-mono: 'SF Mono', 'JetBrains Mono', monospace;
 
-    --font-main: -apple-system, BlinkMacSystemFont, "SF Pro", "Segoe UI", Roboto, Helvetica, Arial, sans-serif; /* Нативный системный шрифт (San Francisco на Apple-устройствах) */
-    --font-mono: 'SF Mono', 'JetBrains Mono', monospace; /* Моноширинный шрифт для таймеров */
+    --shadow-card: 0 2px 6px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+    --shadow-menu: 0 20px 40px rgba(0, 0, 0, 0.1), 0 4px 12px rgba(0, 0, 0, 0.05);
+    --shadow-drag: 0 30px 60px rgba(0, 0, 0, 0.12), 0 12px 24px rgba(0, 0, 0, 0.08);
 
-    --shadow-card: 0 2px 6px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04); /* Легкая тень карточки */
-    --shadow-menu: 0 20px 40px rgba(0, 0, 0, 0.1), 0 4px 12px rgba(0, 0, 0, 0.05); /* Глубокая тень выпадающих меню */
-    --shadow-drag: 0 30px 60px rgba(0, 0, 0, 0.12), 0 12px 24px rgba(0, 0, 0, 0.08); /* Тень при перетаскивании */
-
-    --radius-board: 16px;               /* Радиус скругления колонок */
-    --radius-card: 16px;                /* Радиус скругления карточек */
-    --transition-apple: 0.3s cubic-bezier(0.16, 1, 0.3, 1); /* Плавная кривая анимации в стиле Apple */
+    --radius-board: 16px;
+    --radius-card: 16px;
+    --transition-apple: 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     --line-height-standard: 1.5;
 }
-
-/* ==========================================
-   ГЛОБАЛЬНЫЕ СТИЛИ СКРОЛЛБАРА (macOS Native WebKit Fix)
-   ========================================== */
 
 :root {
     --scrollbar-thumb: rgba(74, 90, 72, 0.25);
@@ -51,19 +42,16 @@
 }
 
 .card-list, .task-detail-body, .markdown-body, .description-input {
-    contain: content; 
+    contain: content;
 }
 
-/* 1. ПОЛНОСТЬЮ СКРЫВАЕМ скроллбары только там, где они не нужны или мешают */
-html::-webkit-scrollbar, 
+html::-webkit-scrollbar,
 body::-webkit-scrollbar,
 .search-dropdown::-webkit-scrollbar,
 .tabs-container::-webkit-scrollbar {
     display: none !important;
 }
 
-/* 2. НАЗНАЧАЕМ КАСТОМНЫЕ скроллбары для контента (Модалка, Описание, Код, Инпуты). 
-   WebKit отключит системные скроллы macOS и применит эти. */
 .task-detail-body::-webkit-scrollbar,
 .markdown-body::-webkit-scrollbar,
 .description-input::-webkit-scrollbar,
@@ -147,7 +135,6 @@ pre::-webkit-scrollbar-thumb,
     border-radius: 4px;
 }
 
-/* Псевдокласс :hover для скроллбара работает в WKWebView, если скроллбар задан жестко */
 .task-detail-body::-webkit-scrollbar-thumb:hover,
 .markdown-body::-webkit-scrollbar-thumb:hover,
 .description-input::-webkit-scrollbar-thumb:hover,
@@ -160,7 +147,6 @@ pre::-webkit-scrollbar-thumb:hover,
     background: var(--scrollbar-thumb-hover);
 }
 
-/* Блокируем ВСЕ анимации и переходы на момент начальной загрузки приложения */
 .preload * {
     -webkit-transition: none !important;
     -moz-transition: none !important;
@@ -170,7 +156,6 @@ pre::-webkit-scrollbar-thumb:hover,
     animation: none !important;
 }
 
-/* КРИТИЧЕСКИЙ СБРОС */
 html {
     background-color: var(--bg-canvas) !important;
     margin: 0;
@@ -190,10 +175,8 @@ body {
     -webkit-user-drag: none;
 }
 
-
-/* Глобальная защита от браузерного выделения и перетаскивания */
 html, body {
-    -webkit-user-drag: none; /* Полностью убивает браузерный drag */
+    -webkit-user-drag: none;
     -khtml-user-drag: none;
     -moz-user-drag: none;
     -o-user-drag: none;
@@ -201,45 +184,41 @@ html, body {
     padding: 0;
     height: 100vh;
     width: 100vw;
-    /* Убеждаемся, что фон body — это то, что мы хотим видеть в заголовке */
-    background-color: var(--bg-canvas); 
+
+    background-color: var(--bg-canvas);
 }
 
-/* Защищаем SVG-иконки, чтобы браузер не пытался утащить их как картинки */
 svg, img {
-    pointer-events: none; /* Клики проходят сквозь иконки к кнопкам */
+    pointer-events: none;
     -webkit-user-drag: none;
     user-select: none;
 }
 
-/* Явно разрешаем клики по иконкам, которые лежат в интерактивных элементах (например, в меню) */
 .menu-item svg, .lang-item svg {
     pointer-events: auto;
 }
 
-/* Переопределяем переменные для темной темы */
 [data-theme="dark"] {
-    color-scheme: dark;                 /* МАГИЯ: Переключает нативный календарь браузера в тёмный режим */
-    --bg-canvas: #161815;               /* Темный фон за доской */
-    --bg-board: #1C1E1B;                /* Темный фон колонок */
-    --surface-card: #232521;            /* Темная поверхность карточки */
-    --text-primary: #E6E8E5;            /* Светло-серый текст для чтения в темноте */
-    --text-secondary: #8B9088;          /* Приглушенный серый текст */
-    --border-light: rgba(255, 255, 255, 0.06); /* Белые границы с низкой прозрачностью */
+    color-scheme: dark;
+    --bg-canvas: #161815;
+    --bg-board: #1C1E1B;
+    --surface-card: #232521;
+    --text-primary: #E6E8E5;
+    --text-secondary: #8B9088;
+    --border-light: rgba(255, 255, 255, 0.06);
 
-    --brand-pine: #89A085;              /* Более светлый хвойный для темной темы */
-    --brand-pale: rgba(137, 160, 133, 0.15); /* Подсветка в темной теме */
+    --brand-pine: #89A085;
+    --brand-pale: rgba(137, 160, 133, 0.15);
 
-    --timer-text: #D69780;              /* Текст таймера в темной теме */
-    --timer-bg: rgba(214, 151, 128, 0.12); /* Фон таймера в темной теме */
-    --success-done: #738A70;            /* Цвет выполненных задач */
+    --timer-text: #D69780;
+    --timer-bg: rgba(214, 151, 128, 0.12);
+    --success-done: #738A70;
 
-    --shadow-card: 0 2px 6px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3); /* Жесткие тени для глубины */
-    --shadow-menu: 0 20px 40px rgba(0, 0, 0, 0.6), 0 4px 12px rgba(0, 0, 0, 0.4); /* Контрастные тени меню */
-    --shadow-drag: 0 30px 60px rgba(0, 0, 0, 0.7), 0 12px 24px rgba(0, 0, 0, 0.5); /* Мощная тень драга */
+    --shadow-card: 0 2px 6px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-menu: 0 20px 40px rgba(0, 0, 0, 0.6), 0 4px 12px rgba(0, 0, 0, 0.4);
+    --shadow-drag: 0 30px 60px rgba(0, 0, 0, 0.7), 0 12px 24px rgba(0, 0, 0, 0.5);
 }
 
-/* Настройки прозрачного фона для интерактивных элементов в темной теме */
 [data-theme="dark"] .icon-btn:hover,
 [data-theme="dark"] .icon-btn.active,
 [data-theme="dark"] .workspace-btn:hover,
@@ -249,63 +228,53 @@ svg, img {
 [data-theme="dark"] .meta-pill,
 [data-theme="dark"] .lang-item:hover,
 [data-theme="dark"] .lang-item.active {
-    background: rgba(255, 255, 255, 0.06); /* Легкий отсвет при наведении */
+    background: rgba(255, 255, 255, 0.06);
 }
 
-/* Стекломорфизм для меню и модалок в темной теме */
 [data-theme="dark"] .dropdown-menu,
 [data-theme="dark"] .modal-card {
-    background: #232521 !important; /* Глухой темный цвет без прозрачности */
+    background: #232521 !important;
     border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-/* Уникальный фон для завершенных карточек в темной теме */
 [data-theme="dark"] .card.is-completed {
     background: #1A1C19;
 }
 
-/* Цвет границ кнопки создания колонки в темной теме */
 [data-theme="dark"] .new-column-btn {
     border-color: rgba(137, 160, 133, 0.25);
 }
 
-/* Фон затемнения модального окна в темной теме */
 [data-theme="dark"] .modal-overlay {
     background: rgba(0, 0, 0, 0.5);
 }
 
-/* Настройка браузерного API View Transitions для плавной смены тем */
 ::view-transition-old(root),
 ::view-transition-new(root) {
-    animation: none;            /* Отключаем стандартное затухание */
-    mix-blend-mode: normal;     /* Режим смешивания слоев */
+    animation: none;
+    mix-blend-mode: normal;
 }
 
-/* Слой старой темы (под новой) */
 ::view-transition-old(root) {
     z-index: 1;
 }
 
-/* Анимация "расширяющегося круга" при смене темы */
 ::view-transition-new(root) {
     z-index: 2;
     animation: theme-wipe 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
-/* Определение анимации круга для смены темы */
 @keyframes theme-wipe {
-    0% { clip-path: circle(0% at 0% 0%); }   /* Начинаем из левого верхнего угла */
-    100% { clip-path: circle(150% at 0% 0%); } /* Расширяем круг на весь экран */
+    0% { clip-path: circle(0% at 0% 0%); }
+    100% { clip-path: circle(150% at 0% 0%); }
 }
 
-/* Сброс стандартных браузерных отступов */
 * {
     margin: 0;
     padding: 0;
-    box-sizing: border-box; /* Размеры элементов включают границы и отступы */
+    box-sizing: border-box;
 }
 
-/* Настройки основного контейнера страницы */
 body {
     background-color: var(--bg-canvas);
     font-family: var(--font-main);
@@ -317,33 +286,60 @@ body {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     isolation: isolate;
-    -webkit-user-select: none; /* Запрещаем выделение интерфейса по умолчанию */
+    -webkit-user-select: none;
     user-select: none;
 }
 
-/* РАЗРЕШАЕМ ВЫДЕЛЕНИЕ В ОПИСАНИИ И ИНПУТАХ */
-.description-wrapper, /* <--- ФИКС РЕСАЙЗА: Разрешаем выделение самому контейнеру */
-.markdown-body, 
-.markdown-body *, 
-.description-input, 
-.card-input, 
-.column-input, 
-.tab-input, 
-.card-title-input, 
-.column-title-input, 
+button, input, textarea, select {
+    font-family: inherit;
+}
+
+.setting-input {
+    width: 100%;
+    background: rgba(0, 0, 0, 0.04);
+    border: 1px solid transparent;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-family: inherit;
+    font-size: 13px;
+    color: var(--text-primary);
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.setting-input:focus {
+    background: var(--surface-card);
+    border-color: rgba(74, 90, 72, 0.3);
+}
+
+[data-theme="dark"] .setting-input {
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .setting-input:focus {
+    background: var(--surface-card);
+    border-color: rgba(137, 160, 133, 0.4);
+}
+
+.description-wrapper,
+.markdown-body,
+.markdown-body *,
+.description-input,
+.card-input,
+.column-input,
+.tab-input,
+.card-title-input,
+.column-title-input,
 .tab-name-input {
     -webkit-user-select: text !important;
     user-select: text !important;
 }
 
-/* Обертка для кнопок настроек */
 .settings-wrapper {
     position: relative;
 }
 
-/* ==========================================
-   GLOBAL SEARCH (Senior UI Polish)
-   ========================================== */
 .search-wrapper {
     position: relative;
     display: flex;
@@ -354,13 +350,13 @@ body {
     background: rgba(0, 0, 0, 0.04);
     border: 1px solid transparent;
     border-radius: 10px;
-    padding: 8px 12px 8px 34px; 
+    padding: 8px 12px 8px 34px;
     font-family: var(--font-main);
     font-size: 13px;
     font-weight: 500;
     color: var(--text-primary);
-    width: 140px; /* Компактный размер по умолчанию (вмещает иконку и слово Поиск) */
-    height: 36px; /* Высота выровнена по кнопке выбора хранилища (.workspace-btn) */
+    width: 140px;
+    height: 36px;
     transition: all var(--transition-apple);
     outline: none;
 }
@@ -371,7 +367,7 @@ body {
     background: var(--surface-card);
     border-color: rgba(74, 90, 72, 0.3);
     box-shadow: var(--shadow-card);
-    width: 220px; /* Аккуратное, не чрезмерное расширение при вводе */
+    width: 220px;
 }
 
 .search-icon {
@@ -395,7 +391,6 @@ body {
     gap: 4px;
 }
 
-/* Скрываем скроллбар в выпадашке */
 .search-dropdown::-webkit-scrollbar { display: none; }
 
 .search-result-item {
@@ -409,11 +404,11 @@ body {
 }
 .search-result-item:hover { background: rgba(0, 0, 0, 0.04); }
 
-.search-result-title { 
-    font-size: 13px; 
-    font-weight: 600; 
+.search-result-title {
+    font-size: 13px;
+    font-weight: 600;
     color: var(--text-primary);
-    /* Перенос длинных слов и обрезка по 2 строкам с многоточием */
+
     word-break: break-word;
     overflow-wrap: anywhere;
     display: -webkit-box;
@@ -423,24 +418,24 @@ body {
     overflow: hidden;
     line-height: 1.4;
 }
-.search-result-meta { 
-    font-size: 11px; 
-    color: var(--text-secondary); 
-    display: flex; 
-    align-items: center; 
+.search-result-meta {
+    font-size: 11px;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
     gap: 4px;
-    /* Мета (Карточка · Вкладка / Колонка) — одна строка с многоточием */
+
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     min-width: 0;
 }
 .search-result-meta svg { width: 12px; height: 12px; opacity: 0.7; flex-shrink: 0; }
-.search-result-desc { 
-    font-size: 12px; 
-    color: var(--text-secondary); 
+.search-result-desc {
+    font-size: 12px;
+    color: var(--text-secondary);
     line-height: 1.4;
-    /* Сниппет — перенос длинных слов, максимум 3 строки */
+
     word-break: break-word;
     overflow-wrap: anywhere;
     display: -webkit-box;
@@ -450,16 +445,14 @@ body {
     overflow: hidden;
 }
 
-/* Унифицированная подсветка поиска (Абсолютная копия выделения курсором) */
 .search-result-item mark,
 .search-highlight,
 .search-result-desc mark {
-    background-color: #C3C6BC; /* Убрали !important */
-    color: var(--text-primary); /* Убрали !important */
-    /* Добавляем transition сюда для надежности */
+    background-color: #C3C6BC;
+    color: var(--text-primary);
+
     transition: background-color 0.5s ease, color 0.5s ease;
-    
-    /* ЖЕСТКИЙ СБРОС ФОРМЫ */
+
     border-radius: 0 !important;
     padding: 0 !important;
     margin: 0 !important;
@@ -468,21 +461,17 @@ body {
     border: none !important;
 }
 
-/* Тёмная тема */
 [data-theme="dark"] .search-result-item mark,
 [data-theme="dark"] .search-highlight,
 [data-theme="dark"] .search-result-desc mark {
-    background-color: #5C635A; /* Убрали !important */
-    color: #FFFFFF; /* Убрали !important */
+    background-color: #5C635A;
+    color: #FFFFFF;
 }
 
-/* Стили инпутов и ховеров списка */
 [data-theme="dark"] .search-input { background: rgba(255, 255, 255, 0.06); color: var(--text-primary); }
 [data-theme="dark"] .search-input:focus { background: var(--surface-card); border-color: rgba(137, 160, 133, 0.4); }
 [data-theme="dark"] .search-result-item:hover { background: rgba(255, 255, 255, 0.06); }
 
-
-/* Кнопки-иконки в шапке */
 .icon-btn {
     background: transparent;
     border: none;
@@ -495,17 +484,15 @@ body {
     color: var(--text-secondary);
     cursor: pointer;
     transition: all 0.2s ease;
-    flex-shrink: 0; /* Защита от деформации при нехватке места */
+    flex-shrink: 0;
 }
 
-/* Эффект наведения на кнопку-иконку */
 .icon-btn:hover,
 .icon-btn.active {
     background: rgba(0, 0, 0, 0.05);
     color: var(--text-primary);
 }
 
-/* Кнопка выбора воркспейса (Doe Board) */
 .workspace-btn {
     background: transparent;
     border: none;
@@ -520,15 +507,13 @@ body {
     padding: 8px 4px 8px 8px;
     border-radius: 10px;
     transition: background 0.2s;
-    letter-spacing: -0.01em;    /* Чуть более плотный текст */
+    letter-spacing: -0.01em;
 }
 
-/* Наведение на кнопку воркспейса */
 .workspace-btn:hover {
     background: rgba(0, 0, 0, 0.04);
 }
 
-/* Полупрозрачная стрелочка воркспейса */
 .workspace-btn svg {
     opacity: 0.5;
     width: 16px;
@@ -536,73 +521,65 @@ body {
 }
 
 .board-container {
-    flex: 1;                    
-    /* Нижний отступ строго 16px (равен верхнему отступу .app-header) */
-    padding: 0 0 16px 24px; 
-    overflow-x: auto;           
+    flex: 1;
+
+    padding: 0 0 16px 24px;
+    overflow-x: auto;
     overflow-y: hidden;
 }
 
-/* Внутренний контейнер доски */
 .board {
-    display: flex;              /* Колонки в ряд */
-    gap: 24px;                  /* Расстояние между колонками (ЭТАЛОН) */
-    height: 100%;               /* На всю высоту родителя */
-    width: max-content;         /* Ширина по количеству колонок */
-    padding-right: 24px;        /* Справа тоже делаем 24px для идеальной симметрии */
+    display: flex;
+    gap: 24px;
+    height: 100%;
+    width: max-content;
+    padding-right: 24px;
 }
 
-/* Основной стиль колонки */
 .column {
     background: var(--bg-board);
-    width: 320px;               /* Фиксированная ширина */
+    width: 320px;
     max-height: 100%;
-    flex-shrink: 0;             /* Не разрешаем колонке сжиматься */
+    flex-shrink: 0;
     border-radius: var(--radius-board);
     display: flex;
-    flex-direction: column;     /* Содержимое колонки вертикальное */
+    flex-direction: column;
     border: 1px solid var(--border-light);
     position: relative;
-    /* 🚀 ДОБАВЛЕН BORDER-COLOR СЮДА: теперь ширина и цвет анимируются вместе */
+
     transition: width var(--transition-apple), background var(--transition-apple), border-color var(--transition-apple);
-    
-    cursor: grab;               /* Указатель "рука" для перетаскивания */
+
+    cursor: grab;
 }
 
-/* Состояние при зажатии колонки мышкой */
 .column:active {
     cursor: grabbing;
 }
 
-/* Свернутая колонка */
 .column.collapsed {
     width: auto;
     min-width: 60px;
-    max-width: 160px;           /* Ограничение ширины для длинных названий */
+    max-width: 160px;
     cursor: pointer;
     background: var(--bg-board);
     border: 1px solid var(--border-light);
-    padding: 12px 0;            /* Отступы сверху/снизу */
+    padding: 12px 0;
 }
 
-/* Состояние при зажатии СВЕРНУТОЙ колонки мышкой */
 .column.collapsed:active {
     cursor: grabbing !important;
 }
 
-/* Ховер на свернутую колонку */
 .column.collapsed:not(.is-collapsing):hover {
     border-color: rgba(0, 0, 0, 0.14);
 }
 
-/* Скрываем содержимое в свернутой колонке */
 .column.collapsed .card-list,
 .column.collapsed .btn-add-card,
 .column.collapsed .column-actions {
     display: none;
 }
 
-/* Центрируем шапку в свернутой колонке */
 .column.collapsed .column-header {
     padding: 0;
     justify-content: center;
@@ -612,42 +589,39 @@ body {
     min-height: 0;
 }
 
-/* Текст заголовка в свернутой колонке (вертикальный) */
 .column.collapsed .column-title {
-    writing-mode: vertical-rl;  /* Текст пишется сверху вниз */
-    transform: rotate(180deg);  /* Переворачиваем для удобства чтения */
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
     color: var(--text-primary);
     font-size: 15px;
     letter-spacing: 0.02em;
-    word-break: break-all;      /* Перенос букв, если слово слишком длинное */
-    overflow: hidden;           /* Прячем лишнее */
-    flex: 1;                    /* Занимает всю высоту */
+    word-break: break-all;
+    overflow: hidden;
+    flex: 1;
     min-height: 0;
     max-height: 100%;
     min-width: auto;
     line-height: 1.4;
     padding: 8px 0;
-    white-space: normal;        /* Разрешаем перенос строк */
+    white-space: normal;
     display: flex;
-    align-items: center;        /* Центрируем текст по вертикали */
-    justify-content: center;    /* Центрируем текст по горизонтали */
+    align-items: center;
+    justify-content: center;
     text-align: center;
-    
-    /* --- ИСПРАВЛЕНО: Убираем отступ, который сломал центрирование --- */
+
     margin: 0;
 }
 
-/* Шапка колонки (заголовок и кнопки) */
 .column-header {
     padding: 20px 20px 12px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    user-select: none;          /* Запрещаем выделение текста мышкой */
+    user-select: none;
     -webkit-user-select: none;
     gap: 8px;
-    min-width: 0;               /* Позволяет flex-элементу сжиматься меньше содержимого */
-    flex-shrink: 0;             /* Заголовок не ужимается по высоте */
+    min-width: 0;
+    flex-shrink: 0;
 }
 
 .column-title {
@@ -659,7 +633,7 @@ body {
     word-break: break-word;
     overflow-wrap: break-word;
     white-space: pre-wrap;
-    
+
     display: -webkit-box;
     -webkit-box-orient: vertical;
     overflow: hidden;
@@ -667,33 +641,26 @@ body {
     min-width: 0;
     margin-right: 12px;
 
-    /* 🛡 ФИКС ГЕОМЕТРИИ: */
-    /* Добавляем микро-отступ снизу, чтобы descenders (хвостики букв) не срезались */
-    padding-bottom: 2px; 
-    /* Защита от случайных скачков высоты */
-    box-sizing: content-box; 
+    padding-bottom: 2px;
+
+    box-sizing: content-box;
 }
 
 .preload .card-list {
     opacity: 0;
 }
 
-
-
-/* --- ДОБАВЛЕНО: Курсор при наведении --- */
 .column:not(.collapsed) .column-title {
     cursor: pointer;
 }
 
-/* Правая часть шапки с иконками и счетчиком */
 .column-actions {
     display: flex;
     align-items: center;
     gap: 8px;
-    flex-shrink: 0;             /* Иконки не сжимаются */
+    flex-shrink: 0;
 }
 
-/* Пилюля с режимом колонки и счетчиком карточек */
 .meta-pill {
     display: flex;
     align-items: center;
@@ -702,22 +669,19 @@ body {
     font-weight: 600;
     padding: 4px 10px;
     border-radius: 20px;
-    pointer-events: none;       /* Пропускает клики сквозь себя */
+    pointer-events: none;
 }
 
-/* Разные цвета пилюль (сейчас одинаковые, задел на будущее) */
 .meta-pill.default { background: rgba(0, 0, 0, 0.04); color: var(--text-secondary); }
 .meta-pill.track-time { background: rgba(0, 0, 0, 0.04); color: var(--text-secondary); }
 .meta-pill.completion { background: rgba(0, 0, 0, 0.04); color: var(--text-secondary); }
 
-/* Иконки внутри пилюли */
 .meta-pill svg {
     width: 14px;
     height: 14px;
     opacity: 0.9;
 }
 
-/* Кнопка "три точки" в колонке */
 .menu-btn {
     background: none;
     border: none;
@@ -730,21 +694,19 @@ body {
     color: var(--text-secondary);
     cursor: pointer;
     transition: all 0.15s ease;
-    pointer-events: auto;       /* Реагирует на клики */
+    pointer-events: auto;
 }
 
-/* Эффект наведения на кнопку меню */
 .menu-btn:hover,
 .menu-btn.active {
     background: rgba(0, 0, 0, 0.06);
     color: var(--text-primary);
 }
 
-/* Выпадающее контекстное меню */
 .dropdown-menu {
     position: absolute;
     background: rgba(255, 255, 255, 0.85);
-    backdrop-filter: blur(24px); /* Эффект размытия заднего плана */
+    backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
     border-radius: 14px;
     box-shadow: var(--shadow-menu);
@@ -752,33 +714,30 @@ body {
     min-width: 220px;
     z-index: 100;
     border: 1px solid rgba(255, 255, 255, 0.5);
-    opacity: 0;                 /* Изначально невидимо */
-    visibility: hidden;         /* Изначально недоступно для кликов */
-    transform: translateY(-8px) scale(0.96); /* Сдвиг вверх и уменьшение для анимации появления */
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-8px) scale(0.96);
     transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.2s;
 }
 
-/* Позиционирование меню для колонок */
 .column .dropdown-menu {
     top: 56px;
     right: 16px;
-    transform-origin: top right; /* Анимация идет из правого верхнего угла */
+    transform-origin: top right;
 }
 
-/* Позиционирование меню настроек в шапке */
 .settings-wrapper .dropdown-menu {
     top: 44px;
     left: 0;
     transform-origin: top left;
 }
 
-/* --- СТИЛИЗАЦИЯ КОЛОКОЛЬЧИКА И СПИСКА НАПОМИНАНИЙ --- */
 #reminders-bell-wrapper {
     position: relative;
 }
 
 #reminders-bell-trigger {
-    position: relative; /* Гарантирует точное позиционирование индикатора внутри кнопки */
+    position: relative;
 }
 
 .bell-badge {
@@ -787,7 +746,7 @@ body {
     right: 8px;
     width: 7px;
     height: 7px;
-    background-color: var(--timer-text); /* Эстетичный терракотовый цвет */
+    background-color: var(--timer-text);
     border-radius: 50%;
     border: 1.5px solid var(--bg-canvas);
     pointer-events: none;
@@ -812,7 +771,7 @@ body {
 }
 
 .reminders-list::-webkit-scrollbar {
-    display: none; /* Прячем скроллбар */
+    display: none;
 }
 
 .reminder-item {
@@ -866,24 +825,21 @@ body {
     opacity: 1;
 }
 
-/* Класс для отображения меню через JS */
 .dropdown-menu.show {
     opacity: 1;
     visibility: visible;
-    transform: translateY(0) scale(1); /* Возврат в нормальное положение */
+    transform: translateY(0) scale(1);
 }
 
-/* Подзаголовки внутри меню */
 .menu-label {
     font-size: 11px;
     font-weight: 600;
-    text-transform: uppercase;  /* Капсом */
+    text-transform: uppercase;
     letter-spacing: 0.04em;
     color: var(--text-secondary);
     padding: 8px 12px 6px;
 }
 
-/* Пункт меню */
 .menu-item {
     padding: 8px 12px;
     border-radius: 8px;
@@ -897,76 +853,65 @@ body {
     transition: background 0.1s;
 }
 
-/* Наведение на пункт меню */
 .menu-item:hover {
     background: rgba(0, 0, 0, 0.04);
 }
 
-/* Опасные пункты (Удалить) */
 .menu-item.danger {
     color: #D35446;
 }
 
-/* Наведение на опасный пункт */
 .menu-item.danger:hover {
     background: rgba(211, 84, 70, 0.08);
 }
 
-/* Выбранный пункт (например, текущий режим) */
 .menu-item.selected {
     background: rgba(0, 0, 0, 0.02);
     font-weight: 600;
 }
 
-/* Иконка галочки в меню */
 .menu-item svg.check-icon {
     opacity: 0;
     width: 14px;
     height: 14px;
-    margin-left: auto;          /* Прижимаем галочку вправо */
-    transform: scale(0.8);      /* Уменьшена для анимации */
+    margin-left: auto;
+    transform: scale(0.8);
     transition: all 0.2s ease;
     color: var(--text-primary);
 }
 
-/* Показываем галочку у выбранного элемента */
 .menu-item.selected svg.check-icon {
     opacity: 1;
     transform: scale(1);
 }
 
-/* Стандартные иконки в меню */
 .menu-icon {
     width: 16px;
     height: 16px;
     opacity: 0.6;
 }
 
-/* Разделительная линия в меню */
 .menu-divider {
     height: 1px;
     background: var(--border-light);
     margin: 6px 0;
 }
 
-/* Список карточек внутри колонки */
 .card-list {
     padding: 4px 16px 16px;
     display: flex;
     flex-direction: column;
-    gap: 12px;                  /* Расстояние между карточками */
-    overflow-y: auto;           /* Прокрутка списка, если карточек много */
-    flex: 1;                    /* Список занимает всё свободное место в колонке */
+    gap: 12px;
+    overflow-y: auto;
+    flex: 1;
     pointer-events: auto;
-    min-height: 0;              /* Важно для корректного скролла внутри flex */
+    min-height: 0;
 }
 
-/* Скрываем скроллбар в Chrome/Safari/Edge */
 .card-list::-webkit-scrollbar {
     display: none;
 }
 
-/* Стиль отдельной карточки задачи */
 .card {
     background: var(--surface-card);
     border-radius: var(--radius-card);
@@ -976,31 +921,27 @@ body {
     cursor: grab;
     transition: transform var(--transition-apple), box-shadow var(--transition-apple), background-color var(--transition-apple), border-color var(--transition-apple);
     display: flex;
-    flex-direction: column; 
-    align-items: stretch;   
-    gap: 0;                 /* УБРАЛИ ГЭП — это корень дёрганья */
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
     user-select: none;
     pointer-events: auto;
-    position: relative;     /* <--- Добавлено для абсолютного позиционирования инлайн-триггеров создания */
+    position: relative;
 }
 
-/* Эстетичная подсветка при переходе по уведомлению или поиску */
 .card.is-highlighted {
-    /* Создаем благородную полупрозрачную рамку в 1px (40% от основного цвета) */
+
     border-color: color-mix(in srgb, var(--brand-pine) 40%, transparent) !important;
-    /* Оставляем только стандартную мягкую тень карточки, без внешних колец */
+
     box-shadow: var(--shadow-card) !important;
 }
 
-/* ==========================================
-   ИНЛАЙН-ТРИГГЕРЫ СОЗДАНИЯ КАРТОЧЕК В ЗАЗОРАХ
-   ========================================== */
 .card-inline-trigger {
     position: absolute;
-    bottom: -13px; /* Сдвиг на 13px (12px зазор + 1px внешняя граница) для точного позиционирования */
+    bottom: -13px;
     left: 0;
     right: 0;
-    height: 12px;  /* Высота контейнера равна высоте зазора для центрирования линии */
+    height: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1017,17 +958,14 @@ body {
     transform: scaleY(1);
 }
 
-/* Отключаем триггер у последней карточки в колонке, так как под ней нет другой карточки */
 .card:last-child .card-inline-trigger {
     display: none !important;
 }
 
-/* Если сразу за карточкой идет открытая форма ввода, полностью скрываем триггер над ней */
 .card:has(+ .card-entering) .card-inline-trigger {
     display: none !important;
 }
 
-/* Линия разделителя */
 .card-inline-trigger::before {
     content: '';
     position: absolute;
@@ -1048,19 +986,17 @@ body {
     opacity: 0.4;
 }
 
-/* Круглая кнопка с плюсом */
 .divider-plus-btn {
     width: 20px;
     height: 20px;
     border-radius: 50%;
-    border: none; /* Убираем стандартный несимметричный CSS-border */
-    background-color: transparent; /* Прозрачный фон по умолчанию */
-    
-    /* Идеально симметричный векторный круг с 8 одинаковыми штрихами */
+    border: none;
+    background-color: transparent;
+
     background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20'><circle cx='10' cy='10' r='9' fill='none' stroke='%234A5A48' stroke-width='1.5' stroke-dasharray='4,3.06'/></svg>");
     background-repeat: no-repeat;
     background-position: center;
-    
+
     color: var(--brand-pine);
     display: flex;
     align-items: center;
@@ -1072,7 +1008,6 @@ body {
     transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.15s, background-image 0.15s, color 0.15s;
 }
 
-/* Симметричный векторный круг для темной темы */
 [data-theme="dark"] .divider-plus-btn {
     background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20'><circle cx='10' cy='10' r='9' fill='none' stroke='%2389A085' stroke-width='1.5' stroke-dasharray='4,3.06'/></svg>");
 }
@@ -1081,66 +1016,55 @@ body {
     transform: scale(1);
 }
 
-/* При наведении контур сохраняется, а внутри появляется деликатная полупрозрачная подложка */
 .divider-plus-btn:hover {
-    background-color: var(--brand-pale) !important; /* Мягкий полупрозрачный оттенок зеленого */
-    color: var(--brand-pine) !important; /* Плюс сохраняет свой цвет */
+    background-color: var(--brand-pale) !important;
+    color: var(--brand-pine) !important;
     transform: scale(1.15) !important;
 }
 
-/* Благодаря использованию переменной --brand-pale, цвет подложки автоматически адаптируется под темную тему */
 [data-theme="dark"] .divider-plus-btn:hover {
     background-color: var(--brand-pale) !important;
     color: var(--brand-pine) !important;
 }
 
-/* Полностью отключаем отображение триггеров во время перетаскивания (Drag & Drop) */
 body[class*="is-dragging-"] .card-inline-trigger {
     display: none !important;
 }
 
-/* При зажатии карточки */
 .card:active {
     cursor: grabbing;
 }
 
-/* Задаем z-index при любом наведении на область карты или её триггеров, чтобы плюс не перекрывался соседними картами */
 .card:not(.card-entering):hover {
     z-index: 10;
 }
 
-/* Физический подъем и тень применяем только когда курсор не на триггере */
 .card:not(.card-entering):hover:not(:has(.card-inline-trigger:hover)) {
     transform: translate3d(0, -2px, 0);
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
 }
 
-/* Стиль для завершенных карточек */
 .card.is-completed {
-    background: #F7F6F3;        /* Более серый фон */
+    background: #F7F6F3;
 }
 
-/* Ховер на завершенную карточку (исключая наведение на триггер создания в зазоре) */
 .card.is-completed:hover:not(:has(.card-inline-trigger:hover)) {
     transform: translate3d(0, -2px, 0);
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
 }
 
-/* Обертка заголовка карточки (иконка + текст) */
 .card-title-wrapper {
     width: 100%;
     display: flex;
-    align-items: flex-start; 
+    align-items: flex-start;
     pointer-events: none;
 }
 
-/* Иконка галочки у завершенной задачи (плавное появление/исчезновение) */
 .completed-icon {
     color: var(--success-done);
     flex-shrink: 0;
     margin-top: 2px;
-    
-    /* Всегда в потоке, но в скрытом состоянии: ширина 0, прозрачная, сжата */
+
     display: flex;
     width: 16px;
     max-width: 0;
@@ -1156,7 +1080,6 @@ body[class*="is-dragging-"] .card-inline-trigger {
         margin-right 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Плавно показываем галочку и отодвигаем текст */
 .card.is-completed .completed-icon {
     max-width: 16px;
     margin-right: 8px;
@@ -1164,24 +1087,20 @@ body[class*="is-dragging-"] .card-inline-trigger {
     transform: scale(1);
 }
 
-/* Текст заголовка карточки */
 .card-title {
     font-size: 14px;
     font-weight: 500;
     line-height: 1.4;
     color: var(--text-primary);
-    transition: color 0.3s ease; /* Сделали смену цвета более плавной */
+    transition: color 0.3s ease;
     pointer-events: none;
     word-break: break-word;
     overflow-wrap: break-word;
     white-space: pre-wrap;
-    flex: 1; 
+    flex: 1;
     min-width: 0;
 }
 
-
-
-/* Зачеркнутый текст у завершенной задачи */
 .card.is-completed .card-title {
     text-decoration: line-through;
     color: var(--text-secondary);
@@ -1191,12 +1110,10 @@ body[class*="is-dragging-"] .card-inline-trigger {
     background: rgba(255, 255, 255, 0.08);
 }
 
-
 .checklist-meta svg {
     opacity: 0.7;
 }
 
-/* Если все подзадачи выполнены — красим в зеленый */
 .checklist-meta.all-done {
     color: var(--success-done);
     background: rgba(137, 160, 133, 0.15);
@@ -1211,8 +1128,6 @@ body[class*="is-dragging-"] .card-inline-trigger {
     background: var(--success-done);
 }
 
-
-/* Кнопка создания новой карточки внизу колонки */
 .btn-add-card {
     margin: 0 16px 16px;
     padding: 12px;
@@ -1221,27 +1136,25 @@ body[class*="is-dragging-"] .card-inline-trigger {
     color: var(--text-secondary);
     font-size: 14px;
     font-weight: 500;
-    text-align: left;           /* Текст слева */
+    text-align: left;
     cursor: pointer;
     border-radius: 10px;
     transition: all 0.15s ease;
     pointer-events: auto;
-    flex-shrink: 0;             /* Кнопка не сжимается */
+    flex-shrink: 0;
 }
 
-/* Наведение на кнопку создания карточки */
 .btn-add-card:hover {
     background: rgba(0, 0, 0, 0.03);
     color: var(--text-primary);
 }
 
-/* Большая кнопка создания новой колонки справа доски */
 .new-column-btn {
     width: 320px;
     min-width: 320px;
     height: 60px;
     background: transparent;
-    border: 2px dashed rgba(74, 90, 72, 0.15); /* Возвращаем оригинальные 15% */
+    border: 2px dashed rgba(74, 90, 72, 0.15);
     border-radius: var(--radius-board);
     display: flex;
     align-items: center;
@@ -1250,9 +1163,7 @@ body[class*="is-dragging-"] .card-inline-trigger {
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;
-    
-    /* 🔥 ФИКС: Убрали will-change и transition: all. 
-       Анимируем только цвет фона и рамки, чтобы не дергать GPU-композитор */
+
     transition: background-color 0.2s ease, border-color 0.2s ease;
     animation: fadeInBtn 0.2s ease-out;
 }
@@ -1262,38 +1173,34 @@ body[class*="is-dragging-"] .card-inline-trigger {
     to { opacity: 1; }
 }
 
-/* Ховер на кнопку новой колонки */
 .new-column-btn:hover {
     background: rgba(74, 90, 72, 0.03);
     border-color: rgba(74, 90, 72, 0.3);
 }
 
-/* Клон карточки, который летает за мышкой при Drag & Drop */
 .card-drag-clone {
-    position: fixed !important; /* Отрываем от верстки */
+    position: fixed !important;
     top: 0 !important;
     left: 0 !important;
-    transform-origin: top left; /* Точка трансформации - курсор */
-    z-index: 2147483640 !important; /* 🔥 ФИКС: Абсолютный приоритет над светофором и элементами интерфейса */
-    pointer-events: none !important; /* Клон не должен мешать событиям мыши под ним */
+    transform-origin: top left;
+    z-index: 2147483640 !important;
+    pointer-events: none !important;
     margin: 0 !important;
-    width: 288px;               /* Чуть уже оригинала для эффекта "взятия" */
+    width: 288px;
     box-shadow: var(--shadow-drag) !important;
     will-change: transform;
 }
 
-/* Запрещаем взаимодействие со всеми вложенными элементами клона */
 .card-drag-clone * {
     pointer-events: none !important;
 }
 
-/* Клон колонки при Drag & Drop */
 .column-drag-clone {
     position: fixed !important;
     top: 0 !important;
     left: 0 !important;
     transform-origin: top left !important;
-    z-index: 2147483640 !important; /* 🔥 ФИКС: Гарантированно выше светофора */
+    z-index: 2147483640 !important;
     pointer-events: none !important;
     margin: 0 !important;
     box-shadow: var(--shadow-drag) !important;
@@ -1305,22 +1212,15 @@ body[class*="is-dragging-"] .card-inline-trigger {
     border-radius: var(--radius-board) !important;
     border: 1px solid var(--border-light) !important;
 
-    /* 🩹 FIX: Отключаем transition, чтобы наследованные от .column анимации 
-       не вызывали фризы при каждом кадре движения */
     transition: none !important;
 
-    /* 🩹 FIX: Изолируем рендеринг клона — браузер не лезет пересчитывать 
-       layout всей страницы при движении */
     contain: layout style paint !important;
 
-    /* 🩹 FIX: Обрезаем всё, что вылезает — убираем лишние repaint */
     overflow: hidden !important;
 
-    /* 🩹 FIX: Явный курсор на время драга */
     cursor: grabbing !important;
 }
 
-/* Контейнер-распорка для бесшовной подмены кнопки */
 .tab-spacer-wrapper {
     display: flex;
     align-items: center;
@@ -1328,7 +1228,6 @@ body[class*="is-dragging-"] .card-inline-trigger {
     flex-shrink: 0;
 }
 
-/* Сама кнопка внутри распорки должна стоять жестко */
 .tab-spacer-wrapper .add-tab-btn {
     margin: 0 !important;
 }
@@ -1338,32 +1237,23 @@ body[class*="is-dragging-"] .card-inline-trigger {
     to { opacity: 1; }
 }
 
-/* Запрет взаимодействия внутри клона колонки */
 .column-drag-clone * {
     pointer-events: none !important;
 
-    /* 🩹 FIX: Сбрасываем will-change у внутренностей, чтобы весь клон 
-       рендерился как ЕДИНЫЙ GPU-слой, а не как сотня мелких слоёв */
     will-change: auto !important;
 
-    /* 🩹 FIX: Отключаем transition у всего содержимого */
     transition: none !important;
 }
 
-/* 🩹 FIX: Скрываем только само меню (оно тяжелое из-за blur), 
-   а кнопки оставляем видимыми, чтобы геометрия летящей колонки не ломалась */
 .column-drag-clone .dropdown-menu {
     display: none !important;
 }
 
-/* 🩹 FIX: Упрощаем карточки внутри летящей колонки — убираем hover-трансформации */
 .column-drag-clone .card {
     transform: none !important;
     box-shadow: var(--shadow-card) !important;
 }
 
-/* 🩹 FIX: Убираем overflow у списка, чтобы не было паразитного скролла 
-   и пересчёта размеров во время драга */
 .column-drag-clone .card-list {
     overflow: visible !important;
 }
@@ -1375,50 +1265,46 @@ body[class*="is-dragging-"] .card-inline-trigger {
     opacity: 0.3 !important;
     background: var(--border-light) !important;
     box-shadow: none !important;
-    /* Убрали translateZ и will-change */
+
 }
 
-
-/* Стиль для оригинала колонки, которая тащится */
 .column.is-ghost {
     background: var(--bg-canvas) !important;
-    border: 2px dashed var(--border-light) !important; /* Возвращаем оригинальный легкий бордер */
+    border: 2px dashed var(--border-light) !important;
     box-shadow: none !important;
     opacity: 0.6 !important;
     transition: none !important;
-    pointer-events: none !important; /* ВАЖНО: Оставляем, чтобы физика перетаскивания не ломалась! */
+    pointer-events: none !important;
 }
 
-/* Скрываем содержимое внутри призрака колонки */
 .column.is-ghost * {
     visibility: hidden !important;
     opacity: 0 !important;
-    transition: none !important; /* ФИКС: Применяется ко ВСЕМ потомкам (убирает 0.15s задержку у кнопки троеточия) */
+    transition: none !important;
 }
 
 .modal-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.4); /* Обычное затемнение без блюра */
-    backdrop-filter: none !important; /* Убираем шизу с размытием */
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
     display: flex;
     align-items: center;
     justify-content: center;
     opacity: 0;
     visibility: hidden;
-    z-index: 9999999; /* ФИКС: Делаем выше, чем vault-screen (999999) */
+    z-index: 9999999;
     transition: opacity 0.2s ease, visibility 0.2s;
 }
 
-/* Показываем модалку через JS */
 .modal-overlay.show {
     opacity: 1;
     visibility: visible;
 }
 
 .modal-card {
-    background: var(--surface-card); /* Чистый белый/светлый фон */
+    background: var(--surface-card);
     width: 320px;
     border-radius: var(--radius-card);
     box-shadow: var(--shadow-menu);
@@ -1431,46 +1317,39 @@ body[class*="is-dragging-"] .card-inline-trigger {
     transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-/* Показываем карточку модалки */
 .modal-overlay.show .modal-card {
     opacity: 1;
-    transform: translateY(0);   /* Возврат в центр */
+    transform: translateY(0);
 }
 
-/* Шапка модального окна */
 .modal-header {
-    padding: 16px; /* Строгие 16px со всех сторон, как в колонках */
+    padding: 16px;
     border-bottom: 1px solid var(--border-light);
     display: flex;
-    align-items: center; /* ФИКС: Идеальное выравнивание по вертикали */
+    align-items: center;
     justify-content: space-between;
     position: relative;
 }
 
-/* Заголовок в модалке */
 .modal-title {
     font-weight: 600;
     font-size: 15px;
     color: var(--text-primary);
 }
 
-/* Контейнер кнопок шапки */
 .modal-header-actions {
     display: flex;
     align-items: center;
-    gap: 4px; /* Небольшой зазор между кнопками */
+    gap: 4px;
     flex-shrink: 0;
-    margin-top: 0; /* ФИКС: Сброс костыля. Теперь кнопки встанут строго по паддингу 16px сверху и снизу */
+    margin-top: 0;
 }
 
-/* ==========================================
-   ВЫЕЗЖАЮЩАЯ ПАНЕЛЬ ИНСТРУМЕНТОВ В КАРТОЧКЕ
-   ========================================== */
 .modal-tools-wrapper {
     display: flex;
     align-items: center;
-    height: 28px; /* Жесткая фиксация высоты от прыжков */
-    transform: translateZ(0); /* Вынос на GPU для блокировки дерганий пикселей */
+    height: 28px;
+    transform: translateZ(0);
 }
 
 .modal-tools-menu {
@@ -1478,14 +1357,13 @@ body[class*="is-dragging-"] .card-inline-trigger {
     align-items: center;
     justify-content: flex-end;
     gap: 4px;
-    height: 28px; /* Жесткая фиксация высоты */
-    
-    /* Состояние "Свернуто" */
+    height: 28px;
+
     max-width: 0;
     overflow: hidden;
     opacity: 0;
     pointer-events: none;
-    
+
     transition: max-width 0.4s cubic-bezier(0.16, 1, 0.3, 1),
                 opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1),
                 margin-right 0.4s cubic-bezier(0.16, 1, 0.3, 1);
@@ -1498,18 +1376,17 @@ body[class*="is-dragging-"] .card-inline-trigger {
     margin-right: 4px;
 }
 
-/* Кнопка активации инструментов */
 .modal-tools-trigger {
     background: transparent;
     border: none;
     cursor: pointer;
     color: var(--text-secondary);
-    display: block; /* Сбрасываем flex для чистой математики абсолютов */
+    display: block;
     width: 28px;
     height: 28px;
     padding: 0;
     margin: 0;
-    border-radius: 8px; 
+    border-radius: 8px;
     transition: background 0.2s ease, color 0.2s ease;
     flex-shrink: 0;
     position: relative;
@@ -1526,7 +1403,6 @@ body[class*="is-dragging-"] .card-inline-trigger {
     background: rgba(255, 255, 255, 0.08);
 }
 
-/* 🚀 ИДЕАЛЬНОЕ ЦЕНТРИРОВАНИЕ И МОРФИНГ ИКОНОК НА GPU */
 .modal-tools-trigger svg {
     position: absolute;
     top: 50%;
@@ -1535,33 +1411,29 @@ body[class*="is-dragging-"] .card-inline-trigger {
     will-change: transform, opacity;
 }
 
-/* Состояние: закрыто (видим гаечный ключ) */
-.icon-tools { 
-    opacity: 1; 
-    transform: translate(-50%, -50%) rotate(0deg) scale(1); 
-}
-/* Стрелка скручена в другую сторону и спрятана */
-.icon-close-tools { 
-    opacity: 0; 
-    transform: translate(-50%, -50%) rotate(180deg) scale(0.5); 
+.icon-tools {
+    opacity: 1;
+    transform: translate(-50%, -50%) rotate(0deg) scale(1);
 }
 
-/* Состояние: открыто (инструменты улетают с кручением, выезжает стрелка >) */
-.modal-tools-wrapper.expanded .icon-tools { 
-    opacity: 0; 
-    transform: translate(-50%, -50%) rotate(-180deg) scale(0.5); 
-}
-.modal-tools-wrapper.expanded .icon-close-tools { 
-    opacity: 1; 
-    transform: translate(-50%, -50%) rotate(0deg) scale(1); 
+.icon-close-tools {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(180deg) scale(0.5);
 }
 
-/* Выравнивание одиночного крестика для остальных модалок (Тема, Язык и т.д.) */
+.modal-tools-wrapper.expanded .icon-tools {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(-180deg) scale(0.5);
+}
+.modal-tools-wrapper.expanded .icon-close-tools {
+    opacity: 1;
+    transform: translate(-50%, -50%) rotate(0deg) scale(1);
+}
+
 .modal-header > .modal-close {
-    margin-top: 0; /* ФИКС: Убираем костыль, теперь flexbox центрирует всё сам */
+    margin-top: 0;
 }
 
-/* Кнопки в шапке модалки (закрыть, развернуть, экспорт) в стиле эстетичных кнопок */
 .modal-close,
 .modal-maximize,
 .modal-export,
@@ -1581,12 +1453,11 @@ body[class*="is-dragging-"] .card-inline-trigger {
     height: 28px;
     padding: 0;
     margin: 0;
-    border-radius: 8px; 
+    border-radius: 8px;
     transition: all 0.2s ease;
-    flex-shrink: 0; /* 🚀 БРОНЕЖИЛЕТ ОТ СПЛЮЩИВАНИЯ */
+    flex-shrink: 0;
 }
 
-/* Жестко фиксируем одинаковый размер самих иконок */
 .modal-close svg,
 .modal-maximize svg,
 .modal-export svg,
@@ -1613,7 +1484,6 @@ body[class*="is-dragging-"] .card-inline-trigger {
 
 .modal-copy-link.copied { color: var(--success-done); }
 
-/* Темная тема для кнопок */
 [data-theme="dark"] .modal-close:hover,
 [data-theme="dark"] .modal-maximize:hover,
 [data-theme="dark"] .modal-export:hover,
@@ -1625,9 +1495,6 @@ body[class*="is-dragging-"] .card-inline-trigger {
     background: rgba(255, 255, 255, 0.08);
 }
 
-/* ==========================================
-   СТИЛИ ДЛЯ МОДАЛКИ УВЕДОМЛЕНИЙ (Segmented Control)
-   ========================================== */
 .segmented-control {
     display: flex;
     background: rgba(0, 0, 0, 0.04);
@@ -1663,14 +1530,12 @@ body[class*="is-dragging-"] .card-inline-trigger {
     gap: 8px;
 }
 
-/* Скрываем стрелочки у input type=number для эстетики */
-input[type=number]::-webkit-inner-spin-button, 
-input[type=number]::-webkit-outer-spin-button { 
-  -webkit-appearance: none; 
-  margin: 0; 
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
-/* Стилизация select под Apple */
 select.column-input {
     appearance: none;
     -webkit-appearance: none;
@@ -1680,14 +1545,12 @@ select.column-input {
     padding-left: 32px;
     padding-right: 32px;
     text-align: center;
-    text-align-last: center; /* ФИКС: Принудительное центрирование select в WebKit/Blink */
+    text-align-last: center;
 }
 [data-theme="dark"] select.column-input {
     background-image: url('data:image/svg+xml;utf8,<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="%238B9088" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>');
 }
 
-
-/* --- ПОЛНОЭКРАННЫЙ РЕЖИМ КАРТОЧКИ --- */
 .task-detail-card.maximized {
     position: fixed !important;
     top: 16px !important;
@@ -1698,23 +1561,20 @@ select.column-input {
     max-height: none !important;
     transform: none !important;
     border-radius: 12px !important;
-    transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1), 
-                height 0.3s cubic-bezier(0.16, 1, 0.3, 1), 
-                top 0.3s cubic-bezier(0.16, 1, 0.3, 1), 
+    transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+                height 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+                top 0.3s cubic-bezier(0.16, 1, 0.3, 1),
                 left 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
-/* Скрываем ресайзеры в полноэкранном режиме */
 .task-detail-card.maximized .resizer {
     display: none !important;
 }
 
-/* Отключаем курсор-руку в полноэкранном режиме */
 .task-detail-card.maximized .modal-header {
     cursor: default !important;
 }
 
-/* --- ПОЛНОЭКРАННЫЙ РЕЖИМ КАРТОЧКИ --- */
 .task-detail-card.maximized {
     position: fixed !important;
     top: 16px !important;
@@ -1725,33 +1585,29 @@ select.column-input {
     max-height: none !important;
     transform: none !important;
     border-radius: 12px !important;
-    transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1), 
-                height 0.3s cubic-bezier(0.16, 1, 0.3, 1), 
-                top 0.3s cubic-bezier(0.16, 1, 0.3, 1), 
+    transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+                height 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+                top 0.3s cubic-bezier(0.16, 1, 0.3, 1),
                 left 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
-/* Класс для плавной анимации возврата в центр */
 .task-detail-card.is-restoring {
-    transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1), 
-                height 0.3s cubic-bezier(0.16, 1, 0.3, 1), 
-                top 0.3s cubic-bezier(0.16, 1, 0.3, 1), 
+    transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+                height 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+                top 0.3s cubic-bezier(0.16, 1, 0.3, 1),
                 left 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
-/* Скрываем ресайзеры во время анимаций и полноэкранного режима */
 .task-detail-card.maximized .resizer,
 .task-detail-card.is-restoring .resizer {
     display: none !important;
 }
 
-/* Отключаем курсор-руку */
 .task-detail-card.maximized .modal-header,
 .task-detail-card.is-restoring .modal-header {
     cursor: default !important;
 }
 
-/* Основное содержимое модалки */
 .modal-body {
     padding: 12px;
     display: flex;
@@ -1759,7 +1615,6 @@ select.column-input {
     gap: 4px;
 }
 
-/* Пункты списка в модалке (выбор языка/темы) */
 .lang-item {
     padding: 12px 14px;
     border-radius: 10px;
@@ -1773,18 +1628,15 @@ select.column-input {
     transition: background 0.15s;
 }
 
-/* Ховер на пункт списка модалки */
 .lang-item:hover {
     background: rgba(0, 0, 0, 0.03);
 }
 
-/* Активный пункт списка модалки */
 .lang-item.active {
     background: rgba(0, 0, 0, 0.04);
     font-weight: 600;
 }
 
-/* Иконка галочки в списке модалки */
 .lang-item .check-icon {
     opacity: 0;
     width: 18px;
@@ -1794,15 +1646,13 @@ select.column-input {
     color: var(--text-primary);
 }
 
-/* Показываем галочку у активного языка */
 .lang-item.active .check-icon {
     opacity: 1;
     transform: scale(1);
 }
 
-/* Окно "О программе" */
 .about-content {
-    padding: 32px 16px; /* Горизонтальные отступы теперь 16px */
+    padding: 32px 16px;
     text-align: center;
     display: flex;
     flex-direction: column;
@@ -1811,7 +1661,6 @@ select.column-input {
     min-height: 180px;
 }
 
-/* Логотип Doe в "О программе" */
 .about-logo {
     font-size: 24px;
     font-weight: 700;
@@ -1820,7 +1669,6 @@ select.column-input {
     margin-bottom: 8px;
 }
 
-/* Текст описания в "О программе" */
 .about-desc {
     font-size: 14px;
     color: var(--text-secondary);
@@ -1830,11 +1678,10 @@ select.column-input {
     flex-direction: column;
     align-items: center;
     text-align: center;
-    transform: translateZ(0);   /* Устранение дрожания текста */
+    transform: translateZ(0);
     backface-visibility: hidden;
 }
 
-/* Версия программы */
 .about-version {
     margin-top: 24px;
     font-family: var(--font-mono);
@@ -1849,51 +1696,45 @@ select.column-input {
     min-width: 320px;
     flex-shrink: 0;
     background: transparent;
-    border: 2px dashed rgba(74, 90, 72, 0.15); /* Тот самый пунктир */
+    border: 2px dashed rgba(74, 90, 72, 0.15);
     border-radius: var(--radius-board);
     opacity: 0;
     transform: scale(0.98);
-    /* Мягкая и плавная анимация */
-    transition: 
+
+    transition:
         opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
         transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    cursor: default; /* Отключаем ладошку перетаскивания для формы создания */
+    cursor: default;
 }
 
-/* Состояние, когда форма полностью появилась */
 .column.column-entering.entered {
     opacity: 1;
     transform: scale(1);
 }
 
-/* Состояние мгновенного схлопывания при отмене */
 .column.column-entering.is-exiting {
     opacity: 0;
     transform: scale(0.98);
     pointer-events: none;
-    /* Ускоряем выход, чтобы кнопка быстрее стала интерактивной */
+
     transition: opacity 0.2s ease-in, transform 0.2s ease-in;
 }
 
-/* Плавное появление самой кнопки, чтобы она не «стреляла» в глаза */
 @keyframes button-fade-in {
     from { opacity: 0; transform: scale(0.98); }
     to { opacity: 1; transform: scale(1); }
 }
 
-/* Полупрозрачность при отправке на сервер */
 .column.column-entering.is-submitting {
     opacity: 0.4;
     pointer-events: none;
     transition-duration: 0.15s;
 }
 
-/* Внутренний контейнер формы создания */
 .column-form-inner {
     padding: 20px 20px 12px;
 }
 
-/* Поле ввода в форме создания колонки (используем textarea) */
 .column-input {
     width: 100%;
     background: transparent;
@@ -1908,37 +1749,33 @@ select.column-input {
     letter-spacing: -0.01em;
     cursor: text;
     transition: border-color 0.25s ease, background-color 0.25s ease;
-    resize: none;               /* Запрещаем ручное изменение размера */
-    overflow: hidden;           /* Прячем скролл, высота растет авто через JS */
+    resize: none;
+    overflow: hidden;
     display: block;
     line-height: 1.45;
-    min-height: 42px;           /* ФИКС: Увеличено для идеального вертикального центрирования плейсхолдера */
-    box-sizing: border-box;     /* ФИКС: Явно указываем модель коробки */
+    min-height: 42px;
+    box-sizing: border-box;
 }
 
-/* Цвет плейсхолдера */
 .column-input::placeholder {
     color: var(--text-secondary);
     font-weight: 500;
     opacity: 0.55;
 }
 
-/* Аккуратный фокус на поле ввода */
 .column-input:focus {
     border-color: rgba(74, 90, 72, 0.45);
     background: var(--surface-card);
     box-shadow: none;
 }
 
-/* Состояние колонки в момент ее "рождения" (после API) */
 .column.column-birth {
     opacity: 0;
-    transform: translateY(16px); /* Появление снизу вверх */
+    transform: translateY(16px);
     pointer-events: none;
     will-change: opacity, transform;
 }
 
-/* Окончательное появление новой колонки */
 .column.column-birth.born {
     opacity: 1;
     transform: translateY(0);
@@ -1948,7 +1785,6 @@ select.column-input {
         transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Тряска формы, если произошла ошибка ввода */
 @keyframes column-shake {
     0%, 100% { transform: translateX(0); }
     20% { transform: translateX(-6px); }
@@ -1957,7 +1793,6 @@ select.column-input {
     80% { transform: translateX(3px); }
 }
 
-/* Добавляем анимацию тряски для карточек и элементов в режиме переименования */
 .card.is-error,
 .card.is-renaming.is-error,
 .column.is-renaming.is-error,
@@ -1966,74 +1801,63 @@ select.column-input {
     animation: column-shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both !important;
 }
 
-/* Позиционирование подсказки об ошибке в шапке модалки */
 .modal-header {
-    position: relative; /* База для абсолютного позиционирования подсказки */
+    position: relative;
 }
 
 .modal-header .card-error-hint {
     position: absolute;
     bottom: 2px;
-    left: 16px; /* Выравниваем ровно по новому краю шапки */
+    left: 16px;
     margin: 0;
 }
 
-/* Окрашиваем текст в красный (ДЛЯ КАРТОЧЕК ОТКЛЮЧЕНО) */
 .column.is-renaming.is-error .column-title-input,
 .board-tab.is-renaming.is-error .tab-name-input {
     color: #D35446 !important;
 }
 
-/* Красный текст ошибки для темной темы (ДЛЯ КАРТОЧЕК ОТКЛЮЧЕНО) */
 [data-theme="dark"] .column.is-renaming.is-error .column-title-input,
 [data-theme="dark"] .board-tab.is-renaming.is-error .tab-name-input {
     color: #D65A4B !important;
 }
 
-/* Применяем анимацию тряски через JS */
 .column-entering.is-error {
     animation: column-shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
 }
 
-/* Цвета формы создания в темной теме */
 [data-theme="dark"] .column.column-entering {
     border-color: rgba(137, 160, 133, 0.25);
 }
 
-/* Поле ввода в темной теме */
 [data-theme="dark"] .column-input {
     background: transparent;
     border-color: rgba(137, 160, 133, 0.25);
     color: var(--text-primary);
 }
 
-/* Плейсхолдер в темной теме */
 [data-theme="dark"] .column-input::placeholder {
     color: var(--text-secondary);
     opacity: 0.5;
 }
 
-/* Фокус на поле ввода в темной теме */
 [data-theme="dark"] .column-input:focus {
     border-color: rgba(137, 160, 133, 0.45);
     background: var(--surface-card);
     box-shadow: none;
 }
 
-/* Цвета свернутой колонки в темной теме */
 [data-theme="dark"] .column.collapsed {
     background: var(--bg-board);
     border: 1px solid var(--border-light);
 }
 
-/* Ховер на свернутую колонку в темной теме */
 [data-theme="dark"] .column.collapsed:not(.is-collapsing):hover {
     border-color: rgba(255, 255, 255, 0.14);
 }
 
-/* Инпут для переименования заголовка существующей колонки */
 .column-title-input {
-    background: var(--brand-pale); 
+    background: var(--brand-pale);
     border: none;
     border-radius: 6px;
     outline: none;
@@ -2042,82 +1866,68 @@ select.column-input {
     font-weight: 600;
     letter-spacing: -0.01em;
     color: var(--text-primary);
-    
-    flex: 1;                    
-    min-width: 0;               
-    line-height: 1.45;          
+
+    flex: 1;
+    min-width: 0;
+    line-height: 1.45;
     word-break: break-word;
     overflow-wrap: break-word;
     white-space: pre-wrap;
-    
-    padding: 4px;               
-    
-    /* --- ИСПРАВЛЕНО: Математика отступов --- 
-       Слева: -4px (компенсирует padding, выравнивает по карточкам)
-       Справа: 8px (в сумме с padding 4px дает ровно те же 12px отступа, что и у span) 
-    */
-    margin: -4px 8px -4px -4px; 
-    /* -------------------------------------- */
+
+    padding: 4px;
+
+    margin: -4px 8px -4px -4px;
 
     cursor: text;
-    user-select: text;          
+    user-select: text;
     -webkit-user-select: text;
     transition: background 0.2s ease;
     resize: none;
-    overflow: hidden;           
+    overflow: hidden;
     display: block;
     min-height: 26px;
 }
 
-/* Цвет выделения текста в инпуте */
 .column-title-input::selection {
     background: #C3C6BC;
     color: var(--text-primary);
 }
 
-/* Класс-обертка на колонке в режиме переименования */
 .column.is-renaming {
-    cursor: default !important; /* Убираем курсор перетаскивания */
+    cursor: default !important;
 }
 
-/* Явно разрешаем курсор текста в режиме переименования */
 .column.is-renaming .column-title-input {
     cursor: text !important;
 }
 
-/* Цвет инпута переименования в темной теме */
 [data-theme="dark"] .column-title-input {
     background: rgba(137, 160, 133, 0.12);
 }
 
-/* Цвет выделения в темной теме */
 [data-theme="dark"] .column-title-input::selection {
     background: #5C635A !important;
     color: #FFFFFF !important;
 }
 
-/* Глобальная блокировка ховеров и кликов во время драга колонки */
 body.is-dragging-column .card,
 body.is-dragging-column .btn-add-card,
 body.is-dragging-column .menu-btn {
     pointer-events: none !important;
 }
 
-/* Принудительный курсор-кулак во время ЛЮБОГО перетаскивания для всех элементов */
 body.is-dragging-tab, body.is-dragging-tab *,
 body.is-dragging-column, body.is-dragging-column *,
 body.is-dragging-card, body.is-dragging-card * {
     cursor: grabbing !important;
 }
 
-/* Блокировка шапки колонки во время драга карточки */
 body.is-dragging-card .column-header {
     pointer-events: none !important;
 }
 
-/* Кастомный тултип (подсказка при наведении на обрезаный текст) */
 .custom-tooltip {
-    position: fixed;            /* Позиция относительно экрана */
+    position: fixed;
     background: rgba(255, 255, 255, 0.96);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
@@ -2129,52 +1939,45 @@ body.is-dragging-card .column-header {
     line-height: 1.5;
     box-shadow: var(--shadow-menu);
     border: 1px solid var(--border-light);
-    z-index: 2147483647;        /* ФИКС: Абсолютный максимум, всегда поверх модалок (z-index: 9999999) и летящих клонов */
-    pointer-events: none;       /* Тултип не мешает мышке */
-    opacity: 0;                 /* Скрыт */
+    z-index: 2147483647;
+    pointer-events: none;
+    opacity: 0;
     visibility: hidden;
     transition: opacity 0.18s ease, visibility 0.18s, transform 0.18s ease;
-    max-width: 280px;           /* Ограничение ширины тултипа */
-    word-break: break-word;     /* Перенос слов */
+    max-width: 280px;
+    word-break: break-word;
     -webkit-font-smoothing: antialiased;
-    transform: translateY(4px); /* Смещение для анимации всплытия */
+    transform: translateY(4px);
 }
 
-/* Тултип в темной теме */
 [data-theme="dark"] .custom-tooltip {
     background: rgba(35, 37, 33, 0.96);
     border-color: rgba(255, 255, 255, 0.12);
     color: var(--text-primary);
 }
 
-/* Класс отображения тултипа */
 .custom-tooltip.visible {
     opacity: 1;
     visibility: visible;
-    transform: translateY(0);   /* Всплытие в рабочее положение */
+    transform: translateY(0);
 }
 
-/* Внутренняя обертка тултипа */
 .tooltip-inner {
     display: -webkit-box;
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
 
-/* Сглаживание шрифтов применяем ко всем, это не нагружает GPU, но убирает мыло */ 
 .column-drag-clone *, .card-drag-clone *, .tab-drag-clone *, .subtask-drag-clone * {
-    -webkit-font-smoothing: antialiased !important; 
-    -moz-osx-font-smoothing: grayscale !important; 
+    -webkit-font-smoothing: antialiased !important;
+    -moz-osx-font-smoothing: grayscale !important;
 }
 
-/* Запрет ховеров внутри клона */
 .subtask-drag-clone * {
     transition: none !important;
     pointer-events: none !important;
 }
 
-
-/* Клон колонки, который остается для анимации удаления */
 .column-deleting-clone {
     position: fixed !important;
     z-index: 9999;
@@ -2185,15 +1988,13 @@ body.is-dragging-card .column-header {
     transition: opacity 0.20s ease, transform 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
-/* Класс запуска анимации "сжатия" при удалении */
 .column-deleting-clone.is-animating {
-    opacity: 0 !important;      /* Исчезновение */
-    transform: scale(0.92) translateY(12px) !important; /* Уменьшение и падение вниз */
+    opacity: 0 !important;
+    transform: scale(0.92) translateY(12px) !important;
 }
 
-/* Распорка (спейсер), которая занимает место удаленной колонки и плавно сжимается */
 .column-spacer {
-    height: 10px;               /* Высота не важна */
+    height: 10px;
     padding: 0 !important;
     margin: 0 !important;
     border: none !important;
@@ -2201,23 +2002,19 @@ body.is-dragging-card .column-header {
     pointer-events: none !important;
     flex-shrink: 0 !important;
     will-change: width, min-width, margin-right;
-    /* Сложный транзишн для схлопывания пространства */
+
     transition:
         width 0.35s cubic-bezier(0.25, 1, 0.5, 1) 0.05s,
         min-width 0.35s cubic-bezier(0.25, 1, 0.5, 1) 0.05s,
         margin-right 0.35s cubic-bezier(0.25, 1, 0.5, 1) 0.05s !important;
 }
 
-/* Класс схлопывания спейсера */
 .column-spacer.is-shrinking {
-    width: 0 !important;        /* Убираем ширину */
+    width: 0 !important;
     min-width: 0 !important;
-    margin-right: -24px !important; /* Компенсируем gap родительской доски (24px) */
+    margin-right: -24px !important;
 }
 
-/* ==========================================
-   АНИМАЦИЯ УДАЛЕНИЯ КАРТОЧЕК
-   ========================================== */
 .card-deleting-clone {
     position: fixed !important;
     z-index: 9999;
@@ -2226,7 +2023,7 @@ body.is-dragging-card .column-header {
     transform-origin: center center;
     will-change: transform, opacity;
     transition: opacity 0.20s ease, transform 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
-    /* Копируем базовый вид */
+
     background: var(--surface-card);
     border: 1px solid var(--border-light);
     border-radius: var(--radius-card);
@@ -2238,7 +2035,6 @@ body.is-dragging-card .column-header {
     transform: scale(0.92) translateY(8px) !important;
 }
 
-/* Распорка, которая занимает место удаленной карточки и плавно сжимается */
 .card-spacer {
     width: 100% !important;
     padding: 0 !important;
@@ -2255,7 +2051,7 @@ body.is-dragging-card .column-header {
 
 .card-spacer.is-shrinking {
     height: 0 !important;
-    margin-top: -12px !important; /* Ровно компенсирует gap родительского списка (12px) */
+    margin-top: -12px !important;
 }
 
 .att-path-box {
@@ -2282,13 +2078,11 @@ body.is-dragging-card .column-header {
 }
 [data-theme="dark"] .att-warning { color: #D65A4B; background: rgba(214, 90, 75, 0.15); }
 
-/* Модальное окно подтверждения (Confirm) */
 .confirm-card {
-    width: 280px;               /* Узкое окно */
+    width: 280px;
     padding: 0;
 }
 
-/* Центрированный контент подтверждения */
 .confirm-body {
     padding: 24px 20px 16px;
     display: flex;
@@ -2298,7 +2092,6 @@ body.is-dragging-card .column-header {
     gap: 4px;
 }
 
-/* Заголовок подтверждения (например, "Удалить колонку?") */
 .confirm-title {
     font-size: 16px;
     font-weight: 600;
@@ -2307,7 +2100,6 @@ body.is-dragging-card .column-header {
     margin: 0;
 }
 
-/* Пояснительный текст подтверждения */
 .confirm-text {
     font-size: 13px;
     color: var(--text-secondary);
@@ -2315,22 +2107,19 @@ body.is-dragging-card .column-header {
     margin: 0;
 }
 
-/* Контейнер для кнопок Отмена/Удалить */
 .confirm-actions {
     display: flex;
     gap: 8px;
     padding: 8px 16px 16px;
 }
 
-/* Вертикальное расположение для умной отвязки */
 .confirm-actions.stacked {
     flex-direction: column;
     gap: 4px;
 }
 
-/* Кнопка внутри конфирма */
 .confirm-btn {
-    flex: 1;                    /* Кнопки одинаковой ширины */
+    flex: 1;
     padding: 9px;
     border-radius: 8px;
     font-family: var(--font-main);
@@ -2342,72 +2131,61 @@ body.is-dragging-card .column-header {
     outline: none;
 }
 
-/* Эффект нажатия на кнопку */
 .confirm-btn:active {
-    transform: scale(0.96);     /* Легкое сжатие при клике */
+    transform: scale(0.96);
 }
 
-/* Кнопка "Отмена" */
 .confirm-btn.cancel-btn {
     background: rgba(0, 0, 0, 0.05);
     color: var(--text-primary);
 }
 
-/* Ховер на отмену */
 .confirm-btn.cancel-btn:hover {
     background: rgba(0, 0, 0, 0.08);
 }
 
-/* Кнопка "Удалить" (опасная) */
 .confirm-btn.danger-btn {
     background: #D35446;
     color: #FFF;
 }
 
-/* Ховер на опасную кнопку */
 .confirm-btn.danger-btn:hover {
     background: #C04335;
 }
 
-/* Опасная кнопка в темной теме */
 [data-theme="dark"] .confirm-btn.danger-btn {
     background: #D65A4B;
 }
 
-/* Кнопка отмены в темной теме */
 [data-theme="dark"] .confirm-btn.cancel-btn {
     background: rgba(255, 255, 255, 0.06);
 }
 
-/* Ховер на отмену в темной теме */
 [data-theme="dark"] .confirm-btn.cancel-btn:hover {
     background: rgba(255, 255, 255, 0.1);
 }
 
 .card.card-entering {
     background: transparent;
-    border: 1.5px dashed transparent; 
+    border: 1.5px dashed transparent;
     box-shadow: none;
     opacity: 0;
     transform: scale(0.97) translateZ(0);
-    flex-shrink: 0; /* 🛡 Форма не сплющивается, когда колонка заполнена */
-    
-    /* 🔥 ФИКС ФРИЗОВ: CSS Grid + Компенсация Flex Gap */
+    flex-shrink: 0;
+
     display: grid !important;
     grid-template-rows: 0fr;
     padding: 0 14px !important;
-    
-    /* Идеально компенсируем flex-gap (12px) при спавне в DOM, чтобы карточки не прыгали */
+
     margin-top: -12px !important;
     margin-bottom: 0 !important;
-    
-    overflow: hidden; 
+
+    overflow: hidden;
     cursor: default;
     pointer-events: auto;
     contain: layout style;
     will-change: grid-template-rows, padding, margin, opacity, transform;
-    
-    /* Единая плавная кривая без рассинхрона фаз */
+
     transition:
         grid-template-rows 0.12s cubic-bezier(0.2, 0.8, 0.2, 1),
         padding 0.12s cubic-bezier(0.2, 0.8, 0.2, 1),
@@ -2418,13 +2196,11 @@ body.is-dragging-card .column-header {
         border-color 0.1s ease-out;
 }
 
-/* Убиваем паразитные псевдоэлементы (защита Grid-потока) */
 .card.card-entering::before,
 .card.card-entering::after {
-    display: none !important; 
+    display: none !important;
 }
 
-/* Внутренний контейнер должен позволять сжатие в 0 */
 .card.card-entering > * {
     min-height: 0;
     overflow: hidden;
@@ -2436,23 +2212,15 @@ body.is-dragging-card .column-header {
     grid-template-rows: 1fr;
     padding: 10px 14px !important;
     border-color: rgba(74, 90, 72, 0.25);
-    
-    /* Возвращаем маржин в 0, плавно открывая законные 12px gap */
+
     margin-top: 0 !important;
 }
 
 .card.card-entering.is-exiting {
     pointer-events: none;
 
-    /* Сводим в ноль ширину прозрачной рамки (1.5px сверху + 1.5px снизу).
-       Это и есть тот «невидимый остаток», в который упирались соседние карточки
-       и который давал второй рывок при удалении формы из DOM. */
     border-width: 0 !important;
 
-    /* Всё остальное (grid 0fr, padding, margin-top -12px, scale 0.97, opacity 0,
-       border-color transparent) НЕ переопределяем — оно наследуется из базового
-       .card-entering, то есть из стартовой точки появления. Поэтому уход —
-       это точный обратный повтор появления, без рассинхрона. */
     transition:
         grid-template-rows 0.12s ease-out,
         padding 0.12s ease-out,
@@ -2463,12 +2231,9 @@ body.is-dragging-card .column-header {
         border-color 0.08s ease-out;
 }
 
-
 .card.card-entering:active {
     cursor: default;
 }
-
-
 
 .card.card-entering.is-submitting {
     opacity: 0.4;
@@ -2495,7 +2260,6 @@ body.is-dragging-card .column-header {
     cursor: text;
 }
 
-/* Эстетичное выделение текста при создании */
 .card-input::selection {
     background: #C3C6BC;
     color: var(--text-primary);
@@ -2506,7 +2270,6 @@ body.is-dragging-card .column-header {
     opacity: 0.55;
 }
 
-/* Плавное изменение цвета рамки для темной темы */
 [data-theme="dark"] .card.card-entering.entered {
     border-color: rgba(137, 160, 133, 0.25);
 }
@@ -2515,13 +2278,11 @@ body.is-dragging-card .column-header {
     color: var(--text-primary);
 }
 
-/* Выделение в тёмной теме */
 [data-theme="dark"] .card-input::selection {
     background: #5C635A !important;
     color: #FFFFFF !important;
 }
 
-/* Глобальное нейтральное выделение для темной темы */
 [data-theme="dark"] ::selection {
     background: #62676E !important;
     color: #FFFFFF !important;
@@ -2532,7 +2293,6 @@ body.is-dragging-card .column-header {
     opacity: 0.5;
 }
 
-/* Окончательное появление карточки (превращение формы в карточку) */
 .card.card-birth {
     opacity: 0;
     transform: translateY(16px);
@@ -2549,14 +2309,9 @@ body.is-dragging-card .column-header {
         transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Анимация тряски при ошибке API */
 .card-entering.is-error {
     animation: column-shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
 }
-
-/* ==========================================
-   СТИЛИ ВКЛАДОК (TABS)
-   ========================================== */
 
 .header-left-controls {
     display: flex;
@@ -2564,14 +2319,13 @@ body.is-dragging-card .column-header {
     gap: 16px;
 }
 
-/* ОБЕРТКА (WRAPPER) */
 .tabs-wrapper {
     flex: 1;
     position: relative;
     display: flex;
     min-width: 0;
-    padding-bottom: 8px; /* Место под кастомный скроллбар */
-    margin-bottom: -8px; /* Компенсируем высоту шапки */
+    padding-bottom: 8px;
+    margin-bottom: -8px;
 }
 
 .tabs-container {
@@ -2587,7 +2341,7 @@ body.is-dragging-card .column-header {
 
 .tabs-container::after {
     content: '';
-    min-width: 6px; /* В сумме с gap (6px) это даст ровно 24px идеального отступа от края экрана */
+    min-width: 6px;
     flex-shrink: 0;
 }
 
@@ -2606,7 +2360,7 @@ body.is-dragging-card .column-header {
     border-radius: 4px;
     opacity: 0;
     visibility: hidden;
-    transition: opacity 0.4s ease, visibility 0.4s ease; /* Плавное затухание */
+    transition: opacity 0.4s ease, visibility 0.4s ease;
     pointer-events: none;
     z-index: 10;
 }
@@ -2614,7 +2368,7 @@ body.is-dragging-card .column-header {
 .tabs-scrollbar.visible {
     opacity: 1;
     visibility: visible;
-    pointer-events: auto; /* Разрешаем клики по ползунку, когда он виден */
+    pointer-events: auto;
 }
 
 .tabs-container::-webkit-scrollbar { display: none; }
@@ -2648,27 +2402,23 @@ body.is-dragging-card .column-header {
     color: var(--text-secondary);
     cursor: grab;
     white-space: nowrap;
-    
-    /* 🚀 УБРАЛИ transition: background 0.2s, color 0.2s; — теперь ховер резкий */
-    
-    /* Для Drag & Drop и разделителей */
+
     user-select: none;
     -webkit-user-select: none;
     -webkit-user-drag: element;
-    position: relative; 
+    position: relative;
 }
 
 .tab-name {
-    max-width: 200px;           /* Ограничение длины вкладки */
-    overflow: hidden;           /* Скрываем всё, что не влезло */
-    text-overflow: ellipsis;    /* Добавляем ... в конце */
-    white-space: nowrap;        /* Запрещаем перенос на новую строку */
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     display: block;
-    pointer-events: auto;       /* Включаем события мыши, чтобы тултип мог их поймать */
-    cursor: pointer;            /* Курсор пальцем при наведении на название */
+    pointer-events: auto;
+    cursor: pointer;
 }
 
-/* Ховер только для НЕАКТИВНЫХ вкладок */
 body:not(.is-dragging-tab) .board-tab:not(.active):hover {
     background: rgba(0, 0, 0, 0.04);
     color: var(--text-primary);
@@ -2691,18 +2441,13 @@ body:not(.is-dragging-tab) .board-tab:not(.active):hover {
     border: none;
     color: var(--text-secondary);
     cursor: pointer;
-    opacity: 0; /* Скрыт по умолчанию */
-    
-    /* 🚀 Прижимаем крестик ближе к правому краю вкладки */
-    margin-right: -8px; 
-    
-    /* 🚀 Убрали opacity из transition: теперь крестик появляется мгновенно, 
-       анимация осталась только для смены фона/цвета при наведении на сам крестик */
+    opacity: 0;
+
+    margin-right: -8px;
+
     transition: background 0.15s, color 0.15s;
 }
 
-/* Показываем крестик только на активной или при наведении (если вкладок > 1) */
-/* FIX: Исключаем срабатывание :hover во время перетаскивания */
 body:not([class*="is-dragging-"]) .board-tab:hover .tab-close-btn:not(.hidden),
 .board-tab.active .tab-close-btn:not(.hidden) {
     opacity: 1;
@@ -2735,8 +2480,7 @@ body:not([class*="is-dragging-"]) .board-tab:hover .tab-close-btn:not(.hidden),
     cursor: pointer;
     flex-shrink: 0;
     position: relative;
-    
-    /* Добавляем переходы для всех состояний */
+
     transition: opacity 0.2s ease, background 0.2s ease, transform 0.2s ease;
     will-change: opacity, transform;
 }
@@ -2748,31 +2492,29 @@ body:not(.is-dragging-tab) .add-tab-btn:hover {
     color: var(--text-primary);
 }
 
-/* Стили вкладок для тёмной темы */[data-theme="dark"] body:not(.is-dragging-tab) .board-tab:not(.active):hover { background: rgba(255, 255, 255, 0.06); }
-[data-theme="dark"] .board-tab.active { 
-    background: rgba(255, 255, 255, 0.08); 
+[data-theme="dark"] body:not(.is-dragging-tab) .board-tab:not(.active):hover { background: rgba(255, 255, 255, 0.06); }
+[data-theme="dark"] .board-tab.active {
+    background: rgba(255, 255, 255, 0.08);
     box-shadow: 0 1px 2px rgba(0,0,0,0.2);
 }
 [data-theme="dark"] .tab-close-btn:hover { background: rgba(255, 255, 255, 0.1); }[data-theme="dark"] body:not(.is-dragging-tab) .add-tab-btn:hover { background: rgba(255, 255, 255, 0.06); }
 
-/* Состояние вкладки, когда ее зажали */
 .board-tab:active {
     cursor: grabbing;
 }
 
-/* Клон вкладки, летающий за курсором */
 .tab-drag-clone {
     position: fixed !important;
     top: 0 !important;
     left: 0 !important;
     transform-origin: top left !important;
-    z-index: 2147483640 !important; /* 🔥 ФИКС: Выше светофора */
+    z-index: 2147483640 !important;
     pointer-events: none !important;
     margin: 0 !important;
     box-shadow: var(--shadow-drag) !important;
     will-change: transform;
     opacity: 1 !important;
-    
+
     padding: 6px 10px 6px 14px !important;
     border-radius: 10px !important;
     display: flex !important;
@@ -2781,69 +2523,55 @@ body:not(.is-dragging-tab) .add-tab-btn:hover {
     font-size: 14px !important;
     font-weight: 500 !important;
 
-    /* Внешний вид НЕАКТИВНОЙ вкладки при перетаскивании (эффект hover) */
     background: rgba(0, 0, 0, 0.04) !important;
     color: var(--text-primary) !important;
     border: 1px solid transparent !important;
 }
 
-/* АКТИВНАЯ вкладка при перетаскивании */
 .tab-drag-clone.active {
     background: var(--surface-card) !important;
     border: 1px solid var(--border-light) !important;
 }
 
-/* Поддержка тёмной темы для перетаскиваемых вкладок */
 [data-theme="dark"] .tab-drag-clone {
     background: rgba(255, 255, 255, 0.06) !important;
 }
 [data-theme="dark"] .tab-drag-clone.active {
-    /* Делаем летящую активную вкладку полностью непрозрачной (цвет карточки), как в светлой теме */
+
     background: var(--surface-card) !important;
     border: 1px solid var(--border-light) !important;
 }
 
-/* Призрак-оригинал вкладки в шапке (остается полупрозрачным на месте) */
 .board-tab.is-ghost {
     opacity: 0.6 !important;
     background: transparent !important;
     color: transparent !important;
     box-shadow: none !important;
     pointer-events: none !important;
-    
-    /* Убираем border, чтобы не ломать геометрию вкладки! */
+
     border: none !important;
-    
-    /* Рисуем пунктир ПОВЕРХ вкладки, чтобы ничего не сдвигалось */
+
     outline: 2px dashed var(--border-light) !important;
     outline-offset: -2px !important;
-    
+
     transform: translateZ(0) !important;
     will-change: transform !important;
     backface-visibility: hidden !important;
 }
 
-/* Обязательно удали .board-tab.is-ghost::after, если он вдруг остался в коде! */
 .board-tab.is-ghost::after {
     display: none !important;
 }
 
-/* Прячем текст и иконки внутри призрака */
 .board-tab.is-ghost * {
     visibility: hidden !important;
 }
 
-/* Во время драга отключаем события мыши у внутренних элементов вкладок */
 body.is-dragging-tab .tab-name,
 body.is-dragging-tab .tab-close-btn {
     pointer-events: none !important;
 }
 
-/* ==========================================
-   ФИНАЛЬНЫЕ СТАБИЛЬНЫЕ РАЗДЕЛИТЕЛИ (v4)
-   ========================================== */
-
-/* 1. Каждая вкладка несет разделитель на своем ПРАВОМ краю (::after) */
 .board-tab {
     position: relative;
 }
@@ -2851,7 +2579,7 @@ body.is-dragging-tab .tab-close-btn {
 .board-tab::after {
     content: '';
     position: absolute;
-    right: -3.5px; /* Фиксируем линию относительно стабильной вкладки */
+    right: -3.5px;
     top: 50%;
     transform: translateY(-50%);
     width: 1px;
@@ -2862,50 +2590,37 @@ body.is-dragging-tab .tab-close-btn {
     pointer-events: none;
     z-index: 1;
 
-    /* КРИТИЧНО: Никаких переходов. Линия должна быть либо включена, либо выключена. */
-    transition: none !important; 
+    transition: none !important;
 }
 
-/* 2. Прячем линию САМОЙ вкладки, если она активна или является формой */
 .board-tab.active::after,
 .board-tab.tab-entering::after,
 .board-tab.is-ghost::after {
     display: none !important;
 }
 
-/* 3. Прячем линию вкладки, если СЛЕДУЮЩИЙ за ней элемент — "особый".
-   Мы НЕ добавляем сюда .tab-spacer-wrapper, чтобы линия появилась СРАЗУ 
-   в момент отмены, не дожидаясь окончания анимации.
-*/
 .board-tab:has(+ .active)::after,
 .board-tab:has(+ .tab-entering)::after,
 .board-tab:has(+ .is-ghost)::after {
     display: none !important;
 }
 
-/* 4. Кнопка "+" и Распорка НЕ имеют своих линий (они всегда справа от вкладок) */
-.add-tab-btn::before, 
+.add-tab-btn::before,
 .add-tab-btn::after,
 .tab-spacer-wrapper::before,
 .tab-spacer-wrapper::after {
     display: none !important;
 }
 
-/* 5. Скрытие разделителей ТОЛЬКО при перетаскивании самих вкладок */
 body.is-dragging-tab .board-tab::after {
     display: none !important;
 }
 
-/* ==========================================
-   АНИМАЦИЯ СОЗДАНИЯ НОВОЙ ВКЛАДКИ
-   ========================================== */
-
-/* Форма создания */
 .board-tab.tab-entering {
     background: transparent;
     border: 1.5px dashed rgba(74, 90, 72, 0.25);
     opacity: 0;
-    transform: scale(0.96) translateX(-10px); /* Слегка выезжает слева */
+    transform: scale(0.96) translateX(-10px);
     will-change: opacity, transform;
     transition:
         opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1),
@@ -2931,7 +2646,6 @@ body.is-dragging-tab .board-tab::after {
     transition-duration: 0.15s;
 }
 
-/* Поле ввода названия вкладки */
 .tab-input {
     background: transparent;
     border: none;
@@ -2951,13 +2665,11 @@ body.is-dragging-tab .board-tab::after {
     opacity: 0.55;
 }
 
-/* Отключаем серый фон при наведении на форму ввода вкладки */
 .board-tab.tab-entering:hover {
     background: transparent !important;
     box-shadow: none !important;
 }
 
-/* Делаем появление готовой вкладки моментальным и резким (как было раньше) */
 .board-tab.tab-birth,
 .board-tab.tab-birth.born {
     opacity: 1 !important;
@@ -2966,9 +2678,8 @@ body.is-dragging-tab .board-tab::after {
     transition: none !important;
 }
 
-/* Убираем лишние анимации у призраков вкладок, чтобы не было дребезга */
 .board-tab.tab-birth {
-    transition: none !important; 
+    transition: none !important;
 }
 
 @keyframes tab-button-fade-in {
@@ -2980,12 +2691,10 @@ body.is-dragging-tab .board-tab::after {
     animation: tab-button-fade-in 0.1s ease-out forwards;
 }
 
-/* Тряска формы при ошибке сети (используем уже существующий кейфрейм) */
 .tab-entering.is-error {
     animation: column-shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
 }
 
-/* Темная тема */
 [data-theme="dark"] .board-tab.tab-entering {
     border-color: rgba(137, 160, 133, 0.25);
 }
@@ -2999,7 +2708,6 @@ body.is-dragging-tab .board-tab::after {
     opacity: 0.5;
 }
 
-/* Инпут для переименования вкладки */
 .tab-name-input {
     background: var(--brand-pale);
     border: none;
@@ -3010,9 +2718,9 @@ body.is-dragging-tab .board-tab::after {
     font-weight: 500;
     color: var(--text-primary);
     padding: 2px 4px;
-    margin: -2px -4px; /* компенсируем padding, чтобы ширина/позиция не скакали */
+    margin: -2px -4px;
     min-width: 20px;
-    max-width: 200px; /* ограничение как у .tab-name */
+    max-width: 200px;
     cursor: text;
     user-select: text;
     -webkit-user-select: text;
@@ -3023,7 +2731,6 @@ body.is-dragging-tab .board-tab::after {
     color: var(--text-primary);
 }
 
-/* Обертка вкладки при переименовании */
 .board-tab.is-renaming {
     cursor: default !important;
 }
@@ -3032,7 +2739,6 @@ body.is-dragging-tab .board-tab::after {
     cursor: text !important;
 }
 
-/* Инпут вкладки в темной теме */
 [data-theme="dark"] .tab-name-input {
     background: rgba(137, 160, 133, 0.15);
 }
@@ -3042,17 +2748,11 @@ body.is-dragging-tab .board-tab::after {
     color: #FFFFFF !important;
 }
 
-/* ========== АБСОЛЮТНЫЙ ФИКС HOVER ПРИ ПЕРЕТАСКИВАНИИ (WebKit/Blink BugFix) ========== */
-/* Исключаем псевдокласс :hover из селектора. Мы жестко фиксируем стили 
-   элементов на время всего драга (!important). ... */
-
-/* Блокировка взаимодействия с панелью глобального поиска во время любого перетаскивания */
 body[class*="is-dragging-"] #global-search-wrapper,
 body[class*="is-dragging-"] #global-search-wrapper * {
     pointer-events: none !important;
 }
 
-/* Железобетонно скрываем крестики у неактивных вкладок и отключаем им анимацию на время драга */
 body[class*="is-dragging-"] .board-tab:not(.active) .tab-close-btn {
     opacity: 0 !important;
     transition: none !important;
@@ -3063,7 +2763,6 @@ body[class*="is-dragging-"] .board-tab.active:not(.is-ghost):not(.tab-drag-clone
     color: var(--text-primary) !important;
 }
 
-/* Тёмная тема для вкладок */
 [data-theme="dark"] body[class*="is-dragging-"] .board-tab:not(.active):not(.tab-drag-clone),
 [data-theme="dark"] body[class*="is-dragging-"] .add-tab-btn {
     background: transparent !important;
@@ -3075,44 +2774,35 @@ body[class*="is-dragging-"] .board-tab.active:not(.is-ghost):not(.tab-drag-clone
     color: var(--text-primary) !important;
 }
 
-/* 2. Блокировка карточек (Cards) и подзадач при Drag & Drop */ 
 body.is-dragging-card .card:not(.card-drag-clone),
 body.is-dragging-subtask .subtask-item:not(.subtask-drag-clone),
-body.is-dragging-attachment .attachment-item:not(.attachment-drag-clone) { 
-    transform: none !important; 
-    box-shadow: var(--shadow-card) !important; 
+body.is-dragging-attachment .attachment-item:not(.attachment-drag-clone) {
+    transform: none !important;
+    box-shadow: var(--shadow-card) !important;
     transition: none !important;
 }
 
-/* 3. Блокировка свёрнутых колонок (Collapsed Columns) */
 body.is-dragging-column .column.collapsed:not(.column-drag-clone) {
     border-color: var(--border-light) !important;
 }
 
-/* Отключаем случайные клики по всем крестикам во время любого драга */
 body[class*="is-dragging-"] .tab-close-btn {
     pointer-events: none !important;
 }
 
-/* Прячем крестик активной вкладки ТОЛЬКО при перетаскивании самих вкладок */
 body.is-dragging-tab .board-tab.active .tab-close-btn {
     opacity: 0 !important;
 }
 
-/* Блокируем смену фона у неактивных вкладок */
 body[class*="is-dragging-"] .board-tab:not(.active) {
     background: transparent !important;
     color: var(--text-secondary) !important;
 }
 
-/* Делаем ВСЕХ призраков прозрачными для мыши, чтобы лазерный hit-test проходил сквозь них */
 .is-ghost {
     pointer-events: none !important;
 }
 
-/* ==========================================
-   ФИКС МОРГАНИЯ HOVER ПРИ БРОСКЕ ЭЛЕМЕНТА
-   ========================================== */
 .board-tab.is-dropped-hover:not(.active) {
     background: rgba(0, 0, 0, 0.04) !important;
     color: var(--text-primary) !important;
@@ -3122,26 +2812,21 @@ body[class*="is-dragging-"] .board-tab:not(.active) {
     background: rgba(255, 255, 255, 0.06) !important;
 }
 
-/* 🔥 НОВОЕ: Мгновенно показываем крестик вместе с фоном */
 .board-tab.is-dropped-hover .tab-close-btn:not(.hidden) {
     opacity: 1 !important;
-    transition: none !important; /* Убиваем любую микро-анимацию на этот момент */
+    transition: none !important;
 }
 
-/* ==========================================
-   МЕНЮ И ПЕРЕИМЕНОВАНИЕ КАРТОЧЕК
-   ========================================== */
 .card.is-renaming .completed-icon {
     display: none;
 }
 
-/* Обертка для меню внутри карточки */
 .card-menu-wrapper {
     position: relative;
     margin-left: 14px;
     display: flex;
     align-items: center;
-    gap: 2px; /* Зазор между кнопкой меню и кнопкой копирования */
+    gap: 2px;
     flex-shrink: 0;
     margin-top: -4px;
     margin-bottom: -4px;
@@ -3168,18 +2853,16 @@ body[class*="is-dragging-"] .board-tab:not(.active) {
 [data-theme="dark"] .card-copy-btn:hover { background: rgba(255, 255, 255, 0.08); }
 .card-copy-btn.copied { color: var(--success-done); }
 
-/* Контейнер для левых кнопок (Глазик + Отвязка) */
 .subtask-left-actions {
     display: flex;
     align-items: center;
-    gap: 4px; /* Идеальный зазор между кнопками, как у кнопок корзины справа */
+    gap: 4px;
     flex-shrink: 0;
-    margin-left: -4px; /* Чуть подтягиваем всю группу ближе к чекбоксу */
+    margin-left: -4px;
 }
 
-/* Кнопка отвязки подзадачи */
 .subtask-detach-btn {
-    opacity: 1; 
+    opacity: 1;
     background: transparent;
     border: none;
     width: 28px;
@@ -3192,26 +2875,21 @@ body[class*="is-dragging-"] .board-tab:not(.active) {
     cursor: pointer;
     transition: all 0.2s ease;
     flex-shrink: 0;
-    
-    /* Удалили отрицательные отступы, теперь всё контролирует Flexbox */
-    margin: 0 !important; 
+
+    margin: 0 !important;
 }
 
 .subtask-eye-btn {
-    margin: 0 !important; /* Полностью сбрасываем старые костыли */
+    margin: 0 !important;
 }
 
 .subtask-item:not(.is-board-agent) .subtask-detach-btn {
-    display: none !important; /* Прячем кнопку разрыва связи, если глазик выключен */
+    display: none !important;
 }
 
-/* УБРАЛИ .subtask-item:hover .subtask-detach-btn { opacity: 1; } */
 .subtask-detach-btn:hover { background: rgba(0, 0, 0, 0.06); color: var(--text-primary); }
 [data-theme="dark"] .subtask-detach-btn:hover { background: rgba(255, 255, 255, 0.08); color: var(--text-primary); }
 
-/* 📦 МОДАЛКИ ПОВЕРХ КАРТОЧКИ (Экспорт и Уведомления)
-   Поднимаем z-index выше, чем у .modal-overlay (9999999), 
-   потому что они вызываются ПОВЕРХ уже открытой карточки задачи. */
 #export-modal, #notify-modal, #due-date-modal {
     z-index: 99999999;
 }
@@ -3219,7 +2897,7 @@ body[class*="is-dragging-"] .board-tab:not(.active) {
 .card-menu-btn {
     background: transparent;
     border: none;
-    /* Увеличиваем hitbox до 28px для удобства клика (Fitts's Law) */
+
     width: 28px;
     height: 28px;
     border-radius: 8px;
@@ -3229,24 +2907,21 @@ body[class*="is-dragging-"] .board-tab:not(.active) {
     color: var(--text-secondary);
     cursor: pointer;
     opacity: 0;
-    /* Добавляем transform для более мягкого отклика */
+
     transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     pointer-events: auto;
 }
 
-/* Senior UX Fix: иконка внутри кнопки должна быть чуть меньше (14px) для создания внутреннего "воздуха" */
 .card-menu-btn svg {
     width: 14px;
     height: 14px;
 }
 
-/* Таймер и мета-данные прижимаем к правому краю для эстетики */
 .card-timer, .subtask-meta {
     margin-top: 0;
-    /* Убрали align-self: flex-end, теперь они идеально центрируются по вертикали вместе с чек-листом */
+
 }
 
-/* Показываем карандашик при наведении на карточку или если меню открыто (исключая зазор) */
 .card:hover:not(:has(.card-inline-trigger:hover)) .card-menu-btn,
 .card-menu-btn.active {
     opacity: 1;
@@ -3263,16 +2938,12 @@ body[class*="is-dragging-"] .board-tab:not(.active) {
     background: rgba(255, 255, 255, 0.08);
 }
 
-
-
-/* Меню карточки становится fixed для позиционирования идеально поверх всего */
 .card .dropdown-menu {
     position: fixed;
     margin: 0;
     z-index: 10000;
 }
 
-/* 🚀 ФИКС ВЫДЕЛЕНИЯ ТЕКСТА: Разрешаем выделение внутри редактируемой карточки */
 .card.is-renaming {
     user-select: auto !important;
     -webkit-user-select: auto !important;
@@ -3284,7 +2955,7 @@ body[class*="is-dragging-"] .board-tab:not(.active) {
     user-select: text !important;
     -webkit-user-select: text !important;
     pointer-events: auto !important;
-    
+
     background: var(--brand-pale);
     border: none;
     border-radius: 6px;
@@ -3294,24 +2965,20 @@ body[class*="is-dragging-"] .board-tab:not(.active) {
     font-weight: 500;
     line-height: 1.4;
     color: var(--text-primary);
-    
+
     resize: none;
     overflow: hidden;
     display: block;
 
-    flex: 1; 
+    flex: 1;
     min-width: 0;
 
-    /* Та же логика переносов, что и у .card-title (div'а в обычном виде) */
     word-break: break-word;
     overflow-wrap: break-word;
     white-space: pre-wrap;
 
-    /* Убираем браузерный «невидимый запас» под каретку у textarea */
     box-sizing: border-box;
 
-    /* Senior UI: добавляем эстетичные отступы и компенсируем их маргинами, 
-       чтобы текст остался на той же визуальной оси, что и в режиме чтения */
     padding: 2px 4px;
     margin: -2px -4px;
 }
@@ -3338,19 +3005,16 @@ body[class*="is-dragging-"] .board-tab:not(.active) {
     color: #FFFFFF !important;
 }
 
-/* Senior UX: Благородный Кварцевый Мох (Global) */
 [data-theme="dark"] *::selection {
     background: #5C635A !important;
     color: #FFFFFF !important;
 }
 
-
-/* Настройки самого выпадающего меню карточки */
 .card .dropdown-menu {
-    position: fixed;              /* Теперь оно точно будет поверх всего */
+    position: fixed;
     margin: 0;
-    z-index: 99999;               /* Максимальный приоритет */
-    /* Убираем дефолтные смещения, будем задавать их через JS */
+    z-index: 99999;
+
     top: 0;
     left: 0;
     opacity: 0;
@@ -3365,46 +3029,39 @@ body[class*="is-dragging-"] .board-tab:not(.active) {
     transform: translateY(0) scale(1);
 }
 
-/* Глобальное меню карточки */
 .card-context-menu {
-    position: fixed !important; /* Жестко над всеми */
-    z-index: 2147483647 !important; /* Абсолютный максимум z-index в браузерах */
+    position: fixed !important;
+    z-index: 2147483647 !important;
     margin: 0 !important;
     pointer-events: auto;
-    
-    /* 🔥 КРИТИЧЕСКИЙ ФИКС: Убираем will-change, чтобы WebView не 
-       отправлял меню под GPU-слои колонок */
-    will-change: auto !important; 
-    
-    /* Делаем анимацию ИДЕНТИЧНОЙ меню колонки: сдвиг по Y и плавная кривая Apple */
+
+    will-change: auto !important;
+
     opacity: 0;
     visibility: hidden;
     transform: translateY(-8px) scale(0.96);
-    /* transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important; */
+
 }
 
-/* Состояние открытого глобального меню */
 .card-context-menu.show {
     opacity: 1 !important;
     visibility: visible !important;
     transform: translateY(0) scale(1) !important;
 }
 
-/* 🚀 ИДЕАЛЬНОЕ СОСТОЯНИЕ КАРТОЧКИ ПРИ ОТКРЫТОМ МЕНЮ */
 .card.has-open-menu {
     z-index: 10000 !important;
     will-change: auto !important;
-    /* Удерживаем карточку в приподнятом состоянии (как при hover), чтобы она не "падала" */
+
     transform: translate3d(0, -2px, 0) !important;
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04) !important;
 }
 
-/* Подсказка об ошибке в карточке */
 .card-error-hint {
     color: #D35446;
     font-size: 11px;
     font-weight: 600;
-    margin-top: -4px; /* Подтягиваем текст поближе к полю ввода */
+    margin-top: -4px;
     opacity: 0;
     transform: translateY(-4px);
     transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
@@ -3412,14 +3069,12 @@ body[class*="is-dragging-"] .board-tab:not(.active) {
     letter-spacing: 0.01em;
 }
 
-/* Когда элемент в состоянии ошибки, показываем текст */
 .card.is-error .card-error-hint,
 .modal-header.is-error .card-error-hint {
     opacity: 1;
     transform: translateY(0);
 }
 
-/* Темная тема для подсказки */
 [data-theme="dark"] .card-error-hint {
     color: #D65A4B;
 }
@@ -3429,14 +3084,12 @@ body[class*="is-dragging-"] .board-tab:not(.active) {
     visibility: visible;
 }
 
-/* 4. Показываем футер при наведении, если он был схлопнут */
 .card.has-unknown-time:hover:not(:has(.card-inline-trigger:hover)) .card-footer {
     margin-top: 8px;
     max-height: 40px;
     opacity: 1;
 }
 
-/* Также оставляем видимым, если у карточки открыто контекстное меню */
 .card.has-unknown-time.has-open-menu .subtask-meta {
     opacity: 1;
     visibility: visible;
@@ -3447,57 +3100,45 @@ body[class*="is-dragging-"] .board-tab:not(.active) {
     opacity: 1;
 }
 
-/* ==========================================
-   МОДАЛЬНОЕ ОКНО КАРТОЧКИ И MARKDOWN
-   ========================================== */
-
 .task-detail-card {
-    width: 680px;               
-    height: 75vh;               
+    width: 680px;
+    height: 75vh;
     max-height: 92vh;
     max-width: 95vw;
     min-height: 400px;
     min-width: 400px;
     display: flex;
     flex-direction: column;
-    
-    /* 🚀 МАГИЯ РЕСАЙЗА */
+
     resize: both;
     overflow: hidden;
-    /* Отсекаем любой overscroll-импульс на уровне самой модалки —
-       страховка от WKWebView, который иногда "просачивает" инерцию
-       к .modal-overlay и визуально выезжает за границы карточки. */
+
     overscroll-behavior: contain;
     contain: paint;
 }
 
-/* 🚀 МАГИЯ ДРАГА (Курсоры) для всего окна модалки */
 .task-detail-card {
-    cursor: grab; /* Курсор руки над всем нефункциональным пространством */
+    cursor: grab;
 }
 
 .task-detail-card.maximized {
-    cursor: default !important; /* В полноэкранном режиме таскать нельзя */
+    cursor: default !important;
 }
 
-/* ✅ ДОБАВИТЬ ВМЕСТО УДАЛЕННОГО */
-/* Оставляем обычный курсор только над неинтерактивными текстовыми заголовками секций */
 .subtasks-header span {
     cursor: default;
 }
 
-/* Явно указываем курсор для контейнера хлебных крошек (между ссылками) */
 .task-breadcrumbs {
     cursor: grab;
 }
 
 .task-detail-card .modal-header {
     user-select: none;
-    align-items: flex-start; /* Чтобы крестик оставался сверху при многострочном тексте */
+    align-items: flex-start;
 }
 
-/* 🔥 Кулак при перетаскивании модалки (глобально) */
-body.is-dragging-modal, 
+body.is-dragging-modal,
 body.is-dragging-modal * {
     cursor: grabbing !important;
 }
@@ -3510,18 +3151,18 @@ body.is-dragging-modal * {
     overflow-y: auto;
     overflow-x: hidden;
     overscroll-behavior: contain;
-    /* ФИКС: Изолируем контекст наложения, чтобы внутренние скроллы не "дергали" родителя */
-    contain: content; 
+
+    contain: content;
     scrollbar-gutter: stable;
-    -webkit-overflow-scrolling: touch; /* Включаем плавную нативную инерцию для Mac */
+    -webkit-overflow-scrolling: touch;
 }
 
 .markdown-body {
-    position: relative; 
-    flex: 1;            
+    position: relative;
+    flex: 1;
     width: 100%;
     overflow-y: auto;
-    overflow-x: visible; 
+    overflow-x: visible;
     overflow-wrap: break-word;
     word-wrap: break-word;
     word-break: break-word;
@@ -3532,31 +3173,29 @@ body.is-dragging-modal * {
     outline: none;
     box-sizing: border-box;
     cursor: text;
-    
-    /* 🚀 Изолируем Layout: браузер перестанет пересчитывать 8000 строк при скролле модалки */
-    contain: content; 
+
+    contain: content;
 }
 
 .description-input {
-    /* 🚀 ИДЕАЛЬНАЯ ПРОИЗВОДИТЕЛЬНОСТЬ ВВОДА (VS Code / Obsidian style) */
-    contain: strict !important; /* Полностью изолирует Paint и Layout: браузер рендерит только видимую часть поля */
-    transform: translateZ(0); /* Выносим textarea на отдельный GPU-слой */
+
+    contain: strict !important;
+    transform: translateZ(0);
     will-change: transform;
-    text-rendering: optimizeSpeed !important; /* Выключаем дорогие лигатуры на 8000+ строках */
+    text-rendering: optimizeSpeed !important;
     -webkit-font-smoothing: antialiased !important;
-    
-    position: relative; 
-    flex: 1;            
+
+    position: relative;
+    flex: 1;
     width: 100% !important;
     height: 100% !important;
     overflow-y: auto !important;
-    overflow-x: hidden !important; 
-    
-    /* Простые переносы, не требующие тяжелых вычислений от движка WebKit */
+    overflow-x: hidden !important;
+
     white-space: pre-wrap !important;
     word-break: normal !important;
-    overflow-wrap: break-word !important; /* Безопасный перенос длинных ссылок без лагов */
-    
+    overflow-wrap: break-word !important;
+
     padding: 12px !important;
     font-size: 15px;
     font-family: var(--font-main);
@@ -3570,16 +3209,14 @@ body.is-dragging-modal * {
     display: none;
 }
 
-/* ДОБАВЛЕНО: Принудительный перенос внутри всех тегов текста */
-.markdown-body p, 
-.markdown-body li, 
-.markdown-body a, 
+.markdown-body p,
+.markdown-body li,
+.markdown-body a,
 .markdown-body span {
     overflow-wrap: break-word !important;
     word-break: break-word !important;
 }
 
-/* ДОБАВЛЕНО: Исключение для блоков кода (горизонтальный скролл там нужен) */
 .markdown-body pre {
     overflow-x: auto !important;
     white-space: pre !important;
@@ -3587,10 +3224,9 @@ body.is-dragging-modal * {
     overflow-wrap: normal !important;
 }
 
-/* 4. Пройдемся по остальным инпутам, где был разброс */
-.column-input, 
-.column-title-input, 
-.card-input, 
+.column-input,
+.column-title-input,
+.card-input,
 .card-title-input,
 .tab-input,
 .tab-name-input {
@@ -3598,34 +3234,30 @@ body.is-dragging-modal * {
     font-family: var(--font-main) !important;
 }
 
-/* 5. И заголовки (в них тоже был 1.45 или 1.4) */
 .column-title, .card-title {
     line-height: var(--line-height-standard);
 }
 
-/* Состояние "пустого" описания */
 .markdown-empty {
     color: var(--text-secondary);
     opacity: 0.6;
-    cursor: pointer; /* Для пустой заглушки оставляем курсор-руку, так как работает одиночный клик */
+    cursor: pointer;
     display: block;
 }
 
-/* --- Стилизация самого Markdown (UI/UX) --- */
-.markdown-body h1, 
-.markdown-body h2, 
+.markdown-body h1,
+.markdown-body h2,
 .markdown-body h3,
 .markdown-body h4,
 .markdown-body h5,
 .markdown-body h6 {
-    margin-top: 0;    /* Выровнен по размеру нижнего отступа */
-    margin-bottom: 12px; /* Единый отступ под заголовками всех уровней */
+    margin-top: 0;
+    margin-bottom: 12px;
     font-weight: 600;
     color: var(--text-primary);
     letter-spacing: -0.02em;
 }
 
-/* Сворачивание заголовков */
 .foldable-heading {
     display: inline-flex;
     align-items: center;
@@ -3639,8 +3271,8 @@ body.is-dragging-modal * {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 16px;                     /* Жесткий каркас предотвращает прыжки ширины */
-    height: 16px;                    /* Жесткий каркас предотвращает прыжки высоты */
+    width: 16px;
+    height: 16px;
     margin-right: 8px;
     margin-left: -2px;
     color: var(--text-secondary);
@@ -3650,23 +3282,22 @@ body.is-dragging-modal * {
 .heading-fold-arrow svg {
     width: 12px !important;
     height: 12px !important;
-    transform: rotate(90deg);        /* По умолчанию развернуто (стрелка вниз) */
-    transform-origin: center center; /* Точная ось вращения */
-    will-change: transform;          /* Вынос на GPU для плавной анимации */
-    backface-visibility: hidden;     /* Устранение субпиксельного размытия текста */
+    transform: rotate(90deg);
+    transform-origin: center center;
+    will-change: transform;
+    backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
     transition: transform var(--transition-apple);
 }
 
 .foldable-heading.is-folded .heading-fold-arrow svg {
-    transform: rotate(0deg);         /* Свернуто (стрелка вправо) */
+    transform: rotate(0deg);
 }
 
 .is-hidden-by-fold {
     display: none !important;
 }
 
-/* 🔥 ДОБАВИТЬ ЭТО: Убираем отступ сверху у самого первого элемента (заголовка, текста и тд) */
 .markdown-body > *:first-child {
     margin-top: 0 !important;
 }
@@ -3703,15 +3334,15 @@ body.is-dragging-modal * {
 .markdown-body hr {
     border: none;
     border-top: 1px solid var(--border-light);
-    margin: 24px 0; /* Равномерные отступы сверху и снизу в ритме сетки доски */
+    margin: 24px 0;
 }
-/* --- Улучшенные блоки кода и Кнопка копирования --- */
+
 .markdown-body pre {
     position: relative;
     background: rgba(0, 0, 0, 0.04) !important;
     padding: 16px;
     border-radius: 12px;
-    overflow: visible; /* Чтобы кнопка не обрезалась */
+    overflow: visible;
     margin-bottom: 16px;
     border: 1px solid var(--border-light);
 }
@@ -3720,7 +3351,6 @@ body.is-dragging-modal * {
     background: rgba(255, 255, 255, 0.03) !important;
 }
 
-/* ФИКС ТВОЕЙ "ХУЙНИ" (белых полос): принудительно убираем фон у вложенного кода */
 .markdown-body pre code {
     background: transparent !important;
     padding: 0 !important;
@@ -3730,7 +3360,6 @@ body.is-dragging-modal * {
     line-height: 1.5;
 }
 
-/* Стили кнопки копирования */
 .code-copy-btn {
     position: absolute;
     top: 8px;
@@ -3745,12 +3374,11 @@ body.is-dragging-modal * {
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    opacity: 0; /* Скрыта по умолчанию */
+    opacity: 0;
     transition: all 0.2s ease;
     z-index: 10;
 }
 
-/* Показываем кнопку при наведении на блок кода */
 .markdown-body pre:hover .code-copy-btn {
     opacity: 1;
 }
@@ -3772,13 +3400,9 @@ body.is-dragging-modal * {
 }
 .markdown-body pre code { background: transparent; padding: 0; }
 
-/* Адаптация Markdown для тёмной темы */
 [data-theme="dark"] .markdown-body code { background: rgba(255, 255, 255, 0.1); }
 [data-theme="dark"] .markdown-body pre { background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-light); }
 
-/* ========================================== CODE BLOCKS: INTEGRATED ========================================== */
-
-/* Контейнер: фон = фон description-wrapper, не выделяется */
 .markdown-body pre {
   position: relative;
   padding: 16px 20px !important;
@@ -3787,13 +3411,10 @@ body.is-dragging-modal * {
   background: var(--brand-pale) !important;
   border: 1px solid var(--border-light) !important;
   box-shadow: none !important;
-  
-  /* 🔥 ФИКС ЧЕРТОВЩИНЫ СО СКРОЛЛОМ: 
-     Отключаем вертикальный скролл внутри pre и убираем изоляцию.
-     Это исправляет баг WebKit, когда фон отрывается от текста при скролле. */
+
   overflow-x: auto !important;
   overflow-y: hidden !important;
-  transform: translateZ(0); 
+  transform: translateZ(0);
 }
 
 [data-theme="dark"] .markdown-body pre {
@@ -3801,7 +3422,6 @@ body.is-dragging-modal * {
   border-color: var(--border-light) !important;
 }
 
-/* Шрифт и база — твои исходные */
 .markdown-body pre code {
   background: transparent !important;
   padding: 0 !important;
@@ -3816,7 +3436,6 @@ body.is-dragging-modal * {
   color: #E6E8E5 !important;
 }
 
-/* СИНТАКСИС — оставлен как есть, не менял */
 .token.keyword { color: #AD3DA3 !important; font-weight: 600; }
 .token.string { color: #248A39 !important; }
 .token.function { color: #005CC5 !important; }
@@ -3830,7 +3449,6 @@ body.is-dragging-modal * {
 [data-theme="dark"] .token.operator, [data-theme="dark"] .token.punctuation { color: #828A80 !important; }
 [data-theme="dark"] .token.number { color: #EBCB8B !important; }
 
-/* Кнопка копирования — в цветах темы */
 .code-copy-btn {
   position: absolute;
   top: 10px;
@@ -3867,55 +3485,47 @@ body.is-dragging-modal * {
   color: var(--text-primary);
 }
 
-/* Базовый класс для всех рукояток */
 .resizer {
     position: absolute;
     z-index: 10;
-    /* background: rgba(255, 0, 0, 0.1); /* Раскомментируй для отладки зон */
+
 }
 
-/* Грани */
 .r-top    { top: -4px; left: 8px; right: 8px; height: 8px; cursor: ns-resize; }
 .r-bottom { bottom: -4px; left: 8px; right: 8px; height: 8px; cursor: ns-resize; }
 .r-left   { left: -4px; top: 8px; bottom: 8px; width: 8px; cursor: ew-resize; }
 .r-right  { right: -4px; top: 8px; bottom: 8px; width: 8px; cursor: ew-resize; }
 
-/* Углы */
 .r-top-left     { top: -4px; left: -4px; width: 12px; height: 12px; cursor: nwse-resize; z-index: 11; }
 .r-top-right    { top: -4px; right: -4px; width: 12px; height: 12px; cursor: nesw-resize; z-index: 11; }
 .r-bottom-left  { bottom: -4px; left: -4px; width: 12px; height: 12px; cursor: nesw-resize; z-index: 11; }
 .r-bottom-right { bottom: -4px; right: -4px; width: 12px; height: 12px; cursor: nwse-resize; z-index: 11; }
 
-/* Обновляем саму карточку: убираем CSS resize и фиксируем overflow */
 .task-detail-card {
-    position: relative; /* Чтобы resizers позиционировались относительно неё */
+    position: relative;
     min-width: 400px;
     min-height: 400px;
-    resize: none !important; /* Отключаем штатный ресайз */
+    resize: none !important;
 }
 
-/* ==========================================
-   ОПИСАНИЕ КАРТОЧКИ — СКРОЛЛ С НУЛЯ
-   ========================================== */
-
 .description-wrapper {
-    flex: none; 
-    position: relative; 
+    flex: none;
+    position: relative;
     display: flex;
     flex-direction: column;
     height: 300px;
     min-height: 150px;
-    max-height: none; /* Убрано жесткое ограничение в 80vh, теперь можно тянуть бесконечно вниз */
+    max-height: none;
     resize: vertical;
-    overflow-y: hidden; 
-    overflow-x: auto; /* Включаем горизонтальный скролл при растягивании картинок */
+    overflow-y: hidden;
+    overflow-x: auto;
     border: 1px solid var(--border-light);
     border-radius: 10px;
     background: var(--brand-pale) !important;
     transition: border-color 0.2s;
     margin-bottom: 16px;
     cursor: auto;
-    padding-bottom: 16px; 
+    padding-bottom: 16px;
 }
 
 .description-wrapper::-webkit-scrollbar {
@@ -3956,11 +3566,11 @@ body.is-dragging-modal * {
 
 .markdown-body,
 .description-input {
-    position: relative; 
-    flex: 1;            
+    position: relative;
+    flex: 1;
     width: 100%;
     overflow-y: auto;
-    overflow-x: visible; /* ИСПРАВЛЕНО: Скроллит только родитель (.description-wrapper) */
+    overflow-x: visible;
     overflow-wrap: break-word;
     word-wrap: break-word;
     word-break: break-word;
@@ -3973,27 +3583,23 @@ body.is-dragging-modal * {
     cursor: text;
 }
 
-/* Обертка для растягиваемых изображений */
 .image-resizer-wrapper {
     position: relative;
-    display: inline-block; /* Легально находится внутри текста и абзацев <p> */
-    vertical-align: bottom; /* Изменено с middle на bottom: полностью убирает субпиксельный сдвиг и нижний текстовый зазор */
-    line-height: 0; /* Исключает влияние высоты текста на контейнер */
-    max-width: 100%; 
-    margin: 8px 0; /* Уменьшено с 12px до 8px для баланса с внешними отступами параграфов */
+    display: inline-block;
+    vertical-align: bottom;
+    line-height: 0;
+    max-width: 100%;
+    margin: 8px 0;
     border-radius: 8px;
-    user-select: none; 
+    user-select: none;
     -webkit-user-select: none;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
-/* Обнуляем влияние высоты строки (line-height) родительского параграфа, если в нем находится только изображение. 
-   Это гарантирует симметричные внешние отступы сверху и снизу без браузерных смещений. */
 .markdown-body p:has(> .image-resizer-wrapper:only-child) {
     line-height: 0;
 }
 
-/* При явном задании ширины отключаем max-width, чтобы текст расширился за изображением */
 .image-resizer-wrapper.has-custom-size {
     max-width: none;
 }
@@ -4002,12 +3608,11 @@ body.is-dragging-modal * {
     display: block;
     width: 100%;
     height: 100%;
-    object-fit: fill; 
+    object-fit: fill;
     border-radius: 8px;
-    pointer-events: none; /* Чтобы браузер не тянул саму картинку */
+    pointer-events: none;
 }
 
-/* Кастомная ручка ресайза */
 .image-resize-handle {
     position: absolute;
     right: 0;
@@ -4057,10 +3662,7 @@ body.is-dragging-modal * {
     color: var(--text-primary);
     resize: none;
     white-space: pre-wrap;
-    /* Снимаем тяжёлый legacy-режим переноса: на каждый символ браузер пересчитывает
-       раскладку всего текста, и break-word делает этот проход заметно дороже.
-       overflow-wrap из общего правила выше всё равно разрывает слишком длинные токены,
-       поэтому визуально перенос остаётся прежним. */
+
     word-break: normal;
 }
 
@@ -4070,7 +3672,6 @@ body.is-dragging-modal * {
     font-family: var(--font-main);
 }
 
-/* Выделение текста внутри описания (одно правило вместо семи) */
 .markdown-body::selection,
 .markdown-body *::selection,
 .description-input::selection {
@@ -4084,7 +3685,6 @@ body.is-dragging-modal * {
     color: #FFFFFF !important;
 }
 
-/* Секции контента (Вложения и Подзадачи) */
 .attachments-section,
 .subtasks-section {
     margin-top: 24px;
@@ -4092,7 +3692,7 @@ body.is-dragging-modal * {
     flex-direction: column;
     gap: 12px;
 }
-/* Жесткая синхронизация заголовков секций */
+
 .subtasks-header {
     display: flex !important;
     align-items: center !important;
@@ -4102,19 +3702,19 @@ body.is-dragging-modal * {
 }
 
 .subtasks-header span:first-child {
-    font-size: 11px !important;       /* Уменьшаем размер для Apple-стиля */
-    font-weight: 800 !important;       /* Делаем жирнее, чтобы читалось */
+    font-size: 11px !important;
+    font-weight: 800 !important;
     text-transform: uppercase !important;
-    letter-spacing: 0.12em !important; /* Максимальная разрядка */
-    color: var(--text-secondary) !important; /* Принудительный серый цвет */
+    letter-spacing: 0.12em !important;
+    color: var(--text-secondary) !important;
     opacity: 0.8;
 }
 
 .subtasks-count {
-    background: rgba(255, 255, 255, 0.08) !important; /* Фиксированный фон для контраста */
+    background: rgba(255, 255, 255, 0.08) !important;
     color: var(--text-secondary) !important;
     padding: 1px 6px !important;
-    border-radius: 5px !important;      /* macOS-style радиус */
+    border-radius: 5px !important;
     font-size: 10px !important;
     font-weight: 700 !important;
     min-width: 18px;
@@ -4123,10 +3723,9 @@ body.is-dragging-modal * {
 }
 
 [data-theme="dark"] .subtasks-count {
-    background: rgba(255, 255, 255, 0.12) !important; /* Чуть светлее в темной теме */
+    background: rgba(255, 255, 255, 0.12) !important;
 }
 
-/* Кнопка добавления в шапке (+ Вложения) */
 .header-add-btn {
     background: transparent;
     border: none;
@@ -4154,10 +3753,7 @@ body.is-dragging-modal * {
     display: flex;
     flex-direction: column;
     gap: 4px;
-    
-    /* 🔥 ФИКС ТЕНЕЙ (Как в истории хранилищ):
-       Глобальный overflow: auto режет тени. Делаем контейнер видимым 
-       и добавляем зону для отрисовки тени (padding), компенсируя сдвиг (margin). */
+
     overflow: visible !important;
     padding: 8px;
     margin: -8px;
@@ -4169,15 +3765,13 @@ body.is-dragging-modal * {
     gap: 12px;
     padding: 10px 12px;
     border-radius: 12px;
-    
-    /* Возвращаем родной фон и легкую тень карточки */
+
     background: var(--surface-card);
     border: 1px solid var(--border-light);
     margin-bottom: 4px;
     box-shadow: var(--shadow-card);
     cursor: grab;
 
-    /* Мгновенный визуальный возврат в исходное состояние при снятии галочки (0s) */
     transition: transform var(--transition-apple),
                 box-shadow 0s,
                 background-color 0s,
@@ -4187,7 +3781,7 @@ body.is-dragging-modal * {
 .subtask-checkbox {
     width: 18px;
     height: 18px;
-    border: 1.5px solid var(--text-secondary); /* Изящная тонкая рамка */
+    border: 1.5px solid var(--text-secondary);
     opacity: 0.7;
     border-radius: 5px;
     cursor: pointer;
@@ -4198,19 +3792,16 @@ body.is-dragging-modal * {
     background-color: transparent;
     flex-shrink: 0;
 
-    /* Мгновенное исчезновение галочки при снятии (0s) */
     transition: background-color 0s, border-color 0s, color 0s, opacity 0s;
 }
 
-/* --- СТИЛИ БЛОКИРОВКИ ЧЕКБОКСА-АГЕНТА --- */
 .subtask-checkbox.locked {
     cursor: not-allowed;
-    border-style: dashed; /* Пунктирная рамка намекает на "ссылку" куда-то еще */
+    border-style: dashed;
     opacity: 0.5;
-    color: var(--text-secondary); /* Иконка колонки всегда видна и окрашена в серый */
+    color: var(--text-secondary);
 }
 
-/* Если агентская карточка выполнена на доске - возвращаем ей зеленый цвет */
 .subtask-item.is-done .subtask-checkbox.locked {
     background: var(--success-done);
     border-style: solid;
@@ -4218,27 +3809,25 @@ body.is-dragging-modal * {
     color: white;
 }
 
-
-/* 5. Темная тема (Dark Mode Support) */
 [data-theme="dark"] .subtask-item {
-    box-shadow: var(--shadow-card); 
+    box-shadow: var(--shadow-card);
 }
 
 [data-theme="dark"] .subtask-item:hover {
-    /* В темной теме тени должны быть жестче для отделения от фона */
+
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 [data-theme="dark"] .subtask-item.is-done {
-    background: #1A1C19; /* Соответствует .card.is-completed в темной теме */
+    background: #1A1C19;
 }
 
 .subtask-item:hover {
     transform: translate3d(0, -2px, 0);
-    /* Тень приподнятой карточки */
+
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
     background: var(--surface-card);
-    /* Убираем специфичный border-color, который был раньше, для чистоты */
+
     border-color: var(--border-light);
 }
 
@@ -4246,29 +3835,27 @@ body.is-dragging-modal * {
     cursor: grabbing;
 }
 
-.subtask-item.is-done { 
-    background: #F7F6F3; 
+.subtask-item.is-done {
+    background: #F7F6F3;
     box-shadow: none;
 
-    /* Быстрая плавная анимация только при установке выполненности (check) */
     transition: background-color 0.18s cubic-bezier(0.16, 1, 0.3, 1),
                 box-shadow 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.subtask-item.is-done:hover { 
-    transform: translate3d(0, -2px, 0); 
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04); 
-    /* Плавный подъем при наведении сохраняется */
+.subtask-item.is-done:hover {
+    transform: translate3d(0, -2px, 0);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
+
     transition: transform var(--transition-apple), box-shadow var(--transition-apple);
 }
 
 .subtask-item.is-done .subtask-checkbox {
-    opacity: 1; /* Возвращаем яркость при активации */
+    opacity: 1;
     background: var(--success-done);
     border-color: var(--success-done);
     color: white;
 
-    /* Плавное, упругое заполнение чекбокса цветом при активации (check) */
     transition: background-color 0.15s cubic-bezier(0.16, 1, 0.3, 1),
                 border-color 0.15s cubic-bezier(0.16, 1, 0.3, 1),
                 color 0.12s ease-out,
@@ -4284,11 +3871,11 @@ body.is-dragging-modal * {
     flex: 1;
     font-size: 14px;
     font-weight: 500;
-    line-height: 1.2; /* Плотно и аккуратно для центрированных строк */
+    line-height: 1.2;
     color: var(--text-primary);
     word-break: break-word;
     white-space: pre-wrap;
-    cursor: pointer; /* <--- Добавили курсор-палец */
+    cursor: pointer;
 }
 
 .subtask-eye-btn:hover,
@@ -4297,7 +3884,6 @@ body.is-dragging-modal * {
     color: var(--text-primary);
 }
 
-/* Кнопка "Открыть" (стрелочка) - скрыта по умолчанию */
 .subtask-open-btn {
     opacity: 0;
     background: transparent;
@@ -4315,9 +3901,8 @@ body.is-dragging-modal * {
     margin: 0 !important;
 }
 
-/* Кнопка "Глазик" - ВИДНА ВСЕГДА */
 .subtask-eye-btn {
-    opacity: 1; 
+    opacity: 1;
     background: transparent;
     border: none;
     width: 28px;
@@ -4330,40 +3915,34 @@ body.is-dragging-modal * {
     cursor: pointer;
     transition: all 0.2s ease;
     flex-shrink: 0;
-    margin: 0 !important; /* Убираем старые костыли, теперь всё ровно через Flexbox gap */
+    margin: 0 !important;
 }
 
-/* Выключенный глазик делаем чуть прозрачным, чтобы не "кричал" */
 .subtask-eye-btn:not(.active-eye) {
     opacity: 0.5;
 }
 
-/* Активный глазик горит основным цветом текста */
 .subtask-eye-btn.active-eye {
     opacity: 1;
     color: var(--text-primary);
 }
 
-/* Ховер на выключенный глазик */
 .subtask-eye-btn:hover {
     opacity: 1;
     background: rgba(0, 0, 0, 0.06);
     color: var(--text-primary);
 }
 
-/* Показываем стрелочку "Открыть" и Корзину только при наведении на подзадачу */
 .subtask-item:hover .subtask-delete-btn,
 .subtask-item:hover .subtask-open-btn {
     opacity: 1;
 }
 
-/* Темная тема для ховеров */
 [data-theme="dark"] .subtask-eye-btn:hover,
 [data-theme="dark"] .subtask-open-btn:hover {
     background: rgba(255, 255, 255, 0.08);
     color: var(--text-primary);
 }
-
 
 [data-theme="dark"] .subtask-inline-input::placeholder {
     color: var(--text-secondary);
@@ -4374,7 +3953,6 @@ body.is-dragging-modal * {
     border-color: rgba(255, 255, 255, 0.1);
 }
 
-/* Кнопка добавления подзадачи (в стиле btn-add-card) */
 .btn-add-subtask {
     width: 100%;
     padding: 10px 12px;
@@ -4395,14 +3973,12 @@ body.is-dragging-modal * {
     color: var(--text-primary);
 }
 
-/* Убираем фон даже при наведении на пунктирную форму */
 .subtask-item.subtask-entering:hover {
     background: transparent !important;
     transform: none !important;
     box-shadow: none !important;
 }
 
-/* Делаем textarea внутри пунктира полностью невидимой */
 .subtask-item.subtask-entering .subtask-inline-input {
     background: transparent !important;
     border: none !important;
@@ -4413,7 +3989,6 @@ body.is-dragging-modal * {
 
 .subtask-item.subtask-entering.is-exiting { opacity: 0; transform: scale(0.96); pointer-events: none; transition: opacity 0.2s ease, transform 0.2s ease; }
 
-/* Поддержка показа ошибки в подзадаче */
 .subtask-item.is-error .card-error-hint {
     opacity: 1;
     transform: translateY(0);
@@ -4422,44 +3997,39 @@ body.is-dragging-modal * {
     margin-top: 6px;
 }
 
-/* Анимация "Рождения" подзадачи — ЖЕСТКАЯ СИНХРОНИЗАЦИЯ */
 .subtask-item.subtask-birth {
-    opacity: 0; 
-    transform: translateY(16px); /* Было 12, у карточек 16 */
-    pointer-events: none; 
-    will-change: opacity, transform; 
+    opacity: 0;
+    transform: translateY(16px);
+    pointer-events: none;
+    will-change: opacity, transform;
 }
 
-.subtask-item.subtask-birth.born { 
-    opacity: 1; 
-    transform: translateY(0); 
-    pointer-events: auto; 
-    transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1) 0.05s, 
-                transform 0.45s cubic-bezier(0.16, 1, 0.3, 1); 
+.subtask-item.subtask-birth.born {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+    transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1) 0.05s,
+                transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Тряска при ошибке */
 .subtask-item.is-error {
     animation: column-shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
 }
 
-/* --- СТИЛИ ДЛЯ DRAG & DROP ПОДЗАДАЧ (Senior UI Polish) --- */
-
-/* Клон подзадачи в полете: полная копия обычной карточки */
 .subtask-drag-clone {
     position: fixed !important;
     top: 0 !important;
     left: 0 !important;
     transform-origin: top left !important;
-    z-index: 2147483640 !important; /* 🔥 ФИКС: Гарантированно выше модалки и светофора */
+    z-index: 2147483640 !important;
     pointer-events: none !important;
     margin: 0 !important;
-    
+
     background: var(--surface-card) !important;
     border: 1px solid var(--border-light) !important;
     border-radius: 12px !important;
     box-shadow: var(--shadow-drag) !important;
-    opacity: 1 !important; 
+    opacity: 1 !important;
 
     display: flex !important;
     align-items: center !important;
@@ -4469,14 +4039,12 @@ body.is-dragging-modal * {
     transition: none !important;
     contain: layout style paint !important;
     will-change: transform !important;
-    
-    /* 🚀 ФИКС СЛОЕВ И ТЕНЕЙ: Убиваем 3D-контекст от .subtask-item, из-за которого клон падал за модалку в WKWebView */
+
     transform-style: flat !important;
     backface-visibility: visible !important;
     -webkit-backface-visibility: visible !important;
 }
 
-/* Курсоры */
 .subtask-item:not(.subtask-entering) {
     cursor: grab;
 }
@@ -4485,17 +4053,15 @@ body.is-dragging-subtask .subtask-item {
     cursor: grabbing !important;
 }
 
-/* Состояние когда форма появилась */
 .subtask-item.subtask-entering.entered {
     opacity: 1;
     transform: scale(1);
 }
 
-/* Убираем синий ПИЗДЕЦ (outline) и все рамки у инпута внутри пунктира */
 .subtask-item.subtask-entering .subtask-inline-input {
     background: transparent !important;
     border: none !important;
-    outline: none !important; /* УБИРАЕТ СИНЮЮ РАМКУ */
+    outline: none !important;
     box-shadow: none !important;
     padding: 0 !important;
     margin: 0 !important;
@@ -4506,7 +4072,6 @@ body.is-dragging-subtask .subtask-item {
     resize: none;
 }
 
-/* Чтобы пунктир не подсвечивался и не дергался при наведении */
 .subtask-item.subtask-entering:hover {
     background: transparent !important;
     transform: none !important;
@@ -4514,7 +4079,6 @@ body.is-dragging-subtask .subtask-item {
     border-color: rgba(74, 90, 72, 0.45) !important;
 }
 
-/* --- СТИЛИ ДЛЯ ПУНКТИРА И ОШИБОК ПОДЗАДАЧИ --- */
 .subtask-item.subtask-entering {
     background: transparent !important;
     border: 1.5px dashed rgba(74, 90, 72, 0.25) !important;
@@ -4523,11 +4087,10 @@ body.is-dragging-subtask .subtask-item {
     flex-direction: column !important;
     align-items: stretch !important;
     cursor: default !important;
-    min-height: 0 !important; 
+    min-height: 0 !important;
     transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Убираем синий контур и системный фон */
 .subtask-inline-input {
     background: transparent !important;
     border: none !important;
@@ -4539,25 +4102,22 @@ body.is-dragging-subtask .subtask-item {
     line-height: 1.4 !important;
     color: var(--text-primary) !important;
     resize: none !important;
-    overflow: hidden !important; /* Убираем скролл, так как высота будет по тексту */
+    overflow: hidden !important;
     display: block !important;
 }
 
-/* ФИКС ЦВЕТА ВЫДЕЛЕНИЯ */
 .subtask-inline-input::selection {
     background: #C3C6BC !important;
     color: var(--text-primary) !important;
 }
 
-/* ФИКС ЦВЕТА ВЫДЕЛЕНИЯ */
 [data-theme="dark"] .subtask-inline-input::selection {
     background: #5C635A !important;
     color: #FFFFFF !important;
 }
 
-/* Текст ошибки внутри подзадачи */
 .subtask-item .card-error-hint {
-    /* Senior UI Fix: Используем технику схлопывания через max-height и нулевые маржины по умолчанию */
+
     margin-top: 0;
     font-size: 11px;
     color: #D35446;
@@ -4566,27 +4126,24 @@ body.is-dragging-subtask .subtask-item {
     max-height: 0;
     overflow: hidden;
     transform: translateY(-4px);
-    /* Анимируем только те свойства, которые влияют на визуальный вес, чтобы избежать скачков геометрии */
+
     transition: opacity 0.2s ease, transform 0.2s ease, margin-top 0.2s ease, max-height 0.2s ease;
     pointer-events: none;
 }
 
-/* Показ ошибки (сохраняем пунктир, меняем цвет и трясем) */
 .subtask-item.is-error {
-    border-color: #D35446 !important; 
+    border-color: #D35446 !important;
     background: rgba(211, 84, 70, 0.03) !important;
     animation: column-shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
 }
 
-/* Разворачиваем подсказку только когда активен класс ошибки */
 .subtask-item.is-error .card-error-hint {
     opacity: 1;
-    max-height: 40px; /* Достаточно для двух строк ошибки */
+    max-height: 40px;
     margin-top: 6px;
     transform: translateY(0);
 }
 
-/* Тёмная тема */
 [data-theme="dark"] .subtask-item.is-error {
     border-color: #D65A4B !important;
     background: rgba(214, 90, 75, 0.05) !important;
@@ -4602,10 +4159,9 @@ body.is-dragging-subtask .subtask-item {
     align-items: center;
     gap: 4px;
     flex-shrink: 0;
-    margin-top: 0; /* БЫЛО: -3px */
+    margin-top: 0;
 }
 
-/* Кнопка удаления (корзина) */
 .subtask-delete-btn {
     opacity: 0;
     background: transparent;
@@ -4627,21 +4183,17 @@ body.is-dragging-subtask .subtask-item {
     transform: translateZ(0);
 }
 
-
 .subtask-eye-btn.active-eye {
     opacity: 1;
     color: var(--text-primary);
 }
 
-
-/* Показываем обе кнопки при наведении на подзадачу */
 .subtask-item:hover .subtask-eye-btn,
 .subtask-item:hover .subtask-delete-btn,
 .subtask-item:hover .subtask-open-btn {
     opacity: 1;
 }
 
-/* Эффект при наведении на корзину (Danger zone) */
 .subtask-delete-btn:hover {
     background: rgba(211, 84, 70, 0.1);
     color: #D35446;
@@ -4652,11 +4204,6 @@ body.is-dragging-subtask .subtask-item {
     color: #D65A4B;
 }
 
-/* ==========================================
-   ПЕРЕИМЕНОВАНИЕ ЗАГОЛОВКА В МОДАЛКЕ И ПОДЗАДАЧ
-   ========================================== */
-
-/* Инпут для переименования подзадачи */
 .subtask-title-input {
     background: var(--brand-pale);
     border: none;
@@ -4675,14 +4222,12 @@ body.is-dragging-subtask .subtask-item {
     display: block;
 }
 
-/* Цвета выделения текста */
 .task-modal-title-input::selection,
 .subtask-title-input::selection {
     background: #C3C6BC;
     color: var(--text-primary);
 }
 
-/* --- Поддержка тёмной темы --- */
 [data-theme="dark"] .task-modal-title-input,
 [data-theme="dark"] .subtask-title-input {
     background: rgba(137, 160, 133, 0.15);
@@ -4693,7 +4238,6 @@ body.is-dragging-subtask .subtask-item {
     color: #FFFFFF !important;
 }
 
-/* Состояние редактирования для подзадачи (отключаем драг) */
 .subtask-item.is-renaming {
     cursor: default !important;
 }
@@ -4702,9 +4246,6 @@ body.is-dragging-subtask .subtask-item {
     pointer-events: auto !important;
 }
 
-/* ДОБАВЬТЕ ЭТИ СТРОКИ В КОНЕЦ ФАЙЛА frontend/styles.css */
-
-/* Стилизация вложений на основе подзадач */
 body.is-dragging-attachment .attachment-item {
     cursor: grabbing !important;
 }
@@ -4716,71 +4257,57 @@ body.is-dragging-attachment .attachment-item {
     justify-content: center;
 }
 .attachment-item svg {
-    display: block; /* Убирает лишний дескриптор внизу строки */
+    display: block;
 }
 
-/* ==========================================
-   ФИКС ОТСТУПОВ ВЛОЖЕНИЙ (Senior UI Refinement)
-   ========================================== */
-
-/* Наследуем стандартный зазор (gap: 12px) от подзадач */
 .attachment-item {
-    padding-left: 12px !important; 
+    padding-left: 12px !important;
 }
 
-/* Оставляем размер контейнера 18x18 как у чекбоксов для идеальной соосности */
 .attachment-item .subtask-checkbox {
-    margin: 0 !important;      
+    margin: 0 !important;
     border: none !important;
     background: transparent !important;
-    opacity: 1 !important; /* Отменяем прозрачность родителя, т.к. она есть у самой SVG-иконки */
+    opacity: 1 !important;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
-/* Убираем возможный лишний отступ у текста */
 .attachment-item .subtask-title {
     margin-left: 0 !important;
     line-height: 1.2;
 }
 
-/* Делаем иконку чуть бледнее (secondary), чтобы она не спорила с текстом */
 .attachment-item .subtask-checkbox svg {
     opacity: 0.7;
     color: var(--text-secondary);
 }
 
-/* ==========================================
-   DRAG & DROP ВЛОЖЕНИЙ (Senior UI Polish)
-   ========================================== */
-
-/* Клон вложения, который летит за мышкой */
 .attachment-drag-clone {
     position: fixed !important;
     top: 0 !important;
     left: 0 !important;
     transform-origin: top left !important;
-    z-index: 2147483640 !important; /* 🔥 ФИКС: Гарантированно выше модалки и светофора */
+    z-index: 2147483640 !important;
     pointer-events: none !important;
     margin: 0 !important;
-    
+
     background: var(--surface-card) !important;
     border: 1px solid var(--border-light) !important;
     border-radius: 12px !important;
     box-shadow: var(--shadow-drag) !important;
-    opacity: 1 !important; 
+    opacity: 1 !important;
 
     display: flex !important;
     align-items: center !important;
     padding: 10px 12px !important;
     gap: 12px !important;
-    
+
     transition: none !important;
     will-change: transform !important;
     contain: layout style paint !important;
-    
-    /* 🚀 ФИКС СЛОЕВ И ТЕНЕЙ: Убиваем 3D-контекст от .subtask-item, из-за которого клон падал за модалку в WKWebView */
+
     transform-style: flat !important;
     backface-visibility: visible !important;
     -webkit-backface-visibility: visible !important;
@@ -4791,38 +4318,29 @@ body.is-dragging-attachment .attachment-item {
     pointer-events: none !important;
 }
 
-/* Эстетичный полупрозрачный призрак для подзадач и вложений (как у карточек) */
 .subtask-item.is-ghost,
-.attachment-item.is-ghost { 
-    opacity: 0.3 !important; 
-    background: var(--border-light) !important; 
-    border: 1px solid transparent !important; 
-    box-shadow: none !important; 
+.attachment-item.is-ghost {
+    opacity: 0.3 !important;
+    background: var(--border-light) !important;
+    border: 1px solid transparent !important;
+    box-shadow: none !important;
 }
-/* Мы намеренно не прячем внутренности (текст и иконки), чтобы призрак был точной копией */
 
-/* Принудительный курсор для всей страницы во время драга */
-body.is-dragging-attachment, 
+body.is-dragging-attachment,
 body.is-dragging-attachment * {
     cursor: grabbing !important;
 }
 
-/* Блокируем hover-эффекты у других вложений, пока тащим одно */
 body.is-dragging-attachment .attachment-item:not(.attachment-drag-clone) {
     transform: none !important;
     box-shadow: var(--shadow-card) !important;
     transition: none !important;
 }
 
-/* ==========================================
-   СТИЛИ ПОТЕРЯННЫХ ВЛОЖЕНИЙ И ХРАНИЛИЩ
-   ========================================== */
-
-/* Красный цвет для иконки вопроса */
 .attachment-item .subtask-checkbox.missing,
 .vault-history-item .subtask-checkbox.missing,
 .attachment-item .subtask-checkbox.pending {
-    cursor: pointer; /* Подсказываем, что можно кликнуть */
+    cursor: pointer;
 }
 .attachment-item .subtask-checkbox.missing svg,
 .vault-history-item .subtask-checkbox.missing svg {
@@ -4830,13 +4348,11 @@ body.is-dragging-attachment .attachment-item:not(.attachment-drag-clone) {
     opacity: 1 !important;
 }
 
-/* Желтый цвет для ожидаемого вложения */
 .attachment-item .subtask-checkbox.pending svg {
     color: #E5B567 !important;
     opacity: 1 !important;
 }
 
-/* Перечеркнутый полупрозрачный текст для потерянного файла/хранилища */
 .attachment-item .subtask-title.missing-text,
 .vault-history-name.missing-text,
 .vault-history-path.missing-text {
@@ -4845,13 +4361,12 @@ body.is-dragging-attachment .attachment-item:not(.attachment-drag-clone) {
     opacity: 0.7;
 }
 
-/* Темная тема */
 [data-theme="dark"] .attachment-item .subtask-checkbox.missing svg,
 [data-theme="dark"] .vault-history-item .subtask-checkbox.missing svg {
     color: #D65A4B !important;
 }
 [data-theme="dark"] .attachment-item .subtask-checkbox.pending svg {
-    color: #E5B567 !important; /* Желтый отлично смотрится и в темной теме */
+    color: #E5B567 !important;
 }
 [data-theme="dark"] .attachment-item .subtask-title.missing-text,
 [data-theme="dark"] .vault-history-name.missing-text,
@@ -4859,9 +4374,6 @@ body.is-dragging-attachment .attachment-item:not(.attachment-drag-clone) {
     color: rgba(255, 255, 255, 0.4);
 }
 
-/* ==========================================
-   ЭКРАН ВЫБОРА ХРАНИЛИЩА (VAULT SELECTOR)
-   ========================================== */
 .vault-screen {
     position: fixed;
     inset: 0;
@@ -4869,7 +4381,7 @@ body.is-dragging-attachment .attachment-item:not(.attachment-drag-clone) {
     z-index: 999999;
     display: flex;
     justify-content: center;
-    align-items: center; 
+    align-items: center;
     padding: 20px;
     box-sizing: border-box;
     opacity: 1;
@@ -4885,13 +4397,11 @@ body.is-dragging-attachment .attachment-item:not(.attachment-drag-clone) {
     transition: opacity 0.3s ease, visibility 0.3s ease, display 0.3s allow-discrete;
 }
 
-
 .vault-screen.content-hidden .vault-container {
     opacity: 0;
     pointer-events: none;
 }
 
-/* Герой-блок (Логотип) */
 .vault-hero {
     text-align: center;
     margin-bottom: 24px;
@@ -4922,15 +4432,14 @@ body.is-dragging-attachment .attachment-item:not(.attachment-drag-clone) {
     font-weight: 500;
 }
 
-/* Карточки действий */
 .vault-actions {
     display: flex;
     gap: 16px;
     width: 100%;
     margin-bottom: 24px;
     flex-shrink: 0;
-    /* КЛЮЧЕВОЙ МОМЕНТ: карточки больше не растягиваются на общую высоту */
-    align-items: flex-start; 
+
+    align-items: flex-start;
 }
 
 .vault-action-card {
@@ -4942,11 +4451,10 @@ body.is-dragging-attachment .attachment-item:not(.attachment-drag-clone) {
     text-align: center;
     cursor: pointer;
     box-shadow: var(--shadow-card);
-    /* Добавляем background-color в transition и убираем жесткие скачки */
+
     transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
-    
-    /* Чтобы текст ошибки не "выплескивался" до анимации */
-    overflow: hidden; 
+
+    overflow: hidden;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -4998,7 +4506,7 @@ body.is-dragging-attachment .attachment-item:not(.attachment-drag-clone) {
     background: var(--surface-card);
     border: 1px solid var(--border-light);
     border-radius: 16px;
-    padding: 24px; /* <--- ТЕПЕРЬ СТРОГО ОДИНАКОВО (1, 2 и 3) */
+    padding: 24px;
     box-shadow: var(--shadow-card);
     margin-bottom: 24px;
     text-align: center;
@@ -5014,12 +4522,12 @@ body.is-dragging-attachment .attachment-item:not(.attachment-drag-clone) {
 
 .vault-name-input {
     background: var(--bg-canvas) !important;
-    margin-bottom: 20px; /* Отступ между полем и кнопками внутри */
+    margin-bottom: 20px;
     text-align: center;
     font-size: 16px;
     padding: 12px;
     border-radius: 10px;
-    width: 100%; /* Чтобы он тянулся до краев за вычетом 24px паддинга */
+    width: 100%;
 }
 
 .vault-create-buttons {
@@ -5028,7 +4536,6 @@ body.is-dragging-attachment .attachment-item:not(.attachment-drag-clone) {
     justify-content: center;
 }
 
-/* Зеленая акцентная кнопка вместо красной */
 .vault-submit-btn {
     background: var(--brand-pine) !important;
 }
@@ -5045,11 +4552,9 @@ body.is-dragging-attachment .attachment-item:not(.attachment-drag-clone) {
     background: #5D735B !important;
 }
 
-
-/* Подвал (Privacy text) */
 .vault-footer {
-    flex: 0 0 auto; /* <--- КРИТИЧНО: Жестко запрещаем подвалу сжиматься */
-    margin-top: auto; 
+    flex: 0 0 auto;
+    margin-top: auto;
     display: flex;
     align-items: flex-start;
     gap: 12px;
@@ -5060,7 +4565,6 @@ body.is-dragging-attachment .attachment-item:not(.attachment-drag-clone) {
     opacity: 0.8;
 }
 
-/* Состояние ошибки для карточки хранилища */
 .vault-action-card.is-invalid {
     border-color: rgba(211, 84, 70, 0.4) !important;
     background: rgba(211, 84, 70, 0.03) !important;
@@ -5072,7 +4576,6 @@ body.is-dragging-attachment .attachment-item:not(.attachment-drag-clone) {
     color: #D35446 !important;
 }
 
-/* Текст ошибки под описанием в карточке */
 .vault-error-hint {
     color: #D35446;
     font-size: 10px;
@@ -5081,24 +4584,21 @@ body.is-dragging-attachment .attachment-item:not(.attachment-drag-clone) {
     letter-spacing: 0.06em;
     line-height: 1.2;
     text-align: center;
-    
-    /* ФИЗИКА: Изначально схлопнута */
+
     max-height: 0;
     opacity: 0;
     margin-top: 0;
     overflow: hidden;
     pointer-events: none;
 
-    /* Быстрый переход для мгновенного отклика (0.2s — стандарт macOS для микро-фидбека) */
-    transition: 
+    transition:
         max-height 0.2s cubic-bezier(0.4, 0, 0.2, 1),
         opacity 0.2s ease,
         margin-top 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Класс активации — разворачиваем высоту */
 .vault-error-hint.visible {
-    max-height: 40px; /* Запас для текста */
+    max-height: 40px;
     opacity: 1;
     margin-top: 12px;
 }
@@ -5112,23 +4612,21 @@ body.is-dragging-attachment .attachment-item:not(.attachment-drag-clone) {
     opacity: 0.6;
 }
 
-.breadcrumb-item:hover { 
-    color: var(--brand-pine); 
+.breadcrumb-item:hover {
+    color: var(--brand-pine);
 }
 
-.breadcrumb-separator { 
-    opacity: 0.3; 
+.breadcrumb-separator {
+    opacity: 0.3;
     font-size: 11px;
 }
 
-/* Убеждаемся, что шапка имеет фон и работает как крыша для ярлычка */
 .modal-header {
     position: relative;
     z-index: 10;
-    background: var(--surface-card); /* Скрывает уезжающий наверх ярлычок */
+    background: var(--surface-card);
 }
 
-/* ========================================== МЕТА-ИНФОРМАЦИЯ: ГРАФОВЫЕ ХЛЕБНЫЕ КРОШКИ И ДАТЫ ========================================== */ 
 .task-header-meta { display: flex; flex-direction: column; margin-bottom: 16px; gap: 12px; }
 
 .task-header-meta:has(#task-breadcrumbs:empty) { display: none; }
@@ -5138,14 +4636,14 @@ body.is-dragging-attachment .attachment-item:not(.attachment-drag-clone) {
 .task-graph-breadcrumbs {
     display: flex;
     flex-direction: column;
-    gap: 8px; /* Чуть больше воздуха между отдельными путями */
+    gap: 8px;
     background: var(--brand-pale);
     padding: 10px 12px;
     border-radius: 10px;
     border: 1px solid var(--border-light);
-    max-height: 130px; /* Ограничение примерно на 5 строк (каждая строка ~24px) */
-    overflow-y: auto;  /* Вертикальный скролл при переполнении */
-    overflow-x: hidden; /* Строгий запрет на горизонтальный скролл */
+    max-height: 130px;
+    overflow-y: auto;
+    overflow-x: hidden;
     overscroll-behavior: contain;
 }
 
@@ -5156,43 +4654,42 @@ body.is-dragging-attachment .attachment-item:not(.attachment-drag-clone) {
 .breadcrumb-path {
     display: flex;
     align-items: center;
-    flex-wrap: wrap; /* Перенос на новые строки */
-    gap: 6px 0px;    /* Вертикальный зазор 6px, горизонтальный контролируется внутри нод */
+    flex-wrap: wrap;
+    gap: 6px 0px;
     font-size: 12px;
 }
 
-/* Обертка для неразрывности элемента и его стрелочки при переносе строки */
 .breadcrumb-node {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding-right: 6px; /* Зазор после стрелочки (или до следующего элемента) */
+    padding-right: 6px;
 }
 
-.breadcrumb-item { 
-    cursor: pointer; 
-    transition: color 0.15s ease, background 0.15s ease; 
-    color: var(--text-secondary); 
+.breadcrumb-item {
+    cursor: pointer;
+    transition: color 0.15s ease, background 0.15s ease;
+    color: var(--text-secondary);
     padding: 2px 6px;
     border-radius: 6px;
     background: transparent;
     font-weight: 500;
-} 
+}
 
-.breadcrumb-item:hover { 
-    color: var(--brand-pine); 
+.breadcrumb-item:hover {
+    color: var(--brand-pine);
     background: rgba(0, 0, 0, 0.04);
-} 
+}
 
 [data-theme="dark"] .breadcrumb-item:hover {
     color: #FFFFFF;
     background: rgba(255, 255, 255, 0.06);
 }
 
-.breadcrumb-item.active { 
-    color: var(--text-primary); 
-    font-weight: 600; 
-    cursor: default; 
+.breadcrumb-item.active {
+    color: var(--text-primary);
+    font-weight: 600;
+    cursor: default;
     background: rgba(0, 0, 0, 0.03);
 }
 
@@ -5200,26 +4697,24 @@ body.is-dragging-attachment .attachment-item:not(.attachment-drag-clone) {
     background: rgba(255, 255, 255, 0.04);
 }
 
-.breadcrumb-separator { 
+.breadcrumb-separator {
     display: flex;
     align-items: center;
     justify-content: center;
-    opacity: 0.3; 
-    flex-shrink: 0; 
+    opacity: 0.3;
+    flex-shrink: 0;
     color: var(--text-secondary);
 }
 
-/* Обертка для заголовка и выезжающих дат */
 .modal-title-group {
     display: flex;
     flex-direction: column;
     flex: 1;
     min-width: 0;
-    margin-right: 12px; /* Зазор до кнопок закрытия */
-    margin-top: 3px; /* ФИКС: Идеальное визуальное выравнивание центра текста с 28px кнопками */
+    margin-right: 12px;
+    margin-top: 3px;
 }
 
-/* Специфичные стили для заголовка именно ОТКРЫТОЙ КАРТОЧКИ (для переноса) */
 #task-modal-title {
     word-break: break-word;
     overflow-wrap: break-word;
@@ -5231,34 +4726,32 @@ body.is-dragging-attachment .attachment-item:not(.attachment-drag-clone) {
 .task-modal-dates {
     display: grid;
     grid-template-rows: 0fr;
-    /* Ускоряем до 0.2s для "отклика", меняем кривую на более строгую */
-    transition: grid-template-rows 0.2s cubic-bezier(0.4, 0, 0.2, 1), 
+
+    transition: grid-template-rows 0.2s cubic-bezier(0.4, 0, 0.2, 1),
                 opacity 0.2s ease,
                 transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
                 visibility 0.2s;
-    
+
     font-family: var(--font-mono);
     font-size: 11px;
     font-weight: 500;
     color: var(--text-secondary);
-    
+
     opacity: 0;
-    visibility: hidden; /* Жестко исключаем из отрисовки в скрытом состоянии */
+    visibility: hidden;
     pointer-events: none;
     user-select: none;
-    
-    /* Эффект "ухода под текст": в скрытом состоянии блок чуть выше своего места */
-    transform: translate3d(0, -6px, 0); 
+
+    transform: translate3d(0, -6px, 0);
     will-change: grid-template-rows, opacity, transform;
 }
 
-/* Состояние при наведении: плавное проявление и "выход" сверху вниз */
 .modal-title-group:hover .task-modal-dates,
 .modal-title-group:has(.task-modal-title-input:focus) .task-modal-dates {
-    grid-template-rows: 1fr; 
-    opacity: 0.5; /* Чуть меньше яркость, чтобы не отвлекать от заголовка */
+    grid-template-rows: 1fr;
+    opacity: 0.5;
     visibility: visible;
-    transform: translate3d(0, 4px, 0); /* Мягко выезжает на 4px вниз */
+    transform: translate3d(0, 4px, 0);
 }
 
 .task-modal-dates > div {
@@ -5268,10 +4761,10 @@ body.is-dragging-attachment .attachment-item:not(.attachment-drag-clone) {
     flex-wrap: wrap;
     align-items: center;
     align-content: flex-start;
-    gap: 0 8px; /* 🚀 ФИКС: Вертикальный зазор 0, горизонтальный 8px */
-    padding: 0; 
+    gap: 0 8px;
+    padding: 0;
     margin-top: 0;
-    line-height: 1.2; /* 🚀 ФИКС: Убрали 24px, сделали строки вплотную друг к другу */
+    line-height: 1.2;
 }
 
 .task-modal-dates span {
@@ -5280,8 +4773,6 @@ body.is-dragging-attachment .attachment-item:not(.attachment-drag-clone) {
     white-space: nowrap;
 }
 
-/* 🚀 ФИКС: Привязываем точку к КОНЦУ ПЕРВОЙ строки. 
-   Теперь при переносе она останется наверху и не будет выглядеть как маркер списка. */
 .task-modal-dates span:first-child::after {
     content: '\00B7';
     margin-left: 8px;
@@ -5290,7 +4781,6 @@ body.is-dragging-attachment .attachment-item:not(.attachment-drag-clone) {
     font-weight: 700;
 }
 
-/* Инпут для главного заголовка в открытой карточке */
 .task-modal-title-input {
     background: var(--brand-pale);
     border: none;
@@ -5304,11 +4794,10 @@ body.is-dragging-attachment .attachment-item:not(.attachment-drag-clone) {
     resize: none;
     overflow: hidden;
     padding: 4px 6px;
-    margin: -4px 0 -4px -6px; /* ФИКС: Жестко компенсируем padding сверху и снизу. Теперь серый фон инпута встанет идеально вровень с кнопками, а даты подтянутся обратно наверх */
+    margin: -4px 0 -4px -6px;
     display: block;
     line-height: 1.4;
-    
-    /* Новые свойства для поддержки многострочности: */
+
     word-break: break-word;
     overflow-wrap: break-word;
     white-space: pre-wrap;
@@ -5316,51 +4805,43 @@ body.is-dragging-attachment .attachment-item:not(.attachment-drag-clone) {
     -webkit-user-select: text !important;
 }
 
-/* ==========================================
-   СЕКЦИЯ ИСТОРИИ ХРАНИЛИЩ
-   ========================================== */
 .vault-history-section {
     display: flex;
     flex-direction: column;
     width: 100%;
-    margin-bottom: 0px; 
-    overflow: visible; /* 🔥 ИСПРАВЛЕНО: Убрали hidden, чтобы контейнер не отсекал тени */
+    margin-bottom: 0px;
+    overflow: visible;
     flex: 1;
     min-height: 0;
 }
 
-/* Прижимаем заголовок секции, чтобы он не уезжал от списка */
 .vault-history-section .subtasks-header {
-    margin-bottom: 0 !important; 
-    z-index: 2; 
+    margin-bottom: 0 !important;
+    z-index: 2;
 }
 
 .vault-history-list {
     display: flex;
     flex-direction: column;
-    gap: 8px; /* <--- ВМЕСТО MARGIN-BOTTOM */
-    
-    /* Senior Fix: возвращаем скролл, перекрывая overflow: visible !important из .subtasks-list */
-    overflow-y: auto !important; 
+    gap: 8px;
+
+    overflow-y: auto !important;
     overflow-x: hidden;
     flex: 1;
-    
+
     padding-left: 16px;
     margin-left: -16px;
-    padding-right: 18px; 
+    padding-right: 18px;
     margin-right: -18px;
-    padding-top: 16px; 
-    padding-bottom: 32px; 
-    
-    /* 🔥 ФИКС НАЛЕЗАНИЯ И ОТСТУПОВ (Компенсация margin: -8px от класса .subtasks-list) */
+    padding-top: 16px;
+    padding-bottom: 32px;
+
     margin-top: 0;
     margin-bottom: 0;
-    
-    /* Плавный скролл для macOS */
+
     -webkit-overflow-scrolling: touch;
 }
 
-/* 🚀 Применяется через JS только когда контент реально не влезает */
 .vault-history-list.is-scrollable {
     -webkit-mask-image: linear-gradient(to bottom, transparent 0px, black 16px, black calc(100% - 32px), transparent 100%);
     mask-image: linear-gradient(to bottom, transparent 0px, black 16px, black calc(100% - 32px), transparent 100%);
@@ -5368,62 +4849,53 @@ body.is-dragging-attachment .attachment-item:not(.attachment-drag-clone) {
 
 .vault-history-item {
     cursor: pointer !important;
-    margin-bottom: 0; /* <--- УБРАЛИ MARGIN */
+    margin-bottom: 0;
     user-select: none;
     -webkit-user-select: none;
-    position: relative; 
-    transition: transform var(--transition-apple), 
-                box-shadow var(--transition-apple), 
+    position: relative;
+    transition: transform var(--transition-apple),
+                box-shadow var(--transition-apple),
                 background-color var(--transition-apple) !important;
 }
 
 .vault-history-spacer.is-shrinking {
     height: 0 !important;
-    margin-top: -8px !important; /* <--- Ровно компенсирует gap (8px) */
+    margin-top: -8px !important;
 }
 
 .vault-container {
     width: 100%;
-    max-width: 680px; 
-    height: 100%; 
-    max-height: 640px; 
-    padding: 32px; 
+    max-width: 680px;
+    height: 100%;
+    max-height: 640px;
+    padding: 32px;
     display: flex;
     flex-direction: column;
     box-sizing: border-box;
-    overflow: hidden; 
-    position: relative; /* ФИКС: Точка отсчета для позиционирования настроек */
-    
-    /* ДОБАВИТЬ ЭТИ ДВЕ СТРОКИ: Плавное масштабирование и затухание контента */
+    overflow: hidden;
+    position: relative;
+
     transition: opacity 0.2s ease, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     will-change: opacity, transform;
 }
 
-/* Позиционирование настроек на экране Vault */
 .vault-settings-wrapper {
     position: absolute;
-    top: 16px; /* Совпадает с вертикальной линией хедера доски (padding-top: 16px) */
-    left: 24px; /* Стандартный отступ для Windows/Linux */
+    top: 16px;
+    left: 24px;
     z-index: 10;
     transition: left var(--transition-apple);
 }
 
-/* На macOS позиционируем настройки ровно после желтой кнопки минимизации */
 .mac-os .vault-settings-wrapper {
     left: 84px !important;
 }
 
-/* На Windows (только экран хранилищ): шестерёнка в верхне-левый угол КОНТЕНТА,
-   а не окна. Окно нерастягиваемое (760x680), контейнер 680px отцентрован,
-   padding 32px -> угол контента = (top 52, left 72) от края окна.
-   Верх кнопки = верх логотипа, левый край = левый край карточек.
-   Стили самой кнопки родные. */
 .win-os .vault-settings-wrapper {
     top: 52px !important;
     left: 72px !important;
 }
 
-/* ФИКС: Чтобы выпадающее меню не обрезалось краями vault-screen */
 .vault-settings-wrapper .dropdown-menu {
     top: 44px;
     left: 0;
@@ -5444,14 +4916,10 @@ body.is-dragging-attachment .attachment-item:not(.attachment-drag-clone) {
         margin-top 0.35s cubic-bezier(0.25, 1, 0.5, 1) 0.05s !important;
 }
 
-/* Кулак при зажатии элемента */
 .vault-history-item:active {
     cursor: grabbing !important;
 }
 
-/* Не показываем кулак при простом клике на потерянное хранилище.
-   Селектор отключается, когда стартует реальный драг (body получает класс is-dragging-vault-history),
-   и тогда глобальный кулак возвращается. */
 body:not(.is-dragging-vault-history) .vault-history-item.is-missing:active {
     cursor: pointer !important;
 }
@@ -5465,8 +4933,7 @@ body:not(.is-dragging-vault-history) .vault-history-item.is-missing:active {
 }
 
 .vault-history-item:hover {
-    /* 🔥 ИСПРАВЛЕНО: Убрали scale(1.015), оставили только подъем вверх.
-       Тени скопированы 1 в 1 из обычных карточек на доске */
+
     transform: translate3d(0, -2px, 0) !important;
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04) !important;
     z-index: 10;
@@ -5474,12 +4941,11 @@ body:not(.is-dragging-vault-history) .vault-history-item.is-missing:active {
 }
 
 [data-theme="dark"] .vault-history-item:hover {
-    /* 🔥 ИСПРАВЛЕНО: Тени темной темы 1 в 1 как у карточек/подзадач */
+
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(0, 0, 0, 0.3) !important;
 }
 
-/* Кулак глобально по всему экрану во время перетаскивания */
-body.is-dragging-vault-history, 
+body.is-dragging-vault-history,
 body.is-dragging-vault-history * {
     cursor: grabbing !important;
 }
@@ -5498,15 +4964,13 @@ body.is-dragging-vault-history * {
     font-family: var(--font-main);
     font-size: 14px;
     letter-spacing: -0.01em;
-    
-    /* Обрезка слишком длинного названия с троеточием */
+
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     display: block;
 }
 
-/* Изменили класс с .subtask-title на .vault-history-path, чтобы убить переименование */
 .vault-history-path {
     font-family: var(--font-mono);
     font-size: 11px;
@@ -5524,25 +4988,22 @@ body.is-dragging-vault-history * {
     font-weight: 500;
     flex-shrink: 0;
     letter-spacing: 0.02em;
-    
-    /* Скрываем дату по умолчанию, но она продолжает занимать место, 
-       поэтому путь (/Users/...) не будет прыгать при наведении */
-    opacity: 0; 
+
+    opacity: 0;
     transition: opacity 0.2s ease;
-    transform: translateZ(0); /* Защита от субпиксельного дергания */
+    transform: translateZ(0);
 }
 
 .vault-history-item:hover .vault-history-date {
     opacity: 0.8;
 }
 
-/* Стили для летающего клона при Drag & Drop */
 .vault-history-drag-clone {
     position: fixed !important;
     top: 0 !important;
     left: 0 !important;
     transform-origin: top left !important;
-    z-index: 2147483640 !important; /* 🔥 ФИКС: Поверх системных кнопок экрана выбора */
+    z-index: 2147483640 !important;
     pointer-events: none !important;
     margin: 0 !important;
     background: var(--surface-card) !important;
@@ -5563,30 +5024,24 @@ body.is-dragging-vault-history * {
     pointer-events: none !important;
 }
 
-/* 🔥 ИСПРАВЛЕНО: Принудительно показываем кнопки действий во время перетаскивания */
 .vault-history-drag-clone .subtask-delete-btn,
 .vault-history-drag-clone .subtask-open-btn {
     opacity: 1 !important;
     color: var(--text-secondary) !important;
 }
 
-/* На всякий случай гарантируем видимость даты в летящем клоне */
 .vault-history-drag-clone .vault-history-date {
     display: block !important;
     opacity: 0.8 !important;
 }
 
-/* Полупрозрачный призрак на месте оригинала */
 .vault-history-item.is-ghost {
-    opacity: 0.3 !important; 
-    background: var(--border-light) !important; 
-    border: 1px solid transparent !important; 
-    box-shadow: none !important; 
+    opacity: 0.3 !important;
+    background: var(--border-light) !important;
+    border: 1px solid transparent !important;
+    box-shadow: none !important;
 }
 
-/* ==========================================
-   АНИМАЦИЯ УДАЛЕНИЯ ХРАНИЛИЩА (Как у карточек)
-   ========================================== */
 .vault-deleting-clone {
     position: fixed !important;
     z-index: 999999 !important;
@@ -5594,24 +5049,21 @@ body.is-dragging-vault-history * {
     pointer-events: none !important;
     transform-origin: center center;
     will-change: transform, opacity;
-    /* Точно та же кривая и тайминги, что и на доске */
+
     transition: opacity 0.20s ease, transform 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 .vault-deleting-clone.is-animating {
     opacity: 0 !important;
-    transform: scale(0.92) translateY(8px) !important; /* Уменьшение и падение */
+    transform: scale(0.92) translateY(8px) !important;
 }
 
-/* ==========================================
-   ТАЙМЕР В МОДАЛКЕ КАРТОЧКИ (EDITABLE)
-   ========================================== */
 .modal-time-tracker {
     display: flex;
     align-items: center;
-    justify-content: flex-end; /* Прижимаем к правому краю */
+    justify-content: flex-end;
     gap: 8px;
-    margin-top: 0; /* Убрали отрицательный отступ, чтобы снизу описания были честные 16px */
+    margin-top: 0;
     margin-bottom: 16px;
 }
 
@@ -5653,7 +5105,7 @@ body.is-dragging-vault-history * {
     border-radius: 8px;
     font-weight: 600;
     outline: none;
-    width: 140px; /* <--- Увеличено с 90px до 140px */
+    width: 140px;
     text-align: center;
     letter-spacing: 0.02em;
 }
@@ -5666,16 +5118,15 @@ body.is-dragging-vault-history * {
     background: rgba(0, 0, 0, 0.2);
 }
 
-/* Служебный класс для мгновенного замера геометрии без анимаций */
 .card-footer.is-calculating {
     transition: none !important;
     opacity: 0 !important;
 }
-/* Базовые переходы для всех пилюль */
+
 .checklist-meta, .card-timer, .subtask-meta {
-    max-width: 200px; 
-    /* Используем единую кривую для всех свойств, чтобы не было разлета в таймингах */
-    transition: 
+    max-width: 200px;
+
+    transition:
         max-width 0.25s cubic-bezier(0.4, 0, 0.2, 1),
         opacity 0.2s ease,
         margin 0.25s cubic-bezier(0.4, 0, 0.2, 1),
@@ -5683,24 +5134,21 @@ body.is-dragging-vault-history * {
         transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* 📋 ФУТЕР КАРТОЧКИ: Простая и надежная верстка (без магии) */
 .card-footer {
     display: flex;
     flex-wrap: wrap;
-    justify-content: flex-end; /* Всегда прижимаем пилюли к правому краю */
+    justify-content: flex-end;
     align-items: center;
-    gap: 6px;                  
-    margin-top: 10px !important; /* Переопределяем любые инлайн-стили JS */
-    opacity: 1 !important;       /* Переопределяем любые инлайн-стили JS */
-    max-height: none !important; /* Даем блоку растягиваться свободно */
+    gap: 6px;
+    margin-top: 10px !important;
+    opacity: 1 !important;
+    max-height: none !important;
 }
 
-/* Скрываем футер, если в нём нет элементов */
 .card-footer:empty {
     display: none !important;
 }
 
-/* 🎨 УНИФИЦИРОВАННЫЙ СТИЛЬ ПИЛЮЛЬ */
 .checklist-meta, .card-timer, .subtask-meta {
     display: inline-flex;
     align-items: center;
@@ -5710,19 +5158,17 @@ body.is-dragging-vault-history * {
     border-radius: 6px;
     font-size: 11px;
     font-weight: 600;
-    white-space: nowrap; /* Гарантируем, что текст пилюли не разобьется */
+    white-space: nowrap;
     flex-shrink: 0;
     pointer-events: none;
 }
 
-/* ПРИОРИТЕТЫ ЦВЕТОВ И ФОНОВ */
 .checklist-meta {
     background: rgba(0, 0, 0, 0.04);
     color: var(--text-secondary);
     letter-spacing: 0.04em;
 }
 
-/* СТИЛИ СРОКА ВЫПОЛНЕНИЯ (DUE DATE) */
 .due-date-pill {
     display: inline-flex;
     align-items: center;
@@ -5786,32 +5232,24 @@ body.is-dragging-vault-history * {
     background: rgba(0, 0, 0, 0.04);
 }
 
-/* Поддержка темной темы */
 [data-theme="dark"] .checklist-meta,
 [data-theme="dark"] .subtask-meta {
     background: rgba(255, 255, 255, 0.08);
 }
 
-/* 🕵️ ПРОСТОЕ СКРЫТИЕ "НЕИЗВЕСТНО" */
 .card.has-unknown-time .subtask-meta {
     display: none;
 }
 
-/* Показываем при наведении */
 .card.has-unknown-time:hover .subtask-meta,
 .card.has-unknown-time.has-open-menu .subtask-meta {
     display: inline-flex;
 }
 
-/* Скрываем футер целиком, если в нем только скрытое "неизвестно" */
 .card.has-unknown-time:not(:has(.checklist-meta)):not(:hover):not(.has-open-menu) .card-footer {
     display: none !important;
 }
 
-
-/* ==========================================
-   AESTHETIC SETTINGS MODAL (Apple Style)
-   ========================================== */
 .settings-group-card {
     background: rgba(0, 0, 0, 0.02);
     border: 1px solid var(--border-light);
@@ -5840,7 +5278,7 @@ body.is-dragging-vault-history * {
 }
 
 .setting-row {
-    position: relative; /* Для позиционирования линии */
+    position: relative;
     display: flex;
     align-items: center;
     padding: 14px 16px;
@@ -5848,13 +5286,12 @@ body.is-dragging-vault-history * {
     transition: background 0.15s ease;
 }
 
-/* Рисуем идеальную линию у всех строк, кроме последней */
 .setting-row:not(:last-child)::after {
     content: '';
     position: absolute;
     bottom: 0;
-    left: 0;    /* Линия идёт от самого левого края карточки (Apple-style full-width separator) */
-    right: 0;   /* Дотягиваем ровно до правого края карточки */
+    left: 0;
+    right: 0;
     height: 1px;
     background: var(--border-light);
 }
@@ -5899,12 +5336,11 @@ body.is-dragging-vault-history * {
     font-size: 12px;
     color: var(--text-secondary);
     line-height: 1.4;
-    white-space: normal;      /* Разрешаем перенос строк */
-    word-break: break-word;   /* Если путь слишком длинный, переносим по буквам */
-    padding-right: 8px;       /* Чтобы текст не прилипал к галочке */
+    white-space: normal;
+    word-break: break-word;
+    padding-right: 8px;
 }
 
-/* Галочка выбора */
 .setting-check {
     width: 16px;
     height: 16px;
@@ -5924,7 +5360,6 @@ body.is-dragging-vault-history * {
     transform: scale(1);
 }
 
-/* Активная строка имеет чуть более яркую иконку */
 .setting-row.active .setting-icon-box {
     color: var(--brand-pine);
 }
@@ -5940,10 +5375,6 @@ body.is-dragging-vault-history * {
     opacity: 0.8;
 }
 
-/* ==========================================
-   КАСТОМНЫЙ СКРОЛЛБАР ДОСКИ (по паттерну вкладок)
-   ========================================== */
-
 .board-wrapper {
     flex: 1;
     position: relative;
@@ -5953,7 +5384,6 @@ body.is-dragging-vault-history * {
     overflow: hidden;
 }
 
-/* Прячем нативный горизонтальный скроллбар у .board-container — рулим своим */
 .board-container::-webkit-scrollbar {
     display: none !important;
 }
@@ -5996,9 +5426,6 @@ body.is-dragging-vault-history * {
     background: var(--scrollbar-thumb-hover);
 }
 
-/* ==========================================
-   ВНУТРИПРОГРАММНЫЕ УВЕДОМЛЕНИЯ (APPLE TOAST)
-   ========================================== */
 .app-toast {
     position: fixed;
     bottom: 32px;
@@ -6014,7 +5441,7 @@ body.is-dragging-vault-history * {
     display: flex;
     align-items: center;
     gap: 12px;
-    z-index: 2147483647; /* Поверх вообще всего */
+    z-index: 2147483647;
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
@@ -6059,9 +5486,6 @@ body.is-dragging-vault-history * {
     line-height: 1.3;
 }
 
-/* ==========================================
-   КАСТОМНЫЙ КАЛЕНДАРЬ БЕЗ КОМПРОМИССОВ (DATEPICKER)
-   ========================================== */
 .custom-datepicker-wrapper {
     position: relative;
     width: 100%;
@@ -6075,8 +5499,8 @@ body.is-dragging-vault-history * {
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 42px; /* Фиксируем высоту под min-height родительского инпута */
-    padding: 0 !important; /* Обнуляем паддинги для безупречного центрирования текста по вертикали */
+    height: 42px;
+    padding: 0 !important;
 }
 
 .datepicker-trigger:hover {
@@ -6089,14 +5513,14 @@ body.is-dragging-vault-history * {
 
 .datepicker-dropdown {
     position: fixed !important;
-    z-index: 2147483647 !important; /* Абсолютный максимум поверх всех модалок */
+    z-index: 2147483647 !important;
     margin: 0 !important;
-    width: 210px; /* Ужали до компактных размеров */
+    width: 210px;
     padding: 10px;
     display: flex;
     flex-direction: column;
-    gap: 4px; /* Убрали лишний воздух */
-    /* Базовая анимация (направление переопределяется через JS) */
+    gap: 4px;
+
     transform: translateX(-50%) scale(0.96);
     opacity: 0;
     visibility: hidden;
@@ -6116,7 +5540,6 @@ body.is-dragging-vault-history * {
     margin-bottom: 2px;
 }
 
-/* Переопределяем глобальный размер icon-btn специально для календаря */
 .datepicker-header .icon-btn {
     width: 26px;
     height: 26px;
@@ -6142,7 +5565,7 @@ body.is-dragging-vault-history * {
 .datepicker-grid {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: 1px; /* Сетка почти вплотную */
+    gap: 1px;
 }
 
 .dp-cell {
@@ -6150,7 +5573,7 @@ body.is-dragging-vault-history * {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 12px; /* Мелкий, аккуратный шрифт */
+    font-size: 12px;
     font-weight: 500;
     color: var(--text-primary);
     border-radius: 4px;
@@ -6172,14 +5595,12 @@ body.is-dragging-vault-history * {
     pointer-events: none;
 }
 
-/* Сегодняшний день */
 .dp-cell.today {
     color: var(--brand-pine);
     font-weight: 700;
     background: var(--brand-pale);
 }
 
-/* Выбранный день */
 .dp-cell.selected {
     background: var(--brand-pine) !important;
     color: white !important;
@@ -6247,19 +5668,12 @@ body.is-dragging-vault-history * {
     border-color: rgba(137, 160, 133, 0.4);
 }
 
-/* Убираем стрелочки у полей времени */
 .time-input::-webkit-inner-spin-button,
 .time-input::-webkit-outer-spin-button {
     -webkit-appearance: none;
     margin: 0;
 }
 
-/* ==========================================
-   ОПТИМИЗАЦИЯ LATEX (KaTeX) ДЛЯ ПРОИЗВОДИТЕЛЬНОСТИ И РЕЗКОСТИ
-   ========================================== */
-
-/* 1. Блокируем пересчёт Layout внутри формул во время Drag & Drop.
-      contain: layout paint заставляет браузер считать формулу единым блоком. */
 .katex-display {
     overflow-x: auto !important;
     overflow-y: hidden !important;
@@ -6269,31 +5683,25 @@ body.is-dragging-vault-history * {
     -webkit-overflow-scrolling: touch;
 }
 
-/* 2. Жесткое форсирование сглаживания текста. 
-      Убивает "мыло" и скачки резкости шрифтов KaTeX (KaTeX_Math) при завершении анимаций transform. */
 .katex {
     -webkit-font-smoothing: antialiased !important;
     -moz-osx-font-smoothing: grayscale !important;
     text-rendering: optimizeLegibility !important;
 }
 
-/* 🔥 СУПЕР-ФИКС ДЛЯ 60FPS ПРИ ПЕРЕТАСКИВАНИИ МОДАЛКИ С ФОРМУЛАМИ */
 body.is-dragging-modal .task-detail-body {
-    /* Отключаем тяжелые просчеты (hit-test) мыши над тысячами span'ов от KaTeX во время движения */
+
     pointer-events: none !important;
 }
 
-/* 3. Адаптация цвета под эстетику Doe */
 .katex {
     color: var(--text-primary);
 }
 
-/* Темная тема: Формулы должны быть читаемыми */
 [data-theme="dark"] .katex {
     color: #E6E8E5;
 }
 
-/* Фикс полосы прокрутки внутри формул, чтобы выглядело как в блоках кода */
 .katex-display::-webkit-scrollbar {
     height: 6px;
 }
@@ -6308,9 +5716,6 @@ body.is-dragging-modal .task-detail-body {
     background: var(--scrollbar-thumb-hover);
 }
 
-/* ==========================================
-   ЛОКАЛЬНЫЙ ПОИСК В КАРТОЧКЕ (VS Code Style)
-   ========================================== */
 .local-search-widget {
     position: absolute;
     top: 12px;
@@ -6344,9 +5749,9 @@ body.is-dragging-modal .task-detail-body {
     font-size: 13px;
     color: var(--text-primary);
     width: 140px;
-    min-width: 140px; /* Блокируем браузерный расчет min-width: auto */
-    max-width: 140px; /* Гарантируем жесткий лимит ширины */
-    flex: 0 0 140px;  /* Запрещаем сжатие и расширение во флекс-контексте */
+    min-width: 140px;
+    max-width: 140px;
+    flex: 0 0 140px;
 }
 
 #local-search-input::placeholder {
@@ -6360,7 +5765,7 @@ body.is-dragging-modal .task-detail-body {
     color: var(--text-secondary);
     min-width: 32px;
     text-align: center;
-    flex-shrink: 0; /* Запрещаем сжатие счетчика */
+    flex-shrink: 0;
 }
 
 .local-search-actions {
@@ -6369,7 +5774,7 @@ body.is-dragging-modal .task-detail-body {
     gap: 2px;
     border-left: 1px solid var(--border-light);
     padding-left: 6px;
-    flex-shrink: 0; /* Запрещаем деформацию блока с кнопками */
+    flex-shrink: 0;
 }
 
 .local-search-actions .icon-btn {
@@ -6378,13 +5783,11 @@ body.is-dragging-modal .task-detail-body {
     border-radius: 6px;
 }
 
-/* Маркеры локального поиска */
 mark.local-search-highlight {
-    background-color: rgba(195, 198, 188, 0.4); /* Мягкая полупрозрачная подсветка */
+    background-color: rgba(195, 198, 188, 0.4);
     color: var(--text-primary);
     transition: background-color 0.15s, color 0.15s;
 
-    /* ЖЕСТКИЙ СБРОС ГЕОМЕТРИИ (сохраняет неизменную форму и положение букв) */
     border-radius: 0 !important;
     padding: 0 !important;
     margin: 0 !important;
@@ -6394,10 +5797,9 @@ mark.local-search-highlight {
 }
 
 mark.local-search-highlight.active {
-    background-color: #C3C6BC; /* Активный фокус выделяется сплошной заливкой */
+    background-color: #C3C6BC;
     color: var(--text-primary);
-    
-    /* Сохраняем абсолютную стабильность геометрии */
+
     border-radius: 0 !important;
     padding: 0 !important;
     margin: 0 !important;
@@ -6414,8 +5816,7 @@ mark.local-search-highlight.active {
 [data-theme="dark"] mark.local-search-highlight.active {
     background-color: #5C635A;
     color: #FFFFFF;
-    
-    /* Сохраняем абсолютную стабильность геометрии */
+
     border-radius: 0 !important;
     padding: 0 !important;
     margin: 0 !important;
@@ -6424,9 +5825,6 @@ mark.local-search-highlight.active {
     border: none !important;
 }
 
-/* ==========================================
-   МОДАЛКА ГРАФА СВЯЗЕЙ
-   ========================================== */
 .graph-card {
     width: 90vw !important;
     height: 85vh !important;
@@ -6450,7 +5848,7 @@ mark.local-search-highlight.active {
     width: 100%;
     height: 100%;
     cursor: grab;
-    touch-action: none; /* отключаем системные жесты, чтобы зум/пан работали корректно */
+    touch-action: none;
 }
 
 .graph-empty {
@@ -6468,7 +5866,6 @@ mark.local-search-highlight.active {
     pointer-events: none;
 }
 
-/* Плавающие контролы графа */
 .graph-controls {
     position: absolute;
     top: 14px;
@@ -6508,9 +5905,6 @@ mark.local-search-highlight.active {
 
 .graph-toggle-btn svg { flex-shrink: 0; }
 
-/* ==========================================
-   УНИВЕРСАЛЬНЫЕ СЛАЙДЕРЫ (Граф и Календарь)
-   ========================================== */
 .graph-slider-wrapper {
     display: inline-flex;
     align-items: center;
@@ -6540,14 +5934,14 @@ mark.local-search-highlight.active {
 }
 
 #cal-zoom-slider {
-    width: 120px; /* Увеличили в 1.5 раза для ювелирной точности зума */
+    width: 120px;
 }
 
 #graph-repulsion-slider:focus, #cal-zoom-slider:focus {
     outline: none;
 }
 
-#graph-repulsion-slider::-webkit-slider-runnable-track, 
+#graph-repulsion-slider::-webkit-slider-runnable-track,
 #cal-zoom-slider::-webkit-slider-runnable-track {
     width: 100%;
     height: 4px;
@@ -6555,32 +5949,29 @@ mark.local-search-highlight.active {
     border-radius: 2px;
 }
 
-#graph-repulsion-slider::-webkit-slider-thumb, 
+#graph-repulsion-slider::-webkit-slider-thumb,
 #cal-zoom-slider::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
     height: 14px;
     width: 14px;
     border-radius: 50%;
-    background: var(--brand-pine);
+    background: var(--text-primary);
     margin-top: -5px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.3);
     transition: transform 0.1s;
 }
 
-#graph-repulsion-slider::-webkit-slider-thumb:hover, 
+#graph-repulsion-slider::-webkit-slider-thumb:hover,
 #cal-zoom-slider::-webkit-slider-thumb:hover {
     transform: scale(1.15);
 }
 
-[data-theme="dark"] #graph-repulsion-slider::-webkit-slider-thumb, 
+[data-theme="dark"] #graph-repulsion-slider::-webkit-slider-thumb,
 [data-theme="dark"] #cal-zoom-slider::-webkit-slider-thumb {
-    background: #89A085;
+    background: var(--text-primary);
 }
 
-/* ==========================================
-   КАЛЕНДАРЬ (Custom Minimalist Apple-style)
-   ========================================== */
 .calendar-header {
     display: flex;
     justify-content: space-between;
@@ -6591,25 +5982,25 @@ mark.local-search-highlight.active {
 .cal-controls-left {
     display: flex;
     align-items: center;
-    gap: 12px; /* Унифицированный зазор между логическими группами управления */
-    width: 300px; /* Увеличено с 250px для свободного размещения элементов */
+    gap: 12px;
+    width: 300px;
 }
 
 .cal-controls-right {
     display: flex;
     align-items: center;
     gap: 8px;
-    width: 300px; /* Увеличено с 250px для сохранения симметрии */
+    width: 300px;
     justify-content: flex-end;
 }
 
 #cal-prev {
-    margin-right: -4px; /* Сближаем кнопки "<" и ">" для создания единого блока навигации */
+    margin-right: -4px;
 }
 
 .cal-title {
-    margin-left: 0; /* Убираем лишний отступ для получения математически одинаковых зазоров */
-    min-width: 120px; /* Оптимизируем ширину подписи для предотвращения сдавливания флекс-контейнера */
+    margin-left: 0;
+    min-width: 120px;
 }
 
 .cal-today-btn {
@@ -6624,7 +6015,7 @@ mark.local-search-highlight.active {
     box-shadow: 0 1px 2px rgba(0,0,0,0.04);
     transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     font-family: var(--font-main);
-    flex-shrink: 0; /* Защита от сжатия текста */
+    flex-shrink: 0;
 }
 
 .cal-today-btn:hover {
@@ -6648,10 +6039,9 @@ mark.local-search-highlight.active {
     overflow: hidden;
     background: var(--surface-card);
     position: relative;
-    --hour-height: 60px; /* Управляется из JS зумом */
+    --hour-height: 60px;
 }
 
-/* --- СЕТКА МЕСЯЦА --- */
 .cal-month-view {
     display: flex;
     flex-direction: column;
@@ -6680,7 +6070,7 @@ mark.local-search-highlight.active {
     grid-template-columns: repeat(7, 1fr);
     grid-auto-rows: 1fr;
     flex: 1;
-    background: var(--border-light); /* Линии сетки через gap */
+    background: var(--border-light);
     gap: 1px;
 }
 
@@ -6693,8 +6083,8 @@ mark.local-search-highlight.active {
     overflow-y: auto;
     overflow-x: hidden;
     position: relative;
-    /* Убираем уродливый скроллбар, оставляем функционал скролла */
-    scrollbar-width: none; 
+
+    scrollbar-width: none;
 }
 .cal-day-cell::-webkit-scrollbar {
     display: none;
@@ -6705,8 +6095,13 @@ mark.local-search-highlight.active {
 }
 
 .cal-day-cell.is-today .cal-day-number {
-    background: var(--brand-pine);
-    color: white;
+    background: rgba(0, 0, 0, 0.05);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .cal-day-cell.is-today .cal-day-number {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
 }
 
 .cal-day-number {
@@ -6723,7 +6118,6 @@ mark.local-search-highlight.active {
     align-self: center;
 }
 
-/* Мини-событие в месяце */
 .cal-event-chip {
     font-size: 11px;
     font-weight: 500;
@@ -6757,7 +6151,6 @@ mark.local-search-highlight.active {
     border-left-color: var(--success-done);
 }
 
-/* --- СЕТКА НЕДЕЛИ И ДНЯ --- */
 .cal-time-view {
     display: flex;
     flex-direction: column;
@@ -6772,9 +6165,8 @@ mark.local-search-highlight.active {
     z-index: 10;
 }
 
-/* Распорка, равная по ширине кастомному скроллбару */
 .cal-header-scrollbar-spacer {
-    width: 6px; 
+    width: 6px;
     flex-shrink: 0;
 }
 
@@ -6798,20 +6190,19 @@ mark.local-search-highlight.active {
     border-right: 1px solid var(--border-light);
     display: flex;
     flex-direction: column;
-    align-items: center; /* Идеальное центрирование всех элементов по горизонтали */
-    gap: 4px; /* Чуть увеличили отступ между днём недели и числом для "воздуха" */
+    align-items: center;
+    gap: 4px;
 }
 .cal-time-day-hdr:last-child { border-right: none; }
 
-.cal-time-day-hdr span:first-child { 
-    font-size: 11px; 
-    color: var(--text-secondary); 
-    text-transform: uppercase; 
+.cal-time-day-hdr span:first-child {
+    font-size: 11px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
 }
 
-/* ЗАДАЕМ ОБЩИЙ РАЗМЕР ДЛЯ ВСЕХ ЧИСЕЛ (чтобы они стояли на одной оси по вертикали и горизонтали) */
 .cal-time-day-hdr span:last-child {
-    width: 28px; 
+    width: 28px;
     height: 28px;
     display: flex;
     align-items: center;
@@ -6819,10 +6210,14 @@ mark.local-search-highlight.active {
     border-radius: 50%;
 }
 
-/* КРАСИМ ТОЛЬКО "СЕГОДНЯ" */
 .cal-time-day-hdr.is-today span:last-child {
-    background: var(--brand-pine);
-    color: white;
+    background: rgba(0, 0, 0, 0.05);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .cal-time-day-hdr.is-today span:last-child {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
 }
 
 .cal-time-scroll {
@@ -6832,7 +6227,6 @@ mark.local-search-highlight.active {
     contain: strict;
 }
 
-/* Скрываем нативный скролл */
 .cal-time-scroll::-webkit-scrollbar { width: 6px; }
 .cal-time-scroll::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 4px; }
 
@@ -6858,13 +6252,12 @@ mark.local-search-highlight.active {
     padding-right: 8px;
     font-size: 10px;
     color: var(--text-secondary);
-    transform: translateY(-50%); /* Выравнивание по линии */
+    transform: translateY(-50%);
 }
 
-/* Исключение для 0:00, чтобы текст не улетал вверх за пределы скролл-контейнера */
 .cal-time-label:first-child {
     transform: translateY(0);
-    margin-top: 4px; /* Легкий отступ от самого потолка для "воздуха" */
+    margin-top: 4px;
 }
 
 .cal-time-columns {
@@ -6896,10 +6289,9 @@ mark.local-search-highlight.active {
     display: flex;
     flex-direction: column;
     z-index: 1;
-    container-type: size; /* Включаем контекст размеров для скрытия элементов при нехватке места */
+    container-type: size;
 }
 
-/* Добавляем легкую заливку, чтобы текст читался поверх линий сетки */
 .cal-abs-event::before {
     content: '';
     position: absolute;
@@ -6940,7 +6332,7 @@ mark.local-search-highlight.active {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    flex-shrink: 0; /* Запрещаем сжимать заголовок */
+    flex-shrink: 0;
 }
 .cal-ev-time {
     font-size: 10px;
@@ -6950,21 +6342,19 @@ mark.local-search-highlight.active {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    min-height: 0; /* Позволяет блоку времени безопасно исчезать при сильном зуме */
+    min-height: 0;
 }
 
-/* Senior UI Polish: Если карточка сплющивается (высота меньше 36px) — элегантно скрываем время, чтобы не было обрезки наполовину */
 @container (max-height: 36px) {
     .cal-ev-time {
         display: none;
     }
     .cal-ev-title {
-        margin: auto 0; /* Идеальное математическое центрирование по вертикали во flex-контейнере */
-        line-height: 1.1; /* Срезаем невидимый типографический отступ шрифта снизу и сверху */
+        margin: auto 0;
+        line-height: 1.1;
     }
 }
 
-/* Текущая линия времени (красная) */
 .cal-now-line {
     position: absolute;
     left: 0;
@@ -6983,24 +6373,22 @@ mark.local-search-highlight.active {
     height: 10px;
     background: #D35446;
     border-radius: 50%;
-    /* Эффект пульсирующего свечения Apple Calendar */
+
     box-shadow: 0 0 0 3px rgba(211, 84, 70, 0.2);
 }
 
-/* Эстетичная метка точного времени над линией */
 .cal-now-line::after {
     content: attr(data-time);
     position: absolute;
-    left: 14px; /* Чуть отодвинем от кружка, чтобы был воздух */
-    bottom: 4px; /* Приподнимем над линией, чтобы текст на ней не лежал */
+    left: 14px;
+    bottom: 4px;
     font-family: var(--font-mono);
     font-size: 10px;
     font-weight: 700;
     letter-spacing: 0.03em;
     color: #D35446;
     pointer-events: none;
-    
-    /* Чистый затемняющий прямоугольник без "мыла" */
+
     background: rgba(0, 0, 0, 0.3);
     padding: 1px 4px;
     border-radius: 4px;
@@ -7014,9 +6402,6 @@ mark.local-search-highlight.active {
     color: #D65A4B;
 }
 
-/* ==========================================
-   CODEMIRROR 5 AESTHETIC OVERRIDES (POLISHED)
-   ========================================== */
 .CodeMirror {
     position: relative;
     flex: 1;
@@ -7026,14 +6411,13 @@ mark.local-search-highlight.active {
     border: none !important;
     font-family: var(--font-main) !important;
     font-size: 15px !important;
-    line-height: 1.45 !important; /* Идеально как было раньше */
+    line-height: 1.45 !important;
     color: var(--text-primary) !important;
     cursor: text;
     display: none;
 }
 
-/* Форсируем наш шрифт для всех внутренних слоев CodeMirror */
-.CodeMirror pre.CodeMirror-line, 
+.CodeMirror pre.CodeMirror-line,
 .CodeMirror pre.CodeMirror-line-like {
     font-family: var(--font-main) !important;
     font-size: 15px !important;
@@ -7041,18 +6425,17 @@ mark.local-search-highlight.active {
 
 .CodeMirror-scroll {
     padding: 12px !important;
-    overflow-x: hidden !important; 
+    overflow-x: hidden !important;
 }
 
 .CodeMirror-lines {
     padding: 0 !important;
 }
 
-/* 🚀 Делаем курсор элегантным (Apple-style) */
 .CodeMirror-cursor {
     border-left: 1.5px solid var(--text-primary) !important;
-    height: 18px !important; /* Уменьшаем высоту */
-    margin-top: 2px !important; /* Центрируем по вертикали */
+    height: 18px !important;
+    margin-top: 2px !important;
 }
 
 .CodeMirror-selected {
@@ -7063,7 +6446,6 @@ mark.local-search-highlight.active {
     background: #5C635A !important;
 }
 
-/* Скроллбар */
 .CodeMirror-vscrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
 .CodeMirror-vscrollbar::-webkit-scrollbar-track { background: transparent; border-radius: 4px; }
 .CodeMirror-vscrollbar::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 4px; }
@@ -7071,7 +6453,6 @@ mark.local-search-highlight.active {
 .CodeMirror-focused { outline: none !important; }
 [data-theme="dark"] .CodeMirror { color: var(--text-primary) !important; }
 
-/* Новое сверхбыстрое выделение локального поиска (CSS Highlight API) */
 ::highlight(local-search) {
     background-color: rgba(195, 198, 188, 0.5);
     color: var(--text-primary);
@@ -7098,70 +6479,54 @@ mark.local-search-highlight.active {
     color: #FFFFFF;
 }
 
-/* Изолируем контейнер рендера. Изменения внутри него не затронут остальную модалку */
 #task-desc-render {
     contain: strict !important;
 }
 
-/* Браузер не будет тратить CPU на абзацы и блоки кода, которые находятся ниже скролла */
 #task-desc-render > p,
 #task-desc-render > pre,
 #task-desc-render > ul,
 #task-desc-render > table {
     content-visibility: auto;
-    contain-intrinsic-size: 1px 50px; /* Сообщаем браузеру примерную высоту скрытого блока, чтобы скроллбар не прыгал */
+    contain-intrinsic-size: 1px 50px;
 }
 
 .app-header {
     display: flex;
     align-items: center;
-    /* Идеальная вертикальная симметрия: строго 16px сверху и 16px снизу */
-    padding: 16px 0 16px 24px; 
+
+    padding: 16px 0 16px 24px;
     gap: 16px;
 }
 
-/* ==========================================
-   MACOS FRAMELESS WINDOW (Aesthetic Native UI)
-   ========================================== */
-
-/* 1) ВСЁ приложение по умолчанию НЕ таскает окно.
-   -webkit-app-region не наследуется, а в режиме easy_drag/movableByWindowBackground
-   WKWebView считает любой элемент без явного no-drag перетаскиваемым.
-   Поэтому глушим глобально, а drag включаем точечно ниже. */
 .mac-os * {
     -webkit-app-region: no-drag;
 }
 
-/* 2) Перетаскивать окно можно ТОЛЬКО за фон шапки... */
 .mac-os .app-header {
     padding-left: 106px !important;
     -webkit-app-region: drag;
 }
 
-/* 3) ...и за фон экрана выбора хранилища (на нём окно тоже надо двигать).
-   Дочерние инпуты/кнопки уже no-drag благодаря правилу выше. */
 .mac-os .vault-screen {
     -webkit-app-region: drag;
 }
 
-/* Контейнер светофора */
 .mac-traffic-lights {
     position: absolute;
-    top: 27px; 
-    left: 24px; /* Вровень с левым краем колонок на доске */
-    display: none; /* Скрыто по умолчанию для Windows/Linux */
+    top: 27px;
+    left: 24px;
+    display: none;
     gap: 8px;
-    z-index: 9999999; /* Поверх всего */
-    -webkit-app-region: no-drag; 
+    z-index: 9999999;
+    -webkit-app-region: no-drag;
     transition: gap 0.3s ease;
 }
 
-/* Показываем светофор только на macOS */
 .mac-os .mac-traffic-lights {
     display: flex !important;
 }
 
-/* Базовая кнопка (увеличена до 14px) */
 .traffic-btn {
     width: 14px;
     height: 14px;
@@ -7176,21 +6541,18 @@ mark.local-search-highlight.active {
     transition: background-color 0.2s, border-color 0.2s, transform 0.2s, opacity 0.2s, width 0.2s, height 0.2s;
 }
 
-/* Нативные цвета macOS Monterey+ */
 .traffic-btn.close    { background-color: #FF5F56; border: .5px solid #E0443E; color: #4D0000; }
 .traffic-btn.minimize { background-color: #FFBD2E; border: .5px solid #DEA123; color: #995700; }
 .traffic-btn.zoom     { background-color: #27C93F; border: .5px solid #1AAB29; color: #006500; }
 
-/* Иконки внутри кнопок (восстановлен оригинальный размер 12px) */
 .traffic-icon {
     width: 12px;
     height: 12px;
-    opacity: 0; /* Скрыты по умолчанию */
+    opacity: 0;
     transition: opacity 0.1s ease;
-    color: rgba(0, 0, 0, 0.65); /* Делаем иконки не угольно-черными, а как в macOS */
+    color: rgba(0, 0, 0, 0.65);
 }
 
-/* Иконки появляются при наведении на ВСЮ ГРУППУ светофора */
 .mac-traffic-lights:hover .traffic-icon {
     opacity: 1;
 }
@@ -7199,11 +6561,6 @@ mark.local-search-highlight.active {
     filter: brightness(0.8);
 }
 
-/* ==========================================
-   VAULT MODE LIGHTS (Эстетика стартового экрана)
-   ========================================== */
-
-/* Скрываем только зеленую кнопку (zoom), сохраняя красную и желтую активными */
 .mac-traffic-lights.vault-mode .zoom {
     opacity: 0;
     width: 0;
@@ -7212,7 +6569,6 @@ mark.local-search-highlight.active {
     border: none;
 }
 
-/* Новые стили для полей ввода напоминания */
 .notify-input-group {
     display: flex;
     gap: 12px;
@@ -7237,7 +6593,6 @@ mark.local-search-highlight.active {
     box-sizing: border-box;
 }
 
-/* Отключение ховеров и фокусов для сохранения цвета */
 .notify-field:hover, .notify-field:focus, .notify-field:active {
     background: transparent !important;
     border-color: rgba(74, 90, 72, 0.25) !important;
@@ -7280,17 +6635,15 @@ input#notify-amount.notify-field::-webkit-inner-spin-button {
     width: 100% !important;
     max-height: 200px;
     overflow-y: auto;
-    box-sizing: border-box; /* Учитывает внутренние отступы и границы */
-    left: 0 !important;     /* Выравнивание строго по левому краю */
+    box-sizing: border-box;
+    left: 0 !important;
 }
 
-/* Разрешаем выпадающему списку (календарю) выходить за границы окон */
 #notify-modal .modal-card,
 #due-date-modal .modal-card {
     overflow: visible !important;
 }
 
-/* Явно скругляем верхние углы шапки, задаем строго одинаковый отступ */
 #notify-modal .modal-header,
 #due-date-modal .modal-header {
     border-top-left-radius: var(--radius-card) !important;
@@ -7298,7 +6651,6 @@ input#notify-amount.notify-field::-webkit-inner-spin-button {
     padding: 12px !important;
 }
 
-/* Строго одинаковая сетка для тела обеих модалок */
 #notify-modal .modal-body,
 #due-date-modal .modal-body {
     padding: 12px !important;
@@ -7308,5 +6660,40 @@ input#notify-amount.notify-field::-webkit-inner-spin-button {
 }
 
 #notify-modal .segmented-control {
-    margin-bottom: 0 !important; /* Убираем старый маргин, чтобы шаг сетки не удваивался */
+    margin-bottom: 0 !important;
+}
+
+.card-time-details {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    background: rgba(0, 0, 0, 0.03);
+    padding: 8px 10px;
+    border-radius: 8px;
+    width: 100%;
+    margin-top: 8px;
+    border: 1px solid var(--border-light);
+}
+
+[data-theme="dark"] .card-time-details {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.card-time-details .time-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-primary);
+}
+
+.card-time-details .time-label {
+    color: var(--text-secondary);
+    font-family: var(--font-main);
+    font-weight: 500;
+}
+
+.cal-event-chip, .cal-abs-event {
+    transition: filter 0.15s, transform 0.2s ease, opacity 0.2s ease !important;
 }

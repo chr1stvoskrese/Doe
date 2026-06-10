@@ -74,6 +74,8 @@ class TaskCreateResponse(TaskBase):
     completed_at: Optional[datetime]
     active_timer: Optional[TimerSessionResponse] = None
     total_time_spent: Optional[int] = None  # в секундах
+    first_start: Optional[datetime] = None
+    last_end: Optional[datetime] = None
     folded_headings: List[str] = []
 
     class Config:
@@ -107,6 +109,8 @@ class TaskResponse(TaskBase):
     subtasks: Optional[List[TaskResponse]] = None
     active_timer: Optional[TimerSessionResponse] = None
     total_time_spent: Optional[int] = None
+    first_start: Optional[datetime] = None
+    last_end: Optional[datetime] = None
     folded_headings: List[str] = []
 
     class Config:

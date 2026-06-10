@@ -539,43 +539,69 @@ async def set_task_time(db: AsyncSession, task_id: int, total_seconds: int) -> T
     if not task:
         raise ValueError("Задача не найдена")
 
-    # Проверяем, запущен ли таймер прямо сейчас
-    was_active = any(s.is_active for s in task.timer_sessions)
-
-    # Удаляем ВСЕ предыдущие сессии времени (сбрасываем историю, задаем новый старт)
-    for session in task.timer_sessions:
-        await db.delete(session)
-    task.timer_sessions = []
-
+    MAX_SECONDS = 31536000000  # 1000 лет в секундах
     now = datetime.utcnow()
 
-    MAX_SECONDS = 31536000000  # 1000 лет в секундах
-
-    # Если введенное значение превышает 1000 лет, фиксируем его и ПРИНУДИТЕЛЬНО ставим на паузу
     if total_seconds >= MAX_SECONDS:
         total_seconds = MAX_SECONDS
-        was_active = False
+        # Если превышен предел, принудительно останавливаем активные таймеры
+        for s in task.timer_sessions:
+            if s.is_active:
+                s.is_active = False
+                s.end_time = now
 
-    if total_seconds > 0:
-        # Чанки больше не нужны, так как 1000 лет безопасно помещается в SQLite
-        baseline_session = TimerSessionModel(
-            task_id=task.id,
-            start_time=now - timedelta(seconds=total_seconds),
-            end_time=now,
-            is_active=False
-        )
-        db.add(baseline_session)
-        task.timer_sessions.append(baseline_session)
+    # Считаем текущее время (как оно есть сейчас)
+    current_total = 0
+    for s in task.timer_sessions:
+        end = s.end_time if s.end_time else now
+        current_total += int((end - s.start_time).total_seconds())
 
-    # Если таймер тикал до редактирования и мы не перешли лимит — запускаем его заново
-    if was_active:
-        new_active = TimerSessionModel(
-            task_id=task.id,
-            start_time=now,
-            is_active=True
-        )
-        db.add(new_active)
-        task.timer_sessions.append(new_active)
+    delta = total_seconds - current_total
+
+    if delta == 0:
+        pass # Ничего не меняем
+    elif not task.timer_sessions:
+        # Сессий еще не было вообще. Создаем прошедшую сессию.
+        if total_seconds > 0:
+            baseline_session = TimerSessionModel(
+                task_id=task.id,
+                start_time=now - timedelta(seconds=total_seconds),
+                end_time=now,
+                is_active=False
+            )
+            db.add(baseline_session)
+            task.timer_sessions.append(baseline_session)
+    elif delta > 0:
+        # Увеличили время. Добавляем его к ПОСЛЕДНЕЙ сессии (сдвигаем старт назад)
+        latest_session = max(task.timer_sessions, key=lambda s: s.start_time)
+        latest_session.start_time -= timedelta(seconds=delta)
+    else:
+        # Уменьшили время. Отрезаем от последних сессий (от новых к старым)
+        remaining_to_remove = abs(delta)
+        sorted_sessions = sorted(task.timer_sessions, key=lambda s: s.start_time, reverse=True)
+        
+        for s in sorted_sessions:
+            if remaining_to_remove <= 0:
+                break
+                
+            end = s.end_time if s.end_time else now
+            duration = int((end - s.start_time).total_seconds())
+            
+            if duration > remaining_to_remove:
+                # Просто сдвигаем старт этой сессии вперед (укорачиваем)
+                s.start_time += timedelta(seconds=remaining_to_remove)
+                remaining_to_remove = 0
+            else:
+                # Нужно отнять больше, чем длилась сессия
+                remaining_to_remove -= duration
+                if s.is_active:
+                    # Активную сессию нельзя удалять, иначе таймер на доске отвалится.
+                    # Просто обнуляем её (начинается "сейчас")
+                    s.start_time = now
+                else:
+                    # Полностью удаляем старую сессию (и она пропадет из календаря)
+                    await db.delete(s)
+                    task.timer_sessions.remove(s)
 
     await db.commit()
     await db.refresh(task)

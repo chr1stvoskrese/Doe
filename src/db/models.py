@@ -90,6 +90,20 @@ class TaskModel(Base):
     timer_sessions = relationship("TimerSessionModel", back_populates="task", cascade="all, delete-orphan")
 
     @property
+    def first_start(self):
+        if 'timer_sessions' in instance_state(self).dict and self.timer_sessions:
+            return min(s.start_time for s in self.timer_sessions)
+        return None
+
+    @property
+    def last_end(self):
+        if 'timer_sessions' in instance_state(self).dict and self.timer_sessions:
+            ended = [s.end_time for s in self.timer_sessions if s.end_time]
+            if ended:
+                return max(ended)
+        return None
+
+    @property
     def parent_ids(self):
         # Безопасно отдаем список ID, только если связи parents были загружены из БД.
         # Это защищает от крашей (MissingGreenlet) при асинхронных запросах.

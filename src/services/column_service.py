@@ -25,13 +25,15 @@ async def get_columns_with_tasks(db: AsyncSession, workspace_id: int):
     result = await db.execute(stmt)
     columns = result.scalars().all()
 
-    response_columns = []
-    for col in columns:
-        # Тянем только ТОП-ЛЕВЕЛ задачи (у которых нет родителей) или те, что вынесены на доску
+    # Тянем только ТОП-ЛЕВЕЛ задачи (у которых нет родителей) или те, что вынесены на доску.
+    # ОДНИМ запросом для всех колонок воркспейса вместо запроса на каждую колонку (N+1).
+    tasks_by_column: dict[int, list] = {}
+    column_ids = [c.id for c in columns]
+    if column_ids:
         tasks_stmt = (
             select(TaskModel)
             .where(
-                TaskModel.column_id == col.id, 
+                TaskModel.column_id.in_(column_ids),
                 or_(~TaskModel.parents.any(), TaskModel.is_visible_on_board == True)
             )
             .options(
@@ -42,7 +44,12 @@ async def get_columns_with_tasks(db: AsyncSession, workspace_id: int):
             .order_by(TaskModel.position)
         )
         tasks_result = await db.execute(tasks_stmt)
-        root_tasks = tasks_result.scalars().all()
+        for task in tasks_result.scalars().all():
+            tasks_by_column.setdefault(task.column_id, []).append(task)
+
+    response_columns = []
+    for col in columns:
+        root_tasks = tasks_by_column.get(col.id, [])
 
         task_responses = []
         for task in root_tasks:
