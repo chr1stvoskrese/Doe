@@ -108,8 +108,24 @@ def main():
             return False
 
     if sys.platform == 'darwin':
-        import AppKit
-        from Foundation import NSObject, NSRunLoop, NSDate
+        import objc
+        from Foundation import (
+            NSObject, 
+            NSRunLoop, 
+            NSDate, 
+            NSTimer, 
+            NSBundle, 
+            NSUserNotification, 
+            NSUserNotificationCenter, 
+            NSUserNotificationDefaultSoundName
+        )
+        
+        # 🌟 Динамический swizzling для обхода ограничения unbundled-процессов в dev-режиме.
+        # Если bundleIdentifier равен None, мы заставляем его возвращать Bundle ID нашего приложения.
+        if NSBundle.mainBundle().bundleIdentifier() is None:
+            objc.classAddMethods(NSBundle, [
+                objc.selector(lambda self: "com.aesthetic.doe", selector=b"bundleIdentifier", signature=b"@@:")
+            ])
         
         global_state = {"keep_running": True}
 
@@ -135,19 +151,19 @@ def main():
             def timeout_(self, timer):
                 global_state["keep_running"] = False
 
-        notification = AppKit.NSUserNotification.alloc().init()
+        notification = NSUserNotification.alloc().init()
         notification.setTitle_(title)
         notification.setInformativeText_(message)
-        notification.setSoundName_(AppKit.NSUserNotificationDefaultSoundName)
+        notification.setSoundName_(NSUserNotificationDefaultSoundName)
         
         delegate = NotificationDelegate.alloc().init()
         globals()['_mac_delegate_retained'] = delegate
         
-        center = AppKit.NSUserNotificationCenter.defaultUserNotificationCenter()
+        center = NSUserNotificationCenter.defaultUserNotificationCenter()
         center.setDelegate_(delegate)
         center.deliverNotification_(notification)
         
-        AppKit.NSTimer.scheduledTimerWithTimeInterval_target_selector_userInfo_repeats_(
+        NSTimer.scheduledTimerWithTimeInterval_target_selector_userInfo_repeats_(
             60.0, delegate, "timeout:", None, False
         )
         
@@ -156,7 +172,7 @@ def main():
             run_loop.runUntilDate_(NSDate.dateWithTimeIntervalSinceNow_(0.5))
             
         os._exit(0)
-    
+
     elif sys.platform == 'win32':
         import ctypes
         from ctypes import wintypes

@@ -30,6 +30,15 @@ if sys.platform == 'win32':
 # 1. ФОНОВЫЙ РЕЖИМ (WORKER) - Срабатывает мгновенно, без загрузки UI
 # =========================================================================
 if len(sys.argv) >= 8 and sys.argv[1] == "--worker":
+    if sys.platform == 'darwin':
+        try:
+            import AppKit
+            _wapp = AppKit.NSApplication.sharedApplication()
+            _wapp.setActivationPolicy_(AppKit.NSApplicationActivationPolicyProhibited)
+            _wapp.setActivationPolicy_(AppKit.NSApplicationActivationPolicyAccessory)
+        except Exception:
+            pass
+
     due_time_iso = sys.argv[2]
     title = sys.argv[3]
     message = sys.argv[4]
@@ -108,8 +117,23 @@ if len(sys.argv) >= 8 and sys.argv[1] == "--worker":
                 pass
 
     if sys.platform == 'darwin':
-        import AppKit
-        from Foundation import NSObject, NSRunLoop, NSDate
+        import objc
+        from Foundation import (
+            NSObject, 
+            NSRunLoop, 
+            NSDate, 
+            NSTimer, 
+            NSBundle, 
+            NSUserNotification, 
+            NSUserNotificationCenter, 
+            NSUserNotificationDefaultSoundName
+        )
+        
+        # 🌟 Динамический swizzling для обхода ограничения unbundled-процессов в dev-режиме
+        if NSBundle.mainBundle().bundleIdentifier() is None:
+            objc.classAddMethods(NSBundle, [
+                objc.selector(lambda self: "com.aesthetic.doe", selector=b"bundleIdentifier", signature=b"@@:")
+            ])
         
         global_state = {"keep_running": True}
 
@@ -122,27 +146,37 @@ if len(sys.argv) >= 8 and sys.argv[1] == "--worker":
                     subprocess.Popen(['open', '-a', str(Path(sys.executable).parent.parent.parent)])
                 global_state["keep_running"] = False
                 
-            def userNotificationCenter_shouldPresentNotification_(self, center, notification): return True
-            def userNotificationCenter_didDismissNotification_(self, center, notification): global_state["keep_running"] = False
-            def timeout_(self, timer): global_state["keep_running"] = False
+            def userNotificationCenter_shouldPresentNotification_(self, center, notification): 
+                return True
+                
+            def userNotificationCenter_didDismissNotification_(self, center, notification): 
+                global_state["keep_running"] = False
+                
+            def timeout_(self, timer): 
+                global_state["keep_running"] = False
 
-        notification = AppKit.NSUserNotification.alloc().init()
+        notification = NSUserNotification.alloc().init()
         notification.setTitle_(title)
         notification.setInformativeText_(message)
-        notification.setSoundName_(AppKit.NSUserNotificationDefaultSoundName)
+        notification.setSoundName_(NSUserNotificationDefaultSoundName)
         
         delegate = NotificationDelegate.alloc().init()
         globals()['_mac_delegate_retained'] = delegate
-        center = AppKit.NSUserNotificationCenter.defaultUserNotificationCenter()
+        
+        center = NSUserNotificationCenter.defaultUserNotificationCenter()
         center.setDelegate_(delegate)
         center.deliverNotification_(notification)
         
-        AppKit.NSTimer.scheduledTimerWithTimeInterval_target_selector_userInfo_repeats_(60.0, delegate, "timeout:", None, False)
+        NSTimer.scheduledTimerWithTimeInterval_target_selector_userInfo_repeats_(
+            60.0, delegate, "timeout:", None, False
+        )
+        
         run_loop = NSRunLoop.currentRunLoop()
         while global_state["keep_running"]:
             run_loop.runUntilDate_(NSDate.dateWithTimeIntervalSinceNow_(0.5))
+            
         os._exit(0)
-    
+
     elif sys.platform == 'win32':
         import ctypes
         from ctypes import wintypes
@@ -902,7 +936,7 @@ def _win32_hwnd_for(win):
         from webview.platforms.winforms import BrowserView
         bv = BrowserView.instances.get(win.uid)
         if bv is not None:
-            return int(bv.Handle.ToInt32())
+            return int(bv.Handle.ToInt64())
     except Exception:
         pass
     try:
@@ -1039,6 +1073,15 @@ def get_safe_geometry():
         work_top = mi.rcWork.top
         work_w = mi.rcWork.right - mi.rcWork.left
         work_h = mi.rcWork.bottom - mi.rcWork.top
+
+        # САМОЛЕЧЕНИЕ: размер ~во всю рабочую область — артефакт старого бага
+        # (сохранённый maximize): честный размер такого масштаба сейв-гард
+        # в конфиг не пишет. Сбрасываем на дефолт, окно центрируем.
+        if w >= work_w - 16 and h >= work_h - 16:
+            print(f"[Geometry] stale fullscreen-size {w}x{h} in config -> reset to default")
+            w = min(1440, max(800, work_w - 320))
+            h = min(960, max(600, work_h - 240))
+            x, y = None, None
 
         # Размер не больше рабочей области ОДНОГО монитора
         w = max(800, min(w, work_w))

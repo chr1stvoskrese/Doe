@@ -69,6 +69,7 @@ fi
 update_progress "Сборка тихого воркера уведомлений..."
 pyinstaller --noconfirm \
     --console \
+    --onefile \
     --name "notify_worker" \
     notify_worker.py >> "$LOG_FILE" 2>&1
 
@@ -167,10 +168,11 @@ cp doe.icns "dist/Doe.app/Contents/Resources/doe.icns" >> "$LOG_FILE" 2>&1
 
 # Вот то самое действие:
 # Копируем "тихий" бинарник из его временной папки прямиком внутрь Doe.app
-cp "dist/notify_worker/notify_worker" "dist/Doe.app/Contents/MacOS/" >> "$LOG_FILE" 2>&1
+cp "dist/notify_worker" "dist/Doe.app/Contents/MacOS/notify_worker" >> "$LOG_FILE" 2>&1
+chmod +x "dist/Doe.app/Contents/MacOS/notify_worker" >> "$LOG_FILE" 2>&1
 
 # (Опционально) Удаляем папку notify_worker снаружи, чтобы она не мозолила глаза в папке dist
-rm -rf "dist/notify_worker" >> "$LOG_FILE" 2>&1
+rm -f "dist/notify_worker" >> "$LOG_FILE" 2>&1
 
 touch dist/Doe.app >> "$LOG_FILE" 2>&1
 

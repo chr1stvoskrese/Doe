@@ -323,49 +323,189 @@ function applyTheme(theme, saveToBackend = false) {
     }
 }
 
-function renderMarkdownProgressively(text, container, onComplete) {
-    window.isRenderingMarkdown = true;
+// ==========================================
+// 🚀 WEB WORKER ДЛЯ ФОНОВОГО РЕНДЕРА MARKDOWN
+// ==========================================
+let markdownWorker = null;
+let markdownRenderId = 0;
+const markdownCallbacks = {};
 
+function initMarkdownWorker() {
+    if (markdownWorker) return;
+    
+    // Изолированный код потока. Никакого доступа к DOM, только вычисления.
+    const workerCode = `
+        // Загружаем библиотеки парсинга напрямую в поток
+        self.importScripts(
+            location.origin + '/static/marked.min.js',
+            'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js'
+        );
+
+        function escapeHtml(text) {
+            const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+            return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+        }
+
+        // Копия вашего парсера, работающая в фоне
+        function parseMarkdownWithMathWorker(text) {
+            if (!text) return "";
+            const mathBlocks = [];
+            const codeBlocks = [];
+            
+            let processed = text.replace(/(\`\`\`[\\s\\S]*?\`\`\`|\`[^\`]*\`)/g, (match) => {
+                codeBlocks.push(match);
+                return \`DOECODEPLACEHOLDER\${codeBlocks.length - 1}END\`;
+            });
+
+            processed = processed.replace(/\\$\\$([\\s\\S]+?)\\$\\$/g, (match, math) => {
+                mathBlocks.push({ math, displayMode: true });
+                return \`DOEMATHPLACEHOLDER\${mathBlocks.length - 1}END\`;
+            });
+
+            processed = processed.replace(/\\$([^$\\n]+?)\\$/g, (match, math) => {
+                mathBlocks.push({ math, displayMode: false });
+                return \`DOEMATHPLACEHOLDER\${mathBlocks.length - 1}END\`;
+            });
+
+            processed = processed.replace(/!\\[([^\\]]*)\\]\\(([^)]+)\\)(?:\\{(\\d+)\\s*,\\s*(\\d+)\\})?/g, (match, alt, url, w, h) => {
+                const ext = url.split('.').pop().toLowerCase();
+                const isImage = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'ico'].includes(ext);
+                
+                if (!isImage) {
+                    return \`[\${alt}](\${url})\`;
+                }
+
+                const safeMatch = escapeHtml(match);
+                let style = '';
+                let customClass = '';
+                
+                if (w && h) {
+                    style = \`width: \${w}px; height: \${h}px;\`;
+                    customClass = 'has-custom-size';
+                }
+
+                return \`<span class="image-resizer-wrapper \${customClass}" style="\${style}" data-md="\${safeMatch}"><img src="/\${url}" alt="\${alt}" draggable="false"><span class="image-resize-handle" title="Потяните для изменения размера"></span></span>\`;
+            });
+
+            codeBlocks.forEach((code, i) => {
+                processed = processed.replace(\`DOECODEPLACEHOLDER\${i}END\`, () => code);
+            });
+
+            let html = marked.parse(processed, { breaks: true });
+
+            if (self.katex) {
+                mathBlocks.forEach((item, i) => {
+                    try {
+                        const rendered = katex.renderToString(item.math, {
+                            displayMode: item.displayMode,
+                            throwOnError: false,
+                            output: 'html',
+                            strict: false
+                        });
+                        html = html.replace(\`DOEMATHPLACEHOLDER\${i}END\`, () => rendered);
+                    } catch (e) {
+                        html = html.replace(\`DOEMATHPLACEHOLDER\${i}END\`, () => \`<code>\${item.math}</code>\`);
+                    }
+                });
+            } else {
+                mathBlocks.forEach((item, i) => {
+                    html = html.replace(\`DOEMATHPLACEHOLDER\${i}END\`, () => \`<code>\${item.math}</code>\`);
+                });
+            }
+
+            return html;
+        }
+
+        // Слушатель сообщений от главного потока
+        self.onmessage = function(e) {
+            const { id, text } = e.data;
+            const html = parseMarkdownWithMathWorker(text);
+            self.postMessage({ id, html }); // Возвращаем готовый HTML
+        };
+    `;
+
+    // Компилируем и запускаем Web Worker из строки
+    const blob = new Blob([workerCode], { type: 'application/javascript' });
+    markdownWorker = new Worker(URL.createObjectURL(blob));
+    
+    // Обрабатываем ответ от воркера
+    markdownWorker.onmessage = function(e) {
+        const { id, html } = e.data;
+        if (markdownCallbacks[id]) {
+            markdownCallbacks[id](html);
+            delete markdownCallbacks[id]; // Очищаем память
+        }
+    };
+}
+
+function renderMarkdownProgressively(text, container, options) {
+    window.isRenderingMarkdown = true;
+    
+    let onBeforeInsert = null;
+    let onFirstScreen = null;
+    let onComplete = null;
+
+    if (typeof options === 'function') {
+        onComplete = options;
+    } else if (options) {
+        onBeforeInsert = options.onBeforeInsert;
+        onFirstScreen = options.onFirstScreen;
+        onComplete = options.onComplete;
+    }
+
+    // Быстрый синхронный путь для маленьких текстов
     if (text.length < 5000) {
         container._renderToken = null;
+        if (onBeforeInsert) onBeforeInsert();
         container.style.visibility = '';
         container.innerHTML = parseMarkdownWithMath(text);
+        if (onFirstScreen) onFirstScreen();
         enhanceCodeBlocks(container);
         window.isRenderingMarkdown = false;
         if (onComplete) onComplete();
         return;
     }
 
+    // Асинхронный путь с воркером: возвращаем надпись "Loading..."
     const token = Symbol();
     container._renderToken = token;
+    
     container.style.visibility = '';
     container.innerHTML = `<span class="markdown-empty">${t('loading')}</span>`;
 
-    requestAnimationFrame(() => {
-        setTimeout(() => {
-            if (container._renderToken !== token) return;
+    initMarkdownWorker();
+    markdownRenderId++;
+    const currentId = markdownRenderId;
+    
+    markdownCallbacks[currentId] = (html) => {
+        if (container._renderToken !== token) return;
 
-            const fullHtml = parseMarkdownWithMath(text);
-            if (container._renderToken !== token) return;
+        if (onBeforeInsert) onBeforeInsert();
 
-            container.style.visibility = 'hidden';
-            container.innerHTML = fullHtml;
+        // Записываем весь HTML за один раз, чтобы избежать дробления высоты
+        container.innerHTML = html;
 
-            requestAnimationFrame(() => {
-                requestAnimationFrame(() => {
-                    if (container._renderToken !== token) {
-                        container.style.visibility = '';
-                        return;
-                    }
-                    if (onComplete) onComplete();
+        if (onFirstScreen) onFirstScreen();
 
-                    container.style.visibility = '';
-                    enhanceCodeBlocks(container);
-                    window.isRenderingMarkdown = false;
-                });
-            });
-        }, 0);
-    });
+        const nodes = Array.from(container.childNodes);
+        for (const n of nodes) {
+            if (n.nodeType === 1 && !/^H[1-6]$/.test(n.tagName) && !(n.querySelector && n.querySelector('img'))) {
+                n.classList.add('md-deferred');
+            }
+        }
+
+        requestAnimationFrame(() => {
+            if (container._renderToken !== token) {
+                window.isRenderingMarkdown = false;
+                return;
+            }
+            if (onComplete) onComplete();
+            enhanceCodeBlocks(container);
+            window.isRenderingMarkdown = false;
+        });
+    };
+    
+    markdownWorker.postMessage({ id: currentId, text: text });
 }
 
 function formatExactTime(seconds) {
@@ -4436,23 +4576,31 @@ async function loadTaskIntoModal(taskId, pushToStack = true, highlightQuery = nu
             const cleanRegex = /(!?)\[[^\]]+\]\(doe\/[^)]+\)!\s*/g;
             let readModeText = task.description.replace(cleanRegex, '');
             
-            renderMarkdownProgressively(readModeText, renderDiv, () => {
-                if (highlightQuery) {
-                    applyHighlight(renderDiv, highlightQuery);
-                    applyHighlight(titleEl, highlightQuery);
-                }
-                initHeadingFolding(renderDiv, task.folded_headings || []);
-                applyTextExpansion();
-
+            const applyScroll = () => {
                 if (localTask && localTask._readScrollTop !== undefined) {
                     renderDiv.scrollTop = localTask._readScrollTop;
                 } else {
                     renderDiv.scrollTop = 0;
                 }
-
                 if (localTask && localTask._modalScrollTop !== undefined) {
                     const detailBody = document.querySelector('.task-detail-body');
                     if (detailBody) detailBody.scrollTop = localTask._modalScrollTop;
+                }
+            };
+
+            renderMarkdownProgressively(readModeText, renderDiv, {
+                preserveScroll: (localTask && localTask._readScrollTop !== undefined),
+                onFirstScreen: () => {
+                    applyScroll();
+                },
+                onComplete: () => {
+                    if (highlightQuery) {
+                        applyHighlight(renderDiv, highlightQuery);
+                        applyHighlight(titleEl, highlightQuery);
+                    }
+                    initHeadingFolding(renderDiv, task.folded_headings || []);
+                    applyTextExpansion();
+                    applyScroll();
                 }
             });
 
@@ -5857,7 +6005,12 @@ function initTaskDescriptionLogic() {
             workTime: 10,
             workDelay: 100,
             spellcheck: false,
-            autocorrect: false
+            autocorrect: false,
+            // Перехватываем Cmd+F / Ctrl+F внутри редактора
+            extraKeys: {
+                "Cmd-F": (cm) => { if (window.openLocalSearch) window.openLocalSearch(); },
+                "Ctrl-F": (cm) => { if (window.openLocalSearch) window.openLocalSearch(); }
+            }
         });
         cmEditor.getWrapperElement().style.display = 'none';
     }
@@ -6114,32 +6267,41 @@ function initTaskDescriptionLogic() {
             currentTask._editCursorPos = cmEditor.getCursor();
         }
 
+        // Переключаем видимость сразу, чтобы пользователь увидел плашку "Loading..."
         if (cmEditor) cmEditor.getWrapperElement().style.display = 'none';
         renderDiv.style.display = 'block';
+
+        const applyScroll = () => {
+            if (currentTask && currentTask._readScrollTop !== undefined) {
+                renderDiv.scrollTop = currentTask._readScrollTop;
+            } else {
+                renderDiv.scrollTop = 0;
+            }
+            if (currentTask && currentTask._modalScrollTop !== undefined) {
+                const detailBody = document.querySelector('.task-detail-body');
+                if (detailBody) detailBody.scrollTop = currentTask._modalScrollTop;
+            }
+        };
 
         if (content.trim()) {
             const cleanRegex = /(!?)\[[^\]]+\]\(doe\/[^)]+\)!\s*/g;
             const cleanContent = content.replace(cleanRegex, '');
             
-            renderMarkdownProgressively(cleanContent, renderDiv, () => {
-                let localFolded = currentTask ? currentTask.folded_headings || [] : [];
-                initHeadingFolding(renderDiv, localFolded);
-                applyTextExpansion(); 
-                
-                if (currentTask && currentTask._readScrollTop !== undefined) {
-                    renderDiv.scrollTop = currentTask._readScrollTop;
-                } else {
-                    renderDiv.scrollTop = 0;
-                }
-
-                if (currentTask && currentTask._modalScrollTop !== undefined) {
-                    const detailBody = document.querySelector('.task-detail-body');
-                    if (detailBody) detailBody.scrollTop = currentTask._modalScrollTop;
+            renderMarkdownProgressively(cleanContent, renderDiv, {
+                onFirstScreen: () => {
+                    applyScroll();
+                },
+                onComplete: () => {
+                    let localFolded = currentTask ? currentTask.folded_headings || [] : [];
+                    initHeadingFolding(renderDiv, localFolded);
+                    applyTextExpansion(); 
+                    applyScroll();
                 }
             });
         } else {
             renderDiv.innerHTML = `<span class="markdown-empty">${t('taskModal.descPlaceholder')}</span>`;
             applyTextExpansion(); 
+            applyScroll();
         }
     };
 
@@ -6258,25 +6420,62 @@ function initTaskDescriptionLogic() {
     });
 
     let preventBlurExit = false;
+    let shouldRefocusCM = false;
 
+    // 1. Клик внутри самого описания удерживает фокус в редакторе
     descWrapper.addEventListener('mousedown', (e) => {
         if (cmEditor && cmEditor.getWrapperElement().style.display === 'block') {
             preventBlurExit = true;
+            shouldRefocusCM = true;
         }
     });
 
-    window.addEventListener('mouseup', () => {
-        if (preventBlurExit) {
-            preventBlurExit = false;
-            if (cmEditor && cmEditor.getWrapperElement().style.display === 'block') {
-                cmEditor.focus();
+    // 2. Клик по виджету поиска, группе инструментов или кнопкам шапки НЕ закрывает редактирование
+    const taskModal = document.getElementById('task-modal');
+    taskModal.addEventListener('mousedown', (e) => {
+        if (cmEditor && cmEditor.getWrapperElement().style.display === 'block') {
+            const isSearch = e.target.closest('#local-search-widget');
+            const isTools = e.target.closest('#modal-tools-wrapper');
+            const isHeaderActions = e.target.closest('.modal-header-actions');
+            const isDatePicker = e.target.closest('#datepicker-dropdown') || e.target.closest('.datepicker-dropdown');
+
+            if (isSearch || isTools || isHeaderActions || isDatePicker) {
+                preventBlurExit = true;
+                shouldRefocusCM = false; // Разрешаем фокусу уйти на кнопки/инпуты
             }
         }
     });
 
+    window.addEventListener('mouseup', () => {
+        // Фокусируем редактор мгновенно, чтобы не было задержек при вводе
+        if (shouldRefocusCM) {
+            shouldRefocusCM = false;
+            if (cmEditor && cmEditor.getWrapperElement().style.display === 'block') {
+                cmEditor.focus();
+            }
+        }
+        
+        // Задерживаем сброс флага блокировки, чтобы асинхронный blur в ОС успел его прочитать
+        setTimeout(() => {
+            preventBlurExit = false;
+        }, 150);
+    });
+
+    // 3. Умная обработка события потери фокуса
     cmEditor.on('blur', () => {
-        if (preventBlurExit) return;
-        switchToReadMode();
+        setTimeout(() => {
+            if (preventBlurExit) return;
+
+            // Фолбэк-проверка на случай перехода по Tab или горячим клавишам (Cmd+F)
+            const activeEl = document.activeElement;
+            if (activeEl) {
+                if (activeEl.closest('#local-search-widget') || activeEl.closest('#modal-tools-wrapper')) {
+                    return; // Блокируем выход, если фокус ушел в поиск или инструменты
+                }
+            }
+
+            switchToReadMode();
+        }, 120); // Задержка дает браузеру обновить activeElement
     });
 }
 
@@ -8035,25 +8234,38 @@ function initLocalSearchLogic() {
     const renderDiv = document.getElementById('task-desc-render');
     const scrollParent = document.querySelector('.task-detail-body');
 
+    // Режим чтения
     let matchRanges = [];
-    let currentMatchIndex = -1;
-    
-    let searchId = 0;
     let cachedTextNodes = null;
+    
+    // Режим редактирования
+    let cmMatches = [];
+    let cmMarkers = [];
+    let cmActiveMarker = null;
+
+    let currentMatchIndex = -1;
+    let searchId = 0;
     let searchDebounce = null;
 
+    const isEditMode = () => {
+        return !!(cmEditor && cmEditor.getWrapperElement().style.display !== 'none');
+    };
+
     window.openLocalSearch = () => {
-        if (renderDiv.style.display === 'none') return;
         widget.classList.add('show');
         setTimeout(() => { input.focus(); input.select(); }, 50);
         
-        cachedTextNodes = [];
-        const walker = document.createTreeWalker(renderDiv, NodeFilter.SHOW_TEXT, null, false);
-        let node;
-        while ((node = walker.nextNode())) {
-            const text = node.nodeValue.toLowerCase();
-            if (text.trim()) {
-                cachedTextNodes.push({ node, text });
+        if (isEditMode()) {
+            cachedTextNodes = null;
+        } else {
+            cachedTextNodes = [];
+            const walker = document.createTreeWalker(renderDiv, NodeFilter.SHOW_TEXT, null, false);
+            let node;
+            while ((node = walker.nextNode())) {
+                const text = node.nodeValue.toLowerCase();
+                if (text.trim()) {
+                    cachedTextNodes.push({ node, text });
+                }
             }
         }
 
@@ -8066,6 +8278,9 @@ function initLocalSearchLogic() {
         input.value = '';
         cachedTextNodes = null;
         searchId++;
+        if (isEditMode() && cmEditor) {
+            cmEditor.focus();
+        }
     };
 
     function clearLocalSearch() {
@@ -8073,145 +8288,202 @@ function initLocalSearchLogic() {
             CSS.highlights.clear();
         }
         matchRanges = [];
+        
+        if (cmEditor) {
+            cmEditor.operation(() => {
+                cmMarkers.forEach(m => m.clear());
+                if (cmActiveMarker) {
+                    cmActiveMarker.clear();
+                    cmActiveMarker = null;
+                }
+            });
+        }
+        cmMatches = [];
+        cmMarkers = [];
+        
         currentMatchIndex = -1;
         countEl.textContent = '0/0';
     }
 
     function performLocalSearch(query) {
         clearLocalSearch();
-        if (!query.trim() || !cachedTextNodes) return;
+        const textLower = query.trim().toLowerCase();
+        if (!textLower) return;
 
-        const textLower = query.toLowerCase();
         const currentSearchId = ++searchId;
-        
-        if (!renderDiv.textContent.toLowerCase().includes(textLower)) {
-            countEl.textContent = '0/0';
-            return;
-        }
 
-        function searchNextChunk(startIndex) {
-            if (currentSearchId !== searchId) return;
-            
-            const startTime = performance.now();
-            let i = startIndex;
-            
-            for (; i < cachedTextNodes.length; i++) {
-                if (performance.now() - startTime > 12) break;
-                
-                const item = cachedTextNodes[i];
-                if (!item.text.includes(textLower)) continue;
-                
-                let pos = 0;
-                while ((pos = item.text.indexOf(textLower, pos)) !== -1) {
-                    const range = new Range();
-                    range.setStart(item.node, pos);
-                    range.setEnd(item.node, pos + query.length);
-                    matchRanges.push(range);
-                    pos += query.length;
+        if (isEditMode()) {
+            // Быстрый синхронный поиск внутри CodeMirror API
+            cmEditor.operation(() => {
+                const lineCount = cmEditor.lineCount();
+                for (let line = 0; line < lineCount; line++) {
+                    const text = cmEditor.getLine(line).toLowerCase();
+                    let pos = 0;
+                    while ((pos = text.indexOf(textLower, pos)) !== -1) {
+                        const from = { line, ch: pos };
+                        const to = { line, ch: pos + textLower.length };
+                        cmMatches.push({ from, to });
+                        
+                        const marker = cmEditor.markText(from, to, { className: 'local-search-highlight' });
+                        cmMarkers.push(marker);
+                        
+                        pos += textLower.length;
+                    }
                 }
-                
-                if (matchRanges.length >= 10000) break;
-            }
+            });
 
-            if (i < cachedTextNodes.length && matchRanges.length < 10000) {
-                requestAnimationFrame(() => searchNextChunk(i));
+            if (cmMatches.length > 0) {
+                currentMatchIndex = 0;
+                updateLocalSearchUI();
             } else {
-                if (matchRanges.length > 0) {
-                    currentMatchIndex = 0;
-                    if (CSS.highlights) {
-                        CSS.highlights.set('local-search', new Highlight(...matchRanges));
-                    }
-                    updateLocalSearchUI();
+                countEl.textContent = '0/0';
+            }
+        } else {
+            // Поиск во вьювере Markdown (DOM)
+            if (!renderDiv.textContent.toLowerCase().includes(textLower)) {
+                countEl.textContent = '0/0';
+                return;
+            }
+
+            function searchNextChunk(startIndex) {
+                if (currentSearchId !== searchId) return;
+                
+                const startTime = performance.now();
+                let i = startIndex;
+                
+                for (; i < cachedTextNodes.length; i++) {
+                    if (performance.now() - startTime > 12) break;
                     
-                    if (matchRanges.length >= 10000) {
-                        countEl.textContent = `1/10000+`;
+                    const item = cachedTextNodes[i];
+                    if (!item.text.includes(textLower)) continue;
+                    
+                    let pos = 0;
+                    while ((pos = item.text.indexOf(textLower, pos)) !== -1) {
+                        const range = new Range();
+                        range.setStart(item.node, pos);
+                        range.setEnd(item.node, pos + query.length);
+                        matchRanges.push(range);
+                        pos += query.length;
                     }
+                    
+                    if (matchRanges.length >= 10000) break;
+                }
+
+                if (i < cachedTextNodes.length && matchRanges.length < 10000) {
+                    requestAnimationFrame(() => searchNextChunk(i));
                 } else {
-                    countEl.textContent = '0/0';
+                    if (matchRanges.length > 0) {
+                        currentMatchIndex = 0;
+                        if (CSS.highlights) {
+                            CSS.highlights.set('local-search', new Highlight(...matchRanges));
+                        }
+                        updateLocalSearchUI();
+                        
+                        if (matchRanges.length >= 10000) {
+                            countEl.textContent = `1/10000+`;
+                        }
+                    } else {
+                        countEl.textContent = '0/0';
+                    }
                 }
             }
+            requestAnimationFrame(() => searchNextChunk(0));
         }
-        
-        requestAnimationFrame(() => searchNextChunk(0));
     }
 
     function updateLocalSearchUI() {
-        if (matchRanges.length === 0 || currentMatchIndex < 0) return;
+        if (isEditMode()) {
+            if (cmActiveMarker) {
+                cmActiveMarker.clear();
+                cmActiveMarker = null;
+            }
+            if (cmMatches.length === 0 || currentMatchIndex < 0) return;
 
-        const activeRange = matchRanges[currentMatchIndex];
+            const activeMatch = cmMatches[currentMatchIndex];
+            cmActiveMarker = cmEditor.markText(activeMatch.from, activeMatch.to, { className: 'local-search-highlight active' });
+            
+            cmEditor.scrollIntoView(activeMatch.from, 150);
+            countEl.textContent = `${currentMatchIndex + 1}/${cmMatches.length}`;
+        } else {
+            if (matchRanges.length === 0 || currentMatchIndex < 0) return;
 
-        if (CSS.highlights) {
-            const highlightActive = new Highlight(activeRange);
-            CSS.highlights.set('local-search-active', highlightActive);
-        }
+            const activeRange = matchRanges[currentMatchIndex];
 
-        let block = activeRange.startContainer.parentElement;
-        while (block && block !== renderDiv) {
-            if (block.classList.contains('is-hidden-by-fold')) {
-                let prev = block.previousElementSibling;
-                while (prev) {
-                    if (prev.classList.contains('foldable-heading') && prev.classList.contains('is-folded')) {
-                        prev.click(); 
+            if (CSS.highlights) {
+                const highlightActive = new Highlight(activeRange);
+                CSS.highlights.set('local-search-active', highlightActive);
+            }
+
+            let block = activeRange.startContainer.parentElement;
+            while (block && block !== renderDiv) {
+                if (block.classList.contains('is-hidden-by-fold')) {
+                    let prev = block.previousElementSibling;
+                    while (prev) {
+                        if (prev.classList.contains('foldable-heading') && prev.classList.contains('is-folded')) {
+                            prev.click(); 
+                        }
+                        prev = prev.previousElementSibling;
                     }
-                    prev = prev.previousElementSibling;
                 }
+                block = block.parentElement;
             }
-            block = block.parentElement;
-        }
 
-        requestAnimationFrame(() => {
-            const innerScroll = renderDiv;
-            const outerScroll = scrollParent;
-            const descWrapper = document.querySelector('.description-wrapper');
+            requestAnimationFrame(() => {
+                const innerScroll = renderDiv;
+                const outerScroll = scrollParent;
+                const descWrapper = document.querySelector('.description-wrapper');
 
-            let rangeRect = activeRange.getBoundingClientRect();
+                let rangeRect = activeRange.getBoundingClientRect();
 
-            if (rangeRect.top === 0 || rangeRect.height === 0) {
-                const parentEl = activeRange.startContainer.parentElement;
-                if (parentEl) {
-                    rangeRect = parentEl.getBoundingClientRect();
+                if (rangeRect.top === 0 || rangeRect.height === 0) {
+                    const parentEl = activeRange.startContainer.parentElement;
+                    if (parentEl) {
+                        rangeRect = parentEl.getBoundingClientRect();
+                    }
                 }
-            }
 
-            if (rangeRect.top === 0) return;
+                if (rangeRect.top === 0) return;
 
-            if (innerScroll) {
-                const innerRect = innerScroll.getBoundingClientRect();
-                const relativeTop = rangeRect.top - innerRect.top + innerScroll.scrollTop;
-                innerScroll.scrollTo({
-                    top: relativeTop - (innerRect.height / 2),
-                    behavior: 'auto'
-                });
-            }
-
-            if (outerScroll && descWrapper) {
-                const wrapperRect = descWrapper.getBoundingClientRect();
-                const outerRect = outerScroll.getBoundingClientRect();
-
-                if (wrapperRect.top < outerRect.top + 16 || wrapperRect.bottom > outerRect.bottom - 16) {
-                    const relativeWrapperTop = wrapperRect.top - outerRect.top + outerScroll.scrollTop;
-                    outerScroll.scrollTo({
-                        top: relativeWrapperTop - 16,
+                if (innerScroll) {
+                    const innerRect = innerScroll.getBoundingClientRect();
+                    const relativeTop = rangeRect.top - innerRect.top + innerScroll.scrollTop;
+                    innerScroll.scrollTo({
+                        top: relativeTop - (innerRect.height / 2),
                         behavior: 'auto'
                     });
                 }
-            }
-        });
 
-        if (matchRanges.length < 10000) {
-            countEl.textContent = `${currentMatchIndex + 1}/${matchRanges.length}`;
+                if (outerScroll && descWrapper) {
+                    const wrapperRect = descWrapper.getBoundingClientRect();
+                    const outerRect = outerScroll.getBoundingClientRect();
+
+                    if (wrapperRect.top < outerRect.top + 16 || wrapperRect.bottom > outerRect.bottom - 16) {
+                        const relativeWrapperTop = wrapperRect.top - outerRect.top + outerScroll.scrollTop;
+                        outerScroll.scrollTo({
+                            top: relativeWrapperTop - 16,
+                            behavior: 'auto'
+                        });
+                    }
+                }
+            });
+
+            if (matchRanges.length < 10000) {
+                countEl.textContent = `${currentMatchIndex + 1}/${matchRanges.length}`;
+            }
         }
     }
 
     function nextMatch() {
-        if (matchRanges.length === 0) return;
-        currentMatchIndex = (currentMatchIndex + 1) % matchRanges.length;
+        const length = isEditMode() ? cmMatches.length : matchRanges.length;
+        if (length === 0) return;
+        currentMatchIndex = (currentMatchIndex + 1) % length;
         updateLocalSearchUI();
     }
 
     function prevMatch() {
-        if (matchRanges.length === 0) return;
-        currentMatchIndex = (currentMatchIndex - 1 + matchRanges.length) % matchRanges.length;
+        const length = isEditMode() ? cmMatches.length : matchRanges.length;
+        if (length === 0) return;
+        currentMatchIndex = (currentMatchIndex - 1 + length) % length;
         updateLocalSearchUI();
     }
 

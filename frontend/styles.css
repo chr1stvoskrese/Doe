@@ -19,7 +19,7 @@
 
     --shadow-card: 0 2px 6px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
     --shadow-menu: 0 20px 40px rgba(0, 0, 0, 0.1), 0 4px 12px rgba(0, 0, 0, 0.05);
-    --shadow-drag: 
+    --shadow-drag:
         0 2px 4px rgba(0, 0, 0, 0.03),
         0 8px 16px rgba(0, 0, 0, 0.04),
         0 16px 32px rgba(0, 0, 0, 0.05),
@@ -219,21 +219,18 @@ svg, img {
     --timer-bg: rgba(214, 151, 128, 0.12);
     --success-done: #738A70;
 
-    /* Дефолтная карточка: плотно лежит на доске */
-    --shadow-card: 
-        0 2px 2px -1px rgba(0, 0, 0, 1), 
+    --shadow-card:
+        0 2px 2px -1px rgba(0, 0, 0, 1),
         0 1px 1px -1px rgba(0, 0, 0, 1);
-        
-    /* Выпадающие меню: парят чуть выше */
-    --shadow-menu: 
-        0 0 0 1px rgba(255, 255, 255, 0.08), 
-        0 8px 8px -4px rgba(0, 0, 0, 1), 
+
+    --shadow-menu:
+        0 0 0 1px rgba(255, 255, 255, 0.08),
+        0 8px 8px -4px rgba(0, 0, 0, 1),
         0 16px 16px -8px rgba(0, 0, 0, 1);
-        
-    /* Перетаскивание: максимальный отрыв, идеальная многослойность */
-    --shadow-drag: 
-        0 0 0 1px rgba(255, 255, 255, 0.12),   /* Яркая грань для отрыва от фона */
-        0 6px 6px -3px rgba(0, 0, 0, 1),       /* Плотная черная тень прямо под картой */
+
+    --shadow-drag:
+        0 0 0 1px rgba(255, 255, 255, 0.12),
+        0 6px 6px -3px rgba(0, 0, 0, 1),
         0 16px 16px -8px rgba(0, 0, 0, 1);
 }
 
@@ -312,8 +309,8 @@ body, button, input, textarea, select,
 .btn-add-card, .btn-add-subtask, .new-column-btn, .workspace-btn, .menu-item,
 .column-title, .card-title, .subtask-title, .tab-name, .confirm-btn, .modal-title,
 .vault-title, .vault-subtitle, .vault-action-card h3, .vault-action-card p,
-.markdown-body, .custom-tooltip, .app-toast, .dropdown-menu, .search-result-title, 
-.search-result-desc, .reminder-task-title, .subtasks-header span, .time-label, 
+.markdown-body, .custom-tooltip, .app-toast, .dropdown-menu, .search-result-title,
+.search-result-desc, .reminder-task-title, .subtasks-header span, .time-label,
 .cal-title, .cal-ev-title, .cal-time-day-hdr, .datepicker-current-month, .dp-cell {
     font-family: var(--font-main) !important;
 }
@@ -5846,7 +5843,8 @@ body.is-dragging-modal .task-detail-body {
     border-radius: 6px;
 }
 
-mark.local-search-highlight {
+mark.local-search-highlight,
+span.local-search-highlight {
     background-color: rgba(195, 198, 188, 0.4);
     color: var(--text-primary);
     transition: background-color 0.15s, color 0.15s;
@@ -5859,7 +5857,8 @@ mark.local-search-highlight {
     border: none !important;
 }
 
-mark.local-search-highlight.active {
+mark.local-search-highlight.active,
+span.local-search-highlight.active {
     background-color: #C3C6BC;
     color: var(--text-primary);
 
@@ -5871,12 +5870,14 @@ mark.local-search-highlight.active {
     border: none !important;
 }
 
-[data-theme="dark"] mark.local-search-highlight {
+[data-theme="dark"] mark.local-search-highlight,
+[data-theme="dark"] span.local-search-highlight {
     background-color: rgba(92, 99, 90, 0.4);
     color: #FFFFFF;
 }
 
-[data-theme="dark"] mark.local-search-highlight.active {
+[data-theme="dark"] mark.local-search-highlight.active,
+[data-theme="dark"] span.local-search-highlight.active {
     background-color: #5C635A;
     color: #FFFFFF;
 
@@ -6764,11 +6765,6 @@ input#notify-amount.notify-field::-webkit-inner-spin-button {
     transition: filter 0.15s, transform 0.2s ease, opacity 0.2s ease !important;
 }
 
-/* === Dark mode anti-banding film grain ===
-   8-bit displays cannot render smooth dark gradients: box-shadow blur
-   quantizes into visible rings near black. A ~2.5% noise overlay above
-   everything dithers quantization boundaries pixel-by-pixel, making
-   shadows perceptually continuous. Invisible as texture. */
 [data-theme="dark"] body::after {
     content: "";
     position: fixed;
@@ -6781,19 +6777,21 @@ input#notify-amount.notify-field::-webkit-inner-spin-button {
     background-size: 256px 256px;
 }
 
-/* Единая идеальная тень при наведении (hover) для темной темы */
 [data-theme="dark"] .card:not(.card-entering):hover:not(:has(.card-inline-trigger:hover)),
 [data-theme="dark"] .subtask-item:hover,
 [data-theme="dark"] .vault-history-item:hover,
 [data-theme="dark"] .card.has-open-menu {
-    box-shadow: 
-        0 6px 6px -3px rgba(0, 0, 0, 1), 
+    box-shadow:
+        0 6px 6px -3px rgba(0, 0, 0, 1),
         0 2px 2px -1px rgba(0, 0, 0, 1) !important;
 }
 
-/* Также убираем старый грязный hover у подзадач, если он где-то остался */
 [data-theme="dark"] .subtask-item:hover {
-    box-shadow: 
-        0 6px 6px -3px rgba(0, 0, 0, 1), 
+    box-shadow:
+        0 6px 6px -3px rgba(0, 0, 0, 1),
         0 2px 2px -1px rgba(0, 0, 0, 1);
+}
+.md-deferred {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 32px;
 }

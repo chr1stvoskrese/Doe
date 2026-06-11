@@ -108,15 +108,13 @@ def get_ui_settings() -> dict:
         "theme": data.get("theme", "light"),
         "language": data.get("language", "ru"),
         "active_workspace_id": active_workspaces.get(vault_path),
-        "global_attachments_path": data.get("global_attachments_path"),
-        "ui_font": data.get("ui_font", "")  # <-- Название системного шрифта
+        "global_attachments_path": data.get("global_attachments_path")
     }
 
-def set_ui_settings(theme: str = None, language: str = None, active_workspace_id: int = None, global_attachments_path: str = None, reset_attachments: bool = False, ui_font: str = None) -> None:
+def set_ui_settings(theme: str = None, language: str = None, active_workspace_id: int = None, global_attachments_path: str = None, reset_attachments: bool = False) -> None:
     data = _load_config()
     if theme is not None: data["theme"] = theme
     if language is not None: data["language"] = language
-    if ui_font is not None: data["ui_font"] = ui_font
     
     if reset_attachments:
         data.pop("global_attachments_path", None)
@@ -302,7 +300,22 @@ def spawn_notification_worker(task_id: int, task_title: str, message: str, due_t
     import subprocess
     
     title = "Doe"
-    args = [sys.executable, "--worker", due_time_iso, title, message, str(task_id), vault_path, reminder_id]
+
+    # DOCK FIX (macOS): оконный бинарник Doe.app нельзя использовать как воркер —
+    # его bootloader (windowed + argv-emulation) регистрируется в Dock сразу при
+    # старте процесса, ДО исполнения Python-кода. Поэтому в собранном приложении
+    # используем специально собранный "тихий" консольный notify_worker,
+    # который build_mac.sh кладёт рядом с главным бинарником.
+    silent_worker = None
+    if sys.platform == 'darwin' and getattr(sys, 'frozen', False):
+        candidate = os.path.join(os.path.dirname(sys.executable), 'notify_worker')
+        if os.path.exists(candidate):
+            silent_worker = candidate
+
+    if silent_worker:
+        args = [silent_worker, due_time_iso, title, message, str(task_id), vault_path, reminder_id]
+    else:
+        args = [sys.executable, "--worker", due_time_iso, title, message, str(task_id), vault_path, reminder_id]
     
     # 0x00000008: DETACHED_PROCESS (Полная отвязка процесса от консоли и главного окна)
     # Это позволяет процессу "выжить" после закрытия приложения.
