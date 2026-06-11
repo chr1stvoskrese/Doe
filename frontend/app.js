@@ -26,6 +26,10 @@ const translations = {
         copied: 'Скопировано!',
         modals: { 
             notifyTitle: 'Напомнить', notifyRelative: 'Через', notifyAbsolute: 'В точное время', btnSet: 'Установить',
+            fontTitle: 'Шрифт приложения', fontInputLabel: 'Название системного шрифта', fontFileLabel: 'Шрифт хранилища (переносной)',
+            fontWarning: 'Загружается в папку хранилища.', fontSearchPlaceholder: 'Поиск или ввод шрифта...',
+            fontNotFound: 'Шрифт не найден. Нажмите Enter для применения.', fontSystemDefault: 'По умолчанию',
+            fontSelectCustom: 'Выбрать .ttf / .otf ...',
             dueDateTitle: 'Установить дедлайн', dueDateSet: 'Установить дедлайн', dueDateClear: 'Очистить',
             themeTitle: 'Тема оформления', light: 'Светлая', dark: 'Тёмная', 
             langTitle: 'Выберите язык', aboutTitle: 'О приложении', 
@@ -98,13 +102,17 @@ const translations = {
             mode: 'Column mode', collapse: 'Collapse column', rename: 'Rename', 
             delete: 'Delete', clear: 'Clear', open: 'Open', 
             deleteCard: 'Delete card', clearTimer: 'Clear timer',
-            exportCard: 'Export to Markdown', attachmentsSettings: 'Attachments Storage',
+            exportCard: 'Export to Markdown', attachmentsSettings: 'Attachments Storage', fontSettings: 'Font',
             copyCardLink: 'Copy link', dueDate: 'Set deadline', clearDueDate: 'Clear deadline', notify: 'Remind me',
             reminders: 'Active Reminders', remindersEmpty: 'No active reminders'
         },
         copied: 'Copied!',
         modals: { 
             notifyTitle: 'Remind me', notifyRelative: 'In', notifyAbsolute: 'At exact time', btnSet: 'Set',
+            fontTitle: 'App Font', fontInputLabel: 'System font name', fontFileLabel: 'Vault font (portable)',
+            fontWarning: 'Saved inside the vault folder.', fontSearchPlaceholder: 'Search or type font name...',
+            fontNotFound: 'Font not found. Press Enter to apply.', fontSystemDefault: 'Default',
+            fontSelectCustom: 'Select .ttf / .otf ...',
             dueDateTitle: 'Due date', dueDateSet: 'Set deadline', dueDateClear: 'Clear',
             themeTitle: 'Theme', light: 'Light', dark: 'Dark', 
             langTitle: 'Select language', aboutTitle: 'About', 
@@ -181,6 +189,76 @@ const dpLocales = {
         time: 'Time'
     }
 };
+
+function updateAppFont(uiFont, customFontPath) {
+    let styleTag = document.getElementById('custom-font-style');
+    if (!styleTag) {
+        styleTag = document.createElement('style');
+        styleTag.id = 'custom-font-style';
+        document.head.appendChild(styleTag);
+    }
+
+    // Базовый стек Apple/Windows
+    let fontString = '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro", "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+
+    if (customFontPath) {
+        const url = `/${customFontPath}?t=${Date.now()}`;
+        styleTag.innerHTML = `
+            @font-face {
+                font-family: 'DoeCustomFont';
+                src: url('${url}');
+                font-weight: normal;
+                font-style: normal;
+            }
+        `;
+        fontString = `'DoeCustomFont', ${fontString}`;
+    } else {
+        styleTag.innerHTML = '';
+    }
+
+    // Вписанный системный шрифт всегда применяется, если он есть
+    if (uiFont && uiFont.trim() && uiFont.trim() !== "Inter") {
+        fontString = `"${uiFont.trim()}", ${fontString}`;
+    }
+
+    // !important не даёт браузеру сбрасывать шрифт на кнопках
+    document.documentElement.style.setProperty('--font-main', fontString, 'important');
+}
+
+window.chooseCustomFont = async () => {
+    if (window.pywebview && window.pywebview.api && window.pywebview.api.choose_file) {
+        const absPath = await window.pywebview.api.choose_file();
+        if (absPath) {
+            try {
+                const res = await fetch(`${API_BASE}/system/font/set`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ absolute_path: absPath })
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    document.getElementById('font-path-display').textContent = data.path;
+                    const settings = await fetchSettings();
+                    updateAppFont(settings.ui_font, settings.custom_font);
+                } else {
+                    window.showToast(t('alerts.error'), 'Поддерживаются только .ttf, .otf, .woff, .woff2', true);
+                }
+            } catch(e) { console.error(e); }
+        }
+    }
+};
+
+window.resetCustomFont = async () => {
+    try {
+        const res = await fetch(`${API_BASE}/system/font/clear`, { method: 'POST' });
+        if (res.ok) {
+            document.getElementById('font-path-display').textContent = t('modals.fontSelectCustom');
+            const settings = await fetchSettings();
+            updateAppFont(settings.ui_font, settings.custom_font);
+        }
+    } catch(e) { console.error(e); }
+};
+// ----------------------
 
 let toastTimeout;
 window.showToast = (title, message, isError = false) => {
@@ -3978,6 +4056,39 @@ document.addEventListener('click', async (e) => {
             document.getElementById('lang-modal').classList.add('show');
             closeAllDropdowns();
         }
+        else if (action === 'font-settings') {
+            fetchSettings().then(data => {
+                const uiFontInput = document.getElementById('ui-font-input');
+                if (uiFontInput) {
+                    uiFontInput.value = data.ui_font ? data.ui_font : `Inter (${t('modals.fontSystemDefault')})`;
+                }
+                
+                const pathDisplay = document.getElementById('font-path-display');
+                if (pathDisplay) {
+                    if (data.custom_font) {
+                        pathDisplay.textContent = data.custom_font.split('/').pop();
+                    } else {
+                        pathDisplay.textContent = t('modals.fontSelectCustom');
+                    }
+                }
+                
+                // Асинхронно сканируем систему на шрифты и кэшируем результат
+                fetch(`${API_BASE}/system/fonts/available`).then(res => {
+                    if (res.ok) return res.json();
+                    return [];
+                }).then(fonts => {
+                    window.cachedSystemFonts = ["Inter", ...fonts];
+                    if (uiFontInput) {
+                        renderFontList(uiFontInput.value.trim());
+                    }
+                }).catch(err => {
+                    console.error("Failed to load system fonts:", err);
+                });
+
+                document.getElementById('font-settings-modal').classList.add('show');
+            }).catch(console.error);
+            closeAllDropdowns();
+        }
         else if (action === 'attachments-settings') {
             fetchSettings().then(data => {
                 const pathBox = document.getElementById('att-path-display');
@@ -4032,7 +4143,9 @@ document.addEventListener('click', async (e) => {
         
         if (!modalToClose) return;
 
-        if (modalToClose.id === 'task-modal' && isOverlayClick) {
+        // Запрещаем закрывать по клику на фон все модалки с формами ввода
+        const nonDismissibleModals = ['task-modal', 'font-settings-modal', 'due-date-modal', 'notify-modal'];
+        if (nonDismissibleModals.includes(modalToClose.id) && isOverlayClick) {
             return; 
         }
 
@@ -4119,7 +4232,8 @@ document.addEventListener('click', async (e) => {
         !target.closest('.dropdown-menu') && 
         !target.closest('.menu-btn') && 
         !target.closest('.card-menu-btn') &&
-        !target.closest('.card.has-open-menu')
+        !target.closest('.card.has-open-menu') &&
+        !target.closest('#ui-font-wrapper') // Игнорируем клики внутри контейнера поиска шрифтов
     ) {
         closeAllDropdowns();
     }
@@ -7373,6 +7487,97 @@ window.updateDatePickerTrigger = function() {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
+
+    // Выбор системного шрифта с выпадающим списком (Obsidian style)
+    const uiFontInput = document.getElementById('ui-font-input');
+    const uiFontDropdown = document.getElementById('ui-font-dropdown');
+
+    if (uiFontInput && uiFontDropdown) {
+        // Динамический кэш системных шрифтов
+        window.cachedSystemFonts = ["Inter"];
+
+        const renderFontList = (query = '') => {
+            uiFontDropdown.innerHTML = '';
+            const lowerQuery = query.toLowerCase();
+            
+            const filtered = window.cachedSystemFonts.filter(f => {
+                const text = f === "Inter" ? `Inter (${t('modals.fontSystemDefault')})` : f;
+                return text.toLowerCase().includes(lowerQuery);
+            });
+            
+            if (filtered.length === 0) {
+                uiFontDropdown.innerHTML = `<div class="menu-item" style="opacity: 0.5; cursor: default; font-size: 12px; line-height: 1.3;">${t('modals.fontNotFound')}</div>`;
+                return;
+            }
+
+            filtered.forEach(font => {
+                const item = document.createElement('div');
+                item.className = 'menu-item';
+                
+                // Пробиваем CSS-правило !important с помощью setProperty
+                const family = font === "Inter" ? "var(--font-main)" : `"${font}"`;
+                item.style.setProperty('font-family', family, 'important');
+                
+                const displayText = font === "Inter" ? `Inter (${t('modals.fontSystemDefault')})` : font;
+                item.textContent = displayText;
+                
+                item.addEventListener('mousedown', (e) => {
+                    e.preventDefault(); 
+                    uiFontInput.value = displayText;
+                    applyAndSaveUiFont();
+                    uiFontDropdown.classList.remove('show');
+                    setTimeout(() => uiFontDropdown.style.display = 'none', 200);
+                });
+                
+                uiFontDropdown.appendChild(item);
+            });
+        };
+
+        // Live-Preview: ТОЛЬКО фильтруем список визуально. Никаких запросов к бэкенду на каждый чих!
+        uiFontInput.addEventListener('input', () => {
+            renderFontList(uiFontInput.value.trim());
+        });
+
+        uiFontInput.addEventListener('focus', () => {
+            const val = uiFontInput.value.trim();
+            // Если там дефолтный текст, очищаем поле для удобного ввода новой строки
+            if (val === `Inter (${t('modals.fontSystemDefault')})` || val === "Inter") {
+                uiFontInput.value = '';
+            }
+            renderFontList(uiFontInput.value.trim());
+            uiFontDropdown.style.display = 'block';
+            setTimeout(() => uiFontDropdown.classList.add('show'), 10);
+        });
+
+        uiFontInput.addEventListener('blur', () => {
+            uiFontDropdown.classList.remove('show');
+            setTimeout(() => uiFontDropdown.style.display = 'none', 200);
+            applyAndSaveUiFont();
+        });
+
+        const applyAndSaveUiFont = async () => {
+            const val = uiFontInput.value.trim();
+            
+            // Если введено/выбрано дефолтное значение, сохраняем пустую строку в БД
+            const isDefault = !val || val === `Inter (${t('modals.fontSystemDefault')})` || val.toLowerCase() === "inter";
+            const saveVal = isDefault ? "" : val;
+            
+            await updateSettings({ ui_font: saveVal });
+            
+            // В самом инпуте визуально оставляем красивый локализованный плейсхолдер
+            uiFontInput.value = isDefault ? `Inter (${t('modals.fontSystemDefault')})` : val;
+            
+            const settings = await fetchSettings().catch(() => ({}));
+            updateAppFont(saveVal, settings.custom_font);
+        };
+        
+        uiFontInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                uiFontInput.blur();
+            }
+        });
+    }
     
     const amountInput = document.getElementById('notify-amount');
     if (amountInput) {
@@ -8596,6 +8801,13 @@ function initCloudSync() {
             const settingsData = await fetchSettings().catch(() => ({}));
             if (settingsData.theme) applyTheme(settingsData.theme, false);
             if (settingsData.language) applyLanguage(settingsData.language, false);
+            
+            // Применяем шрифты для окна Vault
+            updateAppFont(settingsData.ui_font, settingsData.custom_font);
+            const uiFontInput = document.getElementById('ui-font-input');
+            if (uiFontInput) {
+                uiFontInput.value = settingsData.ui_font ? settingsData.ui_font : `Inter (${t('modals.fontSystemDefault')})`;
+            }
         } catch (e) { console.error("Settings load failed in vault mode", e); }
 
         renderVaultHistory();
@@ -8656,6 +8868,13 @@ function initCloudSync() {
             fetchVault().catch(() => ({ name: "Doe Board" })),
             fetchWorkspaces().catch(() => [])
         ]);
+
+        // Применяем шрифты при старте основного окна
+        updateAppFont(settingsData.ui_font, settingsData.custom_font);
+        const uiFontInput = document.getElementById('ui-font-input');
+        if (uiFontInput) {
+            uiFontInput.value = settingsData.ui_font ? settingsData.ui_font : `Inter (${t('modals.fontSystemDefault')})`;
+        }
 
         updateVaultName(vaultData.name);
 

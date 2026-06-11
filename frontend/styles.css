@@ -14,7 +14,7 @@
     --timer-bg: rgba(194, 122, 98, 0.1);
     --success-done: #89A085;
 
-    --font-main: -apple-system, BlinkMacSystemFont, "SF Pro", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --font-main: "Inter", -apple-system, BlinkMacSystemFont, "SF Pro", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     --font-mono: 'SF Mono', 'JetBrains Mono', monospace;
 
     --shadow-card: 0 2px 6px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
@@ -290,8 +290,14 @@ body {
     user-select: none;
 }
 
-button, input, textarea, select {
-    font-family: inherit;
+body, button, input, textarea, select,
+.btn-add-card, .btn-add-subtask, .new-column-btn, .workspace-btn, .menu-item,
+.column-title, .card-title, .subtask-title, .tab-name, .confirm-btn, .modal-title,
+.vault-title, .vault-subtitle, .vault-action-card h3, .vault-action-card p,
+.markdown-body, .custom-tooltip, .app-toast, .dropdown-menu, .search-result-title, 
+.search-result-desc, .reminder-task-title, .subtasks-header span, .time-label, 
+.cal-title, .cal-ev-title, .cal-time-day-hdr, .datepicker-current-month, .dp-cell {
+    font-family: var(--font-main) !important;
 }
 
 .setting-input {
@@ -320,6 +326,42 @@ button, input, textarea, select {
 [data-theme="dark"] .setting-input:focus {
     background: var(--surface-card);
     border-color: rgba(137, 160, 133, 0.4);
+}
+
+.font-chips-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 4px;
+}
+
+.font-chip {
+    font-size: 12px;
+    padding: 4px 8px;
+    background: rgba(0, 0, 0, 0.04);
+    border-radius: 6px;
+    cursor: pointer;
+    color: var(--text-primary);
+    transition: background 0.15s ease, transform 0.1s ease;
+    user-select: none;
+    border: 1px solid var(--border-light);
+    line-height: 1.2;
+}
+
+.font-chip:hover {
+    background: rgba(0, 0, 0, 0.08);
+}
+
+.font-chip:active {
+    transform: scale(0.95);
+}
+
+[data-theme="dark"] .font-chip {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+[data-theme="dark"] .font-chip:hover {
+    background: rgba(255, 255, 255, 0.08);
 }
 
 .description-wrapper,
@@ -811,7 +853,8 @@ button, input, textarea, select {
 }
 
 .reminder-time {
-    font-family: var(--font-mono);
+    font-family: var(--font-mono) !important;
+    font-variant-numeric: tabular-nums;
     font-size: 11px;
     color: var(--text-secondary);
 }
@@ -3014,19 +3057,18 @@ body[class*="is-dragging-"] .board-tab:not(.active) {
     position: fixed;
     margin: 0;
     z-index: 99999;
-
     top: 0;
     left: 0;
     opacity: 0;
     visibility: hidden;
-    transform: translateY(-8px) scale(0.96);
-    transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+    transform: none !important;
+    transition: opacity 0.15s ease, visibility 0.15s;
 }
 
 .card .dropdown-menu.show {
     opacity: 1;
     visibility: visible;
-    transform: translateY(0) scale(1);
+    transform: none !important;
 }
 
 .card-context-menu {
@@ -3035,18 +3077,18 @@ body[class*="is-dragging-"] .board-tab:not(.active) {
     margin: 0 !important;
     pointer-events: auto;
 
-    will-change: auto !important;
+    will-change: opacity !important;
 
     opacity: 0;
     visibility: hidden;
-    transform: translateY(-8px) scale(0.96);
-
+    transform: none !important;
+    transition: opacity 0.1s ease-out, visibility 0.1s ease-out !important;
 }
 
 .card-context-menu.show {
     opacity: 1 !important;
     visibility: visible !important;
-    transform: translateY(0) scale(1) !important;
+    transform: none !important;
 }
 
 .card.has-open-menu {
@@ -5074,7 +5116,8 @@ body.is-dragging-vault-history * {
 }
 
 .modal-timer-pill {
-    font-family: var(--font-mono);
+    font-family: var(--font-mono) !important;
+    font-variant-numeric: tabular-nums;
     font-size: 13px;
     color: var(--timer-text);
     background: var(--timer-bg);
@@ -5096,7 +5139,8 @@ body.is-dragging-vault-history * {
 }
 
 .modal-timer-input {
-    font-family: var(--font-mono);
+    font-family: var(--font-mono) !important;
+    font-variant-numeric: tabular-nums;
     font-size: 13px;
     color: var(--timer-text);
     background: var(--surface-card);
@@ -5221,7 +5265,8 @@ body.is-dragging-vault-history * {
 }
 
 .card-timer {
-    font-family: var(--font-mono);
+    font-family: var(--font-mono) !important;
+    font-variant-numeric: tabular-nums;
     color: var(--timer-text);
     background: var(--timer-bg);
 }
@@ -6338,7 +6383,8 @@ mark.local-search-highlight.active {
     font-size: 10px;
     opacity: 0.7;
     margin-top: 2px;
-    font-family: var(--font-mono);
+    font-family: var(--font-mono) !important;
+    font-variant-numeric: tabular-nums;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -6640,12 +6686,14 @@ input#notify-amount.notify-field::-webkit-inner-spin-button {
 }
 
 #notify-modal .modal-card,
-#due-date-modal .modal-card {
+#due-date-modal .modal-card,
+#font-settings-modal .modal-card {
     overflow: visible !important;
 }
 
 #notify-modal .modal-header,
-#due-date-modal .modal-header {
+#due-date-modal .modal-header,
+#font-settings-modal .modal-header {
     border-top-left-radius: var(--radius-card) !important;
     border-top-right-radius: var(--radius-card) !important;
     padding: 12px !important;

@@ -353,7 +353,12 @@
             <!-- Поле ввода системного шрифта -->
             <div style="display: flex; flex-direction: column; gap: 6px;">
                 <label style="font-size: 12px; font-weight: 600; color: var(--text-secondary);" data-i18n="modals.fontInputLabel">Название системного шрифта</label>
-                <input type="text" id="ui-font-input" class="setting-input" placeholder="Например: Inter, Arial, Comic Sans MS..." spellcheck="false" autocomplete="off">
+                <div style="position: relative;" id="ui-font-wrapper">
+                    <input type="text" id="ui-font-input" class="setting-input" data-i18n="modals.fontSearchPlaceholder" placeholder="Поиск или ввод шрифта..." spellcheck="false" autocomplete="off">
+                    <div class="dropdown-menu custom-select-menu" id="ui-font-dropdown" style="top: 40px; left: 0; width: 100%; max-height: 180px; overflow-y: auto; display: none;">
+                        <!-- Список генерируется через JS -->
+                    </div>
+                </div>
             </div>
 
             <div class="menu-divider" style="margin: 0;"></div>
