@@ -19,7 +19,12 @@
 
     --shadow-card: 0 2px 6px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
     --shadow-menu: 0 20px 40px rgba(0, 0, 0, 0.1), 0 4px 12px rgba(0, 0, 0, 0.05);
-    --shadow-drag: 0 30px 60px rgba(0, 0, 0, 0.12), 0 12px 24px rgba(0, 0, 0, 0.08);
+    --shadow-drag: 
+        0 2px 4px rgba(0, 0, 0, 0.03),
+        0 8px 16px rgba(0, 0, 0, 0.04),
+        0 16px 32px rgba(0, 0, 0, 0.05),
+        0 32px 64px rgba(0, 0, 0, 0.06),
+        0 64px 128px rgba(0, 0, 0, 0.08);
 
     --radius-board: 16px;
     --radius-card: 16px;
@@ -214,9 +219,22 @@ svg, img {
     --timer-bg: rgba(214, 151, 128, 0.12);
     --success-done: #738A70;
 
-    --shadow-card: 0 2px 6px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
-    --shadow-menu: 0 20px 40px rgba(0, 0, 0, 0.6), 0 4px 12px rgba(0, 0, 0, 0.4);
-    --shadow-drag: 0 30px 60px rgba(0, 0, 0, 0.7), 0 12px 24px rgba(0, 0, 0, 0.5);
+    /* Дефолтная карточка: плотно лежит на доске */
+    --shadow-card: 
+        0 2px 2px -1px rgba(0, 0, 0, 1), 
+        0 1px 1px -1px rgba(0, 0, 0, 1);
+        
+    /* Выпадающие меню: парят чуть выше */
+    --shadow-menu: 
+        0 0 0 1px rgba(255, 255, 255, 0.08), 
+        0 8px 8px -4px rgba(0, 0, 0, 1), 
+        0 16px 16px -8px rgba(0, 0, 0, 1);
+        
+    /* Перетаскивание: максимальный отрыв, идеальная многослойность */
+    --shadow-drag: 
+        0 0 0 1px rgba(255, 255, 255, 0.12),   /* Яркая грань для отрыва от фона */
+        0 6px 6px -3px rgba(0, 0, 0, 1),       /* Плотная черная тень прямо под картой */
+        0 16px 16px -8px rgba(0, 0, 0, 1);
 }
 
 [data-theme="dark"] .icon-btn:hover,
@@ -6744,4 +6762,38 @@ input#notify-amount.notify-field::-webkit-inner-spin-button {
 
 .cal-event-chip, .cal-abs-event {
     transition: filter 0.15s, transform 0.2s ease, opacity 0.2s ease !important;
+}
+
+/* === Dark mode anti-banding film grain ===
+   8-bit displays cannot render smooth dark gradients: box-shadow blur
+   quantizes into visible rings near black. A ~2.5% noise overlay above
+   everything dithers quantization boundaries pixel-by-pixel, making
+   shadows perceptually continuous. Invisible as texture. */
+[data-theme="dark"] body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 2147483647;
+    pointer-events: none;
+    opacity: 0.035;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='256' height='256'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    background-size: 256px 256px;
+}
+
+/* Единая идеальная тень при наведении (hover) для темной темы */
+[data-theme="dark"] .card:not(.card-entering):hover:not(:has(.card-inline-trigger:hover)),
+[data-theme="dark"] .subtask-item:hover,
+[data-theme="dark"] .vault-history-item:hover,
+[data-theme="dark"] .card.has-open-menu {
+    box-shadow: 
+        0 6px 6px -3px rgba(0, 0, 0, 1), 
+        0 2px 2px -1px rgba(0, 0, 0, 1) !important;
+}
+
+/* Также убираем старый грязный hover у подзадач, если он где-то остался */
+[data-theme="dark"] .subtask-item:hover {
+    box-shadow: 
+        0 6px 6px -3px rgba(0, 0, 0, 1), 
+        0 2px 2px -1px rgba(0, 0, 0, 1);
 }
