@@ -25,7 +25,7 @@ const translations = {
         },
         copied: 'Скопировано!',
         modals: { 
-            extTitle: 'Расширения', extSearch: 'Поиск', extCalendar: 'Календарь', extReminders: 'Напоминания', extGraph: 'Граф связей', extTabs: 'Вкладки',
+            extTitle: 'Расширения', extSearch: 'Поиск', extCalendar: 'Календарь', extReminders: 'Напоминания', extGraph: 'Граф связей', extTabs: 'Вкладки', extDeadlines: 'Дедлайны', extExport: 'Экспорт карточек',
             notifyTitle: 'Напомнить', notifyRelative: 'Через', notifyAbsolute: 'В точное время', btnSet: 'Установить',
             fontTitle: 'Шрифт приложения', fontInputLabel: 'Название системного шрифта', fontFileLabel: 'Шрифт хранилища (переносной)',
             fontWarning: 'Загружается в папку хранилища.', fontSearchPlaceholder: 'Поиск или ввод шрифта...',
@@ -110,7 +110,7 @@ const translations = {
         },
         copied: 'Copied!',
         modals: { 
-            extTitle: 'Extensions', extSearch: 'Search', extCalendar: 'Calendar', extReminders: 'Reminders', extGraph: 'Connections Graph', extTabs: 'Tabs',
+            extTitle: 'Extensions', extSearch: 'Search', extCalendar: 'Calendar', extReminders: 'Reminders', extGraph: 'Connections Graph', extTabs: 'Tabs', extDeadlines: 'Deadlines', extExport: 'Card Export',
             notifyTitle: 'Remind me', notifyRelative: 'In', notifyAbsolute: 'At exact time', btnSet: 'Set',
             fontTitle: 'App Font', fontInputLabel: 'System font name', fontFileLabel: 'Vault font (portable)',
             fontWarning: 'Saved inside the vault folder.', fontSearchPlaceholder: 'Search or type font name...',
@@ -264,7 +264,12 @@ window.resetCustomFont = async () => {
 };
 
 window.applyExtensionsUI = (exts) => {
-    if (!exts) exts = { search: true, calendar: true, reminders: true, graph: true, tabs: true };
+    if (!exts) exts = { search: true, calendar: true, reminders: true, graph: true, tabs: true, deadlines: true, export: true };
+    
+    // Скрываем или показываем UI дедлайнов глобально через CSS-класс
+    document.body.classList.toggle('ext-deadlines-hidden', !exts.deadlines);
+    // Скрываем экспорт
+    document.body.classList.toggle('ext-export-hidden', !exts.export);
     
     const searchWrapper = document.getElementById('global-search-wrapper');
     const calendarBtn = document.getElementById('calendar-trigger');
@@ -295,12 +300,16 @@ window.applyExtensionsUI = (exts) => {
     const tReminders = document.getElementById('ext-toggle-reminders');
     const tGraph = document.getElementById('ext-toggle-graph');
     const tTabs = document.getElementById('ext-toggle-tabs');
+    const tDeadlines = document.getElementById('ext-toggle-deadlines');
+    const tExport = document.getElementById('ext-toggle-export');
 
     if (tSearch) tSearch.checked = exts.search;
     if (tCalendar) tCalendar.checked = exts.calendar;
     if (tReminders) tReminders.checked = exts.reminders;
     if (tGraph) tGraph.checked = exts.graph;
     if (tTabs) tTabs.checked = exts.tabs;
+    if (tDeadlines) tDeadlines.checked = exts.deadlines;
+    if (tExport) tExport.checked = exts.export;
 };
 
 window.toggleExtension = async (key, value) => {

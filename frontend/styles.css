@@ -6845,3 +6845,17 @@ input#notify-amount.notify-field::-webkit-inner-spin-button {
 [data-theme="dark"] .toggle-slider:before {
     background-color: var(--surface-card);
 }
+
+/* Скрытие дедлайнов через настройки расширений */
+body.ext-deadlines-hidden .due-date-pill,
+body.ext-deadlines-hidden #modal-due-date,
+body.ext-deadlines-hidden #menu-set-due-date,
+body.ext-deadlines-hidden #menu-clear-due-date {
+    display: none !important;
+}
+
+/* Скрытие экспорта через настройки расширений */
+body.ext-export-hidden .modal-export,
+body.ext-export-hidden .menu-item[data-action="export-card"] {
+    display: none !important;
+}

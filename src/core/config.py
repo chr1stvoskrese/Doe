@@ -105,7 +105,7 @@ def get_ui_settings() -> dict:
     vault_path = get_active_vault()
     active_workspaces = data.get("active_workspaces", {})
     # По умолчанию все расширения включены
-    default_extensions = {"search": True, "calendar": True, "reminders": True, "graph": True, "tabs": True}
+    default_extensions = {"search": True, "calendar": True, "reminders": True, "graph": True, "tabs": True, "deadlines": True, "export": True}
     return {
         "theme": data.get("theme", "light"),
         "language": data.get("language", "ru"),
@@ -121,7 +121,7 @@ def set_ui_settings(theme: str = None, language: str = None, active_workspace_id
     if language is not None: data["language"] = language
     if ui_font is not None: data["ui_font"] = ui_font
     if extensions is not None: 
-        current_exts = data.get("extensions", {"search": True, "calendar": True, "reminders": True, "graph": True, "tabs": True})
+        current_exts = data.get("extensions", {"search": True, "calendar": True, "reminders": True, "graph": True, "tabs": True, "deadlines": True, "export": True})
         current_exts.update(extensions)
         data["extensions"] = current_exts
     
