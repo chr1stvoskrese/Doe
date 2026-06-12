@@ -129,6 +129,10 @@
                     <span data-i18n="menu.fontSettings">Шрифт</span>
                 </div>
                 <div class="menu-divider"></div>
+                <div class="menu-item" data-action="extensions-settings">
+                    <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+                    <span data-i18n="menu.extensions">Расширения</span>
+                </div>
                 <div class="menu-item" data-action="attachments-settings">
                     <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
                     <span data-i18n="menu.attachmentsSettings">Хранилище вложений</span>
@@ -769,14 +773,14 @@
             <div class="cal-controls-left">
                 <button class="icon-btn" id="cal-prev"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
                 <button class="icon-btn" id="cal-next"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
-                <button class="cal-today-btn" id="cal-today">Сегодня</button>
+                <button class="cal-today-btn" id="cal-today" data-i18n="calendar.today">Сегодня</button>
                 <span class="modal-title cal-title" id="cal-title-label">Сентябрь 2026</span>
             </div>
-            
+
             <div class="cal-controls-center segmented-control" style="margin-bottom:0;">
-                <div class="segmented-btn active" data-view="month">Месяц</div>
-                <div class="segmented-btn" data-view="week">Неделя</div>
-                <div class="segmented-btn" data-view="day">День</div>
+                <div class="segmented-btn active" data-view="month" data-i18n="calendar.month">Месяц</div>
+                <div class="segmented-btn" data-view="week" data-i18n="calendar.week">Неделя</div>
+                <div class="segmented-btn" data-view="day" data-i18n="calendar.day">День</div>
             </div>
 
             <div class="cal-controls-right">
@@ -803,6 +807,73 @@
     <div class="app-toast-text">
         <span class="app-toast-title" id="app-toast-title">Уведомление</span>
         <span class="app-toast-message" id="app-toast-message">Текст</span>
+    </div>
+</div>
+
+<!-- 🧩 МОДАЛКА РАСШИРЕНИЙ -->
+<div class="modal-overlay" id="extensions-modal">
+    <div class="modal-card" style="width: 320px;">
+        <div class="modal-header">
+            <span class="modal-title" data-i18n="modals.extTitle">Расширения</span>
+            <button class="modal-close" aria-label="Закрыть">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+        </div>
+        <div class="modal-body" style="padding: 16px; gap: 8px;">
+            <div class="settings-group-card">
+                
+                <div class="setting-row" style="cursor: default;">
+                    <div class="setting-text-box">
+                        <div class="setting-title" data-i18n="modals.extSearch">Поиск</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="ext-toggle-search" onchange="toggleExtension('search', this.checked)">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div class="setting-row" style="cursor: default;">
+                    <div class="setting-text-box">
+                        <div class="setting-title" data-i18n="modals.extCalendar">Календарь</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="ext-toggle-calendar" onchange="toggleExtension('calendar', this.checked)">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div class="setting-row" style="cursor: default;">
+                    <div class="setting-text-box">
+                        <div class="setting-title" data-i18n="modals.extReminders">Напоминания</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="ext-toggle-reminders" onchange="toggleExtension('reminders', this.checked)">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div class="setting-row" style="cursor: default;">
+                    <div class="setting-text-box">
+                        <div class="setting-title" data-i18n="modals.extGraph">Граф связей</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="ext-toggle-graph" onchange="toggleExtension('graph', this.checked)">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div class="setting-row" style="cursor: default;">
+                    <div class="setting-text-box">
+                        <div class="setting-title" data-i18n="modals.extTabs">Вкладки</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="ext-toggle-tabs" onchange="toggleExtension('tabs', this.checked)">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+            </div>
+        </div>
     </div>
 </div>
 

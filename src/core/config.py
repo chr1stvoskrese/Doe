@@ -104,17 +104,26 @@ def get_ui_settings() -> dict:
     data = _load_config()
     vault_path = get_active_vault()
     active_workspaces = data.get("active_workspaces", {})
+    # По умолчанию все расширения включены
+    default_extensions = {"search": True, "calendar": True, "reminders": True, "graph": True, "tabs": True}
     return {
         "theme": data.get("theme", "light"),
         "language": data.get("language", "ru"),
         "active_workspace_id": active_workspaces.get(vault_path),
-        "global_attachments_path": data.get("global_attachments_path")
+        "global_attachments_path": data.get("global_attachments_path"),
+        "ui_font": data.get("ui_font", ""),
+        "extensions": data.get("extensions", default_extensions)
     }
 
-def set_ui_settings(theme: str = None, language: str = None, active_workspace_id: int = None, global_attachments_path: str = None, reset_attachments: bool = False) -> None:
+def set_ui_settings(theme: str = None, language: str = None, active_workspace_id: int = None, global_attachments_path: str = None, reset_attachments: bool = False, ui_font: str = None, extensions: dict = None) -> None:
     data = _load_config()
     if theme is not None: data["theme"] = theme
     if language is not None: data["language"] = language
+    if ui_font is not None: data["ui_font"] = ui_font
+    if extensions is not None: 
+        current_exts = data.get("extensions", {"search": True, "calendar": True, "reminders": True, "graph": True, "tabs": True})
+        current_exts.update(extensions)
+        data["extensions"] = current_exts
     
     if reset_attachments:
         data.pop("global_attachments_path", None)

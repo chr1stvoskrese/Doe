@@ -356,6 +356,7 @@ class SettingsUpdate(BaseModel):
     global_attachments_path: Optional[str] = None
     reset_attachments: Optional[bool] = False
     ui_font: Optional[str] = None
+    extensions: Optional[dict] = None
 
 class SettingsResponse(BaseModel):
     theme: str
@@ -364,6 +365,7 @@ class SettingsResponse(BaseModel):
     global_attachments_path: Optional[str] = None
     custom_font: Optional[str] = None
     ui_font: Optional[str] = ""
+    extensions: Optional[dict] = None
 
 @router.get("/settings", response_model=SettingsResponse)
 async def get_settings_endpoint():
@@ -446,7 +448,8 @@ async def update_settings_endpoint(settings: SettingsUpdate, db: AsyncSession = 
         active_workspace_id=settings.active_workspace_id,
         global_attachments_path=settings.global_attachments_path,
         reset_attachments=settings.reset_attachments,
-        ui_font=settings.ui_font
+        ui_font=settings.ui_font,
+        extensions=settings.extensions
     )
 
     # 3. Узнаем НОВУЮ папку вложений

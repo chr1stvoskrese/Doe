@@ -21,10 +21,11 @@ const translations = {
             deleteCard: 'Удалить карточку', clearTimer: 'Очистить таймер',
             exportCard: 'Экспорт в Markdown', attachmentsSettings: 'Хранилище вложений', fontSettings: 'Шрифт',
             copyCardLink: 'Скопировать ссылку', dueDate: 'Установить дедлайн', clearDueDate: 'Очистить дедлайн', notify: 'Напомнить',
-            reminders: 'Активные напоминания', remindersEmpty: 'Нет активных напоминаний'
+            reminders: 'Активные напоминания', remindersEmpty: 'Нет активных напоминаний', extensions: 'Расширения'
         },
         copied: 'Скопировано!',
         modals: { 
+            extTitle: 'Расширения', extSearch: 'Поиск', extCalendar: 'Календарь', extReminders: 'Напоминания', extGraph: 'Граф связей', extTabs: 'Вкладки',
             notifyTitle: 'Напомнить', notifyRelative: 'Через', notifyAbsolute: 'В точное время', btnSet: 'Установить',
             fontTitle: 'Шрифт приложения', fontInputLabel: 'Название системного шрифта', fontFileLabel: 'Шрифт хранилища (переносной)',
             fontWarning: 'Загружается в папку хранилища.', fontSearchPlaceholder: 'Поиск или ввод шрифта...',
@@ -91,6 +92,7 @@ const translations = {
         },
         errors: { tooLong: 'Максимум 200 символов' },
         graph: { title: 'Граф связей', empty: 'Карточек пока нет.\nСоздайте карточки на доске.', arrows: 'Стрелки' },
+        calendar: { today: 'Сегодня', month: 'Месяц', week: 'Неделя', day: 'День', loading: 'Загрузка данных...', error: 'Ошибка загрузки' },
         alerts: { loadError: 'Не удалось загрузить доску', error: 'Ошибка' }
     },
     en: {
@@ -104,10 +106,11 @@ const translations = {
             deleteCard: 'Delete card', clearTimer: 'Clear timer',
             exportCard: 'Export to Markdown', attachmentsSettings: 'Attachments Storage', fontSettings: 'Font',
             copyCardLink: 'Copy link', dueDate: 'Set deadline', clearDueDate: 'Clear deadline', notify: 'Remind me',
-            reminders: 'Active Reminders', remindersEmpty: 'No active reminders'
+            reminders: 'Active Reminders', remindersEmpty: 'No active reminders', extensions: 'Extensions'
         },
         copied: 'Copied!',
         modals: { 
+            extTitle: 'Extensions', extSearch: 'Search', extCalendar: 'Calendar', extReminders: 'Reminders', extGraph: 'Connections Graph', extTabs: 'Tabs',
             notifyTitle: 'Remind me', notifyRelative: 'In', notifyAbsolute: 'At exact time', btnSet: 'Set',
             fontTitle: 'App Font', fontInputLabel: 'System font name', fontFileLabel: 'Vault font (portable)',
             fontWarning: 'Saved inside the vault folder.', fontSearchPlaceholder: 'Search or type font name...',
@@ -171,6 +174,7 @@ const translations = {
         },
         errors: { tooLong: 'Maximum 200 characters' },
         graph: { title: 'Connections Graph', empty: 'No cards yet.\nCreate cards on the board.', arrows: 'Arrows' },
+        calendar: { today: 'Today', month: 'Month', week: 'Week', day: 'Day', loading: 'Loading data...', error: 'Load error' },
         alerts: { loadError: 'Failed to load board', error: 'Error' }
     }
 };
@@ -185,7 +189,7 @@ const dpLocales = {
     en: {
         months: ['January','February','March','April','May','June','July','August','September','October','November','December'],
         monthsGenitive: ['January','February','March','April','May','June','July','August','September','October','November','December'],
-        days: ['Mo','Tu','We','Th','Fr','Sa','Su'],
+        days: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
         time: 'Time'
     }
 };
@@ -258,6 +262,68 @@ window.resetCustomFont = async () => {
         }
     } catch(e) { console.error(e); }
 };
+
+window.applyExtensionsUI = (exts) => {
+    if (!exts) exts = { search: true, calendar: true, reminders: true, graph: true, tabs: true };
+    
+    const searchWrapper = document.getElementById('global-search-wrapper');
+    const calendarBtn = document.getElementById('calendar-trigger');
+    const remindersBtn = document.getElementById('reminders-bell-wrapper');
+    const graphBtn = document.getElementById('graph-trigger');
+    const tabsWrapper = document.getElementById('tabs-wrapper');
+
+    if (searchWrapper) searchWrapper.style.display = exts.search ? '' : 'none';
+    if (calendarBtn) calendarBtn.style.display = exts.calendar ? '' : 'none';
+    if (remindersBtn) remindersBtn.style.display = exts.reminders ? '' : 'none';
+    if (graphBtn) graphBtn.style.display = exts.graph ? '' : 'none';
+    if (tabsWrapper) tabsWrapper.style.display = exts.tabs ? '' : 'none';
+
+    // Скрываем пункт в глобальном контекстном меню
+    const notifyMenuItem = document.querySelector('.menu-item[data-action="notify-card"]');
+    if (notifyMenuItem) {
+        notifyMenuItem.style.display = exts.reminders ? '' : 'none';
+    }
+
+    // Скрываем кнопку "Напомнить" внутри открытой карточки
+    const modalNotifyBtn = document.querySelector('.modal-notify');
+    if (modalNotifyBtn) {
+        modalNotifyBtn.style.display = exts.reminders ? '' : 'none';
+    }
+
+    const tSearch = document.getElementById('ext-toggle-search');
+    const tCalendar = document.getElementById('ext-toggle-calendar');
+    const tReminders = document.getElementById('ext-toggle-reminders');
+    const tGraph = document.getElementById('ext-toggle-graph');
+    const tTabs = document.getElementById('ext-toggle-tabs');
+
+    if (tSearch) tSearch.checked = exts.search;
+    if (tCalendar) tCalendar.checked = exts.calendar;
+    if (tReminders) tReminders.checked = exts.reminders;
+    if (tGraph) tGraph.checked = exts.graph;
+    if (tTabs) tTabs.checked = exts.tabs;
+};
+
+window.toggleExtension = async (key, value) => {
+    try {
+        const payload = { extensions: {} };
+        payload.extensions[key] = value;
+        
+        // Сразу получаем обновленные настройки из ответа PUT
+        const res = await fetch(`${API_BASE}/system/settings`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+            const updatedSettings = await res.json();
+            window.applyExtensionsUI(updatedSettings.extensions);
+        }
+    } catch (e) {
+        console.error("Ошибка переключения расширения:", e);
+    }
+};
+
 // ----------------------
 
 let toastTimeout;
@@ -4248,6 +4314,13 @@ document.addEventListener('click', async (e) => {
             }).catch(console.error);
             closeAllDropdowns();
         }
+        else if (action === 'extensions-settings') {
+            fetchSettings().then(data => {
+                window.applyExtensionsUI(data.extensions);
+                document.getElementById('extensions-modal').classList.add('show');
+            }).catch(console.error);
+            closeAllDropdowns();
+        }
         else if (action === 'about') {
             document.getElementById('about-modal').classList.add('show');
             closeAllDropdowns();
@@ -7393,16 +7466,22 @@ function initGlobalSearch() {
 
     document.addEventListener('keydown', (e) => {
         if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'f') {
-            e.preventDefault(); 
-            
             const taskModal = document.getElementById('task-modal');
+            
+            // Если карточка открыта — всегда открываем ЛОКАЛЬНЫЙ поиск, 
+            // даже если глобальный поиск отключен в расширениях
             if (taskModal && taskModal.classList.contains('show')) {
+                e.preventDefault(); 
                 if (window.openLocalSearch) window.openLocalSearch();
                 return;
             }
             
-            input.focus();
-            input.select();
+            // Проверяем, не скрыт ли wrapper глобального поиска
+            if (wrapper && wrapper.style.display !== 'none') {
+                e.preventDefault();
+                input.focus();
+                input.select();
+            }
         }
     });
 
@@ -9074,6 +9153,8 @@ function initCloudSync() {
             if (settingsData.theme) applyTheme(settingsData.theme, false);
             if (settingsData.language) applyLanguage(settingsData.language, false);
             
+            window.applyExtensionsUI(settingsData.extensions);
+
             // Применяем шрифты для окна Vault
             updateAppFont(settingsData.ui_font, settingsData.custom_font);
             const uiFontInput = document.getElementById('ui-font-input');
@@ -9140,6 +9221,8 @@ function initCloudSync() {
             fetchVault().catch(() => ({ name: "Doe Board" })),
             fetchWorkspaces().catch(() => [])
         ]);
+
+        window.applyExtensionsUI(settingsData.extensions);
 
         // Применяем шрифты при старте основного окна
         updateAppFont(settingsData.ui_font, settingsData.custom_font);
@@ -9380,7 +9463,7 @@ const Calendar = {
         this.modal.classList.add('show');
         
         this.currentDate = new Date();
-        this.body.innerHTML = `<div class="graph-empty" style="display:flex;">Загрузка данных...</div>`;
+        this.body.innerHTML = `<div class="graph-empty" style="display:flex;">${t('calendar.loading')}</div>`;
         
         await this.syncData();
     },
@@ -9402,7 +9485,7 @@ const Calendar = {
         } catch (e) {
             console.error("Calendar fetch error:", e);
             if (!this.events || this.events.length === 0) {
-                this.body.innerHTML = `<div class="graph-empty" style="display:flex;">Ошибка загрузки</div>`;
+                this.body.innerHTML = `<div class="graph-empty" style="display:flex;">${t('calendar.error')}</div>`;
             }
         }
     },
