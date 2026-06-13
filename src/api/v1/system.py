@@ -4,7 +4,7 @@ from src.core.watcher import ws_manager  # <-- ДОБАВИТЬ ЭТО
 from src.db.database import get_session # Добавили
 from src.services.task_service import cleanup_orphaned_attachments # Добавили
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, Any # Any добавлен для статической типизации параметров DTO
 import os
 import sys
 import subprocess
@@ -15,12 +15,78 @@ import webbrowser # <--- Добавили для открытия веб-ссы�
 import urllib.parse # <--- Для работы с file://
 from src.core.config import get_vault_history, remove_vault_from_history, reorder_vault_history, relink_vault_history
 
+import json
+import anyio
+from datetime import datetime, timezone
+from sqlalchemy.orm import selectinload
+from sqlalchemy import select
 from urllib.parse import unquote
 
+# ColumnMode добавлен на верхний уровень импортов для соответствия PEP 8 и оптимизации работы СУБД
+from src.db.models import WorkspaceModel, ColumnModel, ColumnMode, TaskModel, TimerSessionModel, task_relations
 from src.db.database import switch_vault
 from src.core.config import get_active_vault, get_ui_settings, set_ui_settings, get_attachments_dir
+from src.core.watcher import vault_observer
 
 router = APIRouter(prefix="/system", tags=["system"])
+
+# --- Вспомогательные функции для JSON DTO ---
+def _fmt_dt(dt) -> Optional[str]:
+    if not dt:
+        return None
+    # Защита от Double Timezone Formatting: приводим к UTC перед форматированием
+    if dt.tzinfo is not None:
+        return dt.astimezone(timezone.utc).replace(tzinfo=None).isoformat() + "Z"
+    return dt.isoformat() + "Z"
+
+def _parse_dt(dt_str: Any) -> Optional[datetime]: # Any импортирован из typing в начале файла
+    if not dt_str:
+        return None
+    # Защита от Already-parsed Datetime Collision
+    if isinstance(dt_str, datetime):
+        return dt_str.replace(tzinfo=None)
+    try:
+        # Для обратной совместимости с Python < 3.11 заменяем Z на UTC-смещение
+        if dt_str.endswith('Z'):
+            dt_str = dt_str[:-1] + '+00:00'
+        dt = datetime.fromisoformat(dt_str)
+        # Если строка содержала часовой пояс, приводим к UTC и убираем tzinfo для SQLite
+        if dt.tzinfo is not None:
+            dt = dt.astimezone(timezone.utc).replace(tzinfo=None)
+        return dt
+    except Exception:
+        # Резервный срез на случай нестандартных форматов (YYYY-MM-DDTHH:MM:SS)
+        try:
+            return datetime.fromisoformat(dt_str[:19])
+        except Exception:
+            return datetime.utcnow()
+
+def _ensure_list(val) -> list:
+    """Гарантирует распаковку JSON-полей в Python-список независимо от поведения драйвера."""
+    if isinstance(val, list):
+        return val
+    if isinstance(val, str):
+        try:
+            parsed = json.loads(val)
+            if isinstance(parsed, list):
+                return parsed
+        except Exception:
+            pass
+    return []
+
+def _filter_model_kwargs(model_class, kwargs: dict) -> dict:
+    """
+    Инспектирует схему SQLAlchemy-модели и оставляет только те ключи, 
+    которые физически присутствуют в текущей версии таблицы базы данных.
+    """
+    from sqlalchemy.inspection import inspect
+    try:
+        mapper = inspect(model_class)
+        # Извлекаем все доступные имена колонок и отношений (relationships)
+        valid_keys = set(mapper.columns.keys()) | set(mapper.relationships.keys())
+        return {k: v for k, v in kwargs.items() if k in valid_keys}
+    except Exception:
+        return kwargs # Фолбэк на случай сбоев инспектора
 
 # Очередь для передачи событий от ОС к фронтенду
 pending_highlights = []
@@ -1448,3 +1514,293 @@ def get_system_font_families() -> list[str]:
 async def get_available_fonts():
     """Эндпоинт для получения списка установленных в ОС шрифтов."""
     return get_system_font_families()
+
+class ExportJsonReq(BaseModel):
+    path: str
+
+@router.post("/export-json")
+async def export_json_endpoint(req: ExportJsonReq, db: AsyncSession = Depends(get_session)):
+    target_dir = Path(req.path)
+    if not target_dir.exists() or not target_dir.is_dir():
+        raise HTTPException(status_code=400, detail="Invalid directory")
+
+    ws_res = await db.execute(select(WorkspaceModel))
+    workspaces = ws_res.scalars().all()
+    
+    col_res = await db.execute(select(ColumnModel))
+    columns = col_res.scalars().all()
+    
+    # .unique() строго обязательно для selectinload в асинхронном режиме SQLAlchemy
+    task_res = await db.execute(select(TaskModel).options(
+        selectinload(TaskModel.parents),
+        selectinload(TaskModel.timer_sessions)
+    ))
+    tasks = task_res.scalars().unique().all()
+    
+    # Сборка плоского семантического DTO
+    data = {
+        "metadata": {
+            "app": "Doe Kanban",
+            "version": "1.0",
+            "exported_at": datetime.utcnow().isoformat() + "Z"
+        },
+        "workspaces": [
+            {"ref_id": w.id, "name": w.name, "position": w.position, "created_at": _fmt_dt(w.created_at)} for w in workspaces
+        ],
+        "columns": [
+            {
+                "ref_id": c.id, "workspace_ref": c.workspace_id, 
+                "title": c.title, "mode": c.mode.value, 
+                "position": c.position, "collapsed": c.collapsed,
+                "created_at": _fmt_dt(c.created_at), "updated_at": _fmt_dt(c.updated_at)
+            } for c in columns
+        ],
+        "tasks": [
+            {
+                "ref_id": t.id, "column_ref": t.column_id, "title": t.title,
+                "description": t.description, "position": t.position,
+                "completed_at": _fmt_dt(t.completed_at), "due_date": _fmt_dt(t.due_date),
+                "is_visible_on_board": t.is_visible_on_board,
+                "attachments_order": _ensure_list(t.attachments_order),
+                "folded_headings": _ensure_list(t.folded_headings),
+                "created_at": _fmt_dt(t.created_at), "updated_at": _fmt_dt(t.updated_at),
+                "parent_refs": [p.id for p in t.parents],
+                "timer_sessions": [
+                    {
+                        "start_time": _fmt_dt(s.start_time),
+                        "end_time": _fmt_dt(s.end_time),
+                        "is_active": s.is_active
+                    } for s in t.timer_sessions
+                ]
+            } for t in tasks
+        ]
+    }
+    
+    export_file = target_dir / f"doe_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+    
+    # Выполняем синхронную запись файла в отдельном системном потоке, сохраняя отзывчивость UI
+    def _save_file():
+        with open(export_file, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+            
+    await anyio.to_thread.run_sync(_save_file)
+    return {"success": True, "file": str(export_file)}
+
+class ImportJsonReq(BaseModel):
+    path: str
+
+@router.post("/import-json")
+async def import_json_endpoint(req: ImportJsonReq, db: AsyncSession = Depends(get_session)):
+    file_path = Path(req.path)
+    if not file_path.exists() or file_path.suffix.lower() != '.json':
+        raise HTTPException(status_code=400, detail="Invalid JSON file")
+        
+    # Считывание файла в фоновом потоке
+    def _read_file():
+        with open(file_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+            
+    try:
+        data = await anyio.to_thread.run_sync(_read_file)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Failed to parse JSON")
+        
+    if data.get("metadata", {}).get("app") != "Doe Kanban":
+        raise HTTPException(status_code=400, detail="Not a Doe Kanban export file")
+
+    # Временно останавливаем фонового наблюдателя за БД.
+    # Это предотвращает коллизии SQLite-транзакций и ложные перезагрузки фронтенда во время массового импорта.
+    vault_observer.stop()
+    
+    try:
+        # Избегаем коллизий: сдвигаем позиции воркспейсов
+        max_ws_res = await db.execute(select(WorkspaceModel.position).order_by(WorkspaceModel.position.desc()).limit(1))
+        max_ws_pos = max_ws_res.scalar()
+        if max_ws_pos is None:
+            max_ws_pos = 0.0
+        ws_offset = max_ws_pos + 1.0
+
+        ws_map = {}
+        col_map = {}
+        col_modes_map = {} # Карта режимов колонок для отслеживания бизнес-логики таймеров
+        task_map = {}
+        first_new_ws_id = None
+        
+        # Получаем фолбэк-время экспорта
+        exported_at_dt = _parse_dt(data.get("metadata", {}).get("exported_at")) or datetime.utcnow()
+
+        # 1. Воркспейсы
+        for ws_data in data.get("workspaces", []):
+            ws_pos = ws_data.get("position")
+            if ws_pos is None:
+                ws_pos = 0.0
+                
+            ws_kwargs = _filter_model_kwargs(WorkspaceModel, {
+                "name": ws_data["name"], # Вызовет KeyError, если поле отсутствует в JSON
+                "position": ws_pos + ws_offset,
+                "created_at": _parse_dt(ws_data.get("created_at")) or datetime.utcnow()
+            })
+            new_ws = WorkspaceModel(**ws_kwargs)
+            db.add(new_ws)
+            await db.flush() # Выполняем flush, чтобы БД выдала нам реальный ID
+            # Принудительное приведение к строке страхует от несовпадения типов в словаре маппинга (str vs int)
+            ws_map[str(ws_data["ref_id"])] = new_ws.id
+            if first_new_ws_id is None:
+                first_new_ws_id = new_ws.id
+            
+        # 2. Колонки
+        from src.db.models import ColumnMode
+        for col_data in data.get("columns", []):
+            old_ws_ref = str(col_data.get("workspace_ref"))
+            if old_ws_ref not in ws_map:
+                continue
+                
+            raw_mode = col_data.get("mode", "default")
+            try:
+                db_mode = ColumnMode(raw_mode)
+            except ValueError:
+                db_mode = ColumnMode.DEFAULT
+                
+            col_pos = col_data.get("position")
+            if col_pos is None:
+                col_pos = 0.0
+                
+            col_collapsed = col_data.get("collapsed")
+            if col_collapsed is None:
+                col_collapsed = False
+                
+            col_kwargs = _filter_model_kwargs(ColumnModel, {
+                "title": col_data["title"], # Вызовет KeyError, если поле отсутствует в JSON
+                "mode": db_mode,
+                "position": col_pos,
+                "collapsed": col_collapsed,
+                "workspace_id": ws_map[old_ws_ref],
+                "created_at": _parse_dt(col_data.get("created_at")) or datetime.utcnow(),
+                "updated_at": _parse_dt(col_data.get("updated_at")) or datetime.utcnow()
+            })
+            new_col = ColumnModel(**col_kwargs)
+            db.add(new_col)
+            await db.flush()
+            col_id_str = str(new_col.id)
+            col_map[str(col_data["ref_id"])] = new_col.id
+            col_modes_map[str(col_data["ref_id"])] = db_mode # Накапливаем режимы для последующего импорта задач
+            
+        # 3. Задачи и Таймеры
+        tasks_to_link = []
+        for task_data in data.get("tasks", []):
+            old_col_ref = task_data.get("column_ref")
+            if old_col_ref is None or str(old_col_ref) not in col_map:
+                continue
+                
+            task_pos = task_data.get("position")
+            if task_pos is None:
+                task_pos = 0.0
+                
+            is_visible = task_data.get("is_visible_on_board")
+            if is_visible is None:
+                is_visible = False
+                
+            # Проверяем, импортируем ли мы карточку в колонку учета времени
+            is_track_time_column = (col_modes_map.get(str(old_col_ref)) == ColumnMode.TRACK_TIME)
+                
+            task_kwargs = _filter_model_kwargs(TaskModel, {
+                "title": task_data["title"], # Вызовет KeyError, если поле отсутствует в JSON
+                "description": task_data.get("description"),
+                "position": task_pos,
+                "column_id": col_map[str(old_col_ref)],
+                "completed_at": _parse_dt(task_data.get("completed_at")),
+                "due_date": _parse_dt(task_data.get("due_date")),
+                "is_visible_on_board": is_visible,
+                "attachments_order": _ensure_list(task_data.get("attachments_order")),
+                "folded_headings": _ensure_list(task_data.get("folded_headings")),
+                "created_at": _parse_dt(task_data.get("created_at")) or datetime.utcnow(),
+                "updated_at": _parse_dt(task_data.get("updated_at")) or datetime.utcnow()
+            })
+            new_task = TaskModel(**task_kwargs)
+            db.add(new_task)
+            await db.flush()
+            task_map[str(task_data["ref_id"])] = new_task.id
+            
+            has_active_session_in_json = False
+            for timer_data in task_data.get("timer_sessions", []):
+                st = _parse_dt(timer_data.get("start_time")) or datetime.utcnow()
+                et = _parse_dt(timer_data.get("end_time"))
+                is_act = bool(timer_data.get("is_active", False))
+                
+                # Если колонка требует учета времени и сессия была активна при экспорте — сохраняем ее активной
+                if is_track_time_column and is_act and et is None:
+                    new_is_active = True
+                    new_end_time = None
+                    has_active_session_in_json = True
+                else:
+                    # В обычных колонках или для архивных сессий — глушим/сохраняем архивный статус
+                    new_is_active = False
+                    new_end_time = et or exported_at_dt
+                    
+                timer_kwargs = _filter_model_kwargs(TimerSessionModel, {
+                    "task_id": new_task.id,
+                    "start_time": st,
+                    "end_time": new_end_time,
+                    "is_active": new_is_active
+                })
+                new_timer = TimerSessionModel(**timer_kwargs)
+                db.add(new_timer)
+                
+            # Если колонка — учет времени, но в бэкапе для задачи не было активной сессии,
+            # принудительно запускаем таймер с текущего момента, соблюдая бизнес-логику доски
+            if is_track_time_column and not has_active_session_in_json:
+                new_active_timer = TimerSessionModel(
+                    task_id=new_task.id,
+                    start_time=datetime.utcnow(),
+                    end_time=None,
+                    is_active=True
+                )
+                db.add(new_active_timer)
+                
+            # Защита от Null Boolean Bug в списке связей родительских задач
+            parent_refs = task_data.get("parent_refs")
+            if not isinstance(parent_refs, list):
+                parent_refs = []
+                
+            tasks_to_link.append((new_task.id, parent_refs))
+            
+        # 4. Восстановление Графа Связей через пакетную вставку (Bulk Insert)
+        relations_to_insert = []
+        for new_task_id, old_parent_refs in tasks_to_link:
+            # set() исключает ошибку дублирования ключей связи (UniqueConstraint) в поврежденном JSON
+            for old_pid in set(old_parent_refs):
+                old_pid_str = str(old_pid)
+                if old_pid_str in task_map:
+                    new_pid = task_map[old_pid_str]
+                    # Защита от циклической ссылки на саму себя
+                    if new_pid != new_task_id:
+                        relations_to_insert.append({
+                            "parent_id": new_pid,
+                            "child_id": new_task_id
+                        })
+                        
+        if relations_to_insert:
+            # Выполняем ОДИН пакетный SQL-запрос для всех связей вместо O(N) запросов в цикле
+            await db.execute(task_relations.insert(), relations_to_insert)
+                    
+        await db.commit()
+    except KeyError as ke:
+        # Информативный перехват ошибок структуры JSON: сообщаем фронтенду точное имя отсутствующего поля
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            detail=f"Missing required field: {ke.args[0]}"
+        )
+    except Exception as e:
+        # Гарантируем мгновенный откат транзакции SQLite для предотвращения Transaction Lock
+        await db.rollback()
+        raise e
+    finally:
+        # Защищаем блок finally от падения в случае, если папка была удалена/изменена во время импорта
+        try:
+            # Восстанавливаем работу фонового наблюдателя за БД
+            vault_observer.start(get_active_vault())
+        except Exception as obs_err:
+            print(f"[System] Watchdog restart bypassed: {obs_err}")
+        
+    return {"success": True, "new_workspace_id": first_new_ws_id}

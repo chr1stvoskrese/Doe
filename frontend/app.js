@@ -20,6 +20,7 @@ const translations = {
             delete: 'Удалить', clear: 'Очистить', open: 'Открыть', 
             deleteCard: 'Удалить карточку', clearTimer: 'Очистить таймер',
             exportCard: 'Экспорт в Markdown', attachmentsSettings: 'Хранилище вложений', fontSettings: 'Шрифт',
+            exportJson: 'Экспорт в JSON', importJson: 'Импорт из JSON',
             copyCardLink: 'Скопировать ссылку', dueDate: 'Установить дедлайн', clearDueDate: 'Очистить дедлайн', notify: 'Напомнить',
             reminders: 'Активные напоминания', remindersEmpty: 'Нет активных напоминаний', extensions: 'Расширения'
         },
@@ -105,6 +106,7 @@ const translations = {
             delete: 'Delete', clear: 'Clear', open: 'Open', 
             deleteCard: 'Delete card', clearTimer: 'Clear timer',
             exportCard: 'Export to Markdown', attachmentsSettings: 'Attachments Storage', fontSettings: 'Font',
+            exportJson: 'Export to JSON', importJson: 'Import from JSON',
             copyCardLink: 'Copy link', dueDate: 'Set deadline', clearDueDate: 'Clear deadline', notify: 'Remind me',
             reminders: 'Active Reminders', remindersEmpty: 'No active reminders', extensions: 'Extensions'
         },
@@ -4329,6 +4331,66 @@ document.addEventListener('click', async (e) => {
                 document.getElementById('extensions-modal').classList.add('show');
             }).catch(console.error);
             closeAllDropdowns();
+        }
+        else if (action === 'export-json') {
+            closeAllDropdowns();
+            if (window.pywebview && window.pywebview.api && window.pywebview.api.choose_directory) {
+                // Задержка в 50мс гарантирует завершение браузерной анимации скрытия меню перед вызовом блокирующего диалога ОС
+                setTimeout(() => {
+                    window.pywebview.api.choose_directory().then(async dir => {
+                        if (dir) {
+                            try {
+                                const res = await fetch(`${API_BASE}/system/export-json`, {
+                                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                                    body: JSON.stringify({ path: dir })
+                                });
+                                if (res.ok) window.showToast(currentLang === 'ru' ? 'Успех' : 'Success', currentLang === 'ru' ? 'Бэкап сохранен в выбранную папку' : 'Backup saved to selected folder');
+                                else window.showToast(t('alerts.error'), currentLang === 'ru' ? 'Не удалось экспортировать данные' : 'Failed to export data', true);
+                            } catch(e) { window.showToast(t('alerts.error'), 'Network Error', true); }
+                        }
+                    });
+                }, 50);
+            } else {
+                window.showToast(t('alerts.error'), currentLang === 'ru' ? 'Только для десктопной версии' : 'Only available on Desktop', true);
+            }
+        }
+        else if (action === 'import-json') {
+            closeAllDropdowns();
+            if (window.pywebview && window.pywebview.api && window.pywebview.api.choose_file) {
+                setTimeout(() => {
+                    window.pywebview.api.choose_file().then(async file => {
+                        if (file) {
+                            if (!file.toLowerCase().endsWith('.json')) {
+                                window.showToast(t('alerts.error'), currentLang === 'ru' ? 'Выберите файл .json' : 'Please select a .json file', true);
+                                return;
+                            }
+                            try {
+                                const res = await fetch(`${API_BASE}/system/import-json`, {
+                                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                                    body: JSON.stringify({ path: file })
+                                });
+                                if (res.ok) {
+                                    const data = await res.json();
+                                    window.showToast(currentLang === 'ru' ? 'Импорт' : 'Import', currentLang === 'ru' ? 'Данные успешно импортированы' : 'Data imported successfully');
+                                    
+                                    if (data.new_workspace_id) {
+                                        state.activeWorkspaceId = data.new_workspace_id;
+                                        await updateSettings({ active_workspace_id: data.new_workspace_id });
+                                    }
+                                    await refreshBoard(true, data.new_workspace_id);
+                                    
+                                } else {
+                                    const errData = await res.json().catch(() => ({}));
+                                    const errMsg = errData.detail || (currentLang === 'ru' ? 'Неверный формат файла' : 'Invalid file format');
+                                    window.showToast(t('alerts.error'), errMsg, true);
+                                }
+                            } catch(e) { window.showToast(t('alerts.error'), 'Network Error', true); }
+                        }
+                    });
+                }, 50);
+            } else {
+                window.showToast(t('alerts.error'), currentLang === 'ru' ? 'Только для десктопной версии' : 'Only available on Desktop', true);
+            }
         }
         else if (action === 'about') {
             document.getElementById('about-modal').classList.add('show');
