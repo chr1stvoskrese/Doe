@@ -452,12 +452,12 @@ async def get_task_with_details(db: AsyncSession, task_id: int) -> TaskModel:
         
     return task
 
-async def export_task_to_markdown(db: AsyncSession, task_id: int, export_base_path: str, include_attachments: bool = True) -> dict:
-    """
-    Экспортирует карточку и её вложения в формат Obsidian.
-    Создает папку с названием карточки, внутри Markdown-файл и папку attachments.
-    Включает подзадачи в виде чек-листа.
-    """
+async def export_task_to_markdown(
+    db: AsyncSession, 
+    task_id: int, 
+    export_base_path: str, 
+    include_attachments: bool = True
+) -> dict:
     result = await db.execute(
         select(TaskModel)
         .options(selectinload(TaskModel.subtasks))
@@ -480,9 +480,7 @@ async def export_task_to_markdown(db: AsyncSession, task_id: int, export_base_pa
     md_file_path = export_dir / f"{safe_title}.md"
     attachments_export_dir = export_dir / "attachments"
 
-    # 3. Подготавливаем содержимое Markdown (в стиле Obsidian).
-    # При экспорте конвертируем внутренние ссылки doe/ обратно в attachments/,
-    # чтобы экспортированная папка имела привычную структуру Obsidian-style.
+    # 3. Подготавливаем содержимое Markdown (в стиле Obsidian)
     md_content = f"# {task.title}\n\n"
     
     if task.description:
@@ -498,9 +496,7 @@ async def export_task_to_markdown(db: AsyncSession, task_id: int, export_base_pa
             md_content += f"- [{checked}] {sub.title}\n"
         md_content += "\n"
 
-    # 4. Ищем вложения в описании, чтобы их скопировать.
-    # Регулярка ловит внутренние ссылки doe/ — это формат, в котором они 
-    # лежат в БД. Папку на диске при копировании называем "attachments".
+    # 4. Копирование вложений
     if task.description:
         att_dir = get_attachments_dir()
         pattern = re.compile(r'\]\((doe/[^\)]+)\)')
@@ -509,7 +505,7 @@ async def export_task_to_markdown(db: AsyncSession, task_id: int, export_base_pa
         if matches and include_attachments:
             attachments_export_dir.mkdir(exist_ok=True)
             for match in matches:
-                decoded_path = unquote(match) # e.g. "doe/file.png"
+                decoded_path = unquote(match)
                 filename = decoded_path.replace("doe/", "", 1)
                 src_file = att_dir / filename
                 

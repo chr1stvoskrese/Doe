@@ -1517,6 +1517,7 @@ async def get_available_fonts():
 
 class ExportJsonReq(BaseModel):
     path: str
+    include_codebase: bool = False
 
 @router.post("/export-json")
 async def export_json_endpoint(req: ExportJsonReq, db: AsyncSession = Depends(get_session)):
@@ -1582,6 +1583,56 @@ async def export_json_endpoint(req: ExportJsonReq, db: AsyncSession = Depends(ge
     def _save_file():
         with open(export_file, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
+            
+        if req.include_codebase:
+            codebase_folder_name = f"Doe_Source_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            codebase_export_dir = target_dir / codebase_folder_name
+            
+            if getattr(sys, 'frozen', False):
+                # В релизной сборке извлекаем подготовленный чистый zip-архив
+                zip_path = Path(sys._MEIPASS) / "doe_source.zip"
+                if zip_path.exists():
+                    import zipfile
+                    try:
+                        with zipfile.ZipFile(zip_path, 'r') as zf:
+                            zf.extractall(codebase_export_dir)
+                        print(f"[Export] Codebase extracted to {codebase_folder_name}")
+                    except Exception as e:
+                        print(f"[Export] Failed to extract codebase archive: {e}")
+                else:
+                    print("[Export] doe_source.zip not found in bundled app.")
+            else:
+                # В режиме разработки копируем файлы как обычно
+                src_root = Path(__file__).resolve().parents[3]
+                
+                def _copy_recursive(src_path: Path, dst_path: Path):
+                    ignore_names = {
+                        'venv', '.git', '__pycache__', 'node_modules', 
+                        '.idea', '.vscode', 'build', 'dist', '__MACOSX',
+                        'board_dev.db', 'board_dev.db.doe', 'Doe.app'
+                    }
+                    ignore_exts = {
+                        '.db', '.sqlite', '.sqlite3', '.pyc', '.DS_Store', 
+                        '.zip', '.tar', '.gz'
+                    }
+                    
+                    dst_path.mkdir(parents=True, exist_ok=True)
+                    for item in src_path.iterdir():
+                        if item.name in ignore_names or item.suffix in ignore_exts or item.name == 'doe_source.zip':
+                            continue
+                        if item.is_dir():
+                            _copy_recursive(item, dst_path / item.name)
+                        elif item.is_file():
+                            try:
+                                shutil.copy2(item, dst_path / item.name)
+                            except Exception as e:
+                                print(f"[Export Codebase] Error copying file {item.name}: {e}")
+
+                try:
+                    _copy_recursive(src_root, codebase_export_dir)
+                    print(f"[Export] Codebase copied to {codebase_folder_name}")
+                except Exception as e:
+                    print(f"[Export] Failed to copy codebase: {e}")
             
     await anyio.to_thread.run_sync(_save_file)
     return {"success": True, "file": str(export_file)}

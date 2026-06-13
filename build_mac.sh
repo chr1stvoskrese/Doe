@@ -28,7 +28,23 @@ update_progress() {
 echo "🚀 Начинаем сборку Doe.app (логи сохраняются в $LOG_FILE)"
 
 update_progress "Очистка старых билдов..."
-rm -rf build dist Doe.spec >> "$LOG_FILE" 2>&1
+rm -rf build dist Doe.spec doe_source.zip >> "$LOG_FILE" 2>&1
+
+update_progress "Упаковка исходного кода (для экспорта)..."
+cat << 'EOF' > make_source_zip.py
+import zipfile, os
+ignore_dirs = {'.git', 'venv', '__pycache__', 'build', 'dist', '.idea', '.vscode', 'Doe.app'}
+ignore_exts = {'.pyc', '.db', '.sqlite3', '.doe', '.DS_Store', '.log'}
+with zipfile.ZipFile('doe_source.zip', 'w', zipfile.ZIP_DEFLATED) as zf:
+    for root, dirs, files in os.walk('.'):
+        dirs[:] = [d for d in dirs if d not in ignore_dirs]
+        for file in files:
+            if any(file.endswith(ext) for ext in ignore_exts) or file in ['doe_source.zip', 'make_source_zip.py']: continue
+            path = os.path.join(root, file)
+            zf.write(path, path)
+EOF
+python3 make_source_zip.py >> "$LOG_FILE" 2>&1
+rm make_source_zip.py
 
 # ==========================================
 # МАГИЯ MACOS: Генерируем ПРАВИЛЬНЫЙ .icns с отступами 0.82
@@ -82,6 +98,7 @@ pyinstaller --noconfirm \
     --osx-bundle-identifier "com.aesthetic.doe" \
     --add-data "favicon.ico:." \
     --add-data "doe.png:." \
+    --add-data "doe_source.zip:." \
     --add-data "frontend:frontend" \
     --add-data "src:src" \
     --add-data "alembic.ini:." \

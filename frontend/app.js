@@ -42,7 +42,7 @@ const translations = {
             attExternalTitle: 'Внешняя папка',
             attSelectBtn: 'Выбрать папку...',
             attWarning: 'При использовании внешней папки файлы не будут копироваться на флешку автоматически при переносе хранилища.',
-            exportTitle: 'Экспорт карточки', exportIncludeAtt: 'Экспортировать с вложениями', btnExport: 'Экспортировать',
+            exportTitle: 'Экспорт карточки', exportIncludeAtt: 'Экспортировать с вложениями', exportIncludeCode: 'Экспортировать кодовую базу проекта', btnExport: 'Экспортировать',
             detachTitle: 'Отвязать карточку?', detachDesc: 'Эта карточка привязана к нескольким карточкам.',
             detachCurrent: 'Только от текущей карточки', detachAll: 'От всех карточек (сделать независимой)'
         },
@@ -128,7 +128,7 @@ const translations = {
             attExternalTitle: 'External folder',
             attSelectBtn: 'Choose folder...',
             attWarning: 'When using an external folder, files will not copy automatically if you move the vault to a USB drive.',
-            exportTitle: 'Export Card', exportIncludeAtt: 'Export with attachments', btnExport: 'Export',
+            exportTitle: 'Export Card', exportIncludeAtt: 'Export with attachments', exportIncludeCode: 'Export project codebase', btnExport: 'Export',
             detachTitle: 'Detach card?', detachDesc: 'This card is attached to multiple cards.',
             detachCurrent: 'Only from current card', detachAll: 'From all cards (make independent)'
         },
@@ -3920,7 +3920,10 @@ document.addEventListener('click', async (e) => {
                     fetch(`${API_BASE}/tasks/${taskId}/export`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ export_path: exportDir, include_attachments: includeAtt })
+                        body: JSON.stringify({ 
+                            export_path: exportDir, 
+                            include_attachments: includeAtt
+                        })
                     }).then(res => {
                         exportModalBtn.style.opacity = '1';
                         if (!res.ok) {
@@ -4214,7 +4217,10 @@ document.addEventListener('click', async (e) => {
                                 fetch(`${API_BASE}/tasks/${taskId}/export`, {
                                     method: 'POST',
                                     headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ export_path: exportDir, include_attachments: includeAtt })
+                                    body: JSON.stringify({ 
+                                        export_path: exportDir, 
+                                        include_attachments: includeAtt
+                                    })
                                 }).then(res => {
                                     if (!res.ok) {
                                         window.showToast(t('alerts.error'), 'Ошибка при экспорте', true);
@@ -4334,25 +4340,38 @@ document.addEventListener('click', async (e) => {
         }
         else if (action === 'export-json') {
             closeAllDropdowns();
-            if (window.pywebview && window.pywebview.api && window.pywebview.api.choose_directory) {
-                // Задержка в 50мс гарантирует завершение браузерной анимации скрытия меню перед вызовом блокирующего диалога ОС
-                setTimeout(() => {
-                    window.pywebview.api.choose_directory().then(async dir => {
-                        if (dir) {
-                            try {
-                                const res = await fetch(`${API_BASE}/system/export-json`, {
-                                    method: 'POST', headers: {'Content-Type': 'application/json'},
-                                    body: JSON.stringify({ path: dir })
-                                });
-                                if (res.ok) window.showToast(currentLang === 'ru' ? 'Успех' : 'Success', currentLang === 'ru' ? 'Бэкап сохранен в выбранную папку' : 'Backup saved to selected folder');
-                                else window.showToast(t('alerts.error'), currentLang === 'ru' ? 'Не удалось экспортировать данные' : 'Failed to export data', true);
-                            } catch(e) { window.showToast(t('alerts.error'), 'Network Error', true); }
-                        }
-                    });
-                }, 50);
-            } else {
-                window.showToast(t('alerts.error'), currentLang === 'ru' ? 'Только для десктопной версии' : 'Only available on Desktop', true);
-            }
+            
+            const jsonModal = document.getElementById('export-json-modal');
+            jsonModal.classList.add('show');
+            
+            const confirmBtn = document.getElementById('btn-confirm-json-export');
+            const newConfirmBtn = confirmBtn.cloneNode(true);
+            confirmBtn.replaceWith(newConfirmBtn);
+            
+            newConfirmBtn.onclick = async () => {
+                const includeCode = document.getElementById('export-json-include-code').checked;
+                jsonModal.classList.remove('show');
+                
+                if (window.pywebview && window.pywebview.api && window.pywebview.api.choose_directory) {
+                    // Задержка в 50мс гарантирует завершение браузерной анимации скрытия модалки
+                    setTimeout(() => {
+                        window.pywebview.api.choose_directory().then(async dir => {
+                            if (dir) {
+                                try {
+                                    const res = await fetch(`${API_BASE}/system/export-json`, {
+                                        method: 'POST', headers: {'Content-Type': 'application/json'},
+                                        body: JSON.stringify({ path: dir, include_codebase: includeCode })
+                                    });
+                                    if (res.ok) window.showToast(currentLang === 'ru' ? 'Успех' : 'Success', currentLang === 'ru' ? 'Бэкап сохранен в выбранную папку' : 'Backup saved to selected folder');
+                                    else window.showToast(t('alerts.error'), currentLang === 'ru' ? 'Не удалось экспортировать данные' : 'Failed to export data', true);
+                                } catch(e) { window.showToast(t('alerts.error'), 'Network Error', true); }
+                            }
+                        });
+                    }, 50);
+                } else {
+                    window.showToast(t('alerts.error'), currentLang === 'ru' ? 'Только для десктопной версии' : 'Only available on Desktop', true);
+                }
+            };
         }
         else if (action === 'import-json') {
             closeAllDropdowns();

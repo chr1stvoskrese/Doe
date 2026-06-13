@@ -75,7 +75,9 @@ async def clear_task_timer_endpoint(task_id: int, db: AsyncSession = Depends(get
 @router.post("/{task_id}/export")
 async def export_task_endpoint(task_id: int, req: TaskExportReq, db: AsyncSession = Depends(get_session)):
     try:
-        result = await task_service.export_task_to_markdown(db, task_id, req.export_path, req.include_attachments)
+        result = await task_service.export_task_to_markdown(
+            db, task_id, req.export_path, req.include_attachments
+        )
         return result
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
