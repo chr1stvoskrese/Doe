@@ -1237,66 +1237,52 @@ class WindowAPI:
             return None
 
     def start_window_drag(self):
-        """Нативное перетаскивание безрамочного окна (Aero Snap включён)."""
+        """Бесшовное нативное перетаскивание без артефактов и ложных срабатываний Aero Shake."""
         import sys
         if sys.platform != 'win32':
             return False
         import ctypes
         
-        # 1. Надежно получаем активное окно (оно всегда в фокусе, раз мы по нему кликнули)
-        hwnd = ctypes.windll.user32.GetForegroundWindow()
-        if not hwnd:
-            return False
-        
-        self._win_maximized = False
-        
-        # 2. Обходим защиту Windows (ReleaseCapture работает только в UI-потоке)
-        gui_thread_id = ctypes.windll.user32.GetWindowThreadProcessId(hwnd, None)
-        current_thread_id = ctypes.windll.kernel32.GetCurrentThreadId()
-        
-        ctypes.windll.user32.AttachThreadInput(current_thread_id, gui_thread_id, True)
-        ctypes.windll.user32.ReleaseCapture()
-        ctypes.windll.user32.AttachThreadInput(current_thread_id, gui_thread_id, False)
-        
-        # 3. Передаем точные координаты мыши, чтобы окно не прыгнуло в (0,0)
-        class POINT(ctypes.Structure):
-            _fields_ = [("x", ctypes.c_long), ("y", ctypes.c_long)]
-        pt = POINT()
-        ctypes.windll.user32.GetCursorPos(ctypes.byref(pt))
-        lparam = (pt.y << 16) | (pt.x & 0xFFFF)
-        
-        WM_NCLBUTTONDOWN, HTCAPTION = 0x00A1, 2
-        ctypes.windll.user32.PostMessageW(hwnd, WM_NCLBUTTONDOWN, HTCAPTION, lparam)
-        return True
-
-    def start_window_resize(self, ht):
-        """Нативный ресайз за край без визуальных артефактов."""
-        import sys
-        if sys.platform != 'win32':
-            return False
-        import ctypes
-        
-        hwnd = ctypes.windll.user32.GetForegroundWindow()
+        # Используем наш метод, это надежнее, чем GetForegroundWindow
+        hwnd = self._win_hwnd()
         if not hwnd:
             return False
             
         self._win_maximized = False
         
-        gui_thread_id = ctypes.windll.user32.GetWindowThreadProcessId(hwnd, None)
-        current_thread_id = ctypes.windll.kernel32.GetCurrentThreadId()
-        
-        ctypes.windll.user32.AttachThreadInput(current_thread_id, gui_thread_id, True)
+        # Отпускаем захват мыши (вызов безопасен без AttachThreadInput, 
+        # т.к. e.preventDefault() на клиенте не дает браузеру заблокировать мышь)
         ctypes.windll.user32.ReleaseCapture()
-        ctypes.windll.user32.AttachThreadInput(current_thread_id, gui_thread_id, False)
         
-        class POINT(ctypes.Structure):
-            _fields_ = [("x", ctypes.c_long), ("y", ctypes.c_long)]
-        pt = POINT()
-        ctypes.windll.user32.GetCursorPos(ctypes.byref(pt))
-        lparam = (pt.y << 16) | (pt.x & 0xFFFF)
+        # Идеальный способ: отправляем команду перемещения (SC_MOVE + HTCAPTION = 0xF012).
+        # ОС сама берет координаты мыши, окно не дергается и не сворачивает другие окна.
+        WM_SYSCOMMAND = 0x0112
+        SC_MOVE_HTCAPTION = 0xF012
+        ctypes.windll.user32.PostMessageW(hwnd, WM_SYSCOMMAND, SC_MOVE_HTCAPTION, 0)
+        return True
+
+    def start_window_resize(self, ht):
+        """Плавный нативный ресайз за края окна."""
+        import sys
+        if sys.platform != 'win32':
+            return False
+        import ctypes
         
-        WM_NCLBUTTONDOWN = 0x00A1
-        ctypes.windll.user32.PostMessageW(hwnd, WM_NCLBUTTONDOWN, int(ht), lparam)
+        hwnd = self._win_hwnd()
+        if not hwnd:
+            return False
+            
+        self._win_maximized = False
+        
+        ctypes.windll.user32.ReleaseCapture()
+        
+        # Переводим код границы из JS (HTLEFT = 10, HTRIGHT = 11, и т.д.) 
+        # в константы SC_SIZE для системной команды. Формула: (HT - 9).
+        WM_SYSCOMMAND = 0x0112
+        SC_SIZE = 0xF000
+        direction = int(ht) - 9
+        
+        ctypes.windll.user32.PostMessageW(hwnd, WM_SYSCOMMAND, SC_SIZE + direction, 0)
         return True
 
     def _win_rect(self, hwnd):
