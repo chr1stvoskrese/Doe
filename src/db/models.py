@@ -65,6 +65,8 @@ class TaskModel(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     completed_at = Column(DateTime, nullable=True)
     due_date = Column(DateTime, nullable=True) # <--- СРОК ВЫПОЛНЕНИЯ
+    priority = Column(Float, nullable=True) # <--- ПРИОРИТЕТНОСТЬ
+    priority_data = Column(JSON, nullable=True) # <--- ДАННЫЕ ПОЛЗУНКОВ
     
     is_visible_on_board = Column(Boolean, default=False)
     folded_headings = Column(JSON, default=list)

@@ -423,6 +423,7 @@ class SettingsUpdate(BaseModel):
     reset_attachments: Optional[bool] = False
     ui_font: Optional[str] = None
     extensions: Optional[dict] = None
+    priority_settings: Optional[dict] = None  # <--- ДОБАВЛЕНО
 
 class SettingsResponse(BaseModel):
     theme: str
@@ -432,6 +433,7 @@ class SettingsResponse(BaseModel):
     custom_font: Optional[str] = None
     ui_font: Optional[str] = ""
     extensions: Optional[dict] = None
+    priority_settings: Optional[dict] = None  # <--- ДОБАВЛЕНО
 
 @router.get("/settings", response_model=SettingsResponse)
 async def get_settings_endpoint():
@@ -515,7 +517,8 @@ async def update_settings_endpoint(settings: SettingsUpdate, db: AsyncSession = 
         global_attachments_path=settings.global_attachments_path,
         reset_attachments=settings.reset_attachments,
         ui_font=settings.ui_font,
-        extensions=settings.extensions
+        extensions=settings.extensions,
+        priority_settings=settings.priority_settings
     )
 
     # 3. Узнаем НОВУЮ папку вложений
@@ -1561,6 +1564,8 @@ async def export_json_endpoint(req: ExportJsonReq, db: AsyncSession = Depends(ge
                 "ref_id": t.id, "column_ref": t.column_id, "title": t.title,
                 "description": t.description, "position": t.position,
                 "completed_at": _fmt_dt(t.completed_at), "due_date": _fmt_dt(t.due_date),
+                "priority": t.priority,
+                "priority_data": t.priority_data,
                 "is_visible_on_board": t.is_visible_on_board,
                 "attachments_order": _ensure_list(t.attachments_order),
                 "folded_headings": _ensure_list(t.folded_headings),
@@ -1761,6 +1766,8 @@ async def import_json_endpoint(req: ImportJsonReq, db: AsyncSession = Depends(ge
                 "column_id": col_map[str(old_col_ref)],
                 "completed_at": _parse_dt(task_data.get("completed_at")),
                 "due_date": _parse_dt(task_data.get("due_date")),
+                "priority": task_data.get("priority"),
+                "priority_data": task_data.get("priority_data"),
                 "is_visible_on_board": is_visible,
                 "attachments_order": _ensure_list(task_data.get("attachments_order")),
                 "folded_headings": _ensure_list(task_data.get("folded_headings")),

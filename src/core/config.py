@@ -104,26 +104,44 @@ def get_ui_settings() -> dict:
     data = _load_config()
     vault_path = get_active_vault()
     active_workspaces = data.get("active_workspaces", {})
-    # По умолчанию все расширения включены
-    default_extensions = {"search": True, "calendar": True, "reminders": True, "graph": True, "tabs": True, "deadlines": True, "export": True}
+    default_extensions = {"search": True, "calendar": True, "reminders": True, "graph": True, "tabs": True, "deadlines": True, "export": True, "priority": True, "ai": True}
+
+    # Дефолтные настройки приоритетности
+    default_priority = {
+        "show_always": False,
+        "t_low": 40, "t_mid": 70,
+        "e_low": "😞", "e_mid": "😐", "e_high": "🤩", "e_none": "?",
+        "c_low": "#D35446", "c_mid": "#B3863A", "c_high": "#89A085", "c_none": "#7C5CB7"
+    }
+
     return {
         "theme": data.get("theme", "light"),
         "language": data.get("language", "ru"),
         "active_workspace_id": active_workspaces.get(vault_path),
         "global_attachments_path": data.get("global_attachments_path"),
         "ui_font": data.get("ui_font", ""),
-        "extensions": data.get("extensions", default_extensions)
+        "extensions": data.get("extensions", default_extensions),
+        "priority_settings": data.get("priority_settings", default_priority) # <--- ДОБАВЛЕНО
     }
 
-def set_ui_settings(theme: str = None, language: str = None, active_workspace_id: int = None, global_attachments_path: str = None, reset_attachments: bool = False, ui_font: str = None, extensions: dict = None) -> None:
+def set_ui_settings(theme: str = None, language: str = None, active_workspace_id: int = None, global_attachments_path: str = None, reset_attachments: bool = False, ui_font: str = None, extensions: dict = None, priority_settings: dict = None) -> None:
     data = _load_config()
     if theme is not None: data["theme"] = theme
     if language is not None: data["language"] = language
     if ui_font is not None: data["ui_font"] = ui_font
     if extensions is not None: 
-        current_exts = data.get("extensions", {"search": True, "calendar": True, "reminders": True, "graph": True, "tabs": True, "deadlines": True, "export": True})
+        current_exts = data.get("extensions", {"search": True, "calendar": True, "reminders": True, "graph": True, "tabs": True, "deadlines": True, "export": True, "priority": True, "ai": True})
         current_exts.update(extensions)
         data["extensions"] = current_exts
+    if priority_settings is not None: # <--- ДОБАВЛЕНО
+        current_prio = data.get("priority_settings", {
+            "show_always": False,
+            "t_low": 40, "t_mid": 70,
+            "e_low": "😞", "e_mid": "😐", "e_high": "🤩", "e_none": "❔",
+            "c_low": "#D35446", "c_mid": "#B3863A", "c_high": "#89A085", "c_none": "#828A80"
+        })
+        current_prio.update(priority_settings)
+        data["priority_settings"] = current_prio
     
     if reset_attachments:
         data.pop("global_attachments_path", None)

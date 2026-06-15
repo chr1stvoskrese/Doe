@@ -12,6 +12,8 @@ class TaskBase(BaseModel):
     title: str = Field(..., min_length=1, max_length=1000, description="Текст задачи")
     is_visible_on_board: bool = False
     due_date: Optional[datetime] = None # <--- СРОК ВЫПОЛНЕНИЯ
+    priority: Optional[float] = None # <--- ПРИОРИТЕТНОСТЬ
+    priority_data: Optional[dict] = None # <--- ДАННЫЕ ПОЛЗУНКОВ
 
 
 class TaskCreate(TaskBase):
@@ -23,7 +25,7 @@ class TaskCreate(TaskBase):
 
 class TaskUpdate(BaseModel):
     """Данные для обновления задачи (все поля необязательные)."""
-    title: Optional[str] = Field(None, min_length=1, max_length=200)
+    title: Optional[str] = Field(None, min_length=1, max_length=1000)
     description: Optional[str] = None
     column_id: Optional[int] = None
     parent_ids: Optional[List[int]] = None
@@ -31,6 +33,8 @@ class TaskUpdate(BaseModel):
     attachments_order: Optional[List[str]] = None
     completed_at: Optional[datetime] = None
     due_date: Optional[datetime] = None # <--- СРОК ВЫПОЛНЕНИЯ
+    priority: Optional[float] = None
+    priority_data: Optional[dict] = None
     is_visible_on_board: Optional[bool] = None
     folded_headings: Optional[List[str]] = None
 

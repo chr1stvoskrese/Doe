@@ -1,5 +1,11 @@
 let state = { columns: [], workspaces: [], activeWorkspaceId: null };
 const API_BASE = '/api/v1';
+window.prioritySettings = { 
+    show_always: false,
+    t_low: 40, t_mid: 70, 
+    e_low: "😞", e_mid: "😐", e_high: "🤩", e_none: "?",
+    c_low: "#D35446", "c_mid": "#B3863A", "c_high": "#89A085", c_none: "#7C5CB7"
+};
 if (navigator.userAgent.toLowerCase().includes('mac')) {
     document.documentElement.classList.add('mac-os');
 }
@@ -22,11 +28,24 @@ const translations = {
             exportCard: 'Экспорт в Markdown', attachmentsSettings: 'Хранилище вложений', fontSettings: 'Шрифт',
             exportJson: 'Экспорт в JSON', importJson: 'Импорт из JSON',
             copyCardLink: 'Скопировать ссылку', dueDate: 'Установить дедлайн', clearDueDate: 'Очистить дедлайн', notify: 'Напомнить',
-            reminders: 'Активные напоминания', remindersEmpty: 'Нет активных напоминаний', extensions: 'Расширения'
+            reminders: 'Активные напоминания', remindersEmpty: 'Нет активных напоминаний', extensions: 'Расширения',
+            priority: 'Приоритетность', sort: 'Сортировка',
+            prioritySettings: 'Приоритетность'
         },
         copied: 'Скопировано!',
+        sort: { created: 'По дате создания', updated: 'По дате изменения', priority: 'По приоритетности', deadline: 'По дедлайну', asc: 'По возрастанию', desc: 'По убыванию', apply: 'Применить' },
         modals: { 
-            extTitle: 'Расширения', extSearch: 'Поиск', extCalendar: 'Календарь', extReminders: 'Напоминания', extGraph: 'Граф связей', extTabs: 'Вкладки', extDeadlines: 'Дедлайны', extExport: 'Экспорт карточек',
+            extTitle: 'Расширения', extSearch: 'Поиск', extCalendar: 'Календарь', extReminders: 'Напоминания', extGraph: 'Граф связей', extTabs: 'Вкладки', extDeadlines: 'Дедлайны', extExport: 'Экспорт карточек', extPriority: 'Приоритетность', extAi: 'ИИ-ассистент', sortTitle: 'Сортировка',
+            priorityTitle: 'Приоритетность', prioC: 'Одобренная ценность (через год)', prioD: 'Шанс успеха', prioA: 'Фоновая грызня (висит грузом)', prioB: 'Боль процесса', prioE: 'Затянутость', prioResult: 'Итоговая приоритетность:', btnClear: 'Очистить',
+            prioSettingsTitle: 'Приоритетность', // <--- ДОБАВЛЕНО
+            prioSettingsDesc: 'Настройте границы, цвета и эмодзи', // <--- ДОБАВЛЕНО
+            prioShowAlwaysDesc: 'Отображать пустой приоритет, если он не задан',
+            prioLvlLow: 'Низкий (< %)', // <--- ДОБАВЛЕНО
+            prioLvlMid: 'Средний (< %)', // <--- ДОБАВЛЕНО
+            prioLvlHigh: 'Высокий (Остальное)', // <--- ДОБАВЛЕНО
+            prioSec1: 'Двигатели делания', prioSec2: 'Психоэмоциональный баланс', prioSec3: 'Издержки процесса',
+            prioF: 'Нужно ли отчитываться за задачу в ближайшие 2 недели?', prioP: 'Лучше сделать данную задачу просто заранее?', prioS: 'Принесет ли выполнение спокойствие здесь и сейчас?', prioH: 'Способна ли задача навредить физически или ментально?',
+            prioNo: 'Нет', prioMaybe: 'Хз', prioYes: 'Да',
             notifyTitle: 'Напомнить', notifyRelative: 'Через', notifyAbsolute: 'В точное время', btnSet: 'Установить',
             fontTitle: 'Шрифт приложения', fontInputLabel: 'Название системного шрифта', fontFileLabel: 'Шрифт хранилища (переносной)',
             fontWarning: 'Загружается в папку хранилища.', fontSearchPlaceholder: 'Поиск или ввод шрифта...',
@@ -91,7 +110,7 @@ const translations = {
             newTabTitle: 'Название новой вкладки:', deleteTabConfirm: 'Удалить вкладку?',
             deleteTabDesc: 'Вкладка и все колонки в ней будут удалены навсегда.'
         },
-        errors: { tooLong: 'Максимум 200 символов' },
+        errors: { tooLong: 'Максимум 1000 символов' },
         graph: { title: 'Граф связей', empty: 'Карточек пока нет.\nСоздайте карточки на доске.', arrows: 'Стрелки' },
         calendar: { today: 'Сегодня', month: 'Месяц', week: 'Неделя', day: 'День', loading: 'Загрузка данных...', error: 'Ошибка загрузки' },
         alerts: { loadError: 'Не удалось загрузить доску', error: 'Ошибка' }
@@ -108,11 +127,19 @@ const translations = {
             exportCard: 'Export to Markdown', attachmentsSettings: 'Attachments Storage', fontSettings: 'Font',
             exportJson: 'Export to JSON', importJson: 'Import from JSON',
             copyCardLink: 'Copy link', dueDate: 'Set deadline', clearDueDate: 'Clear deadline', notify: 'Remind me',
-            reminders: 'Active Reminders', remindersEmpty: 'No active reminders', extensions: 'Extensions'
+            reminders: 'Active Reminders', remindersEmpty: 'No active reminders', extensions: 'Extensions',
+            priority: 'Priority', sort: 'Sort'
         },
         copied: 'Copied!',
+        sort: { created: 'By creation date', updated: 'By modification date', priority: 'By priority', deadline: 'By deadline', asc: 'Ascending', desc: 'Descending', apply: 'Apply' },
         modals: { 
-            extTitle: 'Extensions', extSearch: 'Search', extCalendar: 'Calendar', extReminders: 'Reminders', extGraph: 'Connections Graph', extTabs: 'Tabs', extDeadlines: 'Deadlines', extExport: 'Card Export',
+            extTitle: 'Extensions', extSearch: 'Search', extCalendar: 'Calendar', extReminders: 'Reminders', extGraph: 'Connections Graph', extTabs: 'Tabs', extDeadlines: 'Deadlines', extExport: 'Card Export', extPriority: 'Priority', extAi: 'AI-assistant', sortTitle: 'Sorting',
+            priorityTitle: 'Priority', prioC: 'Approved value (in a year)', prioD: 'Chance of success', prioA: 'Background gnawing (weighs heavy)', prioB: 'Pain of the process', prioE: 'Protraction', prioResult: 'Total Priority:', btnClear: 'Clear',
+            prioSettingsTitle: 'Priority',
+            prioShowAlwaysDesc: 'Display empty priority if not set',
+            prioSec1: 'Drivers of Doing', prioSec2: 'Psycho-Emotional Balance', prioSec3: 'Execution Costs',
+            prioF: 'Do you need to report on this task within 2 weeks?', prioP: 'Is it better to do this task simply in advance?', prioS: 'Will execution bring tranquility right here and now?', prioH: 'Can the task cause physical or mental harm?',
+            prioNo: 'No', prioMaybe: 'Dunno', prioYes: 'Yes',
             notifyTitle: 'Remind me', notifyRelative: 'In', notifyAbsolute: 'At exact time', btnSet: 'Set',
             fontTitle: 'App Font', fontInputLabel: 'System font name', fontFileLabel: 'Vault font (portable)',
             fontWarning: 'Saved inside the vault folder.', fontSearchPlaceholder: 'Search or type font name...',
@@ -174,7 +201,7 @@ const translations = {
             newTabTitle: 'New tab name:', deleteTabConfirm: 'Delete tab?',
             deleteTabDesc: 'The tab and all its columns will be deleted permanently.'
         },
-        errors: { tooLong: 'Maximum 200 characters' },
+        errors: { tooLong: 'Maximum 1000 characters' },
         graph: { title: 'Connections Graph', empty: 'No cards yet.\nCreate cards on the board.', arrows: 'Arrows' },
         calendar: { today: 'Today', month: 'Month', week: 'Week', day: 'Day', loading: 'Loading data...', error: 'Load error' },
         alerts: { loadError: 'Failed to load board', error: 'Error' }
@@ -195,6 +222,24 @@ const dpLocales = {
         time: 'Time'
     }
 };
+
+function applyPriorityStyles(ps) {
+    window.prioritySettings = ps;
+    let styleEl = document.getElementById('dynamic-priority-styles');
+    if (!styleEl) {
+        styleEl = document.createElement('style');
+        styleEl.id = 'dynamic-priority-styles';
+        document.head.appendChild(styleEl);
+    }
+    styleEl.innerHTML = `
+        :root {
+            --prio-low-color: ${ps.c_low};
+            --prio-mid-color: ${ps.c_mid};
+            --prio-high-color: ${ps.c_high};
+            --prio-none-color: ${ps.c_none};
+        }
+    `;
+}
 
 function updateAppFont(uiFont, customFontPath) {
     let styleTag = document.getElementById('custom-font-style');
@@ -266,12 +311,16 @@ window.resetCustomFont = async () => {
 };
 
 window.applyExtensionsUI = (exts) => {
-    if (!exts) exts = { search: true, calendar: true, reminders: true, graph: true, tabs: true, deadlines: true, export: true };
+    if (!exts) exts = { search: true, calendar: true, reminders: true, graph: true, tabs: true, deadlines: true, export: true, priority: true, ai: true };
     
     // Скрываем или показываем UI дедлайнов глобально через CSS-класс
     document.body.classList.toggle('ext-deadlines-hidden', !exts.deadlines);
     // Скрываем экспорт
     document.body.classList.toggle('ext-export-hidden', !exts.export);
+    // Скрываем приоритетность
+    document.body.classList.toggle('ext-priority-hidden', !exts.priority);
+    // Скрываем AI
+    document.body.classList.toggle('ext-ai-hidden', !exts.ai);
     
     const searchWrapper = document.getElementById('global-search-wrapper');
     const calendarBtn = document.getElementById('calendar-trigger');
@@ -304,6 +353,8 @@ window.applyExtensionsUI = (exts) => {
     const tTabs = document.getElementById('ext-toggle-tabs');
     const tDeadlines = document.getElementById('ext-toggle-deadlines');
     const tExport = document.getElementById('ext-toggle-export');
+    const tPriority = document.getElementById('ext-toggle-priority');
+    const tAi = document.getElementById('ext-toggle-ai');
 
     if (tSearch) tSearch.checked = exts.search;
     if (tCalendar) tCalendar.checked = exts.calendar;
@@ -312,6 +363,8 @@ window.applyExtensionsUI = (exts) => {
     if (tTabs) tTabs.checked = exts.tabs;
     if (tDeadlines) tDeadlines.checked = exts.deadlines;
     if (tExport) tExport.checked = exts.export;
+    if (tPriority) tPriority.checked = exts.priority;
+    if (tAi) tAi.checked = exts.ai;
 };
 
 window.toggleExtension = async (key, value) => {
@@ -1107,6 +1160,29 @@ function updateCardAppearance(cardElement, task, columnMode) {
         newContent += `<div class="checklist-meta ${allDone}"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:4px;"><line x1="6" y1="3" x2="6" y2="15"></line><circle cx="18" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><path d="M18 9a9 9 0 0 1-9 9"></path></svg><span>${done}/${total}</span></div>`;
     }
 
+    // --- ЛОГИКА ПРИОРИТЕТНОСТИ ---
+    const ps = window.prioritySettings;
+    const hasPriority = task.priority !== null && task.priority !== undefined;
+    
+    if (hasPriority || ps.show_always) {
+        let levelClass = 'level-high';
+        let emoji = ps.e_high;
+        let displayValue = '';
+
+        if (!hasPriority) {
+            levelClass = 'level-none';
+            emoji = ps.e_none || '?';
+            displayValue = '—';
+        } else {
+            if (task.priority < ps.t_low) { levelClass = 'level-low'; emoji = ps.e_low; }
+            else if (task.priority < ps.t_mid) { levelClass = 'level-mid'; emoji = ps.e_mid; }
+            displayValue = (Math.round(parseFloat(task.priority) * 10) / 10) + '%';
+        }
+        
+        newContent += `<div class="priority-pill ${levelClass} clickable" onclick="openPriorityModal(${task.id})"><span>${displayValue}</span><span>${emoji}</span></div>`;
+    }
+    // ----------------------------
+
     if (task.due_date) {
         const dateStr = task.due_date + (task.due_date.endsWith('Z') || task.due_date.includes('+') ? '' : 'Z');
         const isOverdue = !task.completed_at && new Date(dateStr) < new Date();
@@ -1115,7 +1191,7 @@ function updateCardAppearance(cardElement, task, columnMode) {
             ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>'
             : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c-4.42 0-8-3.58-8-8 0-3.1 1.76-5.8 4.36-7.14.33-.17.7-.06.88.24.41.69 1.05 1.34 1.7 1.15.65-.19.96-1.55 1.4-3.13C12.8 3.42 13.5 2 14.5 2c.28 0 .54.12.72.32 1.41 1.6 3.1 3.96 4.13 6.08C20.44 10.64 20 12.3 20 14c0 4.42-3.58 8-8 8z"></path></svg>';
         
-        newContent += `<div class="due-date-pill ${overdueClass}">${icon}<span>${formatShortDate(task.due_date)}</span></div>`;
+        newContent += `<div class="due-date-pill ${overdueClass} clickable" onclick="openDueDateModal(${task.id}, '${task.due_date}')">${icon}<span>${formatShortDate(task.due_date)}</span></div>`;
     }
 
     if (isTimerColumn) {
@@ -1144,6 +1220,30 @@ function generateCardHtml(task, columnMode) {
         checklistHtml = `<div class="checklist-meta ${done === total ? 'all-done' : ''}"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:4px;"><line x1="6" y1="3" x2="6" y2="15"></line><circle cx="18" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><path d="M18 9a9 9 0 0 1-9 9"></path></svg><span>${done}/${total}</span></div>`;
     }
 
+    // --- ЛОГИКА ПРИОРИТЕТНОСТИ ---
+    let priorityHtml = ''; // Обязательно объявляем переменную!
+    const ps = window.prioritySettings;
+    const hasPriority = task.priority !== null && task.priority !== undefined;
+
+    if (hasPriority || ps.show_always) {
+        let levelClass = 'level-high';
+        let emoji = ps.e_high;
+        let displayValue = '';
+
+        if (!hasPriority) {
+            levelClass = 'level-none';
+            emoji = ps.e_none || '?';
+            displayValue = '—';
+        } else {
+            if (task.priority < ps.t_low) { levelClass = 'level-low'; emoji = ps.e_low; }
+            else if (task.priority < ps.t_mid) { levelClass = 'level-mid'; emoji = ps.e_mid; }
+            displayValue = (Math.round(parseFloat(task.priority) * 10) / 10) + '%';
+        }
+        
+        priorityHtml = `<div class="priority-pill ${levelClass} clickable" onclick="openPriorityModal(${task.id})"><span>${displayValue}</span><span>${emoji}</span></div>`;
+    }
+    // ----------------------------
+
     let dueDateHtml = '';
     if (task.due_date) {
         const dateStr = task.due_date + (task.due_date.endsWith('Z') || task.due_date.includes('+') ? '' : 'Z');
@@ -1152,7 +1252,7 @@ function generateCardHtml(task, columnMode) {
         const icon = isOverdue
             ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>'
             : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c-4.42 0-8-3.58-8-8 0-3.1 1.76-5.8 4.36-7.14.33-.17.7-.06.88.24.41.69 1.05 1.34 1.7 1.15.65-.19.96-1.55 1.4-3.13C12.8 3.42 13.5 2 14.5 2c.28 0 .54.12.72.32 1.41 1.6 3.1 3.96 4.13 6.08C20.44 10.64 20 12.3 20 14c0 4.42-3.58 8-8 8z"></path></svg>';
-        dueDateHtml = `<div class="due-date-pill ${overdueClass}">${icon}<span>${formatShortDate(task.due_date)}</span></div>`;
+        dueDateHtml = `<div class="due-date-pill ${overdueClass} clickable" onclick="openDueDateModal(${task.id}, '${task.due_date}')">${icon}<span>${formatShortDate(task.due_date)}</span></div>`;
     }
 
     let timerHtml = '';
@@ -1181,8 +1281,8 @@ function generateCardHtml(task, columnMode) {
     } 
 
     let footerHtml = '';
-    if (checklistHtml || dueDateHtml || timerHtml || spentTimeHtml) {
-        footerHtml = `<div class="card-footer">${checklistHtml}${dueDateHtml}${timerHtml}${spentTimeHtml}</div>`;
+    if (checklistHtml || priorityHtml || dueDateHtml || timerHtml || spentTimeHtml) {
+        footerHtml = `<div class="card-footer">${checklistHtml}${priorityHtml}${dueDateHtml}${timerHtml}${spentTimeHtml}</div>`;
     }
     
     return `
@@ -1261,6 +1361,7 @@ function createColumnElement(column) {
             </div>
             <div class="menu-divider"></div>
             <div class="menu-item" data-action="collapse-column"><svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 14h6v6"/><path d="M20 10h-6V4"/><path d="M14 10l7-7"/><path d="M3 21l7-7"/></svg><span>${t('menu.collapse')}</span></div>
+            <div class="menu-item" data-action="sort-column"><svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg><span>${t('menu.sort')}</span></div>
             <div class="menu-item" data-action="rename-column"><svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg><span>${t('menu.rename')}</span></div>
             <div class="menu-item danger" data-action="clear-column"><svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 12H3"/><path d="M16 6H3"/><path d="M16 18H3"/><path d="M19 10l-4 4"/><path d="M15 10l4 4"/></svg><span>${t('menu.clear')}</span></div>
             <div class="menu-item danger" data-action="delete-column"><svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg><span>${t('menu.delete')}</span></div>
@@ -1417,7 +1518,7 @@ async function onAddCardInline(plusBtn) {
             return;
         }
 
-        if (title.length > 200) {
+        if (title.length > 1000) {
             formCard.classList.remove('is-error');
             void formCard.offsetWidth;
             formCard.classList.add('is-error');
@@ -1628,7 +1729,7 @@ async function onAddTask(columnId) {
             return;
         }
 
-        if (title.length > 200) {
+        if (title.length > 1000) {
             formCard.classList.remove('is-error');
             void formCard.offsetWidth;
             formCard.classList.add('is-error');
@@ -2282,6 +2383,9 @@ async function handleColumnMenu(action, columnEl, menuItem) {
     if (action === 'set-mode') {
         const mode = menuItem.dataset.mode;
         try { await updateColumn(columnId, { mode }); await refreshBoard(); } catch (e) { }
+    } else if (action === 'sort-column') {
+        closeAllDropdowns();
+        openSortModal(columnId);
     } else if (action === 'rename-column') {
         closeAllDropdowns();
         setTimeout(() => startColumnRename(columnEl, column), 50);
@@ -2614,7 +2718,7 @@ function startCardRename(cardEl, task) {
         
         if (scrollParent) scrollParent.scrollTop = currentScroll;
         
-        if (input.value.trim().length <= 200) {
+        if (input.value.trim().length <= 1000) {
             cardEl.classList.remove('is-error');
         }
     };
@@ -2636,7 +2740,7 @@ function startCardRename(cardEl, task) {
 
     const validateAndShake = () => {
         const val = input.value.trim();
-        if (val.length > 200) {
+        if (val.length > 1000) {
             let hint = cardEl.querySelector('.card-error-hint');
             if (!hint) {
                 hint = document.createElement('div');
@@ -2759,7 +2863,7 @@ function startModalTaskRename(titleEl) {
     };
     input.addEventListener('input', () => {
         autoResize();
-        if (input.value.trim().length <= 200) {
+        if (input.value.trim().length <= 1000) {
             const header = input.closest('.modal-header');
             if (header) header.classList.remove('is-error');
         }
@@ -2792,7 +2896,7 @@ function startModalTaskRename(titleEl) {
         if (committed) return;
         
         const newTitle = input.value.trim();
-        if (newTitle.length > 200) {
+        if (newTitle.length > 1000) {
             const header = input.closest('.modal-header');
             if (header) {
                 if (!header.querySelector('.card-error-hint')) {
@@ -2880,7 +2984,7 @@ function startSubtaskRename(subtaskEl) {
         input.style.height = (input.scrollHeight + offset) + 'px';
     };
     input.addEventListener('input', () => {
-        if (input.value.trim().length <= 200) {
+        if (input.value.trim().length <= 1000) {
             subtaskEl.classList.remove('is-error');
             const hint = subtaskEl.querySelector('.card-error-hint');
             if (hint) hint.remove();
@@ -2911,7 +3015,7 @@ function startSubtaskRename(subtaskEl) {
         
         const newTitle = input.value.trim();
         
-        if (newTitle.length > 200) {
+        if (newTitle.length > 1000) {
             if (!subtaskEl.querySelector('.card-error-hint')) {
                 const hint = document.createElement('div');
                 hint.className = 'card-error-hint';
@@ -3957,6 +4061,15 @@ document.addEventListener('click', async (e) => {
         return;
     }
 
+    const priorityModalBtn = target.closest('#modal-priority-btn');
+    if (priorityModalBtn) {
+        e.stopPropagation();
+        const modal = document.getElementById('task-modal');
+        const taskId = parseInt(modal.dataset.taskId);
+        openPriorityModal(taskId);
+        return;
+    }
+
     if (target.closest('[data-action="confirm-cancel"]')) {
         if (activeConfirmResolve) { activeConfirmResolve(false); activeConfirmResolve = null; }
         document.getElementById('confirm-modal').classList.remove('show');
@@ -4250,6 +4363,9 @@ document.addEventListener('click', async (e) => {
                 else if (action === 'clear-due-date') {
                     await handleClearDueDate(taskId);
                 }
+                else if (action === 'set-priority') {
+                    openPriorityModal(taskId);
+                }
             }
             closeAllDropdowns();
             return;
@@ -4337,6 +4453,98 @@ document.addEventListener('click', async (e) => {
                 document.getElementById('extensions-modal').classList.add('show');
             }).catch(console.error);
             closeAllDropdowns();
+        }
+        else if (action === 'priority-settings') {
+            fetchSettings().then(data => {
+                const ps = data.priority_settings || window.prioritySettings;
+                
+                // Заполняем поля модалки
+                document.getElementById('cfg-prio-show-always').checked = !!ps.show_always;
+
+                document.getElementById('cfg-prio-e-none').value = ps.e_none || "❔";
+                document.getElementById('cfg-prio-c-none').value = ps.c_none || "#828A80";
+                
+                document.getElementById('cfg-prio-t-low').value = ps.t_low;
+                document.getElementById('cfg-prio-t-mid').value = ps.t_mid;
+                
+                document.getElementById('cfg-prio-e-low').value = ps.e_low;
+                document.getElementById('cfg-prio-e-mid').value = ps.e_mid;
+                document.getElementById('cfg-prio-e-high').value = ps.e_high;
+                
+                document.getElementById('cfg-prio-c-low').value = ps.c_low;
+                document.getElementById('cfg-prio-c-mid').value = ps.c_mid;
+                document.getElementById('cfg-prio-c-high').value = ps.c_high;
+                
+                document.getElementById('priority-settings-modal').classList.add('show');
+
+                // Логика автовосстановления смайлов при потере фокуса (если поле пустое)
+                const defEmojis = { low: "😞", mid: "😐", high: "🤩", none: "?" };
+                ['low', 'mid', 'high', 'none'].forEach(k => {
+                    const inputEl = document.getElementById(`cfg-prio-e-${k}`);
+                    if (inputEl) {
+                        inputEl.onblur = () => {
+                            if (!inputEl.value.trim()) inputEl.value = defEmojis[k];
+                        };
+                    }
+                });
+
+                // Логика кнопки Сбросить
+                const resetBtn = document.getElementById('btn-reset-prio-cfg');
+                if (resetBtn) {
+                    const newResetBtn = resetBtn.cloneNode(true);
+                    resetBtn.replaceWith(newResetBtn);
+                    newResetBtn.onclick = () => {
+                        document.getElementById('cfg-prio-show-always').checked = false;
+                        document.getElementById('cfg-prio-t-low').value = 40;
+                        document.getElementById('cfg-prio-t-mid').value = 70;
+                        document.getElementById('cfg-prio-e-low').value = "😞";
+                        document.getElementById('cfg-prio-e-mid').value = "😐";
+                        document.getElementById('cfg-prio-e-high').value = "🤩";
+                        document.getElementById('cfg-prio-e-none').value = "?";
+                        document.getElementById('cfg-prio-c-low').value = "#D35446";
+                        document.getElementById('cfg-prio-c-mid').value = "#B3863A";
+                        document.getElementById('cfg-prio-c-high').value = "#89A085";
+                        document.getElementById('cfg-prio-c-none').value = "#7C5CB7";
+                    };
+                }
+                
+                // Логика кнопки Сохранить
+                const saveBtn = document.getElementById('btn-save-prio-cfg');
+                const newSaveBtn = saveBtn.cloneNode(true);
+                saveBtn.replaceWith(newSaveBtn);
+                
+                newSaveBtn.onclick = async () => {
+                    const newPs = {
+                        show_always: document.getElementById('cfg-prio-show-always').checked,
+                        t_low: parseInt(document.getElementById('cfg-prio-t-low').value) || 40,
+                        t_mid: parseInt(document.getElementById('cfg-prio-t-mid').value) || 70,
+                        e_low: document.getElementById('cfg-prio-e-low').value || "😞",
+                        e_mid: document.getElementById('cfg-prio-e-mid').value || "😐",
+                        e_high: document.getElementById('cfg-prio-e-high').value || "🤩",
+                        c_low: document.getElementById('cfg-prio-c-low').value || "#D35446",
+                        c_mid: document.getElementById('cfg-prio-c-mid').value || "#B3863A",
+                        c_high: document.getElementById('cfg-prio-c-high').value || "#89A085",
+                        e_none: document.getElementById('cfg-prio-e-none').value || "❔",
+                        c_none: document.getElementById('cfg-prio-c-none').value || "#828A80"
+                    };
+                    
+                    try {
+                        await fetch(`${API_BASE}/system/settings`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ priority_settings: newPs })
+                        });
+                        applyPriorityStyles(newPs);
+                        document.getElementById('priority-settings-modal').classList.remove('show');
+                        refreshBoard(); // Перерендерим доску, чтобы обновились эмодзи и видимость
+                    } catch (e) { console.error("Error saving priority settings", e); }
+                };
+            }).catch(console.error);
+            closeAllDropdowns();
+        }
+        else if (action === 'ai-settings') {
+            closeAllDropdowns();
+            window.openAiSettingsModal();
         }
         else if (action === 'export-json') {
             closeAllDropdowns();
@@ -4447,7 +4655,7 @@ document.addEventListener('click', async (e) => {
         if (!modalToClose) return;
 
         // Запрещаем закрывать по клику на фон все модалки с формами ввода
-        const nonDismissibleModals = ['task-modal', 'font-settings-modal', 'due-date-modal', 'notify-modal'];
+        const nonDismissibleModals = ['task-modal', 'font-settings-modal', 'due-date-modal', 'notify-modal', 'priority-modal', 'priority-settings-modal'];
         if (nonDismissibleModals.includes(modalToClose.id) && isOverlayClick) {
             return; 
         }
@@ -4515,6 +4723,11 @@ document.addEventListener('click', async (e) => {
                     if (breadcrumbs) breadcrumbs.innerHTML = '';
                 }, 300);
             }
+        }
+
+        // Если пользователь просто закрыл чат с ИИ (на крестик или по фону) - фиксируем дату
+        if (modalToClose.id === 'ai-journal-modal') {
+            localStorage.setItem('doe-ai-last-check', new Date().toDateString());
         }
 
         modalToClose.classList.remove('show');
@@ -5853,7 +6066,7 @@ async function onAddSubtask() {
             }
         }
 
-        if (title.length > 200) {
+        if (title.length > 1000) {
             if (!formItem.querySelector('.card-error-hint')) {
                 const hint = document.createElement('div');
                 hint.className = 'card-error-hint';
@@ -8079,6 +8292,630 @@ document.addEventListener('DOMContentLoaded', () => {
     mInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleTimeChange(); });
 });
 
+let aiState = {
+    supported: false,
+    availableModels: ["Llama-3-8B-Instruct", "Mistral-Nemo-12B"], // Фолбэк, если бэк не ответил
+    downloadedModels: [],
+    selectedModel: localStorage.getItem('doe-ai-model') || null,
+    onlyVisible: localStorage.getItem('doe-ai-visible') !== 'false',
+    chatHistory: [],
+    isTyping: false
+};
+
+async function checkAiStatus() {
+    try {
+        const res = await fetch(`${API_BASE}/ai/status`);
+        if (res.ok) {
+            const data = await res.json();
+            aiState.supported = data.supported;
+            if (data.available_models) aiState.availableModels = data.available_models;
+            if (data.downloaded_models) aiState.downloadedModels = data.downloaded_models;
+            
+            // === АВТОВЫБОР МОДЕЛИ (ЛОГИКА ИИ) ===
+            const downloaded = aiState.downloadedModels || [];
+            const savedModel = localStorage.getItem('doe-ai-model');
+
+            if (downloaded.length === 1) {
+                // Если на диске ровно 1 модель — всегда выбираем её по умолчанию
+                aiState.selectedModel = downloaded[0];
+                localStorage.setItem('doe-ai-model', downloaded[0]);
+            } else if (downloaded.length >= 2) {
+                // Если скачано две или более
+                if (savedModel && downloaded.includes(savedModel)) {
+                    // Возвращаем ту, что была в предыдущем сеансе работы
+                    aiState.selectedModel = savedModel;
+                } else {
+                    // Если сохраненной нет или она удалена — берем первую из доступных
+                    aiState.selectedModel = downloaded[0];
+                    localStorage.setItem('doe-ai-model', downloaded[0]);
+                }
+            } else {
+                // Если моделей на диске нет вообще — сбрасываем выбор
+                aiState.selectedModel = null;
+                localStorage.removeItem('doe-ai-model');
+            }
+            // =====================================
+            
+            const menuBtn = document.getElementById('menu-ai-settings');
+            if (menuBtn) {
+                if (!aiState.supported) {
+                    menuBtn.style.opacity = '0.5';
+                    menuBtn.title = "Требуется macOS для локальной LLM";
+                } else {
+                    menuBtn.style.opacity = '1';
+                    menuBtn.title = "";
+                    checkDailyJournal();
+                }
+            }
+            
+            const fab = document.getElementById('ai-floating-btn');
+            if (fab) {
+                if (aiState.supported && aiState.downloadedModels.length > 0) {
+                    fab.classList.add('show');
+                } else {
+                    fab.classList.remove('show');
+                }
+            }
+        }
+    } catch (e) {
+        console.error("AI Status Check failed", e);
+    }
+}
+
+// Запускаем проверку при загрузке
+document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(checkAiStatus, 1000);
+});
+
+
+function formatBytes(bytes) {
+    if (!bytes || bytes === 0) return '0 MB';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// Вспомогательная функция для запуска поллинга прогресса ИИ
+function startAiDownloadPolling(model) {
+    if (window[`ai_interval_${model}`]) return; // Уже опрашиваем
+    
+    window[`ai_interval_${model}`] = setInterval(async () => {
+        try {
+            const res = await fetch(`${API_BASE}/ai/download-progress?model_name=${model}`);
+            if (res.ok) {
+                const data = await res.json();
+                
+                // Ищем активный элемент в открытой модалке (если она открыта)
+                const pctSpan = document.getElementById(`ai-pct-${model}`);
+                const sizeSpan = document.getElementById(`ai-size-${model}`);
+                const cancelBtn = document.getElementById(`ai-cancel-btn-${model}`);
+                
+                if (data.status === 'downloading') {
+                    if (pctSpan) pctSpan.textContent = `${data.progress}%`;
+                    if (sizeSpan && data.total_bytes) {
+                        sizeSpan.textContent = `${formatBytes(data.downloaded_bytes)} / ${formatBytes(data.total_bytes)}`;
+                    }
+                } else if (data.status === 'completed') {
+                    clearInterval(window[`ai_interval_${model}`]);
+                    delete window[`ai_interval_${model}`];
+                    
+                    if (!aiState.downloadedModels.includes(model)) {
+                        aiState.downloadedModels.push(model);
+                    }
+                    aiState.selectedModel = model;
+                    localStorage.setItem('doe-ai-model', model);
+                    
+                    window.showToast("ИИ Готов", `Модель ${model} успешно скачана`);
+                    
+                    // Показываем плавающую кнопку ИИ
+                    const fab = document.getElementById('ai-floating-btn');
+                    if (fab) fab.classList.add('show');
+
+                    if (document.getElementById('ai-settings-modal').classList.contains('show')) {
+                        window.openAiSettingsModal(); // Перерисовываем UI
+                    }
+                } else if (data.status === 'error') {
+                    clearInterval(window[`ai_interval_${model}`]);
+                    delete window[`ai_interval_${model}`];
+                    
+                    window.showToast("Ошибка загрузки", data.error || "Неизвестная ошибка", true);
+                    if (document.getElementById('ai-settings-modal').classList.contains('show')) {
+                        window.openAiSettingsModal(); // Перерисовываем UI
+                    }
+                } else if (data.status === 'cancelled' || data.status === 'idle') {
+                    clearInterval(window[`ai_interval_${model}`]);
+                    delete window[`ai_interval_${model}`];
+                    
+                    if (document.getElementById('ai-settings-modal').classList.contains('show')) {
+                        window.openAiSettingsModal(); // Перерисовываем UI
+                    }
+                }
+            }
+        } catch (e) { console.error(e); }
+    }, 1000);
+}
+
+window.openAiSettingsModal = async () => {
+    if (!aiState.supported) {
+        window.showToast("Не поддерживается", "Локальный ИИ-ассистент в данный момент доступен только для macOS", true);
+        return;
+    }
+
+    // Автовосстановление прогресса и синхронизация списка моделей
+    try {
+        const statusRes = await fetch(`${API_BASE}/ai/status`);
+        if (statusRes.ok) {
+            const statusData = await statusRes.json();
+            aiState.downloadedModels = statusData.downloaded_models || [];
+            
+            // === СИНХРОНИЗАЦИЯ ВЫБОРА ПРИ ОТКРЫТИИ НАСТРОЕК ===
+            const downloaded = aiState.downloadedModels || [];
+            const savedModel = localStorage.getItem('doe-ai-model');
+            
+            if (downloaded.length === 1) {
+                aiState.selectedModel = downloaded[0];
+                localStorage.setItem('doe-ai-model', downloaded[0]);
+            } else if (downloaded.length >= 2) {
+                if (savedModel && downloaded.includes(savedModel)) {
+                    aiState.selectedModel = savedModel;
+                } else if (!aiState.selectedModel || !downloaded.includes(aiState.selectedModel)) {
+                    aiState.selectedModel = downloaded[0];
+                    localStorage.setItem('doe-ai-model', downloaded[0]);
+                }
+            } else {
+                aiState.selectedModel = null;
+                localStorage.removeItem('doe-ai-model');
+            }
+            // ===========================================
+        }
+    } catch(e) {}
+
+    // Для каждой модели проверяем, не идет ли фоновая загрузка прямо сейчас
+    await Promise.all(aiState.availableModels.map(async (model) => {
+        try {
+            const pRes = await fetch(`${API_BASE}/ai/download-progress?model_name=${model}`);
+            if (pRes.ok) {
+                const pData = await pRes.json();
+                if (pData.status === 'downloading') {
+                    startAiDownloadPolling(model); // Восстанавливаем интервал в фоне
+                }
+            }
+        } catch(e) {}
+    }));
+
+    const list = document.getElementById('ai-models-list');
+    list.innerHTML = '';
+    
+    aiState.availableModels.forEach(model => {
+        const isDownloaded = aiState.downloadedModels.includes(model);
+        const isSelected = aiState.selectedModel === model;
+        const isPolling = !!window[`ai_interval_${model}`];
+        
+        const div = document.createElement('div');
+        div.className = `setting-row ${isSelected ? 'active' : ''}`;
+        
+        let controlsHtml = '';
+        const trashIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
+        const closeIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`;
+
+        if (isDownloaded) {
+            controlsHtml = `
+                <div style="display: flex; gap: 8px; align-items: center; flex-shrink: 0; pointer-events: auto;">
+                    <button class="icon-btn danger-icon ai-delete-btn" data-model="${model}" title="Удалить модель с диска" style="color: #D35446; width: 28px; height: 28px; margin: 0; z-index: 2;">
+                        ${trashIcon}
+                    </button>
+                    <div class="setting-check" style="margin-left: 0; width: 16px;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+                    </div>
+                </div>`;
+        } else if (isPolling) {
+            controlsHtml = `
+                <div style="display: flex; gap: 8px; align-items: center; flex-shrink: 0; pointer-events: auto;">
+                    <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px;">
+                        <span id="ai-pct-${model}" style="font-size: 13px; font-weight: 700; color: var(--brand-pine); line-height: 1.2;">0%</span>
+                        <span id="ai-size-${model}" style="font-size: 11px; color: var(--text-secondary); font-family: var(--font-mono); line-height: 1.2; letter-spacing: -0.02em;">0 MB / 0 GB</span>
+                    </div>
+                    <button class="icon-btn danger-icon ai-cancel-btn" id="ai-cancel-btn-${model}" data-model="${model}" title="Отменить" style="color: #D35446; width: 28px; height: 28px; margin: 0; z-index: 2; display: flex; align-items: center; justify-content: center;">
+                        ${closeIcon}
+                    </button>
+                </div>
+            `;
+        } else {
+            controlsHtml = `
+                <button class="confirm-btn cancel-btn ai-download-btn" data-model="${model}" style="padding: 6px 12px; font-size: 12px; flex: none; width: auto; font-weight: 600; z-index: 2; margin: 0;">Скачать (~5GB)</button>
+            `;
+        }
+
+        div.innerHTML = `
+            <div class="setting-text-box">
+                <div class="setting-title">${model}</div>
+                <div class="setting-desc">${isDownloaded ? 'Установлено' : 'Требуется загрузка'}</div>
+            </div>
+            ${controlsHtml}
+        `;
+        
+        // Вешаем событие на выбор модели (только если она скачана и неактивна)
+        if (isDownloaded && !isSelected) {
+            div.onclick = () => {
+                aiState.selectedModel = model;
+                localStorage.setItem('doe-ai-model', model);
+                window.openAiSettingsModal();
+            };
+        }
+
+        // Обработчик удаления
+        const deleteBtn = div.querySelector('.ai-delete-btn');
+        if (deleteBtn) {
+            deleteBtn.onclick = async (e) => {
+                e.stopPropagation();
+                
+                const isConfirmed = await showConfirmModal("Удалить модель?", `Модель ${model} будет удалена с устройства.`);
+                if (!isConfirmed) return;
+
+                deleteBtn.disabled = true;
+                deleteBtn.style.opacity = '0.5';
+                try {
+                    const res = await fetch(`${API_BASE}/ai/delete`, {
+                        method: 'DELETE', headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({model_name: model})
+                    });
+                    if (res.ok) {
+                        aiState.downloadedModels = aiState.downloadedModels.filter(m => m !== model);
+                        if (aiState.selectedModel === model) {
+                            aiState.selectedModel = null;
+                            localStorage.removeItem('doe-ai-model');
+                        }
+                        window.showToast("Удалено", `Модель ${model} удалена`);
+                        window.openAiSettingsModal();
+                    } else {
+                        throw new Error();
+                    }
+                } catch(err) {
+                    window.showToast("Ошибка", "Не удалось удалить файл", true);
+                    deleteBtn.disabled = false;
+                    deleteBtn.style.opacity = '1';
+                }
+            };
+        }
+
+        // Клик по кнопке Скачать
+        const downloadBtn = div.querySelector('.ai-download-btn');
+        if (downloadBtn) {
+            downloadBtn.onclick = async (e) => {
+                e.stopPropagation();
+                downloadBtn.textContent = 'Запуск...';
+                downloadBtn.disabled = true;
+                try {
+                    const res = await fetch(`${API_BASE}/ai/download`, {
+                        method: 'POST', headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({model_name: model})
+                    });
+                    if (res.ok) {
+                        startAiDownloadPolling(model);
+                        window.openAiSettingsModal(); // Перерисовываем, чтобы показать кнопку отмены
+                    } else {
+                        throw new Error();
+                    }
+                } catch (err) {
+                    downloadBtn.textContent = 'Ошибка';
+                    downloadBtn.disabled = false;
+                }
+            };
+        }
+
+        // Клик по кнопке Отмена
+        const cancelBtn = div.querySelector('.ai-cancel-btn');
+        if (cancelBtn) {
+            cancelBtn.onclick = async (e) => {
+                e.stopPropagation();
+                cancelBtn.style.opacity = '0.5';
+                cancelBtn.disabled = true;
+                try {
+                    const res = await fetch(`${API_BASE}/ai/cancel`, {
+                        method: 'POST', headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({model_name: model})
+                    });
+                    if (res.ok) {
+                        window.showToast("Загрузка прервана", `Скачивание модели ${model} успешно отменено`);
+                    }
+                } catch (err) {
+                    cancelBtn.style.opacity = '1';
+                    cancelBtn.disabled = false;
+                }
+            };
+        }
+        
+        list.appendChild(div);
+    });
+
+    const toggle = document.getElementById('ai-only-visible-toggle');
+    if (toggle) {
+        toggle.checked = aiState.onlyVisible;
+        toggle.onchange = (e) => {
+            aiState.onlyVisible = e.target.checked;
+            localStorage.setItem('doe-ai-visible', aiState.onlyVisible);
+        };
+    }
+
+    document.getElementById('ai-settings-modal').classList.add('show');
+};
+
+function checkDailyJournal() {
+    const today = new Date().toDateString();
+    const lastCheck = localStorage.getItem('doe-ai-last-check');
+    const prioEnabled = document.getElementById('ext-toggle-priority')?.checked !== false;
+
+    if (prioEnabled && aiState.selectedModel && aiState.downloadedModels.includes(aiState.selectedModel)) {
+        if (lastCheck !== today) {
+            // Если доска загрузилась, показываем журнал
+            if (state.columns.length > 0) {
+                openDailyJournal();
+            }
+        }
+    }
+}
+
+// Обработчик клика по плавающей кнопке
+document.getElementById('ai-floating-btn')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    openDailyJournal();
+});
+
+function openDailyJournal() {
+    // Если диалог пуст — начинаем с приветствия. Если нет — оставляем как есть!
+    if (aiState.chatHistory.length === 0) {
+        const chatBox = document.getElementById('ai-chat-history');
+        chatBox.innerHTML = '';
+        
+        let greeting = "Доброе утро! Как ваше настроение сегодня? Есть ли задачи, которые пугают, или наоборот — что-то вдохновляет?";
+        // Меняем приветствие, если это не первый запуск за день
+        const lastCheck = localStorage.getItem('doe-ai-last-check');
+        if (lastCheck === new Date().toDateString()) {
+            greeting = "Снова здравствуйте! Хотите что-то добавить к нашему контексту, или пересчитать приоритеты?";
+        }
+
+        appendAiMessage(greeting);
+    }
+    
+    document.getElementById('ai-journal-modal').classList.add('show');
+    setTimeout(() => {
+        document.getElementById('ai-chat-input').focus();
+    }, 50);
+}
+
+function appendUserMessage(text) {
+    const div = document.createElement('div');
+    div.className = 'ai-msg user';
+    div.textContent = text;
+    document.getElementById('ai-chat-history').appendChild(div);
+    div.scrollIntoView({behavior: 'smooth'});
+    aiState.chatHistory.push({role: "user", content: text});
+}
+
+function appendAiMessage(text) {
+    const div = document.createElement('div');
+    div.className = 'ai-msg ai';
+    
+    // --- ФОЛБЭК ДЛЯ ЛОКАЛЬНЫХ LLM (ПОДГОТОВКА) ---
+    // Если ИИ забыл сделать Markdown-ссылку и написал "Задача ID:26 'Название'",
+    // мы конвертируем это в сырой Markdown
+    let safeText = text.replace(/(?:Задача|Task|Карточка|Карточку)\s*(?:ID:?|#)?\s*(\d+)(?:\s*['"«](.*?)['"»])?/gi, (match, id, title) => {
+        const linkText = title ? title : `Задача #${id}`;
+        return `[${linkText}](doe://task/${id})`;
+    });
+
+    // --- СИСТЕМА АВТОРЕМОНТА ССЫЛОК (LINK REPAIR SYSTEM) ---
+    // Из-за ограничений контекста ИИ может привязать разные задачи к одному ID или вписать маркер списка внутрь ссылки.
+    // Мы находим все ссылки [Название](doe://task/ID), очищаем текст от маркеров списков,
+    // ищем реальную задачу с таким названием (или его частью) на доске и подставляем её настоящий ID.
+    safeText = safeText.replace(/\[(.*?)\]\(doe:\/\/task\/(\d+)\)/gi, (match, title, id) => {
+        // Очищаем текст ссылки от маркеров списков: "1. Задача" -> "Задача", "- Задача" -> "Задача"
+        const cleanTitle = title.trim().toLowerCase().replace(/^(?:\d+[\.)]\s*|[-•*]\s*)/, '').trim();
+        let realId = id;
+        let foundTask = null;
+        
+        // Этап 1: Ищем точное совпадение названий (без учета маркеров списков)
+        for (const col of state.columns) {
+            foundTask = col.tasks.find(t => {
+                const boardTitle = t.title.trim().toLowerCase().replace(/^(?:\d+[\.)]\s*|[-•*]\s*)/, '').trim();
+                return boardTitle === cleanTitle;
+            });
+            if (foundTask) break;
+        }
+        
+        // Этап 2: Если точное совпадение не найдено, делаем нестрогий поиск по взаимному вхождению
+        if (!foundTask && cleanTitle.length > 3) {
+            for (const col of state.columns) {
+                foundTask = col.tasks.find(t => {
+                    const boardTitle = t.title.trim().toLowerCase().replace(/^(?:\d+[\.)]\s*|[-•*]\s*)/, '').trim();
+                    return boardTitle.includes(cleanTitle) || cleanTitle.includes(boardTitle);
+                });
+                if (foundTask) break;
+            }
+        }
+        
+        if (foundTask) {
+            realId = foundTask.id;
+        }
+        return `[${title}](doe://task/${realId})`;
+    });
+    // --------------------------------------------------------
+
+    // Используем наш нативный парсер, чтобы рендерить жирный текст, списки и ссылки!
+    div.innerHTML = parseMarkdownWithMath(safeText); 
+    document.getElementById('ai-chat-history').appendChild(div);
+    div.scrollIntoView({behavior: 'smooth'});
+    aiState.chatHistory.push({role: "assistant", content: text}); // В историю пушим оригинал
+}
+
+// Глобальный перехватчик кликов по сгенерированным ссылкам внутри чата
+document.getElementById('ai-chat-history')?.addEventListener('click', (e) => {
+    const link = e.target.closest('a');
+    if (link) {
+        e.preventDefault();
+        const href = link.getAttribute('href');
+        if (href && href.startsWith('doe://task/')) {
+            const targetTaskId = parseInt(href.split('/').pop());
+            fetch(`${API_BASE}/tasks/${targetTaskId}/context`)
+                .then(res => res.json())
+                .then(context => {
+                    document.getElementById('ai-journal-modal').classList.remove('show');
+                    window.navigateToEntityGlobal(context.workspace_id, context.column_id, targetTaskId, null, true, true);
+                })
+                .catch(err => console.error(err));
+        }
+    }
+});
+
+function showAiTyping() {
+    const div = document.createElement('div');
+    div.className = 'ai-msg ai typing-indicator';
+    div.innerHTML = `<div class="ai-loading-dots"><span></span><span></span><span></span></div>`;
+    document.getElementById('ai-chat-history').appendChild(div);
+    div.scrollIntoView({behavior: 'smooth'});
+    return div;
+}
+
+function appendAiActions(actions) {
+    const div = document.createElement('div');
+    div.className = 'ai-msg ai ai-actions-box';
+    
+    let html = `<div style="font-weight: 600; margin-bottom: 8px;">Я хочу выполнить следующие действия:</div>`;
+    actions.forEach(a => {
+        let text = a.action;
+        if (a.action === 'create_task') text = `Создать задачу "${a.params.title}" (Колонка ID: ${a.params.column_id})`;
+        else if (a.action === 'move_task') text = `Переместить задачу #${a.params.task_id} в колонку #${a.params.target_column_id}`;
+        else if (a.action === 'delete_task') text = `Удалить задачу #${a.params.task_id}`;
+        else if (a.action === 'create_column') text = `Создать колонку "${a.params.title}"`;
+        else if (a.action === 'delete_column') text = `Удалить колонку #${a.params.column_id}`;
+        else if (a.action === 'create_workspace') text = `Создать вкладку "${a.params.name}"`;
+        else if (a.action === 'set_theme') text = `Сменить тему на ${a.params.theme}`;
+        else if (a.action === 'toggle_extension') text = `${a.params.state ? 'Включить' : 'Выключить'} расширение ${a.params.ext_name}`;
+        else if (a.action === 'prioritize_all') text = `Пересчитать приоритеты`;
+        html += `<div class="ai-action-item">- ${escapeHtml(text)}</div>`;
+    });
+    
+    html += `
+        <div class="ai-actions-btns">
+            <button class="ai-btn-cancel">Отменить</button>
+            <button class="ai-btn-confirm">Разрешить</button>
+        </div>
+    `;
+    div.innerHTML = html;
+    
+    const cancelBtn = div.querySelector('.ai-btn-cancel');
+    const confirmBtn = div.querySelector('.ai-btn-confirm');
+    
+    cancelBtn.onclick = () => {
+        div.innerHTML = `<div style="opacity: 0.6; font-style: italic;">Действия отменены пользователем.</div>`;
+    };
+    
+    confirmBtn.onclick = async () => {
+        confirmBtn.disabled = true;
+        cancelBtn.disabled = true;
+        confirmBtn.textContent = "Выполняю...";
+        
+        try {
+            const res = await fetch(`${API_BASE}/ai/execute`, {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    actions: actions,
+                    model_name: aiState.selectedModel
+                })
+            });
+            const data = await res.json();
+            
+            div.innerHTML = `<div style="color: var(--brand-pine); font-weight: 600;">✅ Действия выполнены!</div>`;
+            
+            if (data.actions_executed) refreshBoard();
+            if (data.settings_changed) {
+                fetchSettings().then(d => {
+                    window.applyExtensionsUI(d.extensions);
+                    if (d.theme) applyTheme(d.theme, false);
+                });
+            }
+        } catch(e) {
+            div.innerHTML = `<div style="color: #D35446; font-weight: 600;">❌ Ошибка выполнения. Проверьте правильность ID.</div>`;
+        }
+    };
+    
+    document.getElementById('ai-chat-history').appendChild(div);
+    div.scrollIntoView({behavior: 'smooth'});
+}
+
+document.getElementById('ai-send-btn')?.addEventListener('click', async () => {
+    if (aiState.isTyping) return;
+    const input = document.getElementById('ai-chat-input');
+    const text = input.value.trim();
+    if (!text) return;
+
+    input.value = '';
+    appendUserMessage(text);
+    
+    aiState.isTyping = true;
+    const typingEl = showAiTyping();
+
+    try {
+        const res = await fetch(`${API_BASE}/ai/chat`, {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                model_name: aiState.selectedModel,
+                messages: aiState.chatHistory
+            })
+        });
+        if (!res.ok) throw new Error("Backend error");
+        
+        const data = await res.json();
+        typingEl.remove();
+        
+        if (data.reply) {
+            appendAiMessage(data.reply);
+        }
+        
+        if (data.proposed_actions && data.proposed_actions.length > 0) {
+            appendAiActions(data.proposed_actions);
+        }
+    } catch (e) {
+        typingEl.remove();
+        
+        // 1. Показываем ошибку в UI (но НЕ сохраняем в системный aiState.chatHistory)
+        const div = document.createElement('div');
+        div.className = 'ai-msg ai';
+        div.style.color = '#D35446';
+        div.style.background = 'rgba(211, 84, 70, 0.1)';
+        div.textContent = "Произошла техническая заминка. Пожалуйста, отправьте сообщение еще раз.";
+        document.getElementById('ai-chat-history').appendChild(div);
+        div.scrollIntoView({behavior: 'smooth'});
+        
+        // 2. Откатываем последнее сообщение юзера, так как оно не дошло до LLM (защита памяти)
+        aiState.chatHistory.pop(); 
+        
+        // 3. Возвращаем текст в инпут, чтобы человек не печатал заново
+        input.value = text;
+        
+    } finally {
+        aiState.isTyping = false;
+        input.focus();
+    }
+});
+
+// Авто-ресайз поля ввода в ИИ-чате
+const aiChatInput = document.getElementById('ai-chat-input');
+if (aiChatInput) {
+    aiChatInput.addEventListener('input', function() {
+        this.style.height = '22px'; // Сброс для пересчета
+        this.style.height = (this.scrollHeight) + 'px';
+    });
+}
+
+document.getElementById('ai-chat-input')?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        document.getElementById('ai-send-btn').click();
+    }
+});
+
 function openNotifyModal(taskId, taskTitle) {
     const modal = document.getElementById('notify-modal');
     modal.dataset.taskId = taskId;
@@ -8196,6 +9033,247 @@ function openNotifyModal(taskId, taskTitle) {
         }
     };
     
+    modal.classList.add('show');
+}
+
+function openPriorityModal(taskId) {
+    const modal = document.getElementById('priority-modal');
+    modal.dataset.taskId = taskId;
+
+    // Ищем текущий приоритет и данные ползунков
+    let currentPriority = null;
+    let priorityData = null;
+    for (const col of state.columns) {
+        const task = col.tasks.find(t => t.id === taskId);
+        if (task) {
+            currentPriority = task.priority;
+            priorityData = task.priority_data;
+            break;
+        }
+    }
+
+    // Элементы управления
+    const els = {
+        c: { r: document.getElementById('prio-slider-c'), n: document.getElementById('prio-val-c') },
+        d: { r: document.getElementById('prio-slider-d'), n: document.getElementById('prio-val-d') },
+        a: { r: document.getElementById('prio-slider-a'), n: document.getElementById('prio-val-a') },
+        b: { r: document.getElementById('prio-slider-b'), n: document.getElementById('prio-val-b') },
+        e: { r: document.getElementById('prio-slider-e'), n: document.getElementById('prio-val-e') },
+        f: document.getElementById('prio-val-f'), // Скрытый инпут для отчётности F
+        p: { r: document.getElementById('prio-slider-p'), n: document.getElementById('prio-val-p') },
+        s: { r: document.getElementById('prio-slider-s'), n: document.getElementById('prio-val-s') },
+        h: { r: document.getElementById('prio-slider-h'), n: document.getElementById('prio-val-h') },
+        total: document.getElementById('prio-total-val')
+    };
+
+    let isManualTotal = false;
+    const btnClear = document.getElementById('btn-clear-priority');
+    const fBtns = modal.querySelectorAll('.prio-segmented .prio-segmented-btn');
+
+    const calcFormula = () => {
+        const c = parseFloat(els.c.n.value) / 10 || 0;
+        const d = parseFloat(els.d.n.value) / 10 || 0;
+        const a = parseFloat(els.a.n.value) / 10 || 0;
+        const b = parseFloat(els.b.n.value) / 10 || 0;
+        const e = parseFloat(els.e.n.value) / 10 || 0;
+        const f = parseFloat(els.f.value) || 0;
+        const p = parseFloat(els.p.n.value) / 10 || 0;
+        const s = parseFloat(els.s.n.value) / 10 || 0;
+        const h = parseFloat(els.h.n.value) / 10 || 0;
+
+        const d_eff = d * 0.85;
+        const c_eff = Math.pow(c, 0.85);
+
+        const value_base = c_eff * d_eff;
+        const value = value_base * (1 + 0.35 * f) + 0.15 * p * d_eff;
+        
+        const relief_base = a * (0.10 + c_eff * (0.45 * d_eff + 0.50));
+        const relief = relief_base + 0.40 * s;
+        
+        const friction = b * (0.62 + 0.42 * e);
+        
+        const base_score = 100 * (value + relief) / (1 + friction);
+        const score = base_score * (1 - 0.75 * h);
+
+        const finalScore = Math.min(100, Math.max(0, score));
+        return Math.round(finalScore * 10) / 10; // Округляем до 1 знака
+    };
+
+    const updateFromSliders = () => {
+        if (!isManualTotal) {
+            els.total.value = fmtPrio(calcFormula());
+        }
+    };
+
+    // Привязка событий для ползунков и полей ввода (C, D, A, B, E, P, S, H)
+    ['c', 'd', 'a', 'b', 'e', 'p', 's', 'h'].forEach(k => {
+        els[k].r.oninput = (ev) => {
+            els[k].n.value = fmtPrio(ev.target.value);
+            isManualTotal = false;
+            updateFromSliders();
+        };
+        els[k].n.oninput = (ev) => {
+            let cleanVal = ev.target.value.replace(/,/g, '.');
+            let val = parseFloat(cleanVal);
+            if (isNaN(val)) val = 0;
+            if (val < 0) val = 0;
+            if (val > 10) val = 10;
+            els[k].r.value = val;
+            isManualTotal = false;
+            updateFromSliders();
+        };
+        els[k].n.onblur = (ev) => {
+            let cleanVal = ev.target.value.replace(/,/g, '.');
+            let val = parseFloat(cleanVal);
+            if (isNaN(val) || val < 0) val = 0;
+            if (val > 10) val = 10;
+            ev.target.value = fmtPrio(val);
+            els[k].r.value = val;
+        };
+    });
+
+    const fmtPrio = (val) => Math.round(parseFloat(val) * 10) / 10;
+
+    // Если данные сохранены — восстанавливаем
+    if (priorityData) {
+        ['c', 'd', 'a', 'b', 'e', 'p', 's', 'h'].forEach(k => {
+            const defVal = ['c', 'd', 'a', 'b', 'e'].includes(k) ? 5 : 0;
+            const savedVal = priorityData[k] !== undefined ? parseFloat(priorityData[k]) : defVal;
+            els[k].r.value = savedVal;
+            els[k].n.value = fmtPrio(savedVal);
+        });
+        
+        els.f.value = priorityData.f !== undefined ? parseFloat(priorityData.f) : 0;
+        fBtns.forEach(btn => {
+            btn.classList.toggle('active', parseFloat(btn.dataset.val) === parseFloat(els.f.value));
+        });
+
+        isManualTotal = !!priorityData.manual;
+        els.total.value = currentPriority !== null ? fmtPrio(currentPriority) : 0;
+        btnClear.style.display = 'block';
+    } else {
+        // Сброс на дефолты (5 для базовых, 0 для новых)
+        ['c', 'd', 'a', 'b', 'e'].forEach(k => {
+            els[k].r.value = 5.0;
+            els[k].n.value = 5;
+        });
+        ['p', 's', 'h'].forEach(k => {
+            els[k].r.value = 0.0;
+            els[k].n.value = 0;
+        });
+
+        els.f.value = 0;
+        fBtns.forEach(btn => {
+            btn.classList.toggle('active', parseFloat(btn.dataset.val) === 0);
+        });
+
+        isManualTotal = false;
+        if (currentPriority !== null && currentPriority !== undefined) {
+            els.total.value = fmtPrio(currentPriority);
+            btnClear.style.display = 'block';
+            isManualTotal = true; 
+        } else {
+            btnClear.style.display = 'none';
+        }
+    }
+
+    // Привязка событий к segmented control (F)
+    fBtns.forEach(btn => {
+        btn.onclick = (e) => {
+            e.stopPropagation();
+            fBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            els.f.value = btn.dataset.val;
+            isManualTotal = false;
+            updateFromSliders();
+        };
+    });
+
+    if (!isManualTotal) updateFromSliders();
+
+    els.total.oninput = (ev) => {
+        isManualTotal = true;
+    };
+    els.total.onblur = (ev) => {
+        let cleanVal = ev.target.value.replace(/,/g, '.');
+        let val = parseFloat(cleanVal);
+        if (isNaN(val) || val < 0) val = 0;
+        if (val > 100) val = 100;
+        ev.target.value = fmtPrio(val);
+    };
+
+    const btnSet = document.getElementById('btn-set-priority');
+    
+    // Пересоздаем кнопки чтобы убить старые слушатели
+    const newBtnSet = btnSet.cloneNode(true);
+    btnSet.replaceWith(newBtnSet);
+    const newBtnClear = btnClear.cloneNode(true);
+    btnClear.replaceWith(newBtnClear);
+
+    newBtnSet.onclick = async () => {
+        const finalVal = parseFloat(els.total.value) || 0;
+        const pData = {
+            c: parseFloat(els.c.n.value) || 0,
+            d: parseFloat(els.d.n.value) || 0,
+            a: parseFloat(els.a.n.value) || 0,
+            b: parseFloat(els.b.n.value) || 0,
+            e: parseFloat(els.e.n.value) || 0,
+            f: parseFloat(els.f.value) || 0,
+            p: parseFloat(els.p.n.value) || 0,
+            s: parseFloat(els.s.n.value) || 0,
+            h: parseFloat(els.h.n.value) || 0,
+            manual: isManualTotal
+        };
+
+        newBtnSet.style.opacity = '0.5';
+        newBtnSet.disabled = true;
+
+        try {
+            await updateTask(taskId, { priority: finalVal, priority_data: pData });
+            for (let col of state.columns) {
+                let t = col.tasks.find(task => task.id == taskId);
+                if (t) {
+                    t.priority = finalVal;
+                    t.priority_data = pData;
+                    const cardEl = document.querySelector(`.card[data-card-id="${taskId}"]`);
+                    if (cardEl) updateCardAppearance(cardEl, t, col.mode);
+                    break;
+                }
+            }
+            modal.classList.remove('show');
+        } catch (err) {
+            window.showToast(t('alerts.error'), 'Не удалось сохранить приоритет', true);
+        } finally {
+            newBtnSet.style.opacity = '1';
+            newBtnSet.disabled = false;
+        }
+    };
+
+    newBtnClear.onclick = async () => {
+        newBtnClear.style.opacity = '0.5';
+        newBtnClear.disabled = true;
+
+        try {
+            await updateTask(taskId, { priority: null, priority_data: null });
+            for (let col of state.columns) {
+                let t = col.tasks.find(task => task.id == taskId);
+                if (t) {
+                    t.priority = null;
+                    t.priority_data = null;
+                    const cardEl = document.querySelector(`.card[data-card-id="${taskId}"]`);
+                    if (cardEl) updateCardAppearance(cardEl, t, col.mode);
+                    break;
+                }
+            }
+            modal.classList.remove('show');
+        } catch (err) {
+            window.showToast(t('alerts.error'), 'Не удалось очистить приоритет', true);
+        } finally {
+            newBtnClear.style.opacity = '1';
+            newBtnClear.disabled = false;
+        }
+    };
+
     modal.classList.add('show');
 }
 
@@ -9313,6 +10391,13 @@ function initCloudSync() {
         ]);
 
         window.applyExtensionsUI(settingsData.extensions);
+        
+        // Применяем настройки приоритетов
+        if (settingsData.priority_settings) {
+            applyPriorityStyles(settingsData.priority_settings);
+        } else {
+            applyPriorityStyles(window.prioritySettings);
+        }
 
         // Применяем шрифты при старте основного окна
         updateAppFont(settingsData.ui_font, settingsData.custom_font);
@@ -9949,6 +11034,83 @@ const Calendar = {
 document.addEventListener('DOMContentLoaded', () => {
     Calendar.init();
 });
+
+function openSortModal(columnId) {
+    const modal = document.getElementById('sort-modal');
+    modal.dataset.columnId = columnId;
+    
+    const criteriaRows = modal.querySelectorAll('#sort-criteria-list .setting-row');
+    criteriaRows.forEach(r => {
+        r.onclick = () => {
+            criteriaRows.forEach(rr => rr.classList.remove('active'));
+            r.classList.add('active');
+        };
+    });
+
+    const dirBtns = modal.querySelectorAll('#sort-modal .segmented-control .segmented-btn');
+    dirBtns.forEach(b => {
+        b.onclick = () => {
+            dirBtns.forEach(bb => bb.classList.remove('active'));
+            b.classList.add('active');
+        };
+    });
+
+    const applyBtn = document.getElementById('btn-apply-sort');
+    const newApplyBtn = applyBtn.cloneNode(true);
+    applyBtn.replaceWith(newApplyBtn);
+
+    newApplyBtn.onclick = async () => {
+        const criteria = modal.querySelector('#sort-criteria-list .setting-row.active').dataset.sort;
+        const dir = modal.querySelector('#sort-modal .segmented-control .segmented-btn.active').dataset.dir;
+        modal.classList.remove('show');
+        await applyColumnSort(columnId, criteria, dir);
+    };
+
+    modal.classList.add('show');
+}
+
+async function applyColumnSort(columnId, criteria, dir) {
+    const column = state.columns.find(c => c.id === columnId);
+    if (!column || !column.tasks || column.tasks.length === 0) return;
+
+    const modifier = dir === 'asc' ? 1 : -1;
+
+    column.tasks.sort((a, b) => {
+        let valA, valB;
+        if (criteria === 'created') {
+            valA = new Date(a.created_at).getTime();
+            valB = new Date(b.created_at).getTime();
+        } else if (criteria === 'updated') {
+            valA = new Date(a.updated_at).getTime();
+            valB = new Date(b.updated_at).getTime();
+        } else if (criteria === 'priority') {
+            valA = a.priority != null ? a.priority : -1;
+            valB = b.priority != null ? b.priority : -1;
+        } else if (criteria === 'deadline') {
+            valA = a.due_date ? new Date(a.due_date).getTime() : Infinity;
+            valB = b.due_date ? new Date(b.due_date).getTime() : Infinity;
+            if (dir === 'desc') {
+                if (valA === Infinity) valA = -Infinity;
+                if (valB === Infinity) valB = -Infinity;
+            }
+        }
+        
+        if (valA < valB) return -1 * modifier;
+        if (valA > valB) return 1 * modifier;
+        return 0;
+    });
+
+    const orderedIds = column.tasks.map(t => t.id);
+    column.tasks.forEach((t, i) => t.position = i);
+    renderBoard();
+
+    try {
+        await saveTasksOrder(orderedIds);
+    } catch (err) {
+        console.error("Ошибка сортировки:", err);
+        window.showToast(t('alerts.error'), 'Не удалось сохранить порядок', true);
+    }
+}
 
 (() => {
     if (!document.documentElement.classList.contains('mac-os')) return;

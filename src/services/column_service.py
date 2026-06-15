@@ -70,6 +70,8 @@ async def get_columns_with_tasks(db: AsyncSession, workspace_id: int):
                         updated_at=sub.updated_at,
                         completed_at=sub.completed_at,
                         due_date=sub.due_date,
+                        priority=sub.priority,
+                        priority_data=sub.priority_data,
                         is_visible_on_board=sub.is_visible_on_board,
                         subtasks=[], # Жестко обрываем рекурсию для Pydantic, не ломая ORM-кэш!
                         active_timer=None,
@@ -105,6 +107,8 @@ async def get_columns_with_tasks(db: AsyncSession, workspace_id: int):
                 updated_at=task.updated_at,
                 completed_at=task.completed_at,
                 due_date=task.due_date,
+                priority=task.priority,
+                priority_data=task.priority_data,
                 is_visible_on_board=task.is_visible_on_board,
                 # Передаем подзадачи, чтобы на доске отображался счетчик (например, 1/5)
                 subtasks=serialized_subtasks, 

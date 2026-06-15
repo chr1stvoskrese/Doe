@@ -44,6 +44,7 @@ pyinstaller --noconfirm ^
     --version-file="version.txt" ^
     --add-data "favicon.ico;." ^
     --add-data "doe.png;." ^
+    --add-data "ai-logo.png;." ^
     --add-data "doe_source.zip;." ^
     --add-data "frontend;frontend" ^
     --add-data "src;src" ^

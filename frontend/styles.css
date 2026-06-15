@@ -550,6 +550,16 @@ body, button, input, textarea, select,
     color: var(--text-primary);
 }
 
+.icon-btn.danger-icon:hover {
+    background: rgba(211, 84, 70, 0.1) !important;
+    color: #D35446 !important;
+}
+
+[data-theme="dark"] .icon-btn.danger-icon:hover {
+    background: rgba(214, 90, 75, 0.15) !important;
+    color: #D65A4B !important;
+}
+
 .workspace-btn {
     background: transparent;
     border: none;
@@ -1499,7 +1509,8 @@ body[class*="is-dragging-"] .card-inline-trigger {
 .modal-search,
 .modal-detach,
 .modal-notify,
-.modal-due-date {
+.modal-due-date,
+.modal-priority {
     background: transparent;
     border: none;
     cursor: pointer;
@@ -1523,7 +1534,8 @@ body[class*="is-dragging-"] .card-inline-trigger {
 .modal-search svg,
 .modal-detach svg,
 .modal-notify svg,
-.modal-due-date svg {
+.modal-due-date svg,
+.modal-priority svg {
     width: 16px !important;
     height: 16px !important;
 }
@@ -1535,7 +1547,8 @@ body[class*="is-dragging-"] .card-inline-trigger {
 .modal-search:hover,
 .modal-detach:hover,
 .modal-notify:hover,
-.modal-due-date:hover {
+.modal-due-date:hover,
+.modal-priority:hover {
     background: rgba(0, 0, 0, 0.05);
     color: var(--text-primary);
 }
@@ -1549,7 +1562,8 @@ body[class*="is-dragging-"] .card-inline-trigger {
 [data-theme="dark"] .modal-search:hover,
 [data-theme="dark"] .modal-detach:hover,
 [data-theme="dark"] .modal-notify:hover,
-[data-theme="dark"] .modal-due-date:hover {
+[data-theme="dark"] .modal-due-date:hover,
+[data-theme="dark"] .modal-priority:hover {
     background: rgba(255, 255, 255, 0.08);
 }
 
@@ -2948,7 +2962,7 @@ body[class*="is-dragging-"] .board-tab:not(.active) {
 .subtask-detach-btn:hover { background: rgba(0, 0, 0, 0.06); color: var(--text-primary); }
 [data-theme="dark"] .subtask-detach-btn:hover { background: rgba(255, 255, 255, 0.08); color: var(--text-primary); }
 
-#export-modal, #notify-modal, #due-date-modal {
+#export-modal, #notify-modal, #due-date-modal, #confirm-modal, #detach-modal {
     z-index: 99999999;
 }
 
@@ -3141,20 +3155,11 @@ body[class*="is-dragging-"] .board-tab:not(.active) {
     visibility: visible;
 }
 
-.card.has-unknown-time:hover:not(:has(.card-inline-trigger:hover)) .card-footer {
-    margin-top: 8px;
-    max-height: 40px;
-    opacity: 1;
-}
+
 
 .card.has-unknown-time.has-open-menu .subtask-meta {
     opacity: 1;
     visibility: visible;
-}
-.card.has-unknown-time.has-open-menu .card-footer {
-    margin-top: 8px;
-    max-height: 40px;
-    opacity: 1;
 }
 
 .task-detail-card {
@@ -5182,7 +5187,7 @@ body.is-dragging-vault-history * {
     opacity: 0 !important;
 }
 
-.checklist-meta, .card-timer, .subtask-meta {
+.checklist-meta, .card-timer, .subtask-meta, .priority-pill {
     max-width: 200px;
 
     transition:
@@ -5191,6 +5196,16 @@ body.is-dragging-vault-history * {
         margin 0.25s cubic-bezier(0.4, 0, 0.2, 1),
         padding 0.25s cubic-bezier(0.4, 0, 0.2, 1),
         transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card.has-unknown-time:hover:not(:has(.card-inline-trigger:hover)) .card-footer {
+    max-height: 40px;
+    opacity: 1;
+}
+
+.card.has-unknown-time.has-open-menu .card-footer {
+    max-height: 40px;
+    opacity: 1;
 }
 
 .card-footer {
@@ -5208,7 +5223,12 @@ body.is-dragging-vault-history * {
     display: none !important;
 }
 
-.checklist-meta, .card-timer, .subtask-meta {
+/* Уничтожаем фантомный отступ: скрываем футер целиком, если выключенная приоритетность — его единственный ребёнок */
+body.ext-priority-hidden .card-footer:has(> .priority-pill:only-child) {
+    display: none !important;
+}
+
+.checklist-meta, .card-timer, .subtask-meta, .priority-pill {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -5272,6 +5292,182 @@ body.is-dragging-vault-history * {
 [data-theme="dark"] .due-date-pill.overdue {
     background: rgba(214, 90, 75, 0.15) !important;
     color: #D65A4B !important;
+}
+
+/* Стили для пилюли Приоритетности (цвета теперь динамические, инжектятся через JS) */
+.priority-pill {
+    gap: 4px;
+    background: rgba(0, 0, 0, 0.04);
+    color: var(--text-secondary);
+    transition: all var(--transition-apple);
+}
+.priority-pill.clickable { cursor: pointer; }
+.priority-pill.clickable:hover { filter: brightness(0.95); }
+[data-theme="dark"] .priority-pill.clickable:hover { filter: brightness(1.2); }
+
+/* Подложки генерируются динамически через color-mix, fallback если переменная не успела */
+.priority-pill.level-low { 
+    background: color-mix(in srgb, var(--prio-low-color, #D35446) 15%, transparent) !important; 
+    color: var(--prio-low-color, #D35446) !important; 
+}
+.priority-pill.level-mid { 
+    background: color-mix(in srgb, var(--prio-mid-color, #B3863A) 15%, transparent) !important; 
+    color: var(--prio-mid-color, #B3863A) !important; 
+}
+.priority-pill.level-high { 
+    background: color-mix(in srgb, var(--prio-high-color, #89A085) 15%, transparent) !important; 
+    color: var(--prio-high-color, #89A085) !important; 
+}
+
+/* Красивый инпут для выбора цвета (Apple Style) */
+.prio-color-picker {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    background: transparent;
+    padding: 0;
+    overflow: hidden;
+    flex-shrink: 0;
+    box-shadow: 0 0 0 1px var(--border-light) inset;
+}
+.prio-color-picker::-webkit-color-swatch-wrapper { padding: 0; }
+.prio-color-picker::-webkit-color-swatch { border: none; border-radius: 50%; }
+.prio-color-picker::-moz-color-swatch { border: none; border-radius: 50%; }
+
+.compact-input {
+    padding: 4px 8px;
+    font-size: 13px;
+    text-align: center;
+    height: 28px;
+}
+.priority-pill.level-none { 
+    background: color-mix(in srgb, var(--prio-none-color, #828A80) 15%, transparent) !important; 
+    color: var(--prio-none-color, #828A80) !important; 
+}
+
+/* Модалка приоритетности */
+.priority-sliders-container {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+.prio-slider-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.prio-label-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.prio-letter {
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--brand-pine);
+    margin-right: 8px;
+}
+[data-theme="dark"] .prio-letter { color: #89A085; }
+.prio-desc {
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+.prio-num-input {
+    width: 40px;
+    height: 24px;
+    text-align: center;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 600;
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--text-primary);
+    border-radius: 6px;
+    outline: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    -moz-appearance: textfield;
+}
+.prio-num-input::-webkit-outer-spin-button,
+.prio-num-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.prio-num-input:hover, .prio-num-input:focus {
+    background: rgba(0, 0, 0, 0.04);
+    border-color: rgba(74, 90, 72, 0.2);
+    cursor: text;
+}
+[data-theme="dark"] .prio-num-input:hover, [data-theme="dark"] .prio-num-input:focus {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(137, 160, 133, 0.3);
+}
+
+.prio-range {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 6px;
+    background: rgba(0, 0, 0, 0.08);
+    border-radius: 3px;
+    outline: none;
+}
+[data-theme="dark"] .prio-range { background: rgba(255, 255, 255, 0.1); }
+.prio-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--brand-pine);
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    transition: transform 0.1s;
+}
+.prio-range::-webkit-slider-thumb:hover { transform: scale(1.15); }
+[data-theme="dark"] .prio-range::-webkit-slider-thumb { background: #89A085; }
+
+.prio-result-box {
+    margin-top: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: rgba(0, 0, 0, 0.03);
+    border-radius: 12px;
+    border: 1px solid var(--border-light);
+    font-weight: 600;
+    color: var(--text-primary);
+}
+[data-theme="dark"] .prio-result-box { background: rgba(255, 255, 255, 0.04); }
+
+.prio-result-wrapper {
+    display: flex;
+    align-items: baseline;
+    gap: 2px;
+}
+.prio-result-input {
+    width: 60px;
+    text-align: right;
+    font-family: var(--font-mono);
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--brand-pine);
+    background: transparent;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    -moz-appearance: textfield;
+}
+[data-theme="dark"] .prio-result-input { color: #89A085; }
+.prio-result-input::-webkit-outer-spin-button,
+.prio-result-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.prio-percent-sign {
+    font-size: 16px;
+    color: var(--text-secondary);
+    font-weight: 600;
 }
 
 .checklist-meta.all-done {
@@ -5420,11 +5616,54 @@ body.is-dragging-vault-history * {
     transform: scale(1);
 }
 
-.setting-row.active .setting-icon-box {
+.setting-check.active .setting-icon-box {
     color: var(--brand-pine);
 }
 [data-theme="dark"] .setting-row.active .setting-icon-box {
     color: #89A085;
+}
+
+/* Оформление новых секций приоритетности */
+.prio-section-title {
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+    border-bottom: 1px solid var(--border-light);
+    padding-bottom: 4px;
+    pointer-events: none;
+    user-select: none;
+}
+.prio-segmented {
+    display: flex;
+    background: rgba(0, 0, 0, 0.04);
+    padding: 2px;
+    border-radius: 8px;
+    width: 140px;
+    height: 28px;
+    flex-shrink: 0;
+}
+[data-theme="dark"] .prio-segmented {
+    background: rgba(255, 255, 255, 0.06);
+}
+.prio-segmented-btn {
+    flex: 1;
+    text-align: center;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    border-radius: 6px;
+    cursor: pointer;
+    line-height: 24px;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+.prio-segmented-btn.active {
+    background: var(--surface-card);
+    color: var(--text-primary);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
 .setting-hint {
@@ -6858,4 +7097,361 @@ body.ext-deadlines-hidden #menu-clear-due-date {
 body.ext-export-hidden .modal-export,
 body.ext-export-hidden .menu-item[data-action="export-card"] {
     display: none !important;
+}
+
+/* Скрытие приоритетности через настройки расширений */
+body.ext-priority-hidden .priority-pill,
+body.ext-priority-hidden #modal-priority-btn,
+body.ext-priority-hidden #menu-set-priority,
+body.ext-priority-hidden #menu-priority-settings,
+body.ext-priority-hidden #divider-priority,
+body.ext-priority-hidden .sort-option-priority {
+    display: none !important;
+}
+
+body.ext-deadlines-hidden .ext-deadlines-dependent {
+    display: none !important;
+}
+
+/* Скрытие AI-Психолога через настройки расширений */
+body.ext-ai-hidden #menu-ai-settings,
+body.ext-ai-hidden #divider-ai,
+body.ext-ai-hidden #ai-floating-btn {
+    display: none !important;
+}
+
+/* AI Chat Styles (Redesign) */
+.ai-journal-card {
+    width: 540px !important;
+    height: 700px !important;
+    max-height: 90vh !important;
+    background: #232521 !important; /* Глубокий темный фон из макета */
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 24px !important;
+    box-shadow: 0 40px 80px rgba(0,0,0,0.4) !important;
+}
+
+.ai-journal-body {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 24px;
+    box-sizing: border-box;
+}
+
+.ai-journal-logo-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0;          /* Полностью обнуляем старые паддинги */
+    margin-top: 0;       /* Сверху отступ идет от body padding и равен ровно 24px */
+    margin-bottom: 24px; /* Расстояние до начала чата (синий отступ) теперь ровно 24px */
+    flex-shrink: 0;
+}
+
+.ai-journal-logo {
+    width: 80px;
+    height: auto;
+    opacity: 0.9;
+}
+
+.ai-chat-history {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px; 
+    
+    padding-right: 8px;
+    padding-top: 16px;    /* Уменьшили паддинг до 16px под размер новой маски */
+    padding-bottom: 16px; /* Уменьшили паддинг до 16px под размер новой маски */
+    
+    margin-top: 0;       
+    margin-bottom: 12px; 
+    
+    /* Сверхмягкая маска на 16px с промежуточными точками для скрытия резких границ */
+    -webkit-mask-image: linear-gradient(
+        to bottom,
+        transparent 0px,
+        rgba(0, 0, 0, 0.35) 4px,
+        rgba(0, 0, 0, 0.85) 10px,
+        black 16px,
+        black calc(100% - 16px),
+        rgba(0, 0, 0, 0.85) calc(100% - 10px),
+        rgba(0, 0, 0, 0.35) calc(100% - 4px),
+        transparent 100%
+    );
+    mask-image: linear-gradient(
+        to bottom,
+        transparent 0px,
+        rgba(0, 0, 0, 0.35) 4px,
+        rgba(0, 0, 0, 0.85) 10px,
+        black 16px,
+        black calc(100% - 16px),
+        rgba(0, 0, 0, 0.85) calc(100% - 10px),
+        rgba(0, 0, 0, 0.35) calc(100% - 4px),
+        transparent 100%
+    );
+}
+
+.ai-chat-history::-webkit-scrollbar { width: 4px; }
+.ai-chat-history::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+/* Пузыри сообщений */
+.ai-msg {
+    padding: 14px 18px;
+    font-size: 15px;
+    line-height: 1.5;
+    max-width: 85%;
+    word-wrap: break-word;
+    animation: fadeInBtn 0.3s ease-out;
+    color: #E6E8E5 !important;
+}
+
+/* Сообщение ИИ (хвостик слева внизу) */
+.ai-msg.ai {
+    background: #323530 !important; 
+    align-self: flex-start;
+    border-radius: 18px 18px 18px 4px !important; 
+}
+
+/* Сообщение пользователя (хвостик справа внизу) */
+.ai-msg.user {
+    background: #4A5A48 !important; 
+    align-self: flex-end;
+    border-radius: 18px 18px 4px 18px !important; 
+}
+
+/* Анимация загрузки ИИ */
+.ai-loading-dots { display: inline-flex; gap: 4px; }
+.ai-loading-dots span {
+    width: 6px; height: 6px;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 50%;
+    animation: bounce 1.4s infinite ease-in-out both;
+}
+.ai-loading-dots span:nth-child(1) { animation-delay: -0.32s; }
+.ai-loading-dots span:nth-child(2) { animation-delay: -0.16s; }
+@keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
+
+/* Поле ввода */
+.ai-journal-input-wrapper {
+    position: relative;
+    background: #1A1C19; 
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    align-items: flex-end;
+    padding: 6px;
+    flex-shrink: 0;
+}
+
+.ai-chat-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: #E6E8E5;
+    font-family: var(--font-main);
+    font-size: 15px;
+    line-height: 1.5;
+    padding: 10px 14px;
+    max-height: 120px;
+    min-height: 22px;
+    resize: none;
+    outline: none;
+}
+
+.ai-chat-input::placeholder { color: rgba(255, 255, 255, 0.4); }
+
+.ai-send-btn {
+    background: transparent;
+    border: none;
+    color: #89A085; 
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    margin-bottom: 2px;
+}
+
+.ai-send-btn:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #A7C0A2;
+}
+
+.ai-send-btn svg {
+    width: 20px;
+    height: 20px;
+    transform: translateX(-1px);
+}
+
+/* Стили плавающей кнопки ИИ */
+.ai-floating-btn {
+    position: fixed;
+    bottom: 32px;
+    right: 32px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--brand-pine);
+    color: #FFFFFF;
+    border: none;
+    box-shadow: 0 8px 24px rgba(74, 90, 72, 0.3);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+    
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(20px) scale(0.9);
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ai-floating-btn:hover {
+    transform: translateY(0) scale(1.05);
+    box-shadow: 0 12px 32px rgba(74, 90, 72, 0.4);
+}
+
+.ai-floating-btn:active {
+    transform: translateY(0) scale(0.95);
+}
+
+.ai-floating-btn.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+}
+
+[data-theme="dark"] .ai-floating-btn {
+    background: #738A70;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="dark"] .ai-floating-btn:hover {
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
+}
+
+/* =========================================
+   Скролл для списка моделей AI-Психолога
+========================================= */
+#ai-models-list {
+    max-height: 240px; /* Вмещает около 3-х моделей, остальное плавно скроллится */
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain; /* Чтобы не скроллилась страница позади модалки */
+}
+
+/* Стилизация ползунка под общую тему Doe */
+#ai-models-list::-webkit-scrollbar {
+    width: 6px;
+}
+#ai-models-list::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 4px;
+}
+#ai-models-list::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 4px;
+}
+#ai-models-list::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover);
+}
+
+/* Корректировка отображения списков в сообщениях чата */
+.ai-msg ol {
+    list-style-type: decimal !important;
+    padding-left: 22px !important;
+    margin-top: 8px;
+    margin-bottom: 8px;
+}
+
+.ai-msg ul {
+    list-style-type: disc !important;
+    padding-left: 22px !important;
+    margin-top: 8px;
+    margin-bottom: 8px;
+}
+
+.ai-msg li {
+    margin-bottom: 6px;
+    list-style-position: outside !important;
+    line-height: 1.6;
+}
+
+/* Стилизация ссылок в чате под цвета приложения */
+.ai-msg a {
+    color: var(--brand-pine) !important;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 2px;
+    font-weight: 600;
+    transition: opacity 0.15s ease;
+}
+
+.ai-msg a:hover {
+    opacity: 0.8;
+}
+
+/* Стили для блока подтверждения действий ИИ */
+.ai-actions-box {
+    background: rgba(0, 0, 0, 0.2) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    font-size: 13px !important;
+}
+
+.ai-action-item {
+    padding-left: 8px;
+    margin-bottom: 4px;
+    opacity: 0.9;
+}
+
+.ai-actions-btns {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.ai-actions-btns button {
+    flex: 1;
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: none;
+    font-family: var(--font-main);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.ai-btn-cancel {
+    background: rgba(255, 255, 255, 0.1);
+    color: #E6E8E5;
+}
+
+.ai-btn-cancel:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.ai-btn-confirm {
+    background: var(--brand-pine);
+    color: #FFF;
+}
+
+.ai-btn-confirm:hover {
+    background: #5D735B;
+}
+
+.ai-btn-confirm:disabled, .ai-btn-cancel:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }

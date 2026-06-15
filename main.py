@@ -73,10 +73,20 @@ async def get_logo():
         return FileResponse(logo_path)
     return Response(status_code=404)
 
+@app.get("/ai-logo.png", include_in_schema=False)
+async def get_ai_logo():
+    logo_path = base_dir / "ai-logo.png"
+    if logo_path.exists():
+        return FileResponse(logo_path)
+    return Response(status_code=404)
+
+from src.api.v1 import ai
+
 app.include_router(columns.router, prefix="/api/v1")
 app.include_router(tasks.router, prefix="/api/v1")
 app.include_router(system.router, prefix="/api/v1")
 app.include_router(workspaces.router, prefix="/api/v1")
+app.include_router(ai.router, prefix="/api/v1") # <--- ПОДКЛЮЧЕНИЕ
 
 if getattr(sys, 'frozen', False):
     base_dir = Path(sys._MEIPASS)
