@@ -1787,7 +1787,7 @@ function createColumnElement(column) {
         <button class="btn-add-card">${t('newTask')}</button>
     `;
 
-    if (column.width) {
+    if (column.width && !column.collapsed) {
         colDiv.style.width = column.width + 'px';
     }
 
@@ -2823,10 +2823,13 @@ function startColumnResize(colDiv, column, e) {
     let rafId = null;
     let latestX = startX;
 
-    // Сообщаем системе, что мы в процессе взаимодействия,
-    // чтобы фоновая синхронизация (iCloud/Watchdog) не перерисовала доску
-    isDragging = true;
-    dragType = 'column-resize';
+    // Архитектурно чистая блокировка: имитируем "локальное редактирование".
+    // Вебсокет будет игнорировать внешние изменения БД, пока интервал обновляет таймер.
+    // Это никак не влияет на Drag&Drop или локальные таймеры карточек.
+    window._lastLocalEdit = Date.now();
+    const syncLockInterval = setInterval(() => {
+        window._lastLocalEdit = Date.now();
+    }, 1000);
 
     const onMove = (e) => {
         latestX = e.clientX;
@@ -2847,6 +2850,8 @@ function startColumnResize(colDiv, column, e) {
             rafId = null;
         }
         
+        clearInterval(syncLockInterval); // Снимаем блокировку фоновой синхронизации
+        
         document.removeEventListener('pointermove', onMove);
         document.removeEventListener('pointerup', onUp);
         document.body.style.cursor = '';
@@ -2856,13 +2861,8 @@ function startColumnResize(colDiv, column, e) {
 
         const finalWidth = colDiv.getBoundingClientRect().width;
         const savedWidth = column.width || MIN_WIDTH;
-        
-        // Снимаем блокировку перерисовок
-        isDragging = false;
-        dragType = null;
-
         if (Math.abs(finalWidth - savedWidth) > 1) {
-            column.width = finalWidth; // Обновляем локальный стейт ДО запроса к API
+            column.width = finalWidth;
             try {
                 await updateColumn(column.id, { width: finalWidth });
             } catch (err) {
@@ -2896,14 +2896,6 @@ async function handleColumnMenu(action, columnEl, menuItem) {
         
         const menu = columnEl.querySelector('.dropdown-menu');
         if (menu) menu.style.display = 'none';
-
-        columnEl.style.pointerEvents = 'none';
-        columnEl.classList.add('is-collapsing');
-        
-        setTimeout(() => {
-            columnEl.style.pointerEvents = '';
-            columnEl.classList.remove('is-collapsing');
-        }, 350);
         
         column.collapsed = true;
         columnEl.classList.add('collapsed');
@@ -3649,6 +3641,16 @@ let isPointerDown = false;
 let potentialDragTarget = null;
 let potentialDragType = null;
 
+// Переменные для плавного скролла и устранения Layout Thrashing
+let lastHitTestTime = 0;
+let wasScrolling = false;
+
+// Плавный скролл с ускорением (Enterprise Edge Panning)
+let scrollAccumX = 0;
+let scrollAccumY = 0;
+let currentScrollSpeedX = 0;
+let currentScrollSpeedY = 0;
+
 let originalWorkspaceId = null;
 let isHoveringTabs = false;
 let draggedTaskObject = null; 
@@ -3968,89 +3970,120 @@ async function switchToWorkspaceDuringDrag(wsId) {
 function handleEdgePanning() {
     if (!isDragging) return false;
 
-    let container = null;
-    let axis = 'x'; 
-    let scrollZone = 80; 
-    let maxSpeed = 20;
+    let containerX = null;
+    let containerY = null;
+    
+    let scrollZoneX = 140;
+    let maxSpeedX = 45;
+    let scrollZoneY = 80;
+    let maxSpeedY = 30;
 
     if (isHoveringTabs && (dragType === 'card' || dragType === 'column')) {
-        container = document.getElementById('tabs-container');
-        axis = 'x';
-        scrollZone = 60;
-        maxSpeed = 15;
+        containerX = document.getElementById('tabs-container');
+        scrollZoneX = 60;
+        maxSpeedX = 20;
     }
     else if (dragType === 'tab') {
-        container = document.getElementById('tabs-container');
-        axis = 'x';
+        containerX = document.getElementById('tabs-container');
+        scrollZoneX = 60;
+        maxSpeedX = 20;
     } 
     else if (dragType === 'column') {
-        container = document.querySelector('.board-container');
-        axis = 'x';
-        scrollZone = 120;
-        maxSpeed = 25;
+        containerX = document.querySelector('.board-container');
     } 
     else if (dragType === 'card') {
+        // КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: Доска ВСЕГДА может скроллиться по X при перетаскивании карточки!
+        containerX = document.querySelector('.board-container');
+        
+        // А если мы над колонкой — добавляем независимую возможность скроллить её по Y
         const hoverCol = document.elementFromPoint(mouseX, mouseY)?.closest('.column:not(.is-ghost)');
         if (hoverCol) {
-            container = hoverCol.querySelector('.card-list');
-            axis = 'y';
-            scrollZone = 60;
-        } else {
-            container = document.querySelector('.board-container');
-            axis = 'x';
-            scrollZone = 120;
-            maxSpeed = 25;
+            containerY = hoverCol.querySelector('.card-list');
         }
     }
     else if (dragType === 'vault-history') {
-        container = document.getElementById('vault-history-list');
-        axis = 'y';
+        containerY = document.getElementById('vault-history-list');
     } else if (dragType === 'subtask' || dragType === 'attachment') {
-        container = document.querySelector('.task-detail-body');
-        axis = 'y';
+        containerY = document.querySelector('.task-detail-body');
     }
 
-    if (!container) return false;
+    let targetSpeedX = 0;
+    let targetSpeedY = 0;
 
-    const rect = container.getBoundingClientRect();
-    let speed = 0;
-
-    if (axis === 'x') {
-        if (mouseX > rect.right - scrollZone) {
-            const intensity = Math.max(0, Math.min((mouseX - (rect.right - scrollZone)) / scrollZone, 1));
-            speed = Math.pow(intensity, 2) * maxSpeed;
-        } else if (mouseX < rect.left + scrollZone) {
-            const intensity = Math.max(0, Math.min((rect.left + scrollZone - mouseX) / scrollZone, 1));
-            speed = -(Math.pow(intensity, 2) * maxSpeed);
+    if (containerX) {
+        const rectX = containerX.getBoundingClientRect();
+        if (mouseX > rectX.right - scrollZoneX) {
+            const intensity = Math.max(0, Math.min((mouseX - (rectX.right - scrollZoneX)) / scrollZoneX, 1));
+            targetSpeedX = Math.pow(intensity, 3) * maxSpeedX;
+        } else if (mouseX < rectX.left + scrollZoneX) {
+            const intensity = Math.max(0, Math.min((rectX.left + scrollZoneX - mouseX) / scrollZoneX, 1));
+            targetSpeedX = -(Math.pow(intensity, 3) * maxSpeedX);
         }
+    }
 
-        if (speed !== 0) {
-            const prevScroll = container.scrollLeft;
-            container.scrollLeft += speed;
-            if (container.scrollLeft !== prevScroll) {
-                if (container.id === 'tabs-container' && window.updateTabsScrollbar) {
+    if (containerY) {
+        const rectY = containerY.getBoundingClientRect();
+        if (mouseY > rectY.bottom - scrollZoneY) {
+            const intensity = Math.max(0, Math.min((mouseY - (rectY.bottom - scrollZoneY)) / scrollZoneY, 1));
+            targetSpeedY = Math.pow(intensity, 3) * maxSpeedY;
+        } else if (mouseY < rectY.top + scrollZoneY) {
+            const intensity = Math.max(0, Math.min((rectY.top + scrollZoneY - mouseY) / scrollZoneY, 1));
+            targetSpeedY = -(Math.pow(intensity, 3) * maxSpeedY);
+        }
+    }
+
+    // Инерция (Ease-out). Плавно разгоняемся и плавно останавливаемся
+    currentScrollSpeedX += (targetSpeedX - currentScrollSpeedX) * 0.15;
+    currentScrollSpeedY += (targetSpeedY - currentScrollSpeedY) * 0.15;
+
+    let didScroll = false;
+
+    // Применяем скролл по X
+    if (containerX && Math.abs(currentScrollSpeedX) > 0.1) {
+        scrollAccumX += currentScrollSpeedX;
+        const scrollStepX = Math.trunc(scrollAccumX);
+        if (scrollStepX !== 0) {
+            const prevScroll = containerX.scrollLeft;
+            containerX.scrollLeft += scrollStepX;
+            scrollAccumX -= scrollStepX;
+            
+            if (containerX.scrollLeft !== prevScroll) {
+                didScroll = true;
+                if (containerX.id === 'tabs-container' && window.updateTabsScrollbar) {
                     window.updateTabsScrollbar();
                 }
-                return true;
+            } else {
+                currentScrollSpeedX = 0;
+                scrollAccumX = 0;
             }
         }
-    } else if (axis === 'y') {
-        if (mouseY > rect.bottom - scrollZone) {
-            const intensity = Math.max(0, Math.min((mouseY - (rect.bottom - scrollZone)) / scrollZone, 1));
-            speed = Math.pow(intensity, 2) * maxSpeed;
-        } else if (mouseY < rect.top + scrollZone) {
-            const intensity = Math.max(0, Math.min((rect.top + scrollZone - mouseY) / scrollZone, 1));
-            speed = -(Math.pow(intensity, 2) * maxSpeed);
-        }
-
-        if (speed !== 0) {
-            const prevScroll = container.scrollTop;
-            container.scrollTop += speed;
-            return container.scrollTop !== prevScroll;
-        }
+    } else {
+        scrollAccumX = 0;
+        currentScrollSpeedX = 0;
     }
 
-    return false;
+    // Применяем скролл по Y
+    if (containerY && Math.abs(currentScrollSpeedY) > 0.1) {
+        scrollAccumY += currentScrollSpeedY;
+        const scrollStepY = Math.trunc(scrollAccumY);
+        if (scrollStepY !== 0) {
+            const prevScroll = containerY.scrollTop;
+            containerY.scrollTop += scrollStepY;
+            scrollAccumY -= scrollStepY;
+            
+            if (containerY.scrollTop !== prevScroll) {
+                didScroll = true;
+            } else {
+                currentScrollSpeedY = 0;
+                scrollAccumY = 0;
+            }
+        }
+    } else {
+        scrollAccumY = 0;
+        currentScrollSpeedY = 0;
+    }
+
+    return didScroll;
 }
 
 function renderPhysics() {
@@ -4085,7 +4118,27 @@ function renderPhysics() {
 
     dragClone.style.transform = `translate3d(${mouseX}px, ${mouseY}px, 0) rotate(${currentRotation}deg) scale(${currentDragScale}) translate3d(${-currentOriginX}px, ${-currentOriginY}px, 0)`;
     
-    if (didScroll || isHoveringTabs) performHitTest(); 
+    const now = performance.now();
+    if (didScroll) {
+        // Дросселируем (throttle) тяжелый расчет коллизий во время автоскролла до 50мс (20fps),
+        // предотвращая Layout Thrashing и высвобождая ресурсы процессора для плавных 60fps анимации.
+        if (now - lastHitTestTime > 50) {
+            performHitTest();
+            lastHitTestTime = now;
+        }
+        wasScrolling = true;
+    } else {
+        if (wasScrolling) {
+            // Выполняем один финальный расчет коллизий сразу после остановки скролла,
+            // чтобы карточка мгновенно примагнитилась на свое итоговое место.
+            performHitTest();
+            wasScrolling = false;
+        }
+        if (isHoveringTabs) {
+            performHitTest();
+        }
+    }
+
     rafId = requestAnimationFrame(renderPhysics);
 }
 
@@ -4093,6 +4146,14 @@ async function endDrag() {
     isDragging = false;
     cancelAnimationFrame(rafId);
     clearTimeout(tabSwitchTimeout);
+    
+    // Сброс скоростей автоскролла и таймера коллизий
+    lastHitTestTime = 0;
+    wasScrolling = false;
+    scrollAccumX = 0;
+    scrollAccumY = 0;
+    currentScrollSpeedX = 0;
+    currentScrollSpeedY = 0;
     
     document.body.classList.remove(`is-dragging-${dragType}`);
     document.body.style.userSelect = '';

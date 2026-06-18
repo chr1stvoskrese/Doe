@@ -614,7 +614,7 @@ body, button, input, textarea, select,
     border: 1px solid var(--border-light);
     position: relative;
 
-    transition: width var(--transition-apple), background var(--transition-apple), border-color var(--transition-apple);
+    transition: background var(--transition-apple), border-color var(--transition-apple);
 
     cursor: grab;
 }
@@ -652,7 +652,7 @@ body, button, input, textarea, select,
     cursor: grabbing !important;
 }
 
-.column.collapsed:not(.is-collapsing):hover {
+.column.collapsed:hover {
     border-color: rgba(0, 0, 0, 0.14);
 }
 
@@ -1973,7 +1973,7 @@ select.column-input:focus-visible {
     border: 1px solid var(--border-light);
 }
 
-[data-theme="dark"] .column.collapsed:not(.is-collapsing):hover {
+[data-theme="dark"] .column.collapsed:hover {
     border-color: rgba(255, 255, 255, 0.14);
 }
 
@@ -4530,11 +4530,6 @@ body.is-dragging-attachment .attachment-item:not(.attachment-drag-clone) {
     object-fit: contain;
     -webkit-user-drag: none;
     user-select: none;
-    filter: brightness(0);
-}
-
-[data-theme="dark"] .vault-logo-img {
-    filter: none;
 }
 
 .vault-title {
@@ -5008,7 +5003,7 @@ body.is-dragging-attachment .attachment-item:not(.attachment-drag-clone) {
 }
 
 .mac-os .vault-settings-wrapper {
-    left: 84px !important;
+    left: 96px !important;
 }
 
 .win-os .vault-settings-wrapper {
@@ -6976,11 +6971,7 @@ span.local-search-highlight.active {
 }
 
 .mac-traffic-lights.vault-mode .zoom {
-    opacity: 0;
-    width: 0;
-    margin: 0;
-    pointer-events: none;
-    border: none;
+    display: none !important;
 }
 
 /* ── Полноэкранный режим: кнопки как в ZCode ── */
