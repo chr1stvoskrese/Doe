@@ -3,7 +3,7 @@
 LOG_FILE="build_mac.log"
 > "$LOG_FILE" # Очищаем лог при старте
 
-TOTAL_STEPS=10
+TOTAL_STEPS=11
 CURRENT_STEP=0
 
 # Функция эстетичного прогресс-бара
@@ -26,6 +26,17 @@ update_progress() {
 }
 
 echo "🚀 Начинаем сборку Doe.app (логи сохраняются в $LOG_FILE)"
+
+# Гигиена сборки: сбрасываем кеш бинарников PyInstaller
+# (~/Library/Application Support/pyinstaller/bincache*), чтобы при смене
+# версий зависимостей в venv не подтянулись устаревшие .dylib/.so.
+# Сам по себе краш ИИ-ассистента был вызван битым сторонним квантом модели,
+# а не кешем — это лишь страховка от рассинхрона окружений.
+PYINSTALLER_CACHE="$HOME/Library/Application Support/pyinstaller"
+if [ -d "$PYINSTALLER_CACHE" ]; then
+    rm -rf "$PYINSTALLER_CACHE"
+    echo "🧹 PyInstaller cache cleared." >> "$LOG_FILE"
+fi
 
 update_progress "Очистка старых билдов..."
 rm -rf build dist Doe.spec doe_source.zip >> "$LOG_FILE" 2>&1
@@ -91,6 +102,7 @@ pyinstaller --noconfirm \
 
 update_progress "Сборка через PyInstaller (это может занять время)..."
 pyinstaller --noconfirm \
+    --clean \
     --windowed \
     --argv-emulation \
     --name "Doe" \
@@ -123,6 +135,11 @@ pyinstaller --noconfirm \
     --hidden-import "aiosqlite" \
     --hidden-import "watchdog" \
     --hidden-import "websockets" \
+    --hidden-import "requests" \
+    --hidden-import "jinja2" \
+    --hidden-import "numpy" \
+    --collect-all "llama_cpp" \
+    --collect-all "numpy" \
     wrapper.py >> "$LOG_FILE" 2>&1
 
 update_progress "Регистрация UTI в Info.plist..."
@@ -158,8 +175,8 @@ try:
     }]
 
     # Основная мета-информация
-    pl['CFBundleName'] = 'Doe'
-    pl['CFBundleDisplayName'] = 'Doe'
+    pl['CFBundleName'] = 'Doe (demo)'
+    pl['CFBundleDisplayName'] = 'Doe (demo)'
     pl['CFBundleIdentifier'] = 'com.aesthetic.doe'
     pl['CFBundleShortVersionString'] = '1.0.0'
     pl['CFBundleVersion'] = '1.0.0'
@@ -200,9 +217,16 @@ codesign --force --deep --sign - dist/Doe.app >> "$LOG_FILE" 2>&1
 update_progress "Снятие атрибута карантина..."
 xattr -cr dist/Doe.app >> "$LOG_FILE" 2>&1
 
+update_progress "Установка в /Applications (замена)..."
+if [ -d "/Applications/Doe.app" ]; then
+    rm -rf "/Applications/Doe.app" >> "$LOG_FILE" 2>&1
+fi
+cp -R dist/Doe.app /Applications/ >> "$LOG_FILE" 2>&1
+
 update_progress "Сброс кэшей (LaunchServices, Finder)..."
-# Более современный и надежный путь для форсированного сброса кэша в macOS
+# Регистрируем обе копии — в dist и в /Applications
 /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f -r -v -app dist/Doe.app >> "$LOG_FILE" 2>&1
+/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f -r -v -app /Applications/Doe.app >> "$LOG_FILE" 2>&1
 killall Finder 2>/dev/null || true >> "$LOG_FILE" 2>&1
 
 update_progress "Финализация!"

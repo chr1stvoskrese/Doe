@@ -149,4 +149,10 @@ async def root():
     return {"message": "Doe Kanban API is running"}
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
+    # reload=False — без дочернего процесса atexit-очистка LLM (Metal)
+    # отрабатывает корректно, без SIGBUS от ggml_metal_device_free.
+    try:
+        uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=False)
+    except KeyboardInterrupt:
+        pass
+    print("\n👋 Завершение работы.")

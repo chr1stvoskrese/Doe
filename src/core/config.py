@@ -342,7 +342,12 @@ def spawn_notification_worker(task_id: int, task_title: str, message: str, due_t
     if silent_worker:
         args = [silent_worker, due_time_iso, title, message, str(task_id), vault_path, reminder_id]
     else:
-        args = [sys.executable, "--worker", due_time_iso, title, message, str(task_id), vault_path, reminder_id]
+        # Разделяем логику для собранного приложения (Doe.exe) и режима разработки (python wrapper.py)
+        if getattr(sys, 'frozen', False):
+            args = [sys.executable, "--worker", due_time_iso, title, message, str(task_id), vault_path, reminder_id]
+        else:
+            script_path = os.path.abspath(sys.argv[0])
+            args = [sys.executable, script_path, "--worker", due_time_iso, title, message, str(task_id), vault_path, reminder_id]
     
     # 0x00000008: DETACHED_PROCESS (Полная отвязка процесса от консоли и главного окна)
     # Это позволяет процессу "выжить" после закрытия приложения.

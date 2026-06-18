@@ -17,7 +17,7 @@
 <body class="preload">
 
 <div class="mac-traffic-lights" id="mac-traffic-lights">
-    <button class="traffic-btn close" onclick="if(window.pywebview) window.pywebview.api.close_window()">
+    <button class="traffic-btn close" onclick="if(window.aiAbortController){aiAbortController.abort();aiAbortController=null;}if(window.aiState)aiState.isTyping=false;setTimeout(()=>window.pywebview&&window.pywebview.api.close_window(),150)">
         <svg class="traffic-icon" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M4 4L10 10M10 4L4 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
         </svg>
@@ -27,10 +27,14 @@
             <line x1="3" y1="7" x2="11" y2="7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
         </svg>
     </button>
-    <button class="traffic-btn zoom" onclick="if(window.pywebview) window.pywebview.api.toggle_fullscreen()">
-        <svg class="traffic-icon" viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg">
+    <button class="traffic-btn zoom" onclick="if(window.pywebview) window.pywebview.api.toggle_fullscreen(); toggleFullscreenState()">
+        <svg class="traffic-icon icon-expand" viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg">
             <polygon points="3.5,3.5 8,3.5 3.5,8" fill="currentColor"/>
             <polygon points="10.5,10.5 6,10.5 10.5,6" fill="currentColor"/>
+        </svg>
+        <svg class="traffic-icon icon-restore" viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg">
+            <polygon points="6,6 1.5,6 6,1.5" fill="currentColor"/>
+            <polygon points="8,8 12.5,8 8,12.5" fill="currentColor"/>
         </svg>
     </button>
 </div>
@@ -147,7 +151,7 @@
                 <div class="menu-divider" id="divider-ai"></div>
                 <div class="menu-item" data-action="ai-settings" id="menu-ai-settings">
                     <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"></path></svg>
-                    <span>ИИ-ассистент</span>
+                    <span data-i18n="modals.extAi">ИИ-ассистент</span>
                 </div>
                 <div class="menu-divider"></div>
                 <div class="menu-item" data-action="export-json">
@@ -850,7 +854,7 @@
 </div>
 
 <!-- 🧠 ПЛАВАЮЩАЯ КНОПКА ИИ-ПСИХОЛОГА -->
-<button id="ai-floating-btn" class="ai-floating-btn" title="ИИ-ассистент">
+<button id="ai-floating-btn" class="ai-floating-btn" data-i18n-title="ai.floatingBtnTitle" title="ИИ-ассистент">
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"></path>
     </svg>
@@ -971,7 +975,7 @@
 
                 <!-- НАСТРОЙКИ AI ДЛЯ ПРИОРИТЕТОВ -->
                 <div class="setting-row" id="ai-settings-row" style="display: none; justify-content: center; background: transparent; border: none;">
-                    <button class="confirm-btn cancel-btn" onclick="openAiSettingsModal()" style="font-size: 12px; padding: 6px 12px;">✨ Настроить ИИ-ассистента</button>
+                    <button class="confirm-btn cancel-btn" onclick="openAiSettingsModal()" style="font-size: 12px; padding: 6px 12px;" data-i18n="ai.setupBtn">✨ Настроить ИИ-ассистента</button>
                 </div>
 
             </div>
@@ -1254,32 +1258,20 @@
 <div class="modal-overlay" id="ai-settings-modal">
     <div class="modal-card" style="width: 360px;">
         <div class="modal-header">
-            <span class="modal-title">ИИ-ассистент</span>
+            <span class="modal-title" data-i18n="modals.extAi">ИИ-ассистент</span>
             <button class="modal-close" aria-label="Закрыть">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
             </button>
         </div>
         <div class="modal-body" style="padding: 12px 16px 16px; gap: 12px;">
-            <div class="setting-hint">Локальная нейросеть анализирует ваше состояние каждое утро и умно расставляет приоритеты задач. Не требует интернета.</div>
+            <div class="setting-hint" data-i18n="ai.hintText">Локальная нейросеть анализирует ваше состояние каждое утро и умно расставляет приоритеты задач. Не требует интернета.</div>
             
             <div class="settings-group-card" id="ai-models-list">
                 <!-- Заполняется из JS -->
             </div>
 
-            <div class="settings-group-card">
-                <div class="setting-row" style="cursor: default;">
-                    <div class="setting-text-box">
-                        <div class="setting-title">Анализировать все задачи</div>
-                        <div class="setting-desc">Если выкл — оценивает только видимые на доске</div>
-                    </div>
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="ai-only-visible-toggle">
-                        <span class="toggle-slider"></span>
-                    </label>
-                </div>
-            </div>
             
-            <button class="confirm-btn vault-submit-btn" style="color: white;" onclick="document.getElementById('ai-settings-modal').classList.remove('show')">Готово</button>
+            <button class="confirm-btn vault-submit-btn" style="color: white;" onclick="document.getElementById('ai-settings-modal').classList.remove('show')" data-i18n="ai.readyBtn">Готово</button>
         </div>
     </div>
 </div>
@@ -1288,7 +1280,7 @@
 <div class="modal-overlay" id="ai-journal-modal" style="backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);">
     <div class="modal-card ai-journal-card" style="position: relative;">
         <!-- ДОБАВЛЕН КРЕСТИК ЗАКРЫТИЯ -->
-        <button class="modal-close" aria-label="Закрыть" style="position: absolute; top: 16px; right: 16px; z-index: 10; color: rgba(255,255,255,0.5);">
+        <button class="modal-close" aria-label="Закрыть" style="position: absolute; top: 16px; right: 16px; z-index: 10;">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
         </button>
         
@@ -1306,10 +1298,16 @@
 
             <!-- Поле ввода -->
             <div class="ai-journal-input-wrapper">
-                <textarea id="ai-chat-input" class="ai-chat-input" placeholder="Расскажите, что тревожит или вдохновляет сегодня..." rows="1" spellcheck="false"></textarea>
-                <button id="ai-send-btn" class="ai-send-btn" aria-label="Отправить">
-                    <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                <textarea id="ai-chat-input" class="ai-chat-input" data-i18n="ai.chatPlaceholder" placeholder="Расскажите, что тревожит или вдохновляет сегодня..." rows="1" spellcheck="false"></textarea>
+                <button id="ai-send-btn" class="ai-send-btn" data-i18n-aria="ai.sendAria" aria-label="Отправить">
+                    <!-- Send icon -->
+                    <svg class="ai-icon-send" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                    <!-- Stop icon (hidden by default) -->
+                    <svg class="ai-icon-stop" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
+                        <rect x="4" y="4" width="16" height="16" rx="3"></rect>
                     </svg>
                 </button>
             </div>

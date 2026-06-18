@@ -113,7 +113,77 @@ const translations = {
         errors: { tooLong: 'Максимум 1000 символов' },
         graph: { title: 'Граф связей', empty: 'Карточек пока нет.\nСоздайте карточки на доске.', arrows: 'Стрелки' },
         calendar: { today: 'Сегодня', month: 'Месяц', week: 'Неделя', day: 'День', loading: 'Загрузка данных...', error: 'Ошибка загрузки' },
-        alerts: { loadError: 'Не удалось загрузить доску', error: 'Ошибка' }
+        alerts: { loadError: 'Не удалось загрузить доску', error: 'Ошибка' },
+        ai: {
+            hardwareRam: 'Оперативная память',
+            hardwareTier: 'Уровень',
+            tierLight: 'Базовый',
+            tierStandard: 'Стандарт',
+            tierPro: 'Pro',
+            statusInstalled: 'Установлено',
+            statusRequiresDownload: 'Требуется загрузка',
+            btnDownload: 'Скачать',
+            btnDownloadSize: (size) => `Скачать (~${size} ГБ)`,
+            toastReadyTitle: 'ИИ Готов',
+            toastReadyMsg: (m) => `Модель ${m} успешно скачана`,
+            toastErrTitle: 'Ошибка загрузки',
+            toastErrUnknown: 'Неизвестная ошибка',
+            toastCancelTitle: 'Загрузка прервана',
+            toastCancelMsg: (m) => `Скачивание модели ${m} успешно отменено`,
+            toastDeleted: 'Удалено',
+            toastDeletedMsg: (m) => `Модель ${m} удалена`,
+            toastDeleteErr: 'Не удалось удалить файл',
+            toastUnsupportedTitle: 'Не поддерживается',
+            toastUnsupportedMsg: 'Локальный ИИ-ассистент в данный момент доступен только для macOS',
+            confirmDeleteTitle: 'Удалить модель?',
+            confirmDeleteMsg: (m) => `Модель ${m} будет удалена с устройства.`,
+            starting: 'Запуск...',
+            errorText: 'Ошибка',
+            btnDeleteTitle: 'Удалить модель с диска',
+            btnCancelTitle: 'Отменить',
+            gbSuffix: 'ГБ',
+            hintText: 'Локальная нейросеть анализирует ваше состояние каждое утро и умно расставляет приоритеты задач. Не требует интернета.',
+            analyzeAll: 'Анализировать все задачи',
+            analyzeAllDesc: 'Если выкл — оценивает только видимые на доске',
+            setupBtn: '✨ Настроить ИИ-ассистента',
+            readyBtn: 'Готово',
+            chatPlaceholder: 'Спроси меня о чём-нибудь...',
+            sendAria: 'Отправить',
+            floatingBtnTitle: 'ИИ-ассистент',
+            searchModels: 'Поиск модели...',
+            noCompatible: 'Совместимых моделей не найдено для вашего уровня ПК',
+            toggleMenuTip: 'Включить / выключить AI в меню',
+            // AI actions in journal
+            actionsHeader: 'Я хочу выполнить следующие действия:',
+            actionCreateTask: (title, colName) => `Создать задачу «${title}» в колонке «${colName}»`,
+            actionMoveTask: (taskName, colName) => `Переместить «${taskName}» в колонку «${colName}»`,
+            actionDeleteTask: (taskName) => `Удалить задачу «${taskName}»`,
+            actionCreateColumn: (title) => `Создать колонку "${title}"`,
+            actionDeleteColumn: (colName) => `Удалить колонку «${colName}»`,
+            actionCreateWorkspace: (name) => `Создать вкладку "${name}"`,
+            actionSetTheme: (theme) => `Сменить тему на ${theme}`,
+            actionToggleExtOn: (ext) => `Включить расширение ${ext}`,
+            actionToggleExtOff: (ext) => `Выключить расширение ${ext}`,
+            actionPrioritizeAll: 'Пересчитать приоритеты',
+            actionClearAllPriorities: 'Сбросить все приоритеты',
+            actionSearchBoard: (q) => `Поиск: «${q}»`,
+            actionGetTaskDetails: (name) => `Загрузить детали задачи «${name}»`,
+            actionRememberFact: (fact) => `Запомнить факт: "${fact}"`,
+            actionForgetFact: (fact) => `Забыть факт: "${fact}"`,
+            actionChangeLang: (lang) => `Изменить язык на ${lang}`,
+            actionSwitchWorkspace: (name) => `Переключиться на вкладку «${name}»`,
+            actionOpenTask: (name) => `Открыть карточку «${name}»`,
+            actionUpdateTask: (name) => `Изменить карточку «${name}»`,
+            actionClearChat: 'Очистить историю диалога',
+            actionSetReminders: (count) => `Установить напоминания (${count} шт.)`,
+            actionDeleteReminder: (id) => `Отменить напоминание ${id.split('-')[0]}...`,
+            btnConfirm: 'Разрешить',
+            actionsCancelled: 'Действия отменены пользователем.',
+            actionsExecuted: '✅ Действия выполнены!',
+            actionsPartial: '⚠️ Часть действий не удалось:',
+            actionsError: '❌ Ошибка выполнения. Проверьте правильность ID.',
+            taskRef: (id) => `Задача #${id}`,
+        }
     },
     en: {
         searchPlaceholder: 'Search...',
@@ -204,7 +274,77 @@ const translations = {
         errors: { tooLong: 'Maximum 1000 characters' },
         graph: { title: 'Connections Graph', empty: 'No cards yet.\nCreate cards on the board.', arrows: 'Arrows' },
         calendar: { today: 'Today', month: 'Month', week: 'Week', day: 'Day', loading: 'Loading data...', error: 'Load error' },
-        alerts: { loadError: 'Failed to load board', error: 'Error' }
+        alerts: { loadError: 'Failed to load board', error: 'Error' },
+        ai: {
+            hardwareRam: 'RAM',
+            hardwareTier: 'Tier',
+            tierLight: 'Light',
+            tierStandard: 'Standard',
+            tierPro: 'Pro',
+            statusInstalled: 'Installed',
+            statusRequiresDownload: 'Download required',
+            btnDownload: 'Download',
+            btnDownloadSize: (size) => `Download (~${size} GB)`,
+            toastReadyTitle: 'AI Ready',
+            toastReadyMsg: (m) => `Model ${m} downloaded successfully`,
+            toastErrTitle: 'Download error',
+            toastErrUnknown: 'Unknown error',
+            toastCancelTitle: 'Download cancelled',
+            toastCancelMsg: (m) => `Model ${m} download cancelled`,
+            toastDeleted: 'Deleted',
+            toastDeletedMsg: (m) => `Model ${m} removed`,
+            toastDeleteErr: 'Failed to delete file',
+            toastUnsupportedTitle: 'Not supported',
+            toastUnsupportedMsg: 'Local AI assistant is currently available on macOS only',
+            confirmDeleteTitle: 'Delete model?',
+            confirmDeleteMsg: (m) => `Model ${m} will be removed from this device.`,
+            starting: 'Starting...',
+            errorText: 'Error',
+            btnDeleteTitle: 'Delete model from disk',
+            btnCancelTitle: 'Cancel',
+            gbSuffix: 'GB',
+            hintText: 'A local neural network analyzes your state every morning and intelligently prioritizes tasks. No internet required.',
+            analyzeAll: 'Analyze all tasks',
+            analyzeAllDesc: 'If off — only evaluates visible tasks on the board',
+            setupBtn: '✨ Setup AI Assistant',
+            readyBtn: 'Done',
+            chatPlaceholder: 'Ask me anything...',
+            sendAria: 'Send',
+            floatingBtnTitle: 'AI Assistant',
+            searchModels: 'Search models...',
+            noCompatible: 'No compatible models found for your hardware tier',
+            toggleMenuTip: 'Toggle AI in menu',
+            // AI actions in journal
+            actionsHeader: 'I want to perform the following actions:',
+            actionCreateTask: (title, colName) => `Create task «${title}» in column «${colName}»`,
+            actionMoveTask: (taskName, colName) => `Move «${taskName}» to column «${colName}»`,
+            actionDeleteTask: (taskName) => `Delete task «${taskName}»`,
+            actionCreateColumn: (title) => `Create column "${title}"`,
+            actionDeleteColumn: (colName) => `Delete column «${colName}»`,
+            actionCreateWorkspace: (name) => `Create tab "${name}"`,
+            actionSetTheme: (theme) => `Change theme to ${theme}`,
+            actionToggleExtOn: (ext) => `Enable extension ${ext}`,
+            actionToggleExtOff: (ext) => `Disable extension ${ext}`,
+            actionPrioritizeAll: 'Recalculate priorities',
+            actionClearAllPriorities: 'Clear all priorities',
+            actionSearchBoard: (q) => `Search: «${q}»`,
+            actionGetTaskDetails: (name) => `Get details for «${name}»`,
+            actionRememberFact: (fact) => `Remember fact: "${fact}"`,
+            actionForgetFact: (fact) => `Forget fact: "${fact}"`,
+            actionChangeLang: (lang) => `Change language to ${lang}`,
+            actionSwitchWorkspace: (name) => `Switch to tab «${name}»`,
+            actionOpenTask: (name) => `Open card «${name}»`,
+            actionUpdateTask: (name) => `Update card «${name}»`,
+            actionClearChat: 'Clear chat history',
+            actionSetReminders: (count) => `Set reminders (${count})`,
+            actionDeleteReminder: (id) => `Cancel reminder ${id.split('-')[0]}...`,
+            btnConfirm: 'Allow',
+            actionsCancelled: 'Actions cancelled by user.',
+            actionsExecuted: '✅ Actions executed!',
+            actionsPartial: '⚠️ Some actions failed:',
+            actionsError: '❌ Execution error. Check ID correctness.',
+            taskRef: (id) => `Task #${id}`,
+        }
     }
 };
 
@@ -715,6 +855,18 @@ function applyLanguage(lang, saveToBackend = false) {
         }
     });
 
+    document.querySelectorAll('[data-i18n-title]').forEach(el => {
+        const key = el.dataset.i18nTitle;
+        const translation = getNestedTranslation(lang, key);
+        if (translation) el.setAttribute('title', translation);
+    });
+
+    document.querySelectorAll('[data-i18n-aria]').forEach(el => {
+        const key = el.dataset.i18nAria;
+        const translation = getNestedTranslation(lang, key);
+        if (translation) el.setAttribute('aria-label', translation);
+    });
+
     const langSpan = document.querySelector('[data-action="change-lang"] span');
     if (langSpan) langSpan.textContent = translations[lang].language;
 
@@ -1015,6 +1167,32 @@ const _escapeDiv = document.createElement('div');
 function escapeHtml(text) { _escapeDiv.textContent = text; return _escapeDiv.innerHTML; }
 function unescapeHtml(html) { const div = document.createElement('div'); div.innerHTML = html; return div.textContent; }
 
+// ── Состояние полноэкранного режима ──
+let _isFullscreen = false;
+
+window.toggleFullscreenState = (force) => {
+    const lights = document.getElementById('mac-traffic-lights');
+    if (!lights) return;
+
+    if (typeof force === 'boolean') {
+        _isFullscreen = force;
+    } else {
+        _isFullscreen = !_isFullscreen;
+    }
+
+    if (_isFullscreen) {
+        lights.classList.add('is-fullscreen');
+    } else {
+        lights.classList.remove('is-fullscreen');
+    }
+};
+
+function encodeMarkdownPath(path) {
+    // encodeURI пропускает # и ?, которые (особенно #) ломают img-src и href
+    // внутри описания. Используем encodeURIComponent и восстанавливаем слэши.
+    return encodeURIComponent(path).replace(/%2F/g, '/');
+}
+
 function applyTextExpansion() {
     const renderDiv = document.getElementById('task-desc-render');
     if (!renderDiv) return;
@@ -1094,6 +1272,14 @@ function renderBoard() {
     const board = document.getElementById('board');
     const savedScroll = board.scrollLeft;
 
+    // Сохраняем вертикальные позиции прокрутки каждой колонки,
+    // иначе при пересборке DOM они сбросятся в 0 (баг потери позиции чтения).
+    const savedColScrolls = {};
+    board.querySelectorAll('.column[data-column-id]').forEach(colEl => {
+        const listEl = colEl.querySelector('.card-list');
+        if (listEl) savedColScrolls[colEl.dataset.columnId] = listEl.scrollTop;
+    });
+
     board.innerHTML = '';
     const frag = document.createDocumentFragment();
     const sorted = [...state.columns].sort((a, b) => a.position - b.position);
@@ -1105,7 +1291,14 @@ function renderBoard() {
     addColBtn.addEventListener('click', onCreateColumn);
     frag.appendChild(addColBtn);
     board.appendChild(frag);
-    
+
+    // Восстанавливаем позиции прокрутки колонок по id.
+    board.querySelectorAll('.column[data-column-id]').forEach(colEl => {
+        const listEl = colEl.querySelector('.card-list');
+        const saved = savedColScrolls[colEl.dataset.columnId];
+        if (listEl && saved !== undefined) listEl.scrollTop = saved;
+    });
+
     board.scrollLeft = savedScroll;
 
     if (isDragging && draggedElement) {
@@ -1185,13 +1378,30 @@ function updateCardAppearance(cardElement, task, columnMode) {
 
     if (task.due_date) {
         const dateStr = task.due_date + (task.due_date.endsWith('Z') || task.due_date.includes('+') ? '' : 'Z');
-        const isOverdue = !task.completed_at && new Date(dateStr) < new Date();
-        const overdueClass = isOverdue ? 'overdue' : '';
-        const icon = isOverdue
-            ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>'
-            : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c-4.42 0-8-3.58-8-8 0-3.1 1.76-5.8 4.36-7.14.33-.17.7-.06.88.24.41.69 1.05 1.34 1.7 1.15.65-.19.96-1.55 1.4-3.13C12.8 3.42 13.5 2 14.5 2c.28 0 .54.12.72.32 1.41 1.6 3.1 3.96 4.13 6.08C20.44 10.64 20 12.3 20 14c0 4.42-3.58 8-8 8z"></path></svg>';
-        
-        newContent += `<div class="due-date-pill ${overdueClass} clickable" onclick="openDueDateModal(${task.id}, '${task.due_date}')">${icon}<span>${formatShortDate(task.due_date)}</span></div>`;
+        const dueDate = new Date(dateStr);
+        const now = new Date();
+        const isOverdue = dueDate < now;
+
+        let icon;
+        let overdueClass = '';
+        if (task.completed_at) {
+            const completedDate = new Date(task.completed_at + (task.completed_at.endsWith('Z') || task.completed_at.includes('+') ? '' : 'Z'));
+            if (completedDate > dueDate) {
+                icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="7.5" y1="7.5" x2="10.5" y2="10.5"/><line x1="10.5" y1="7.5" x2="7.5" y2="10.5"/><line x1="13.5" y1="7.5" x2="16.5" y2="10.5"/><line x1="16.5" y1="7.5" x2="13.5" y2="10.5"/><line x1="9" y1="16" x2="15" y2="16"/></svg>'; // просрочен + завершён
+                overdueClass = 'overdue';
+            } else {
+                icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"/><polyline points="7,12 11,16 17,8"/></svg>'; // завершён вовремя
+            }
+        } else {
+            if (isOverdue) {
+                icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="7.5" y1="7.5" x2="10.5" y2="10.5"/><line x1="10.5" y1="7.5" x2="7.5" y2="10.5"/><line x1="13.5" y1="7.5" x2="16.5" y2="10.5"/><line x1="16.5" y1="7.5" x2="13.5" y2="10.5"/><line x1="9" y1="16" x2="15" y2="16"/></svg>'; // просрочен
+                overdueClass = 'overdue';
+            } else {
+                icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c-4.42 0-8-3.58-8-8 0-3.1 1.76-5.8 4.36-7.14.33-.17.7-.06.88.24.41.69 1.05 1.34 1.7 1.15.65-.19.96-1.55 1.4-3.13C12.8 3.42 13.5 2 14.5 2c.28 0 .54.12.72.32 1.41 1.6 3.1 3.96 4.13 6.08C20.44 10.64 20 12.3 20 14c0 4.42-3.58 8-8 8z"></path></svg>'; // активный дедлайн
+            }
+        }
+
+        newContent += `<div class="due-date-pill ${overdueClass} clickable" onclick="openDueDateModal(${task.id}, '${task.due_date}')"><span class="due-icon">${icon}</span><span>${formatShortDate(task.due_date)}</span></div>`;
     }
 
     if (isTimerColumn) {
@@ -1247,12 +1457,30 @@ function generateCardHtml(task, columnMode) {
     let dueDateHtml = '';
     if (task.due_date) {
         const dateStr = task.due_date + (task.due_date.endsWith('Z') || task.due_date.includes('+') ? '' : 'Z');
-        const isOverdue = !task.completed_at && new Date(dateStr) < new Date();
-        const overdueClass = isOverdue ? 'overdue' : '';
-        const icon = isOverdue
-            ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>'
-            : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c-4.42 0-8-3.58-8-8 0-3.1 1.76-5.8 4.36-7.14.33-.17.7-.06.88.24.41.69 1.05 1.34 1.7 1.15.65-.19.96-1.55 1.4-3.13C12.8 3.42 13.5 2 14.5 2c.28 0 .54.12.72.32 1.41 1.6 3.1 3.96 4.13 6.08C20.44 10.64 20 12.3 20 14c0 4.42-3.58 8-8 8z"></path></svg>';
-        dueDateHtml = `<div class="due-date-pill ${overdueClass} clickable" onclick="openDueDateModal(${task.id}, '${task.due_date}')">${icon}<span>${formatShortDate(task.due_date)}</span></div>`;
+        const dueDate = new Date(dateStr);
+        const now = new Date();
+        const isOverdue = dueDate < now;
+
+        let icon;
+        let overdueClass = '';
+        if (task.completed_at) {
+            const completedDate = new Date(task.completed_at + (task.completed_at.endsWith('Z') || task.completed_at.includes('+') ? '' : 'Z'));
+            if (completedDate > dueDate) {
+                icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="7.5" y1="7.5" x2="10.5" y2="10.5"/><line x1="10.5" y1="7.5" x2="7.5" y2="10.5"/><line x1="13.5" y1="7.5" x2="16.5" y2="10.5"/><line x1="16.5" y1="7.5" x2="13.5" y2="10.5"/><line x1="9" y1="16" x2="15" y2="16"/></svg>'; // просрочен + завершён
+                overdueClass = 'overdue';
+            } else {
+                icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"/><polyline points="7,12 11,16 17,8"/></svg>'; // завершён вовремя
+            }
+        } else {
+            if (isOverdue) {
+                icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="7.5" y1="7.5" x2="10.5" y2="10.5"/><line x1="10.5" y1="7.5" x2="7.5" y2="10.5"/><line x1="13.5" y1="7.5" x2="16.5" y2="10.5"/><line x1="16.5" y1="7.5" x2="13.5" y2="10.5"/><line x1="9" y1="16" x2="15" y2="16"/></svg>'; // просрочен
+                overdueClass = 'overdue';
+            } else {
+                icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c-4.42 0-8-3.58-8-8 0-3.1 1.76-5.8 4.36-7.14.33-.17.7-.06.88.24.41.69 1.05 1.34 1.7 1.15.65-.19.96-1.55 1.4-3.13C12.8 3.42 13.5 2 14.5 2c.28 0 .54.12.72.32 1.41 1.6 3.1 3.96 4.13 6.08C20.44 10.64 20 12.3 20 14c0 4.42-3.58 8-8 8z"></path></svg>'; // активный дедлайн
+            }
+        }
+
+        dueDateHtml = `<div class="due-date-pill ${overdueClass} clickable" onclick="openDueDateModal(${task.id}, '${task.due_date}')"><span class="due-icon">${icon}</span><span>${formatShortDate(task.due_date)}</span></div>`;
     }
 
     let timerHtml = '';
@@ -3724,6 +3952,25 @@ async function endDrag() {
                     } else if (targetCol.mode === 'completion') {
                         optimisticTask.completed_at = new Date().toISOString();
                         optimisticTask.active_timer = null;
+
+                        // Смена иконки дедлайна при завершении
+                        if (optimisticTask.due_date) {
+                            const dueDate = new Date(optimisticTask.due_date + (optimisticTask.due_date.endsWith('Z') || optimisticTask.due_date.includes('+') ? '' : 'Z'));
+                            const completedDate = new Date();
+                            const isOverdue = completedDate > dueDate;
+                            const ddPill = draggedElement.querySelector('.due-date-pill');
+                            if (ddPill) {
+                                const iconEl = ddPill.querySelector('.due-icon');
+                                if (iconEl) {
+                                    iconEl.innerHTML = isOverdue ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="7.5" y1="7.5" x2="10.5" y2="10.5"/><line x1="10.5" y1="7.5" x2="7.5" y2="10.5"/><line x1="13.5" y1="7.5" x2="16.5" y2="10.5"/><line x1="16.5" y1="7.5" x2="13.5" y2="10.5"/><line x1="9" y1="16" x2="15" y2="16"/></svg>' : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"/><polyline points="7,12 11,16 17,8"/></svg>';
+                                }
+                                if (isOverdue) {
+                                    ddPill.classList.add('overdue');
+                                } else {
+                                    ddPill.classList.remove('overdue');
+                                }
+                            }
+                        }
                     } else {
                         optimisticTask.completed_at = null;
                         optimisticTask.active_timer = null;
@@ -6471,10 +6718,13 @@ function initTaskDescriptionLogic() {
         const prefix = isImg ? '!' : '';
         const placeholder = `${prefix}[⏳ Загрузка ${fileName}...]()`;
 
-        let insertPos = null;
+        // Диапазон вставленного placeholder в координатах документа.
+        // Заменяем результат через replaceRange, а не setValue(replace(...)):
+        // это сохраняет undo-историю и не уводит курсор в конец документа.
+        let placeholderRange = null;
 
         if (isEditMode) {
-            insertPos = cmEditor.getCursor();
+            const insertPos = cmEditor.getCursor();
             const textBefore = cmEditor.getRange({line: 0, ch: 0}, insertPos);
             
             let pfx = "";
@@ -6486,6 +6736,14 @@ function initTaskDescriptionLogic() {
             const insertText = `${pfx}${placeholder}\n`;
             cmEditor.replaceSelection(insertText);
             cmEditor.focus();
+
+            // insertPos — снимок позиции до вставки; indexFromPos корректно
+            // отображает его на уже расширенный документ.
+            const startIdx = cmEditor.indexFromPos(insertPos) + pfx.length;
+            placeholderRange = {
+                from: cmEditor.posFromIndex(startIdx),
+                to: cmEditor.posFromIndex(startIdx + placeholder.length)
+            };
         } else {
             const text = cmEditor.getValue();
             let pfx = "";
@@ -6495,9 +6753,19 @@ function initTaskDescriptionLogic() {
             }
             cmEditor.setValue(text + pfx + placeholder);
             
-            const cleanRegex = /(!?)\[[^\]]+\]\(attachments\/[^)]+\)!\s*/g;
+            const startIdx = text.length + pfx.length;
+            placeholderRange = {
+                from: cmEditor.posFromIndex(startIdx),
+                to: cmEditor.posFromIndex(startIdx + placeholder.length)
+            };
+
+            // Превью на время загрузки — та же связка, что и в основном рендере:
+            // формулы (KaTeX), обёртки изображений и подсветка кода.
+            // Путь вложений — doe/ (как отдаёт бэкенд), не attachments/.
+            const cleanRegex = /(!?)\[[^\]]+\]\(doe\/[^)]+\)!\s*/g;
             const tempText = cmEditor.getValue().replace(cleanRegex, '');
-            renderDiv.innerHTML = marked.parse(tempText, { breaks: true });
+            renderDiv.innerHTML = parseMarkdownWithMath(tempText);
+            enhanceCodeBlocks(renderDiv);
         }
 
         const formData = new FormData();
@@ -6507,14 +6775,16 @@ function initTaskDescriptionLogic() {
             const res = await fetch(`${API_BASE}/system/upload`, { method: 'POST', body: formData });
             if (!res.ok) throw new Error('Upload failed');
             const data = await res.json();
-            const encodedPath = encodeURI(data.path);
+            const encodedPath = encodeMarkdownPath(data.path);
             const finalMarkdown = `${prefix}[${data.name}](${encodedPath})`;
             
-            const currentVal = cmEditor.getValue();
-            cmEditor.setValue(currentVal.replace(placeholder, finalMarkdown));
+            if (placeholderRange) {
+                cmEditor.replaceRange(finalMarkdown, placeholderRange.from, placeholderRange.to);
+            }
         } catch (err) {
-            const currentVal = cmEditor.getValue();
-            cmEditor.setValue(currentVal.replace(placeholder, `${prefix}[❌ Ошибка: ${fileName}]()`));
+            if (placeholderRange) {
+                cmEditor.replaceRange(`${prefix}[❌ Ошибка: ${fileName}]()`, placeholderRange.from, placeholderRange.to);
+            }
         }
 
         if (isEditMode) {
@@ -6528,40 +6798,60 @@ function initTaskDescriptionLogic() {
     const handleFileDrop = async (e) => {
         e.preventDefault();
         e.stopPropagation();
-        descWrapper.style.borderColor = ''; 
+        dragEnterCount = 0;
+        descWrapper.classList.remove('is-drag-over');
 
         const files = e.dataTransfer.files;
         if (!files || files.length === 0) return;
-        processFileForDescription(files[0]);
+        // Обрабатываем файлы последовательно: cmEditor — разделяемое состояние,
+        // при параллельной вставке диапазоны placeholder наложились бы друг на друга.
+        for (const file of files) {
+            await processFileForDescription(file);
+        }
     };
 
     const handleFilePaste = async (e) => {
         const items = (e.clipboardData || window.clipboardData).items;
-        let file = null;
+        const files = [];
 
         for (let i = 0; i < items.length; i++) {
             if (items[i].kind === 'file') {
-                file = items[i].getAsFile();
-                break; 
+                const f = items[i].getAsFile();
+                if (f) files.push(f);
             }
         }
 
-        if (file) {
+        if (files.length > 0) {
             e.preventDefault();
-            processFileForDescription(file);
+            for (const file of files) {
+                await processFileForDescription(file);
+            }
         }
     };
+
+    // Подсветка drop-зоны через счётчик enter/leave, чтобы бордюр не мигал
+    // при переходе курсора на дочерние элементы (img, p внутри описания).
+    let dragEnterCount = 0;
+    descWrapper.addEventListener('dragenter', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dragEnterCount++;
+        descWrapper.classList.add('is-drag-over');
+    });
 
     descWrapper.addEventListener('dragover', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        descWrapper.style.borderColor = 'var(--brand-pine)';
     });
 
     descWrapper.addEventListener('dragleave', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        descWrapper.style.borderColor = '';
+        dragEnterCount--;
+        if (dragEnterCount <= 0) {
+            dragEnterCount = 0;
+            descWrapper.classList.remove('is-drag-over');
+        }
     });
 
     descWrapper.addEventListener('drop', handleFileDrop);
@@ -6721,8 +7011,12 @@ function initTaskDescriptionLogic() {
                 const regex = /!\[([^\]]*)\]\(([^)]+)\)(?:\{[^}]+\})?/;
                 const newMd = originalMd.replace(regex, `![$1]($2){${finalWidth}, ${finalHeight}}`);
                 
-                const currentVal = cmEditor.getValue();
-                cmEditor.setValue(currentVal.replace(originalMd, newMd));
+                const idx = cmEditor.getValue().indexOf(originalMd);
+                if (idx !== -1) {
+                    const from = cmEditor.posFromIndex(idx);
+                    const to = cmEditor.posFromIndex(idx + originalMd.length);
+                    cmEditor.replaceRange(newMd, from, to);
+                }
                 
                 wrapper.dataset.md = escapeHtml(newMd);
                 lastSavedValue = cmEditor.getValue(); 
@@ -7291,37 +7585,78 @@ function createAttachmentElement(att) {
             }).catch(err => console.error("Physical delete failed:", err));
         }
 
-        setTimeout(() => {
+        setTimeout(async () => {
             const renderDiv = document.getElementById('task-desc-render');
             const isEditMode = renderDiv.style.display === 'none';
             
-            const safePath = pathToDelete.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            const pathRegex = new RegExp(`!?\\[[^\\]]*\\]\\(${safePath}\\)(?:\\{[^}]+\\})?!?`, 'g');
+            const escapedPath = pathToDelete.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const pathRegex = new RegExp(`!?\\[[^\\]]*\\]\\(${escapedPath}\\)(?:\\{[^}]+\\})?!?`, 'g');
             
             const oldText = cmEditor.getValue();
             const newText = oldText.replace(pathRegex, '');
-            
-            cmEditor.setValue(newText);
-            
+
             if (oldText !== newText) {
+                cmEditor.setValue(newText);
+
                 if (isEditMode) {
                     cmEditor.focus();
                 } else {
-                    cmEditor.getInputField().blur();
+                    // Режим чтения: сохраняем описание и перерендериваем.
+                    const taskId = parseInt(document.getElementById('task-modal').dataset.taskId);
+                    if (taskId) {
+                        try {
+                            await fetch(`${API_BASE}/tasks/${taskId}`, {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ description: newText })
+                            });
+                            bumpModalUpdatedDate();
+                            for (let col of state.columns) {
+                                let t = col.tasks.find(t => t.id == taskId);
+                                if (t) { t.description = newText; break; }
+                            }
+                        } catch (err) {
+                            console.error('Failed to save after attachment delete:', err);
+                        }
+
+                        const cleanRegex = /(!?)\[[^\]]+\]\(doe\/[^)]+\)!\s*/g;
+                        const cleanContent = newText.replace(cleanRegex, '');
+                        if (cleanContent.trim()) {
+                            renderMarkdownProgressively(cleanContent, renderDiv, {
+                                onComplete: () => {
+                                    initHeadingFolding(renderDiv, []);
+                                    applyTextExpansion();
+                                }
+                            });
+                        } else {
+                            renderDiv.innerHTML = `<span class="markdown-empty">${t('taskModal.descPlaceholder')}</span>`;
+                            applyTextExpansion();
+                        }
+
+                        const attachmentsList = document.getElementById('attachments-list');
+                        const attachmentsCount = document.getElementById('attachments-count');
+                        const extracted = extractAttachments(newText, []);
+                        const enriched = await enrichAttachments(extracted);
+                        if (attachmentsCount) attachmentsCount.textContent = enriched.length;
+                        if (attachmentsList) {
+                            attachmentsList.innerHTML = '';
+                            enriched.forEach(att => attachmentsList.appendChild(createAttachmentElement(att)));
+                        }
+                    }
                 }
-            } else {
-                if (div.parentNode) div.remove();
             }
+
+            if (div.parentNode) div.remove();
         }, 200);
     });
-    
+
     return div;
 }
 
 function replaceBrokenAttachment(att, newData) {
     const isEditMode = document.getElementById('task-desc-render').style.display === 'none';
 
-    const encodedNewPath = encodeURI(newData.path);
+    const encodedNewPath = encodeMarkdownPath(newData.path);
     const prefix = att.isImage ? '!' : '';
     const suffix = att.isHidden ? '!' : '';
 
@@ -7330,9 +7665,12 @@ function replaceBrokenAttachment(att, newData) {
 
     const newMarkdown = `${prefix}[${att.label}](${encodedNewPath})${sizeStr}${suffix}`;
     
-    const currentVal = cmEditor.getValue();
-    
-    cmEditor.setValue(currentVal.replace(att.fullMatch, () => newMarkdown));
+    const idx = cmEditor.getValue().indexOf(att.fullMatch);
+    if (idx !== -1) {
+        const from = cmEditor.posFromIndex(idx);
+        const to = cmEditor.posFromIndex(idx + att.fullMatch.length);
+        cmEditor.replaceRange(newMarkdown, from, to);
+    }
     
     if (isEditMode) {
         cmEditor.focus();
@@ -7349,7 +7687,7 @@ function appendAttachmentToDescription(name, path) {
     const isImg = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'ico'].includes(ext);
     const prefix = isImg ? '!' : '';
 
-    const encodedPath = encodeURI(path); 
+    const encodedPath = encodeMarkdownPath(path); 
     const attachmentMarkdown = `${prefix}[${name}](${encodedPath})`;
     
     if (isEditMode) {
@@ -7414,6 +7752,14 @@ document.addEventListener('click', async (e) => {
 });
 
 async function showVaultScreen() {
+    // Останавливаем генерацию ИИ перед уходом
+    if (window.aiAbortController) {
+        window.aiAbortController.abort();
+        window.aiAbortController = null;
+    }
+    if (window.aiState) window.aiState.isTyping = false;
+    if (typeof setAiBtnState === 'function') setAiBtnState(false);
+
     const lights = document.getElementById('mac-traffic-lights');
     if (lights) lights.classList.add('vault-mode');
 
@@ -8294,12 +8640,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
 let aiState = {
     supported: false,
-    availableModels: ["Llama-3-8B-Instruct", "Mistral-Nemo-12B"], // Фолбэк, если бэк не ответил
+    availableModels: [],
     downloadedModels: [],
     selectedModel: localStorage.getItem('doe-ai-model') || null,
     onlyVisible: localStorage.getItem('doe-ai-visible') !== 'false',
     chatHistory: [],
-    isTyping: false
+    isTyping: false,
+    // Характеристики железа для отображения в UI
+    hardwareTier: null,
+    ramGb: null,
+    // Метаданные моделей: {name: {family, params, min_tier, size_gb, downloaded}}
+    modelsInfo: {}
 };
 
 async function checkAiStatus() {
@@ -8310,6 +8661,11 @@ async function checkAiStatus() {
             aiState.supported = data.supported;
             if (data.available_models) aiState.availableModels = data.available_models;
             if (data.downloaded_models) aiState.downloadedModels = data.downloaded_models;
+            if (data.hardware) {
+                aiState.hardwareTier = data.hardware.tier;
+                aiState.ramGb = data.hardware.ram_gb;
+            }
+            if (data.models_info) aiState.modelsInfo = data.models_info;
             
             // === АВТОВЫБОР МОДЕЛИ (ЛОГИКА ИИ) ===
             const downloaded = aiState.downloadedModels || [];
@@ -8376,38 +8732,46 @@ function formatBytes(bytes) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
+// Превращает имя модели в безопасный слаг для использования в DOM id и ключах.
+// Имена вроде "Gemma 4 26B (A4B MoE)" содержат пробелы и скобки, которые
+// ломают getElementById и data-атрибуты.
+function modelSlug(model) {
+    return model.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+
 // Вспомогательная функция для запуска поллинга прогресса ИИ
 function startAiDownloadPolling(model) {
-    if (window[`ai_interval_${model}`]) return; // Уже опрашиваем
-    
-    window[`ai_interval_${model}`] = setInterval(async () => {
+    const slug = modelSlug(model);
+    if (window[`ai_interval_${slug}`]) return; // Уже опрашиваем
+
+    window[`ai_interval_${slug}`] = setInterval(async () => {
         try {
-            const res = await fetch(`${API_BASE}/ai/download-progress?model_name=${model}`);
+            const res = await fetch(`${API_BASE}/ai/download-progress?model_name=${encodeURIComponent(model)}`);
             if (res.ok) {
                 const data = await res.json();
-                
+
                 // Ищем активный элемент в открытой модалке (если она открыта)
-                const pctSpan = document.getElementById(`ai-pct-${model}`);
-                const sizeSpan = document.getElementById(`ai-size-${model}`);
-                const cancelBtn = document.getElementById(`ai-cancel-btn-${model}`);
-                
+                const pctSpan = document.getElementById(`ai-pct-${slug}`);
+                const sizeSpan = document.getElementById(`ai-size-${slug}`);
+                const cancelBtn = document.getElementById(`ai-cancel-btn-${slug}`);
+
                 if (data.status === 'downloading') {
                     if (pctSpan) pctSpan.textContent = `${data.progress}%`;
                     if (sizeSpan && data.total_bytes) {
                         sizeSpan.textContent = `${formatBytes(data.downloaded_bytes)} / ${formatBytes(data.total_bytes)}`;
                     }
                 } else if (data.status === 'completed') {
-                    clearInterval(window[`ai_interval_${model}`]);
-                    delete window[`ai_interval_${model}`];
-                    
+                    clearInterval(window[`ai_interval_${slug}`]);
+                    delete window[`ai_interval_${slug}`];
+
                     if (!aiState.downloadedModels.includes(model)) {
                         aiState.downloadedModels.push(model);
                     }
                     aiState.selectedModel = model;
                     localStorage.setItem('doe-ai-model', model);
-                    
-                    window.showToast("ИИ Готов", `Модель ${model} успешно скачана`);
-                    
+
+                    window.showToast(t('ai.toastReadyTitle'), t('ai.toastReadyMsg', model));
+
                     // Показываем плавающую кнопку ИИ
                     const fab = document.getElementById('ai-floating-btn');
                     if (fab) fab.classList.add('show');
@@ -8416,17 +8780,17 @@ function startAiDownloadPolling(model) {
                         window.openAiSettingsModal(); // Перерисовываем UI
                     }
                 } else if (data.status === 'error') {
-                    clearInterval(window[`ai_interval_${model}`]);
-                    delete window[`ai_interval_${model}`];
-                    
-                    window.showToast("Ошибка загрузки", data.error || "Неизвестная ошибка", true);
+                    clearInterval(window[`ai_interval_${slug}`]);
+                    delete window[`ai_interval_${slug}`];
+
+                    window.showToast(t('ai.toastErrTitle'), data.error || t('ai.toastErrUnknown'), true);
                     if (document.getElementById('ai-settings-modal').classList.contains('show')) {
                         window.openAiSettingsModal(); // Перерисовываем UI
                     }
                 } else if (data.status === 'cancelled' || data.status === 'idle') {
-                    clearInterval(window[`ai_interval_${model}`]);
-                    delete window[`ai_interval_${model}`];
-                    
+                    clearInterval(window[`ai_interval_${slug}`]);
+                    delete window[`ai_interval_${slug}`];
+
                     if (document.getElementById('ai-settings-modal').classList.contains('show')) {
                         window.openAiSettingsModal(); // Перерисовываем UI
                     }
@@ -8438,7 +8802,7 @@ function startAiDownloadPolling(model) {
 
 window.openAiSettingsModal = async () => {
     if (!aiState.supported) {
-        window.showToast("Не поддерживается", "Локальный ИИ-ассистент в данный момент доступен только для macOS", true);
+        window.showToast(t('ai.toastUnsupportedTitle'), t('ai.toastUnsupportedMsg'), true);
         return;
     }
 
@@ -8448,11 +8812,16 @@ window.openAiSettingsModal = async () => {
         if (statusRes.ok) {
             const statusData = await statusRes.json();
             aiState.downloadedModels = statusData.downloaded_models || [];
-            
+            if (statusData.hardware) {
+                aiState.hardwareTier = statusData.hardware.tier;
+                aiState.ramGb = statusData.hardware.ram_gb;
+            }
+            if (statusData.models_info) aiState.modelsInfo = statusData.models_info;
+
             // === СИНХРОНИЗАЦИЯ ВЫБОРА ПРИ ОТКРЫТИИ НАСТРОЕК ===
             const downloaded = aiState.downloadedModels || [];
             const savedModel = localStorage.getItem('doe-ai-model');
-            
+
             if (downloaded.length === 1) {
                 aiState.selectedModel = downloaded[0];
                 localStorage.setItem('doe-ai-model', downloaded[0]);
@@ -8474,7 +8843,7 @@ window.openAiSettingsModal = async () => {
     // Для каждой модели проверяем, не идет ли фоновая загрузка прямо сейчас
     await Promise.all(aiState.availableModels.map(async (model) => {
         try {
-            const pRes = await fetch(`${API_BASE}/ai/download-progress?model_name=${model}`);
+            const pRes = await fetch(`${API_BASE}/ai/download-progress?model_name=${encodeURIComponent(model)}`);
             if (pRes.ok) {
                 const pData = await pRes.json();
                 if (pData.status === 'downloading') {
@@ -8486,15 +8855,27 @@ window.openAiSettingsModal = async () => {
 
     const list = document.getElementById('ai-models-list');
     list.innerHTML = '';
-    
+
+    // Заголовок с характеристиками железа
+    const tierLabels = { light: t('ai.tierLight'), standard: t('ai.tierStandard'), pro: t('ai.tierPro') };
+    if (aiState.ramGb) {
+        const hwDiv = document.createElement('div');
+        hwDiv.className = 'ai-hardware-info';
+        hwDiv.style.cssText = 'display: flex; justify-content: center; align-items: center; gap: 6px; padding: 8px 12px; margin-bottom: 8px; border-radius: 8px; background: var(--bg-secondary, rgba(128,128,128,0.08));';
+        hwDiv.innerHTML = `<span style="color: var(--text-secondary); font-size: 12px;">${t('ai.hardwareRam')}: <b style="color: var(--text-primary);">${aiState.ramGb} ${t('ai.gbSuffix')}</b> · ${t('ai.hardwareTier')}: <b style="color: var(--text-primary);">${tierLabels[aiState.hardwareTier] || aiState.hardwareTier}</b></span>`;
+        list.appendChild(hwDiv);
+    }
+
     aiState.availableModels.forEach(model => {
+        const info = aiState.modelsInfo[model] || {};
         const isDownloaded = aiState.downloadedModels.includes(model);
         const isSelected = aiState.selectedModel === model;
-        const isPolling = !!window[`ai_interval_${model}`];
-        
+        const slug = modelSlug(model);
+        const isPolling = !!window[`ai_interval_${slug}`];
+
         const div = document.createElement('div');
         div.className = `setting-row ${isSelected ? 'active' : ''}`;
-        
+
         let controlsHtml = '';
         const trashIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
         const closeIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`;
@@ -8502,7 +8883,7 @@ window.openAiSettingsModal = async () => {
         if (isDownloaded) {
             controlsHtml = `
                 <div style="display: flex; gap: 8px; align-items: center; flex-shrink: 0; pointer-events: auto;">
-                    <button class="icon-btn danger-icon ai-delete-btn" data-model="${model}" title="Удалить модель с диска" style="color: #D35446; width: 28px; height: 28px; margin: 0; z-index: 2;">
+                    <button class="icon-btn danger-icon ai-delete-btn" data-model="${escapeHtml(model)}" title="${t('ai.btnDeleteTitle')}" style="color: #D35446; width: 28px; height: 28px; margin: 0; z-index: 2;">
                         ${trashIcon}
                     </button>
                     <div class="setting-check" style="margin-left: 0; width: 16px;">
@@ -8513,24 +8894,31 @@ window.openAiSettingsModal = async () => {
             controlsHtml = `
                 <div style="display: flex; gap: 8px; align-items: center; flex-shrink: 0; pointer-events: auto;">
                     <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px;">
-                        <span id="ai-pct-${model}" style="font-size: 13px; font-weight: 700; color: var(--brand-pine); line-height: 1.2;">0%</span>
-                        <span id="ai-size-${model}" style="font-size: 11px; color: var(--text-secondary); font-family: var(--font-mono); line-height: 1.2; letter-spacing: -0.02em;">0 MB / 0 GB</span>
+                        <span id="ai-pct-${slug}" style="font-size: 13px; font-weight: 700; color: var(--brand-pine); line-height: 1.2;">0%</span>
+                        <span id="ai-size-${slug}" style="font-size: 11px; color: var(--text-secondary); font-family: var(--font-mono); line-height: 1.2; letter-spacing: -0.02em;">0 MB / 0 GB</span>
                     </div>
-                    <button class="icon-btn danger-icon ai-cancel-btn" id="ai-cancel-btn-${model}" data-model="${model}" title="Отменить" style="color: #D35446; width: 28px; height: 28px; margin: 0; z-index: 2; display: flex; align-items: center; justify-content: center;">
+                    <button class="icon-btn danger-icon ai-cancel-btn" id="ai-cancel-btn-${slug}" data-model="${escapeHtml(model)}" title="${t('ai.btnCancelTitle')}" style="color: #D35446; width: 28px; height: 28px; margin: 0; z-index: 2; display: flex; align-items: center; justify-content: center;">
                         ${closeIcon}
                     </button>
                 </div>
             `;
         } else {
+            const sizeText = info.size_gb ? t('ai.btnDownloadSize', info.size_gb.toFixed(1)) : t('ai.btnDownload');
             controlsHtml = `
-                <button class="confirm-btn cancel-btn ai-download-btn" data-model="${model}" style="padding: 6px 12px; font-size: 12px; flex: none; width: auto; font-weight: 600; z-index: 2; margin: 0;">Скачать (~5GB)</button>
+                <button class="confirm-btn cancel-btn ai-download-btn" data-model="${escapeHtml(model)}" style="padding: 6px 12px; font-size: 12px; flex: none; width: auto; font-weight: 600; z-index: 2; margin: 0;">${sizeText}</button>
             `;
         }
 
+        // Описание модели: параметры + размер
+        const descParts = [];
+        if (info.params) descParts.push(info.params);
+        if (info.size_gb) descParts.push(`${info.size_gb.toFixed(1)} ${t('ai.gbSuffix')}`);
+        const descText = isDownloaded ? t('ai.statusInstalled') : (descParts.join(' · ') || t('ai.statusRequiresDownload'));
+
         div.innerHTML = `
             <div class="setting-text-box">
-                <div class="setting-title">${model}</div>
-                <div class="setting-desc">${isDownloaded ? 'Установлено' : 'Требуется загрузка'}</div>
+                <div class="setting-title">${escapeHtml(model)}</div>
+                <div class="setting-desc">${descText}</div>
             </div>
             ${controlsHtml}
         `;
@@ -8550,7 +8938,7 @@ window.openAiSettingsModal = async () => {
             deleteBtn.onclick = async (e) => {
                 e.stopPropagation();
                 
-                const isConfirmed = await showConfirmModal("Удалить модель?", `Модель ${model} будет удалена с устройства.`);
+                const isConfirmed = await showConfirmModal(t('ai.confirmDeleteTitle'), t('ai.confirmDeleteMsg', model));
                 if (!isConfirmed) return;
 
                 deleteBtn.disabled = true;
@@ -8566,13 +8954,13 @@ window.openAiSettingsModal = async () => {
                             aiState.selectedModel = null;
                             localStorage.removeItem('doe-ai-model');
                         }
-                        window.showToast("Удалено", `Модель ${model} удалена`);
+                        window.showToast(t('ai.toastDeleted'), t('ai.toastDeletedMsg', model));
                         window.openAiSettingsModal();
                     } else {
                         throw new Error();
                     }
                 } catch(err) {
-                    window.showToast("Ошибка", "Не удалось удалить файл", true);
+                    window.showToast(t('alerts.error'), t('ai.toastDeleteErr'), true);
                     deleteBtn.disabled = false;
                     deleteBtn.style.opacity = '1';
                 }
@@ -8584,7 +8972,7 @@ window.openAiSettingsModal = async () => {
         if (downloadBtn) {
             downloadBtn.onclick = async (e) => {
                 e.stopPropagation();
-                downloadBtn.textContent = 'Запуск...';
+                downloadBtn.textContent = t('ai.starting');
                 downloadBtn.disabled = true;
                 try {
                     const res = await fetch(`${API_BASE}/ai/download`, {
@@ -8598,7 +8986,7 @@ window.openAiSettingsModal = async () => {
                         throw new Error();
                     }
                 } catch (err) {
-                    downloadBtn.textContent = 'Ошибка';
+                    downloadBtn.textContent = t('ai.errorText');
                     downloadBtn.disabled = false;
                 }
             };
@@ -8617,7 +9005,7 @@ window.openAiSettingsModal = async () => {
                         body: JSON.stringify({model_name: model})
                     });
                     if (res.ok) {
-                        window.showToast("Загрузка прервана", `Скачивание модели ${model} успешно отменено`);
+                        window.showToast(t('ai.toastCancelTitle'), t('ai.toastCancelMsg', model));
                     }
                 } catch (err) {
                     cancelBtn.style.opacity = '1';
@@ -8629,24 +9017,19 @@ window.openAiSettingsModal = async () => {
         list.appendChild(div);
     });
 
-    const toggle = document.getElementById('ai-only-visible-toggle');
-    if (toggle) {
-        toggle.checked = aiState.onlyVisible;
-        toggle.onchange = (e) => {
-            aiState.onlyVisible = e.target.checked;
-            localStorage.setItem('doe-ai-visible', aiState.onlyVisible);
-        };
-    }
 
     document.getElementById('ai-settings-modal').classList.add('show');
 };
 
 function checkDailyJournal() {
+    // Не открываем ИИ-панель, если расширение ИИ выключено
+    const aiEnabled = document.getElementById('ext-toggle-ai')?.checked !== false;
+    if (!aiEnabled) return;
+
     const today = new Date().toDateString();
     const lastCheck = localStorage.getItem('doe-ai-last-check');
-    const prioEnabled = document.getElementById('ext-toggle-priority')?.checked !== false;
 
-    if (prioEnabled && aiState.selectedModel && aiState.downloadedModels.includes(aiState.selectedModel)) {
+    if (aiState.selectedModel && aiState.downloadedModels.includes(aiState.selectedModel)) {
         if (lastCheck !== today) {
             // Если доска загрузилась, показываем журнал
             if (state.columns.length > 0) {
@@ -8663,18 +9046,16 @@ document.getElementById('ai-floating-btn')?.addEventListener('click', (e) => {
 });
 
 function openDailyJournal() {
-    // Если диалог пуст — начинаем с приветствия. Если нет — оставляем как есть!
-    if (aiState.chatHistory.length === 0) {
+    // Защита: не открываем панель, если расширение ИИ выключено
+    const aiEnabled = document.getElementById('ext-toggle-ai')?.checked !== false;
+    if (!aiEnabled) return;
+
+    // Если диалог пуст И ИИ прямо сейчас НЕ генерирует приветствие (защита от спама)
+    if (aiState.chatHistory.length === 0 && !aiState.isTyping) {
         const chatBox = document.getElementById('ai-chat-history');
         chatBox.innerHTML = '';
         
-        let greeting = "Доброе утро! Как ваше настроение сегодня? Есть ли задачи, которые пугают, или наоборот — что-то вдохновляет?";
-        // Меняем приветствие, если это не первый запуск за день
-        const lastCheck = localStorage.getItem('doe-ai-last-check');
-        if (lastCheck === new Date().toDateString()) {
-            greeting = "Снова здравствуйте! Хотите что-то добавить к нашему контексту, или пересчитать приоритеты?";
-        }
-
+        const greeting = "What to Doe today? ☕️";
         appendAiMessage(greeting);
     }
     
@@ -8685,23 +9066,37 @@ function openDailyJournal() {
 }
 
 function appendUserMessage(text) {
-    const div = document.createElement('div');
-    div.className = 'ai-msg user';
-    div.textContent = text;
-    document.getElementById('ai-chat-history').appendChild(div);
-    div.scrollIntoView({behavior: 'smooth'});
+    const row = document.createElement('div');
+    row.className = 'ai-msg-row';
+
+    const bubble = document.createElement('div');
+    bubble.className = 'ai-msg user';
+    bubble.textContent = text;
+    row.appendChild(bubble);
+
+    // Футер: кнопки справа (для user-сообщений)
+    const footer = document.createElement('div');
+    footer.className = 'ai-msg-footer';
+    footer.style.justifyContent = 'flex-end';
+    footer.innerHTML = `<div class="ai-msg-actions"><button class="ai-act-btn" data-action="copy" title="Копировать"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></button><button class="ai-act-btn" data-action="edit" title="Редактировать"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path></svg></button><button class="ai-act-btn danger" data-action="delete" title="Удалить"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button></div>`;
+    row.appendChild(footer);
+
+    document.getElementById('ai-chat-history').appendChild(row);
+    row.scrollIntoView({behavior: 'smooth'});
     aiState.chatHistory.push({role: "user", content: text});
 }
 
-function appendAiMessage(text) {
+function appendAiMessage(text, elapsedMs) {
     const div = document.createElement('div');
     div.className = 'ai-msg ai';
     
     // --- ФОЛБЭК ДЛЯ ЛОКАЛЬНЫХ LLM (ПОДГОТОВКА) ---
     // Если ИИ забыл сделать Markdown-ссылку и написал "Задача ID:26 'Название'",
     // мы конвертируем это в сырой Markdown
-    let safeText = text.replace(/(?:Задача|Task|Карточка|Карточку)\s*(?:ID:?|#)?\s*(\d+)(?:\s*['"«](.*?)['"»])?/gi, (match, id, title) => {
-        const linkText = title ? title : `Задача #${id}`;
+    // Модель может поставить пробел между ] и ( — чиним перед парсингом
+    let safeText = text.replace(/\]\s+\(doe:\/\/task\//gi, '](doe://task/');
+    safeText = safeText.replace(/(?:Задача|Task|Карточка|Карточку)\s*(?:ID:?|#)?\s*(\d+)(?:\s*['"«](.*?)['"»])?/gi, (match, id, title) => {
+        const linkText = title ? title : t('ai.taskRef', id);
         return `[${linkText}](doe://task/${id})`;
     });
 
@@ -8743,11 +9138,182 @@ function appendAiMessage(text) {
     // --------------------------------------------------------
 
     // Используем наш нативный парсер, чтобы рендерить жирный текст, списки и ссылки!
-    div.innerHTML = parseMarkdownWithMath(safeText); 
-    document.getElementById('ai-chat-history').appendChild(div);
+    div.innerHTML = parseMarkdownWithMath(safeText);
+
+    // Оборачиваем в .ai-msg-row ДО вставки в DOM (без flicker)
+    const row = document.createElement('div');
+    row.className = 'ai-msg-row';
+    row.appendChild(div);
+
+    // Панель действий + время ответа в одной строке
+    const footer = document.createElement('div');
+    footer.className = 'ai-msg-footer';
+    footer.innerHTML = `<div class="ai-msg-actions"><button class="ai-act-btn" data-action="copy" title="Копировать"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></button><button class="ai-act-btn danger" data-action="delete" title="Удалить"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button></div>`;
+    if (elapsedMs) {
+        const s = (elapsedMs / 1000).toFixed(1);
+        const unit = (typeof currentLang !== 'undefined' ? currentLang : 'ru') === 'ru' ? 'с' : 's';
+        footer.innerHTML += `<div class="ai-msg-time"><svg class="ai-timer-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> ${s}${unit}</div>`;
+    }
+    row.appendChild(footer);
+
+    document.getElementById('ai-chat-history').appendChild(row);
     div.scrollIntoView({behavior: 'smooth'});
     aiState.chatHistory.push({role: "assistant", content: text}); // В историю пушим оригинал
 }
+
+// Панель действий под сообщениями (edit — только user, copy/delete — все)
+document.getElementById('ai-chat-history')?.addEventListener('click', (e) => {
+    const actBtn = e.target.closest('.ai-act-btn');
+    if (!actBtn) return;
+    const action = actBtn.dataset.action;
+
+    const row = actBtn.closest('.ai-msg-row');
+    if (!row) return;
+    const msgDiv = row.querySelector('.ai-msg');
+    if (!msgDiv) return;
+
+    // Индекс среди всех .ai-msg-rows (не .ai-msg — typing-indicator тоже .ai-msg!)
+    const allRows = Array.from(document.getElementById('ai-chat-history').querySelectorAll('.ai-msg-row'));
+    const idx = allRows.indexOf(row);
+
+    if (action === 'copy') {
+        // В режиме редактирования — только текст из поля, не кнопки
+        const editArea = msgDiv.querySelector('.ai-msg-edit');
+        let text;
+        if (editArea) {
+            text = editArea.querySelector('.ai-edit-textarea').value.trim();
+        } else {
+            // Клонируем и вырезаем кнопки действий (Отмена/Разрешить), чтобы не копировались
+            const clone = msgDiv.cloneNode(true);
+            const actionBtns = clone.querySelector('.ai-actions-btns');
+            if (actionBtns) actionBtns.remove();
+            text = clone.textContent.trim();
+        }
+        if (text) {
+            navigator.clipboard.writeText(text).catch(() => {});
+            actBtn.style.color = 'var(--success-done)';
+            setTimeout(() => { actBtn.style.color = ''; }, 800);
+        }
+        return;
+    }
+
+    if (action === 'delete') {
+        row.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+        row.style.opacity = '0';
+        row.style.transform = 'scaleY(0.8)';
+        row.style.pointerEvents = 'none';
+        row.style.transformOrigin = 'top';
+        setTimeout(() => row.remove(), 220);
+        if (idx !== -1 && idx < aiState.chatHistory.length) {
+            aiState.chatHistory.splice(idx, 1);
+        }
+        return;
+    }
+
+    if (action === 'edit') {
+        if (idx === -1 || idx >= aiState.chatHistory.length) return;
+
+        // Останавливаем текущую генерацию, если ИИ печатает
+        if (aiAbortController) {
+            aiAbortController.abort();
+            aiAbortController = null;
+        }
+        if (aiState.isTyping) {
+            aiState.isTyping = false;
+            setAiBtnState(false);
+            const typingEl = document.querySelector('.typing-indicator');
+            if (typingEl) typingEl.remove();
+        }
+
+        const entry = aiState.chatHistory[idx];
+        const origText = entry.content;
+
+        // Заменяем содержимое bubble на поле редактирования
+        const editArea = document.createElement('div');
+        editArea.className = 'ai-msg-edit';
+        editArea.innerHTML = `<textarea class="ai-edit-textarea" rows="3">${escapeHtml(origText)}</textarea><div class="ai-edit-btns"><button class="ai-edit-cancel" title="Отмена"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button><button class="ai-edit-send" title="Отправить"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg></button></div>`;
+        msgDiv.innerHTML = '';
+        msgDiv.appendChild(editArea);
+
+        const textarea = editArea.querySelector('.ai-edit-textarea');
+        textarea.focus();
+        textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+
+        // Авто-рост
+        const autoGrow = () => {
+            textarea.style.height = 'auto';
+            textarea.style.height = Math.max(44, textarea.scrollHeight) + 'px';
+        };
+        textarea.addEventListener('input', autoGrow);
+        autoGrow();
+
+        // Enter = отправить, Shift+Enter = перенос строки
+        textarea.addEventListener('keydown', (ke) => {
+            if (ke.key === 'Enter' && !ke.shiftKey) {
+                ke.preventDefault();
+                editArea.querySelector('.ai-edit-send').click();
+            }
+        });
+
+        // Отмена — восстанавливаем исходный текст
+        editArea.querySelector('.ai-edit-cancel').onclick = () => {
+            msgDiv.innerHTML = entry.role === 'assistant'
+                ? parseMarkdownWithMath(origText)
+                : escapeHtml(origText);
+        };
+
+        // Отправить (как в AI Studio: обрезает историю ниже, отправляет заново)
+        editArea.querySelector('.ai-edit-send').onclick = async () => {
+            const newText = textarea.value.trim();
+            if (!newText) return;
+
+            // Обрезаем историю до этого сообщения включительно (с новым текстом)
+            const role = entry.role;
+            aiState.chatHistory = aiState.chatHistory.slice(0, idx);
+            aiState.chatHistory.push({role, content: newText});
+
+            // Убираем все DOM-строки после текущей (пересчитываем на момент отправки)
+            const liveRows = Array.from(document.getElementById('ai-chat-history').querySelectorAll('.ai-msg-row'));
+            const curIdx = liveRows.indexOf(row);
+            if (curIdx !== -1) {
+                liveRows.slice(curIdx + 1).forEach(r => r.remove());
+            }
+
+            // Обновляем текущий bubble
+            msgDiv.innerHTML = role === 'assistant'
+                ? parseMarkdownWithMath(newText)
+                : escapeHtml(newText);
+
+            // Отправляем запрос на продолжение
+            aiState.isTyping = true;
+            setAiBtnState(true);
+            const typingEl = showAiTyping();
+            aiAbortController = new AbortController();
+
+            const aiStart = Date.now();
+            try {
+                const res = await fetch(`${API_BASE}/ai/chat`, {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({model_name: aiState.selectedModel, messages: aiState.chatHistory}),
+                    signal: aiAbortController.signal
+                });
+                if (!res.ok) throw new Error("Backend error");
+                const data = await res.json();
+                if (typingEl._timerStop) typingEl._timerStop();
+                typingEl.remove();
+                if (data.reply) appendAiMessage(data.reply, Date.now() - aiStart);
+                if (data.proposed_actions && data.proposed_actions.length > 0) appendAiActions(data.proposed_actions);
+            } catch (err) {
+                if (err.name !== 'AbortError') { if (typingEl._timerStop) typingEl._timerStop(); typingEl.remove(); }
+            } finally {
+                aiAbortController = null;
+                aiState.isTyping = false;
+                setAiBtnState(false);
+            }
+        };
+        return;
+    }
+});
 
 // Глобальный перехватчик кликов по сгенерированным ссылкам внутри чата
 document.getElementById('ai-chat-history')?.addEventListener('click', (e) => {
@@ -8771,35 +9337,79 @@ document.getElementById('ai-chat-history')?.addEventListener('click', (e) => {
 function showAiTyping() {
     const div = document.createElement('div');
     div.className = 'ai-msg ai typing-indicator';
-    div.innerHTML = `<div class="ai-loading-dots"><span></span><span></span><span></span></div>`;
+    div.innerHTML = `<div class="ai-loading-dots"><span></span><span></span><span></span></div><div class="ai-typing-time"><svg class="ai-timer-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> 0.0s</div>`;
     document.getElementById('ai-chat-history').appendChild(div);
     div.scrollIntoView({behavior: 'smooth'});
+
+    // Живой таймер (60 fps)
+    const start = Date.now();
+    const timeEl = div.querySelector('.ai-typing-time');
+    let _raf;
+    const _tick = () => {
+        const s = ((Date.now() - start) / 1000).toFixed(1);
+        const unit = (typeof currentLang !== 'undefined' ? currentLang : 'ru') === 'ru' ? 'с' : 's';
+        timeEl.innerHTML = `<svg class="ai-timer-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> ${s}${unit}`;
+        _raf = requestAnimationFrame(_tick);
+    };
+    _raf = requestAnimationFrame(_tick);
+    div._timerStop = () => { cancelAnimationFrame(_raf); };
+
     return div;
 }
 
 function appendAiActions(actions) {
     const div = document.createElement('div');
     div.className = 'ai-msg ai ai-actions-box';
-    
-    let html = `<div style="font-weight: 600; margin-bottom: 8px;">Я хочу выполнить следующие действия:</div>`;
+
+    // Хелперы для получения имён по ID из текущего состояния
+    const taskName = (id) => {
+        for (const col of state.columns) {
+            const t = col.tasks?.find(t => t.id === id);
+            if (t) return t.title;
+        }
+        return `#${id}`;
+    };
+    const colName = (id) => {
+        const c = state.columns.find(c => c.id === id);
+        return c ? c.title : `#${id}`;
+    };
+    const wsName = (id) => {
+        const w = state.workspaces.find(w => w.id === id);
+        return w ? w.name : `#${id}`;
+    };
+
+    let html = `<div style="font-weight: 600; margin-bottom: 8px;">${t('ai.actionsHeader')}</div>`;
     actions.forEach(a => {
+        const p = a.params || {};
         let text = a.action;
-        if (a.action === 'create_task') text = `Создать задачу "${a.params.title}" (Колонка ID: ${a.params.column_id})`;
-        else if (a.action === 'move_task') text = `Переместить задачу #${a.params.task_id} в колонку #${a.params.target_column_id}`;
-        else if (a.action === 'delete_task') text = `Удалить задачу #${a.params.task_id}`;
-        else if (a.action === 'create_column') text = `Создать колонку "${a.params.title}"`;
-        else if (a.action === 'delete_column') text = `Удалить колонку #${a.params.column_id}`;
-        else if (a.action === 'create_workspace') text = `Создать вкладку "${a.params.name}"`;
-        else if (a.action === 'set_theme') text = `Сменить тему на ${a.params.theme}`;
-        else if (a.action === 'toggle_extension') text = `${a.params.state ? 'Включить' : 'Выключить'} расширение ${a.params.ext_name}`;
-        else if (a.action === 'prioritize_all') text = `Пересчитать приоритеты`;
+        if (a.action === 'create_task') text = t('ai.actionCreateTask', p.title ?? '—', colName(p.column_id));
+        else if (a.action === 'move_task') text = t('ai.actionMoveTask', taskName(p.task_id), colName(p.target_column_id));
+        else if (a.action === 'delete_task') text = t('ai.actionDeleteTask', taskName(p.task_id));
+        else if (a.action === 'create_column') text = t('ai.actionCreateColumn', p.title ?? '—');
+        else if (a.action === 'delete_column') text = t('ai.actionDeleteColumn', colName(p.column_id));
+        else if (a.action === 'create_workspace') text = t('ai.actionCreateWorkspace', p.name ?? '—');
+        else if (a.action === 'set_theme') text = t('ai.actionSetTheme', p.theme ?? '—');
+        else if (a.action === 'toggle_extension') text = (p.state ? t('ai.actionToggleExtOn', p.ext_name ?? '—') : t('ai.actionToggleExtOff', p.ext_name ?? '—'));
+        else if (a.action === 'prioritize_all') text = t('ai.actionPrioritizeAll');
+        else if (a.action === 'clear_all_priorities') text = t('ai.actionClearAllPriorities');
+        else if (a.action === 'remember_fact') text = t('ai.actionRememberFact', p.fact ?? '—');
+        else if (a.action === 'forget_fact') text = t('ai.actionForgetFact', p.fact ?? '—');
+        else if (a.action === 'change_language') text = t('ai.actionChangeLang', p.language ?? '—');
+        else if (a.action === 'switch_workspace') text = t('ai.actionSwitchWorkspace', wsName(p.workspace_id));
+        else if (a.action === 'open_task') text = t('ai.actionOpenTask', taskName(p.task_id));
+        else if (a.action === 'update_task') text = t('ai.actionUpdateTask', taskName(p.task_id));
+        else if (a.action === 'clear_chat_context') text = t('ai.actionClearChat');
+        else if (a.action === 'set_reminders') text = t('ai.actionSetReminders', p.reminders?.length ?? 0);
+        else if (a.action === 'delete_reminder') text = t('ai.actionDeleteReminder', p.reminder_id ?? '—');
+        else if (a.action === 'search_board') text = t('ai.actionSearchBoard', p.query ?? '—');
+        else if (a.action === 'get_task_details') text = t('ai.actionGetTaskDetails', taskName(p.task_id));
         html += `<div class="ai-action-item">- ${escapeHtml(text)}</div>`;
     });
     
     html += `
         <div class="ai-actions-btns">
-            <button class="ai-btn-cancel">Отменить</button>
-            <button class="ai-btn-confirm">Разрешить</button>
+            <button class="ai-btn-cancel">${t('cancel')}</button>
+            <button class="ai-btn-confirm">${t('ai.btnConfirm')}</button>
         </div>
     `;
     div.innerHTML = html;
@@ -8808,7 +9418,7 @@ function appendAiActions(actions) {
     const confirmBtn = div.querySelector('.ai-btn-confirm');
     
     cancelBtn.onclick = () => {
-        div.innerHTML = `<div style="opacity: 0.6; font-style: italic;">Действия отменены пользователем.</div>`;
+        div.innerHTML = `<div style="opacity: 0.6; font-style: italic;">${t('ai.actionsCancelled')}</div>`;
     };
     
     confirmBtn.onclick = async () => {
@@ -8825,77 +9435,157 @@ function appendAiActions(actions) {
                 })
             });
             const data = await res.json();
-            
-            div.innerHTML = `<div style="color: var(--brand-pine); font-weight: 600;">✅ Действия выполнены!</div>`;
-            
+
+            // Различаем три исхода: всё ОК / часть упала / всё упало.
+            const failed = Array.isArray(data.failed_actions) ? data.failed_actions : [];
+            if (data.success && failed.length === 0) {
+                div.innerHTML = `<div style="color: var(--brand-pine); font-weight: 600;">${t('ai.actionsExecuted')}</div>`;
+            } else if (data.actions_executed && failed.length > 0) {
+                // Частичный успех: что-то выполнилось, что-то нет.
+                const failList = failed.map(f => `<div class="ai-action-item">— ${escapeHtml(f.action)}: ${escapeHtml(f.reason || '')}</div>`).join('');
+                div.innerHTML = `<div style="color: var(--brand-pine); font-weight: 600;">${t('ai.actionsPartial')}</div>${failList}`;
+            } else {
+                const failList = failed.map(f => `<div class="ai-action-item">— ${escapeHtml(f.action)}: ${escapeHtml(f.reason || '')}</div>`).join('');
+                div.innerHTML = `<div style="color: #D35446; font-weight: 600;">${t('ai.actionsError')}</div>${failList}`;
+            }
+
             if (data.actions_executed) refreshBoard();
+            if (data.open_task_id) {
+                loadTaskIntoModal(data.open_task_id, true);
+                document.getElementById('task-modal').classList.add('show');
+            }
+            if (data.clear_chat) {
+                aiState.chatHistory = [];
+                openDailyJournal(); // Перерисует чат с чистого листа
+            }
+            // Обновляем колокольчик, если ИИ ставил или удалял напоминания
+            if (actions.some(act => act.action === 'set_reminders' || act.action === 'delete_reminder')) {
+                updateBellBadge();
+            }
             if (data.settings_changed) {
                 fetchSettings().then(d => {
                     window.applyExtensionsUI(d.extensions);
-                    if (d.theme) applyTheme(d.theme, false);
+                    if (d.theme) {
+                        if (document.startViewTransition) {
+                            document.startViewTransition(() => applyTheme(d.theme, false));
+                        } else {
+                            applyTheme(d.theme, false);
+                        }
+                    }
                 });
             }
         } catch(e) {
-            div.innerHTML = `<div style="color: #D35446; font-weight: 600;">❌ Ошибка выполнения. Проверьте правильность ID.</div>`;
+            div.innerHTML = `<div style="color: #D35446; font-weight: 600;">${t('ai.actionsError')}</div>`;
         }
     };
     
-    document.getElementById('ai-chat-history').appendChild(div);
-    div.scrollIntoView({behavior: 'smooth'});
+    // Оборачиваем в .ai-msg-row + кнопки снизу
+    const row = document.createElement('div');
+    row.className = 'ai-msg-row';
+    row.appendChild(div);
+    const actionsBar = document.createElement('div');
+    const footer = document.createElement('div');
+    footer.className = 'ai-msg-footer';
+    footer.innerHTML = `<div class="ai-msg-actions"><button class="ai-act-btn" data-action="copy" title="Копировать"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></button><button class="ai-act-btn danger" data-action="delete" title="Удалить"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button></div>`;
+    row.appendChild(footer);
+    document.getElementById('ai-chat-history').appendChild(row);
+    row.scrollIntoView({behavior: 'smooth'});
+}
+
+let aiAbortController = null;
+
+function setAiBtnState(typing) {
+    const btn = document.getElementById('ai-send-btn');
+    if (!btn) return;
+    const sendIcon = btn.querySelector('.ai-icon-send');
+    const stopIcon = btn.querySelector('.ai-icon-stop');
+    if (typing) {
+        btn.classList.add('stop');
+        if (sendIcon) sendIcon.style.display = 'none';
+        if (stopIcon) stopIcon.style.display = '';
+    } else {
+        btn.classList.remove('stop');
+        if (sendIcon) sendIcon.style.display = '';
+        if (stopIcon) stopIcon.style.display = 'none';
+    }
 }
 
 document.getElementById('ai-send-btn')?.addEventListener('click', async () => {
-    if (aiState.isTyping) return;
     const input = document.getElementById('ai-chat-input');
+
+    // Стоп: отменяем текущую генерацию
+    if (aiState.isTyping) {
+        if (aiAbortController) {
+            aiAbortController.abort();
+            aiAbortController = null;
+        }
+        aiState.isTyping = false;
+        setAiBtnState(false);
+        const typingEl = document.querySelector('.typing-indicator');
+        if (typingEl) {
+            if (typingEl._timerStop) typingEl._timerStop();
+            typingEl.remove();
+        }
+        return;
+    }
+
     const text = input.value.trim();
     if (!text) return;
 
     input.value = '';
+    input.style.height = '';
     appendUserMessage(text);
     
     aiState.isTyping = true;
+    setAiBtnState(true);
     const typingEl = showAiTyping();
+    
+    aiAbortController = new AbortController();
 
+    const aiStart2 = Date.now();
     try {
         const res = await fetch(`${API_BASE}/ai/chat`, {
             method: 'POST', headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({
                 model_name: aiState.selectedModel,
                 messages: aiState.chatHistory
-            })
+            }),
+            signal: aiAbortController.signal
         });
         if (!res.ok) throw new Error("Backend error");
         
         const data = await res.json();
+        if (typingEl._timerStop) typingEl._timerStop();
         typingEl.remove();
         
         if (data.reply) {
-            appendAiMessage(data.reply);
+            appendAiMessage(data.reply, Date.now() - aiStart2);
         }
         
         if (data.proposed_actions && data.proposed_actions.length > 0) {
             appendAiActions(data.proposed_actions);
         }
     } catch (e) {
-        typingEl.remove();
-        
-        // 1. Показываем ошибку в UI (но НЕ сохраняем в системный aiState.chatHistory)
-        const div = document.createElement('div');
-        div.className = 'ai-msg ai';
-        div.style.color = '#D35446';
-        div.style.background = 'rgba(211, 84, 70, 0.1)';
-        div.textContent = "Произошла техническая заминка. Пожалуйста, отправьте сообщение еще раз.";
-        document.getElementById('ai-chat-history').appendChild(div);
-        div.scrollIntoView({behavior: 'smooth'});
-        
-        // 2. Откатываем последнее сообщение юзера, так как оно не дошло до LLM (защита памяти)
-        aiState.chatHistory.pop(); 
-        
-        // 3. Возвращаем текст в инпут, чтобы человек не печатал заново
-        input.value = text;
-        
+        if (e.name === 'AbortError') {
+            // Пользователь сам остановил — просто убираем индикатор
+        } else {
+            typingEl.remove();
+            
+            const div = document.createElement('div');
+            div.className = 'ai-msg ai';
+            div.style.color = '#D35446';
+            div.style.background = 'rgba(211, 84, 70, 0.1)';
+            div.textContent = "Произошла техническая заминка. Пожалуйста, отправьте сообщение еще раз.";
+            document.getElementById('ai-chat-history').appendChild(div);
+            div.scrollIntoView({behavior: 'smooth'});
+            
+            aiState.chatHistory.pop(); 
+            input.value = text;
+        }
     } finally {
+        aiAbortController = null;
         aiState.isTyping = false;
+        setAiBtnState(false);
         input.focus();
     }
 });

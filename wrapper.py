@@ -5,8 +5,19 @@ import time
 import json
 import urllib.request
 import sqlite3
+import threading
 from datetime import datetime
 from pathlib import Path
+
+# === КРИТИЧЕСКИЙ ФИКС ДЛЯ MACOS + PYINSTALLER + LLAMA.CPP ===
+# macOS даёт фоновым потокам всего 512 KB памяти (в отличие от 8 MB для главного).
+# При аллокации графа нейросети в asyncio.to_thread стек переполняется и приложение падает (SIGABRT).
+# Заставляем Python создавать фоновые потоки с 8 MB памяти:
+if sys.platform == 'darwin':
+    threading.stack_size(8 * 1024 * 1024)
+# ============================================================
+
+# DPI FIX (Windows, 4K/мульти-мониторы): объявляем Per-Monitor V2 awareness
 
 # DPI FIX (Windows, 4K/мульти-мониторы): объявляем Per-Monitor V2 awareness
 # ДО создания первого окна. Без этого при запуске `python wrapper.py` Windows
@@ -273,6 +284,12 @@ if len(sys.argv) >= 8 and sys.argv[1] == "--worker":
 # 2. ОСНОВНОЕ ПРИЛОЖЕНИЕ (GUI)
 # =========================================================================
 
+# ПРОГРЕВ ТЯЖЕЛЫХ С-БИБЛИОТЕК В ГЛАВНОМ ПОТОКЕ (Защита от крашей PyInstaller)
+try:
+    import numpy
+except ImportError:
+    pass
+
 if getattr(sys, 'frozen', False):
     bundle_dir = sys._MEIPASS
 else:
@@ -531,6 +548,68 @@ if sys.platform == 'darwin':
                 print(f"[System] applicationShouldTerminateAfterLastWindowClosed → NO registered on: {applied_to}")
             except Exception as e:
                 print(f"[System] terminate-after-last-window override failed (non-fatal): {e}")
+
+            # КРИТИЧНО: переопределяем applicationShouldTerminate: .
+            # На macOS Ctrl+C в терминале перехватывается Mach-уровнем PyObjC
+            # (installMachInterrupt, который pywebview вызывает в cocoa.py), а НЕ
+            # Python'овским signal.signal(). Mach-хендлер зовёт
+            # NSApp().terminate_(None) → applicationShouldTerminate: → exit() →
+            # C++ __cxa_finalize_ranges → ggml_metal_device_free →
+            # GGML_ASSERT([rsets->data count] == 0) → abort (SIGABRT).
+            # Стоковый AppDelegate pywebview возвращает YES без очистки Metal.
+            # Перехватываем: чистим LLM и выходим через os._exit(0), минуя
+            # C++-деструкторы (поэтому ggml_metal_device_free не зовётся вообще).
+            try:
+                def _should_terminate(self, sender):
+                    try:
+                        st = globals().get('server_thread')
+                        if st is not None:
+                            st.stop()
+                            st.join(timeout=0.5)
+                    except Exception:
+                        pass
+                    import time as _time
+                    _time.sleep(0.15)
+                    try:
+                        sys.stdout.flush(); sys.stderr.flush()
+                    except Exception:
+                        pass
+                    import os as _os
+                    _os._exit(0)
+                    return 1  # NSTerminateNow (unreachable)
+
+                sel_terminate = objc.selector(
+                    _should_terminate,
+                    selector=b'applicationShouldTerminate:',
+                    signature=b'q@:@'  # NSApplicationTerminateReply (NSInteger)
+                )
+
+                applied_term = []
+                for delegate_name in ['AppDelegate', 'ApplicationDelegate', 'BrowserDelegate']:
+                    if hasattr(webview.platforms.cocoa, delegate_name):
+                        cls = getattr(webview.platforms.cocoa, delegate_name)
+                        try:
+                            objc.classAddMethods(cls, [sel_terminate])
+                            applied_term.append(delegate_name)
+                        except Exception:
+                            setattr(cls, 'applicationShouldTerminate_', sel_terminate)
+                            applied_term.append(f"{delegate_name}(setattr)")
+
+                if hasattr(webview.platforms.cocoa, 'BrowserView'):
+                    bv = webview.platforms.cocoa.BrowserView
+                    for nested_name in ['AppDelegate', 'ApplicationDelegate']:
+                        if hasattr(bv, nested_name):
+                            cls = getattr(bv, nested_name)
+                            try:
+                                objc.classAddMethods(cls, [sel_terminate])
+                                applied_term.append(f"BrowserView.{nested_name}")
+                            except Exception:
+                                setattr(cls, 'applicationShouldTerminate_', sel_terminate)
+                                applied_term.append(f"BrowserView.{nested_name}(setattr)")
+
+                print(f"[System] applicationShouldTerminate: → Metal cleanup + os._exit registered on: {applied_term}")
+            except Exception as e:
+                print(f"[System] applicationShouldTerminate override failed (non-fatal): {e}")
             
         except Exception as e:
             print(f"[System] AppleEvent registration failed: {e}")
@@ -665,75 +744,72 @@ def get_dynamic_log_path():
                 vault_path = data.get("active_vault")
                 if vault_path and os.path.exists(vault_path):
                     vp = Path(vault_path)
-                    # Формируем имя файла: [НазваниеХранилища].log.doe.txt внутри самой папки хранилища
                     return vp / f"{vp.name}.log.doe.txt"
     except Exception:
         pass
-    # Фолбэк: если хранилище еще не выбрано или конфиг недоступен
     return Path.home() / ".log.doe.txt"
 
-class LoggerWriter:
-    def __init__(self, original_stream, is_main=False):
-        self.terminal = original_stream
-        self.is_main = is_main
-        self.current_path = None
-        self.file = None
-        self.last_check_time = 0
-        self._check_and_switch_file(force=True)
+# Глобальные переменные для гарантии единого дескриптора на оба потока (stdout/stderr)
+_global_log_file = None
+_global_log_path = None
 
-    def _check_and_switch_file(self, force=False):
-        now = time.time()
-        # Троттлинг: проверяем смену папки не чаще раза в 2 секунды, чтобы не грузить диск
-        if not force and (now - self.last_check_time < 2.0):
-            return
-        self.last_check_time = now
-
-        new_path = get_dynamic_log_path()
-        if new_path != self.current_path:
-            # Если путь изменился на лету (пользователь сменил Vault)
-            if self.file:
-                try:
-                    self.file.write(f"\n[System] 🔄 Redirecting logs to new vault: {new_path}\n")
-                    self.file.close()
-                except Exception:
-                    pass
-            
-            self.current_path = new_path
+def _ensure_log_file():
+    global _global_log_file, _global_log_path
+    new_path = get_dynamic_log_path()
+    
+    # Если путь изменился ИЛИ файл почему-то потерялся (None) — открываем заново
+    if new_path != _global_log_path or _global_log_file is None:
+        if _global_log_file:
             try:
-                self.file = open(self.current_path, 'a', encoding='utf-8')
-                if self.is_main:
-                    self.file.write(f"\n{'='*50}\n")
-                    self.file.write(f"🚀 DOE APP Session Started: {datetime.now()}\n")
-                    self.file.write(f"📁 Log Location: {self.current_path}\n")
-                    self.file.write(f"{'='*50}\n")
-                    self.is_main = False
-            except Exception:
-                self.file = None
-
-    def write(self, message):
-        self._check_and_switch_file()
-        if self.file:
-            try:
-                self.file.write(message)
-                # PERF: flush не чаще раза в секунду вместо каждой строки.
-                # Это убирает постоянное дисковое I/O (и iCloud-синхронизацию,
-                # если vault лежит в облачной папке). Контент лога идентичен.
-                now = time.time()
-                if now - getattr(self, '_last_flush', 0) >= 1.0:
-                    self._last_flush = now
-                    self.file.flush()
+                _global_log_file.write(f"\n[System] 🔄 Redirecting logs to new vault: {new_path}\n")
+                _global_log_file.flush()
+                _global_log_file.close()
             except Exception:
                 pass
+        
+        _global_log_path = new_path
+        try:
+            # buffering=1 гарантирует, что каждая новая строка (\n) сразу прописывается на диск
+            _global_log_file = open(_global_log_path, 'a', encoding='utf-8', buffering=1)
+            _global_log_file.write(f"\n{'='*50}\n🚀 DOE APP Session Started: {datetime.now()}\n📁 Log Location: {_global_log_path}\n{'='*50}\n")
+        except Exception:
+            _global_log_file = None
+
+class LoggerWriter:
+    def __init__(self, original_stream):
+        self.terminal = original_stream
+        self.last_check_time = 0
+        _ensure_log_file()
+
+    def write(self, message):
+        now = time.time()
+        # Проверяем, не сменилась ли папка, но не чаще раза в 2 секунды (экономим ресурсы)
+        if now - self.last_check_time > 2.0:
+            _ensure_log_file()
+            self.last_check_time = now
+            
+        global _global_log_file
+        if _global_log_file:
+            try:
+                _global_log_file.write(message)
+                # Принудительный flush каждой посылки гарантирует, 
+                # что мы увидим ошибку даже при мгновенном краше приложения.
+                _global_log_file.flush()
+            except Exception:
+                pass
+        
         if self.terminal:
             try:
                 self.terminal.write(message)
+                self.terminal.flush()
             except Exception:
                 pass
 
     def flush(self):
-        if self.file:
+        global _global_log_file
+        if _global_log_file:
             try:
-                self.file.flush()
+                _global_log_file.flush()
             except Exception:
                 pass
         if self.terminal:
@@ -753,17 +829,14 @@ class LoggerWriter:
     def __getattr__(self, name):
         if self.terminal and hasattr(self.terminal, name):
             return getattr(self.terminal, name)
-        if self.file and hasattr(self.file, name):
-            return getattr(self.file, name)
-        raise AttributeError(f"Neither terminal nor file has attribute '{name}'")
+        raise AttributeError(f"LoggerWriter has no attribute '{name}'")
 
 # Глобальный перехват вывода для ВСЕХ ОС (включая macOS)
-sys.stdout = LoggerWriter(sys.__stdout__, is_main=True)
+sys.stdout = LoggerWriter(sys.__stdout__)
+sys.stderr = LoggerWriter(sys.__stderr__)
 
-# PERF: т.к. flush теперь троттлится, гарантируем сброс хвоста лога при выходе
 import atexit
 atexit.register(lambda: (sys.stdout.flush(), sys.stderr.flush()))
-sys.stderr = LoggerWriter(sys.__stderr__, is_main=False)
 
 # NullReader требуется только для PyInstaller windowed mode на Windows
 if sys.platform == 'win32':
@@ -843,7 +916,7 @@ def _trigger_macos_hardware_haptic():
 
 
 
-MAIN_WINDOW_TITLE = 'Doe — Aesthetic Kanban'
+MAIN_WINDOW_TITLE = 'Doe (demo)'
 
 def _dump_geometry_diagnostics():
     """Однократный дамп DPI-состояния и карты мониторов в лог (Windows)."""
@@ -1173,20 +1246,15 @@ def bind_resize_event(win):
 # --- ЗАМЕНИТЕ КЛАСС WindowAPI в wrapper.py на этот ---
 class WindowAPI:
     def close_window(self):
-        """Закрывает окно (красная кнопка)"""
+        """Закрывает окно (красная кнопка) — abort AI в JS уже сделан, просто выходим."""
         import sys
         if sys.platform == 'darwin':
-            from PyObjCTools import AppHelper
-            def _close():
-                try:
-                    import AppKit
-                    app = AppKit.NSApplication.sharedApplication()
-                    win = app.keyWindow() or app.mainWindow()
-                    if win:
-                        win.performClose_(None)
-                except Exception as e:
-                    print(f"[Close] Cocoa error: {e}")
-            AppHelper.callAfter(_close)
+            import os as _os
+            import threading
+            # Не ждём main run loop — выходим немедленно из фонового потока
+            threading.Thread(target=lambda: (
+                sys.stdout.flush(), sys.stderr.flush(), _os._exit(0)
+            ), daemon=True).start()
         else:
             if webview.windows:
                 import threading
@@ -1611,11 +1679,46 @@ class WindowAPI:
         if sys.platform == 'darwin':
             try:
                 import AppKit
-                from Foundation import NSOperationQueue
+                from Foundation import NSOperationQueue, NSNotificationCenter, NSObject
                 
+                # Создаем системный слушатель, который будет переключать заголовок
+                if 'TitleToggleObserver' not in globals():
+                    class TitleToggleObserver(NSObject):
+                        def windowWillEnterFullScreen_(self, notification):
+                            win = notification.object()
+                            if hasattr(win, 'setTitleVisibility_'):
+                                win.setTitleVisibility_(0) # 0 = Показывать на серой рамке
+                                
+                        def windowWillExitFullScreen_(self, notification):
+                            win = notification.object()
+                            if hasattr(win, 'setTitleVisibility_'):
+                                win.setTitleVisibility_(1) # 1 = Прятать в оконном режиме
+                                
+                    globals()['TitleToggleObserver'] = TitleToggleObserver
+                    globals()['_title_observer_instance'] = TitleToggleObserver.alloc().init()
+                    
+                    nc = NSNotificationCenter.defaultCenter()
+                    nc.addObserver_selector_name_object_(
+                        globals()['_title_observer_instance'],
+                        b'windowWillEnterFullScreen:',
+                        AppKit.NSWindowWillEnterFullScreenNotification,
+                        None
+                    )
+                    nc.addObserver_selector_name_object_(
+                        globals()['_title_observer_instance'],
+                        b'windowWillExitFullScreen:',
+                        AppKit.NSWindowWillExitFullScreenNotification,
+                        None
+                    )
+
                 def _activate():
                     try:
                         AppKit.NSApp.activateIgnoringOtherApps_(True)
+                        # Прячем заголовок при старте (т.к. стартуем в оконном режиме)
+                        for win in AppKit.NSApp.windows():
+                            if hasattr(win, 'setTitleVisibility_'):
+                                if not (win.styleMask() & 16384): # 16384 = NSWindowStyleMaskFullScreen
+                                    win.setTitleVisibility_(1)
                     except Exception:
                         pass
                         
@@ -1921,12 +2024,11 @@ if __name__ == '__main__':
     
     def force_quit():
         print("\n[System] 🛑 Завершение работы по CTRL+C...")
-        if webview.windows:
-            try:
-                webview.windows[0].destroy()
-            except Exception:
-                pass
-
+        # При жестком выходе не пытаемся выгружать LLM вручную, 
+        # так как это провоцирует SIGABRT/SIGBUS.
+        # os._exit(0) ниже гарантирует, что деструкторы не будут вызваны,
+        # а ОС сама безопасно очистит память.
+        
         global server_thread
         if server_thread is not None:
             try:
@@ -1937,21 +2039,27 @@ if __name__ == '__main__':
                 
         time.sleep(0.2)
         try:
-            sys.stdout.flush(); sys.stderr.flush()  # PERF: добиваем буфер лога
+            sys.stdout.flush(); sys.stderr.flush()
         except Exception:
             pass
+        # os._exit(0) пропускает ВСЕ деструкторы (Python atexit + C++ __cxa_finalize),
+        # поэтому ggml_metal_device_free не вызывается вообще → нет SIGBUS.
         os._exit(0)
 
     def sigint_handler(signum, frame):
-        if webview.windows:
-            try:
-                webview.windows[0].destroy()
-            except Exception:
-                pass
-        threading.Timer(0.5, force_quit).start()
+        force_quit()
 
     signal.signal(signal.SIGINT, sigint_handler)
     signal.signal(signal.SIGTERM, sigint_handler)
+    
+    # Обёртка: используется ПОСЛЕ webview.start(), т.к. pywebview перетирает хендлеры.
+    def _wrapped_sigint(signum, frame):
+        # Выходим максимально жёстко. Не пытаемся чистить LLM, 
+        # так как ручная очистка в обработчике вызывает краш-диалог на macOS.
+        # os._exit(0) обходит C++ atexit-деструкторы.
+        print("\n[System] 🛑 Завершение работы по CTRL+C...")
+        import os as _os
+        _os._exit(0)
 
     if sys.platform == 'win32':
         import ctypes
@@ -2053,6 +2161,18 @@ if __name__ == '__main__':
                 # И ещё раз через 3 секунды — на случай отложенной инициализации делегата
                 threading.Timer(3.0, _reregister_safely).start()
             
+            # Ставим наш хендлер через 0.5с ПОСЛЕ старта webview —
+            # к этому моменту pywebview уже точно прописал свой SIGINT-хендлер.
+            import threading as _thr
+            def _install_safe_sigint():
+                try:
+                    import signal as _sig2
+                    _sig2.signal(_sig2.SIGINT, _wrapped_sigint)
+                    _sig2.signal(_sig2.SIGTERM, _wrapped_sigint)
+                except Exception:
+                    pass
+            _thr.Timer(0.1, _install_safe_sigint).start()
+            
             webview.start(debug=False)
         except KeyboardInterrupt:
             pass
@@ -2060,6 +2180,12 @@ if __name__ == '__main__':
             print("[Main] WebView crashed:")
             traceback.print_exc()
         finally:
+            # Чистим LLM при штатном закрытии окна
+            try:
+                from src.services.ai_service import _cleanup_llm
+                _cleanup_llm()
+            except Exception:
+                pass
             print("[System] Window closed. Shutting down.")
             if server_thread:
                 server_thread.stop()
