@@ -1787,6 +1787,20 @@ function createColumnElement(column) {
         <button class="btn-add-card">${t('newTask')}</button>
     `;
 
+    if (column.width) {
+        colDiv.style.width = column.width + 'px';
+    }
+
+    // Resize handle (invisible, right edge)
+    const resizeHandle = document.createElement('div');
+    resizeHandle.className = 'column-resize-handle';
+    resizeHandle.addEventListener('pointerdown', (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        startColumnResize(colDiv, column, e);
+    });
+    colDiv.appendChild(resizeHandle);
+
     const addBtn = colDiv.querySelector('.btn-add-card');
     addBtn.addEventListener('click', () => onAddTask(column.id));
 
@@ -2777,7 +2791,7 @@ async function onExpandColumn(columnEl) {
     columnEl.classList.remove('collapsed');
     column.collapsed = false;
 
-    columnEl.style.width = '';
+    columnEl.style.width = column.width ? column.width + 'px' : '';
     columnEl.style.minWidth = '';
 
     const titleEl = columnEl.querySelector('.column-title');
@@ -2796,6 +2810,71 @@ async function onExpandColumn(columnEl) {
     } catch (err) {
         console.error('Failed to save expanded state', err);
     }
+}
+
+function startColumnResize(colDiv, column, e) {
+    const startX = e.clientX;
+    const startWidth = colDiv.getBoundingClientRect().width;
+    const MIN_WIDTH = 320;
+    const MAX_WIDTH = 640;
+
+    colDiv.style.transition = 'none';
+
+    let rafId = null;
+    let latestX = startX;
+
+    // Сообщаем системе, что мы в процессе взаимодействия,
+    // чтобы фоновая синхронизация (iCloud/Watchdog) не перерисовала доску
+    isDragging = true;
+    dragType = 'column-resize';
+
+    const onMove = (e) => {
+        latestX = e.clientX;
+        
+        if (!rafId) {
+            rafId = requestAnimationFrame(() => {
+                const dx = latestX - startX;
+                const newWidth = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, startWidth + dx));
+                colDiv.style.width = newWidth + 'px';
+                rafId = null;
+            });
+        }
+    };
+
+    const onUp = async (e) => {
+        if (rafId) {
+            cancelAnimationFrame(rafId);
+            rafId = null;
+        }
+        
+        document.removeEventListener('pointermove', onMove);
+        document.removeEventListener('pointerup', onUp);
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+
+        colDiv.style.transition = '';
+
+        const finalWidth = colDiv.getBoundingClientRect().width;
+        const savedWidth = column.width || MIN_WIDTH;
+        
+        // Снимаем блокировку перерисовок
+        isDragging = false;
+        dragType = null;
+
+        if (Math.abs(finalWidth - savedWidth) > 1) {
+            column.width = finalWidth; // Обновляем локальный стейт ДО запроса к API
+            try {
+                await updateColumn(column.id, { width: finalWidth });
+            } catch (err) {
+                console.error('Failed to save column width', err);
+            }
+        }
+    };
+
+    document.body.style.cursor = 'ew-resize';
+    document.body.style.userSelect = 'none';
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup', onUp);
 }
 
 async function handleColumnMenu(action, columnEl, menuItem) {
@@ -3593,7 +3672,7 @@ document.addEventListener('dragstart', (e) => {
 document.addEventListener('pointerdown', (e) => {
     if (e.button !== 0) return;
 
-    if (e.target.closest('button, input, textarea, .menu-btn, .card-menu-btn, .tab-close-btn, .column.is-renaming, .board-tab.is-renaming, .card.is-renaming, .card-entering, .column-entering, .description-wrapper')) return;
+    if (e.target.closest('button, input, textarea, .menu-btn, .card-menu-btn, .tab-close-btn, .column.is-renaming, .board-tab.is-renaming, .card.is-renaming, .card-entering, .column-entering, .description-wrapper, .column-resize-handle')) return;
     const vaultHistory = e.target.closest('.vault-history-item');
     const subtask = e.target.closest('.subtask-item');
     const attachment = e.target.closest('.attachment-item');

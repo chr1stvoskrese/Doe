@@ -37,6 +37,7 @@ class ColumnModel(Base):
     position = Column(Float, default=0.0)
     collapsed = Column(Boolean, default=False)
     workspace_id = Column(Integer, ForeignKey("workspaces.id"), nullable=False) # СВЯЗЬ С ВКЛАДКОЙ
+    width = Column(Float, nullable=True)  # null = дефолтная ширина (320px)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

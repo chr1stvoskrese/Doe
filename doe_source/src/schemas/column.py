@@ -32,12 +32,14 @@ class ColumnUpdate(BaseModel):
     position: Optional[float] = None
     collapsed: Optional[bool] = None
     workspace_id: Optional[int] = None
+    width: Optional[float] = None
 
 
 class ColumnResponse(ColumnBase):
     id: int
     position: float
     collapsed: bool
+    width: Optional[float] = None
     created_at: datetime
     updated_at: datetime
     tasks: List[TaskResponse] = []   # список задач в колонке

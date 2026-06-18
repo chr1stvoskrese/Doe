@@ -619,6 +619,21 @@ body, button, input, textarea, select,
     cursor: grab;
 }
 
+.column-resize-handle {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 6px;
+    cursor: ew-resize;
+    z-index: 10;
+    /* невидимый — только курсор меняется */
+}
+
+.column.collapsed .column-resize-handle {
+    display: none;
+}
+
 .column:active {
     cursor: grabbing;
 }
