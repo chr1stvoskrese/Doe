@@ -2820,37 +2820,23 @@ function startColumnResize(colDiv, column, e) {
 
     colDiv.style.transition = 'none';
 
-    let rafId = null;
-    let latestX = startX;
-
     // Архитектурно чистая блокировка: имитируем "локальное редактирование".
-    // Вебсокет будет игнорировать внешние изменения БД, пока интервал обновляет таймер.
-    // Это никак не влияет на Drag&Drop или локальные таймеры карточек.
-    window._lastLocalEdit = Date.now();
-    const syncLockInterval = setInterval(() => {
+        // Вебсокет будет игнорировать внешние изменения БД, пока интервал обновляет таймер.
+        // Это никак не влияет на Drag&Drop или локальные таймеры карточек.
         window._lastLocalEdit = Date.now();
-    }, 1000);
+        const syncLockInterval = setInterval(() => {
+            window._lastLocalEdit = Date.now();
+        }, 1000);
 
-    const onMove = (e) => {
-        latestX = e.clientX;
-        
-        if (!rafId) {
-            rafId = requestAnimationFrame(() => {
-                const dx = latestX - startX;
-                const newWidth = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, startWidth + dx));
-                colDiv.style.width = newWidth + 'px';
-                rafId = null;
-            });
-        }
-    };
+        const onMove = (e) => {
+            const dx = e.clientX - startX;
+            const newWidth = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, startWidth + dx));
+            colDiv.style.width = newWidth + 'px';
+        };
 
-    const onUp = async (e) => {
-        if (rafId) {
-            cancelAnimationFrame(rafId);
-            rafId = null;
-        }
-        
-        clearInterval(syncLockInterval); // Снимаем блокировку фоновой синхронизации
+        const onUp = async (e) => {
+            clearInterval(syncLockInterval); // Снимаем блокировку фоновой синхронизации
+    
         
         document.removeEventListener('pointermove', onMove);
         document.removeEventListener('pointerup', onUp);
