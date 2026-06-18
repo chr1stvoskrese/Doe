@@ -179,6 +179,7 @@ async def update_task(db: AsyncSession, task_id: int, task_in: TaskUpdate) -> Ta
             task.parents = parents_res.scalars().all()
             for p in task.parents:
                 p.updated_at = datetime.utcnow()
+                db.add(p) # Принудительно помечаем родительский объект как "грязный" (dirty) для сессии
 
     # 🚀 Срезаем таймзону, чтобы SQLite не падал с 500 ошибкой
     if "due_date" in update_data and update_data["due_date"] is not None:
@@ -647,11 +648,11 @@ async def set_task_time(db: AsyncSession, task_id: int, total_seconds: int) -> T
     
     _calculate_task_time(task)
 
-    # 🔁 Автоматизация: сортировка колонки при очистке времени
+    # 🔁 Автоматизация: сортировка колонки при изменении времени
     try:
         from src.services.automation_service import trigger_sort_for_column
         await trigger_sort_for_column(db, task.column_id)
     except Exception as e:
-        print(f"[Automation] Hook error in clear_task_timer: {e}")
+        print(f"[Automation] Hook error in set_task_time: {e}")
 
     return task

@@ -57,9 +57,13 @@ async def run_automation(auto_id: int, db: AsyncSession = Depends(get_session)):
         raise HTTPException(status_code=400, detail=str(e))
     if result is None:
         raise HTTPException(status_code=404, detail="Automation not found or failed")
-    # Полиморфный ответ: task_id для recurring_card, cleared для остальных
+        
     auto = await automation_service.get_automation(db, auto_id)
     if auto and auto.type == 'recurring_card':
-        return {"task_id": result}
-    else:
-        return {"task_id": result, "cleared": result}
+        return {"type": auto.type, "task_id": result}
+    elif auto and auto.type == 'sort_column':
+        return {"type": auto.type, "affected": result}
+    elif auto and auto.type == 'clear_column':
+        return {"type": auto.type, "deleted": result}
+        
+    return {"type": "unknown", "result": result}

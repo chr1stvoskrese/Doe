@@ -2014,7 +2014,10 @@ async function onAddCardInline(plusBtn) {
                 }
             };
             realCard.addEventListener('transitionend', cleanup);
-            setTimeout(() => realCard.classList.remove('card-birth', 'born'), 500);
+            setTimeout(() => {
+                realCard.classList.remove('card-birth', 'born');
+                if (window.syncColumnDOM) window.syncColumnDOM(columnId);
+            }, 500);
 
         } catch (err) {
             console.error('Task creation inline failed:', err);
@@ -2193,7 +2196,10 @@ async function onAddTask(columnId) {
                 }
             };
             realCard.addEventListener('transitionend', cleanup);
-            setTimeout(() => realCard.classList.remove('card-birth', 'born'), 500);
+            setTimeout(() => {
+                realCard.classList.remove('card-birth', 'born');
+                if (window.syncColumnDOM) window.syncColumnDOM(columnId);
+            }, 500);
 
             if (reopen) {
                 onAddTask(columnId);
@@ -8682,7 +8688,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 uiFontInput.value = '';
             }
             renderFontList(uiFontInput.value.trim());
+            
+            uiFontDropdown.style.visibility = 'hidden';
             uiFontDropdown.style.display = 'block';
+            uiFontDropdown.classList.add('show');
+            const menuHeight = uiFontDropdown.offsetHeight;
+            uiFontDropdown.classList.remove('show');
+            uiFontDropdown.style.visibility = '';
+            
+            const rect = uiFontInput.getBoundingClientRect();
+            if (rect.bottom + menuHeight + 10 > window.innerHeight) {
+                uiFontDropdown.style.top = 'auto';
+                uiFontDropdown.style.bottom = '100%';
+                uiFontDropdown.style.transformOrigin = 'bottom center';
+            } else {
+                uiFontDropdown.style.bottom = 'auto';
+                uiFontDropdown.style.top = '40px';
+                uiFontDropdown.style.transformOrigin = 'top center';
+            }
+            
             setTimeout(() => uiFontDropdown.classList.add('show'), 10);
         });
 
@@ -8742,6 +8766,25 @@ document.addEventListener('DOMContentLoaded', () => {
             const isShowing = menu.classList.contains('show');
             closeAllDropdowns();
             if (!isShowing) {
+                menu.style.visibility = 'hidden';
+                menu.style.display = 'block';
+                menu.classList.add('show');
+                const menuHeight = menu.offsetHeight;
+                menu.classList.remove('show');
+                menu.style.visibility = '';
+                
+                const rect = trigger.getBoundingClientRect();
+                if (rect.bottom + menuHeight + 10 > window.innerHeight) {
+                    menu.style.top = 'auto';
+                    menu.style.bottom = '100%';
+                    menu.style.transformOrigin = 'bottom center';
+                } else {
+                    menu.style.bottom = 'auto';
+                    menu.style.top = '44px';
+                    menu.style.transformOrigin = 'top center';
+                }
+                
+                void menu.offsetWidth;
                 menu.classList.add('show');
             }
         });
@@ -8846,6 +8889,24 @@ document.addEventListener('DOMContentLoaded', () => {
     
     hInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleTimeChange(); });
     mInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleTimeChange(); });
+
+    const autoHInput = document.getElementById('auto-hour');
+    const autoMInput = document.getElementById('auto-minute');
+
+    if (autoHInput && autoMInput) {
+        const handleAutoTimeChange = () => {
+            let h = parseInt(autoHInput.value) || 0;
+            let m = parseInt(autoMInput.value) || 0;
+            if (h < 0) h = 0; if (h > 23) h = 23;
+            if (m < 0) m = 0; if (m > 59) m = 59;
+            autoHInput.value = h.toString().padStart(2, '0');
+            autoMInput.value = m.toString().padStart(2, '0');
+        };
+        autoHInput.addEventListener('blur', handleAutoTimeChange);
+        autoMInput.addEventListener('blur', handleAutoTimeChange);
+        autoHInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleAutoTimeChange(); });
+        autoMInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleAutoTimeChange(); });
+    }
 });
 
 let aiState = {
@@ -11161,7 +11222,36 @@ function syncCustomSelect(selectEl) {
             e.stopPropagation();
             const isShowing = menu.classList.contains('show');
             closeAllDropdowns();
-            if (!isShowing) menu.classList.add('show');
+            if (!isShowing) {
+                // Предварительный рендер для замера высоты
+                menu.style.visibility = 'hidden';
+                menu.style.display = 'block';
+                menu.classList.add('show');
+                const menuHeight = menu.offsetHeight;
+                menu.classList.remove('show');
+                menu.style.visibility = '';
+                menu.style.display = '';
+
+                const rect = trigger.getBoundingClientRect();
+                
+                // Если не влезает вниз — открываем наверх
+                if (rect.bottom + menuHeight + 10 > window.innerHeight) {
+                    menu.style.top = 'auto';
+                    menu.style.bottom = '100%';
+                    menu.style.marginTop = '0';
+                    menu.style.marginBottom = '4px';
+                    menu.style.transformOrigin = 'bottom center';
+                } else {
+                    menu.style.bottom = 'auto';
+                    menu.style.top = '100%';
+                    menu.style.marginTop = '4px';
+                    menu.style.marginBottom = '0';
+                    menu.style.transformOrigin = 'top center';
+                }
+                
+                void menu.offsetWidth; // Принудительный reflow для анимации
+                menu.classList.add('show');
+            }
         };
 
         wrapper.appendChild(trigger);
@@ -11232,7 +11322,19 @@ function showAutomationForm(autoData = null) {
         const cfg = autoData.config || {};
 
         // Общие поля
-        document.getElementById('auto-column').value = cfg.column_id || '';
+        const colSelect = document.getElementById('auto-column');
+        colSelect.value = cfg.column_id || '';
+        
+        // Если колонка была удалена, select.value останется пустым (или неверным).
+        // Добавляем плейсхолдер с предупреждением, чтобы не было "тихой ошибки".
+        if (cfg.column_id && colSelect.value != cfg.column_id) {
+            const opt = document.createElement('option');
+            opt.value = cfg.column_id;
+            opt.textContent = `⚠️ Удаленная колонка (ID: ${cfg.column_id})`;
+            opt.style.color = '#D35446';
+            colSelect.appendChild(opt);
+            colSelect.value = cfg.column_id;
+        }
 
         // recurring_card: шаблоны
         document.getElementById('auto-title-template').value = cfg.title_template || '';
@@ -11242,13 +11344,17 @@ function showAutomationForm(autoData = null) {
         document.getElementById('auto-sort-by').value = cfg.sort_by || 'position';
         document.getElementById('auto-sort-order').value = cfg.sort_order || 'asc';
 
-        // clear_column: макс. возраст
-        document.getElementById('auto-max-age').value = cfg.max_age_minutes || 1440;
+        // clear_column: возраст и мгновенное удаление
+        const isImmediate = cfg.max_age_minutes === 0;
+        document.getElementById('auto-clear-immediate').checked = isImmediate;
+        document.getElementById('auto-max-age').value = isImmediate ? 1440 : (cfg.max_age_minutes !== undefined ? cfg.max_age_minutes : 1440);
 
         // Расписание
         const sched = cfg.schedule || {};
         document.getElementById('auto-schedule-type').value = sched.type || 'daily';
-        document.getElementById('auto-time').value = sched.time || '09:00';
+        const timeParts = (sched.time || '09:00').split(':');
+        document.getElementById('auto-hour').value = timeParts[0] || '09';
+        document.getElementById('auto-minute').value = timeParts[1] || '00';
         _selectedWeekdays = sched.days || [];
         document.getElementById('auto-day-of-month').value = sched.day_of_month || 1;
         document.getElementById('btn-save-automation').textContent = t('modals.btnSave');
@@ -11263,7 +11369,8 @@ function showAutomationForm(autoData = null) {
         document.getElementById('auto-sort-order').value = 'asc';
         document.getElementById('auto-max-age').value = 1440;
         document.getElementById('auto-schedule-type').value = 'daily';
-        document.getElementById('auto-time').value = '09:00';
+        document.getElementById('auto-hour').value = '09';
+        document.getElementById('auto-minute').value = '00';
         _selectedWeekdays = [0, 1, 2, 3, 4]; // ПН–ПТ по умолчанию
         document.getElementById('auto-day-of-month').value = 1;
         document.getElementById('btn-save-automation').textContent = t('modals.btnCreate');
@@ -11309,12 +11416,20 @@ function updateAutomationTypeUI() {
             break;
         case 'clear_column':
             if (clearSection) clearSection.style.display = 'flex';
-            if (scheduleSection) scheduleSection.style.display = 'flex';
+            const isImmediate = document.getElementById('auto-clear-immediate').checked;
+            if (isImmediate) {
+                if (scheduleSection) scheduleSection.style.display = 'none';
+                document.getElementById('auto-clear-age-wrapper').style.display = 'none';
+            } else {
+                if (scheduleSection) scheduleSection.style.display = 'flex';
+                document.getElementById('auto-clear-age-wrapper').style.display = 'flex';
+            }
             break;
     }
 }
 
-// Слушатель изменения типа
+// Слушатели изменения UI
+document.getElementById('auto-clear-immediate')?.addEventListener('change', updateAutomationTypeUI);
 document.getElementById('auto-type')?.addEventListener('change', () => {
     updateAutomationTypeUI();
     updateScheduleUI();
@@ -11393,7 +11508,9 @@ document.getElementById('btn-save-automation')?.addEventListener('click', async 
                 return;
             }
             const schedType = document.getElementById('auto-schedule-type').value;
-            const schedTime = document.getElementById('auto-time').value;
+            const autoH = (document.getElementById('auto-hour').value || '09').padStart(2, '0');
+            const autoM = (document.getElementById('auto-minute').value || '00').padStart(2, '0');
+            const schedTime = `${autoH}:${autoM}`;
             const dayOfMonth = parseInt(document.getElementById('auto-day-of-month').value) || 1;
             if (schedType === 'weekly' && _selectedWeekdays.length === 0) {
                 showToast(t('alerts.error'), t('modals.autoNoDaysError'), true);
@@ -11415,21 +11532,29 @@ document.getElementById('btn-save-automation')?.addEventListener('click', async 
             break;
         }
         case 'clear_column': {
-            const maxAge = parseInt(document.getElementById('auto-max-age').value) || 1440;
-            const schedType = document.getElementById('auto-schedule-type').value;
-            const schedTime = document.getElementById('auto-time').value;
-            const dayOfMonth = parseInt(document.getElementById('auto-day-of-month').value) || 1;
-            if (schedType === 'weekly' && _selectedWeekdays.length === 0) {
-                showToast(t('alerts.error'), t('modals.autoNoDaysError'), true);
-                return;
+            const isImmediate = document.getElementById('auto-clear-immediate').checked;
+            if (isImmediate) {
+                config.max_age_minutes = 0;
+            } else {
+                const rawAge = parseInt(document.getElementById('auto-max-age').value);
+                const maxAge = isNaN(rawAge) ? 1440 : Math.max(1, rawAge);
+                const schedType = document.getElementById('auto-schedule-type').value;
+                const autoH = (document.getElementById('auto-hour').value || '09').padStart(2, '0');
+                const autoM = (document.getElementById('auto-minute').value || '00').padStart(2, '0');
+                const schedTime = `${autoH}:${autoM}`;
+                const dayOfMonth = parseInt(document.getElementById('auto-day-of-month').value) || 1;
+                if (schedType === 'weekly' && _selectedWeekdays.length === 0) {
+                    showToast(t('alerts.error'), t('modals.autoNoDaysError'), true);
+                    return;
+                }
+                config.max_age_minutes = maxAge;
+                config.schedule = {
+                    type: schedType,
+                    time: schedTime,
+                    days: _selectedWeekdays.sort((a, b) => a - b),
+                    day_of_month: dayOfMonth,
+                };
             }
-            config.max_age_minutes = maxAge;
-            config.schedule = {
-                type: schedType,
-                time: schedTime,
-                days: _selectedWeekdays.sort((a, b) => a - b),
-                day_of_month: dayOfMonth,
-            };
             break;
         }
     }
@@ -11542,17 +11667,22 @@ async function renderAutomationsList() {
                 case 'clear_column': {
                     typeIcon = '🧹';
                     typeLabel = t('modals.autoTypeClear') || 'Очистка колонки';
-                    const maxAge = cfg.max_age_minutes || 1440;
-                    if (maxAge < 60) {
-                        desc = `${t('modals.autoClearOlder')}: ${maxAge} ${t('timeUnitsFull.m')}`;
-                    } else if (maxAge < 1440) {
-                        desc = `${t('modals.autoClearOlder')}: ${Math.round(maxAge / 60)} ${t('timeUnitsFull.h')}`;
+                    const maxAge = cfg.max_age_minutes !== undefined ? cfg.max_age_minutes : 1440;
+                    
+                    if (maxAge === 0) {
+                        desc = 'Мгновенное удаление при попадании в колонку';
                     } else {
-                        desc = `${t('modals.autoClearOlder')}: ${Math.round(maxAge / 1440)} ${t('timeUnitsFull.d')}`;
-                    }
-                    const sched = cfg.schedule || {};
-                    if (sched.type) {
-                        desc += ` · ${t('modals.autoCheck')}: ${sched.type === 'daily' ? t('modals.autoDaily') : sched.type}`;
+                        if (maxAge < 60) {
+                            desc = `${t('modals.autoClearOlder')}: ${maxAge} ${t('timeUnitsFull.m')}`;
+                        } else if (maxAge < 1440) {
+                            desc = `${t('modals.autoClearOlder')}: ${Math.round(maxAge / 60)} ${t('timeUnitsFull.h')}`;
+                        } else {
+                            desc = `${t('modals.autoClearOlder')}: ${Math.round(maxAge / 1440)} ${t('timeUnitsFull.d')}`;
+                        }
+                        const sched = cfg.schedule || {};
+                        if (sched.type) {
+                            desc += ` · ${t('modals.autoCheck')}: ${sched.type === 'daily' ? t('modals.autoDaily') : sched.type}`;
+                        }
                     }
                     break;
                 }
@@ -11565,7 +11695,7 @@ async function renderAutomationsList() {
 
             const nextRun = auto.next_run_at
                 ? new Date(auto.next_run_at + 'Z').toLocaleString(currentLang === 'ru' ? 'ru-RU' : 'en-US', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
-                : (auto.type === 'sort_column' ? t('modals.autoOnEvent') || 'По событию' : '—');
+                : ((auto.type === 'sort_column' || (auto.type === 'clear_column' && cfg.max_age_minutes === 0)) ? (t('modals.autoOnEvent') || 'По событию') : '—');
 
             const row = document.createElement('div');
             row.className = 'setting-row';
@@ -11629,13 +11759,19 @@ window.runAutomationNow = async (id) => {
         const res = await fetch(`${AUTO_API}/${id}/run`, { method: 'POST' });
         if (res.ok) {
             const data = await res.json();
-            if (data.cleared !== undefined) {
-                // sort_column / clear_column
-                showToast(t('modals.autoRunNow'), t('modals.autoRunDoneClear', data.cleared));
-            } else {
+            if (data.type === 'clear_column') {
+                showToast(t('modals.autoRunNow'), t('modals.autoRunDoneClear', data.deleted));
+            } else if (data.type === 'sort_column') {
+                const msg = currentLang === 'ru' ? `Отсортировано карточек: ${data.affected}` : `Sorted cards: ${data.affected}`;
+                showToast(t('modals.autoRunNow'), msg);
+            } else if (data.type === 'recurring_card') {
                 showToast(t('modals.autoRunNow'), t('modals.autoRunDone', data.task_id));
+            } else {
+                showToast(t('modals.autoRunNow'), 'Выполнено');
             }
             await renderAutomationsList();
+
+
             await refreshBoard(); // СИНХРОНИЗАЦИЯ: заново стягиваем стейт доски с бэкенда
         } else {
             showToast(t('alerts.error'), t('modals.autoRunError'), true);

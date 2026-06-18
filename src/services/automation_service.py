@@ -112,23 +112,24 @@ async def run_automation_now(db: AsyncSession, auto_id: int) -> Optional[int]:
 async def trigger_sort_for_column(db: AsyncSession, column_id: int) -> None:
     """
     Вызывается извне (после create_task / move_task) для запуска
-    всех активных sort_column-автоматизаций на этой колонке.
+    событийных автоматизаций (sort_column и мгновенный clear_column).
     """
     result = await db.execute(
         select(AutomationModel).where(
             AutomationModel.enabled == True,
-            AutomationModel.type == 'sort_column',
+            AutomationModel.type.in_(['sort_column', 'clear_column']),
+            func.json_extract(AutomationModel.config, '$.column_id') == column_id
         )
     )
     automations = result.scalars().all()
     for auto in automations:
-        cfg = auto.config or {}
-        if cfg.get('column_id') != column_id:
-            continue
         try:
-            await _execute_sort_column(db, auto)
+            if auto.type == 'sort_column':
+                await _execute_sort_column(db, auto)
+            elif auto.type == 'clear_column' and auto.config.get('max_age_minutes') == 0:
+                await _execute_clear_column(db, auto)
         except Exception as e:
-            print(f"[Automation] Sort failed for '{auto.name}': {e}")
+            print(f"[Automation] Hook failed for '{auto.name}': {e}")
 
 
 # ── Выполнение (диспетчер) ──
@@ -159,6 +160,12 @@ async def _execute_recurring_card(db: AsyncSession, auto: AutomationModel) -> Op
     column_id = cfg.get('column_id')
 
     if not column_id:
+        return None
+
+    from src.db.models import ColumnModel
+    col_check = await db.execute(select(ColumnModel.id).where(ColumnModel.id == column_id))
+    if not col_check.scalar_one_or_none():
+        print(f"[Automation] Skipped creation for '{auto.name}': Column #{column_id} not found.")
         return None
 
     task_in = TaskCreate(title=title, column_id=column_id)
@@ -230,7 +237,10 @@ async def _execute_sort_column(db: AsyncSession, auto: AutomationModel) -> Optio
     # тот порядок (position), который пользователь задал вручную через Drag & Drop.
     result = await db.execute(
         select(TaskModel)
-        .where(TaskModel.column_id == column_id)
+        .where(
+            TaskModel.column_id == column_id,
+            ~TaskModel.parents.any()
+        )
         .order_by(primary_order, TaskModel.position.asc())
     )
     tasks = result.scalars().all()
@@ -279,6 +289,7 @@ async def _execute_clear_column(db: AsyncSession, auto: AutomationModel) -> Opti
         select(TaskModel.id).where(
             TaskModel.column_id == column_id,
             TaskModel.created_at <= cutoff,
+            ~TaskModel.parents.any()
         )
     )
     old_ids = [row[0] for row in result.all()]
@@ -293,17 +304,24 @@ async def _execute_clear_column(db: AsyncSession, auto: AutomationModel) -> Opti
     # Удаляем через сервис (чтобы сработали каскады, напоминания и т.д.)
     from src.services.task_service import delete_task
     deleted_count = 0
+    failed_count = 0
     for tid in old_ids:
         try:
             await delete_task(db, tid)
             deleted_count += 1
         except Exception as e:
+            failed_count += 1
             print(f"[Automation] Failed to delete task #{tid} during clear: {e}")
 
-    # Продвигаем таймер
+    # Продвигаем таймер только если ВСЕ задачи были успешно удалены.
+    # Если были ошибки — мы обновляем last_run_at, но НЕ пересчитываем next_run_at, 
+    # чтобы планировщик повторил попытку на следующем тике (через 30 секунд).
     auto.last_run_at = datetime.utcnow()
-    if 'schedule' in cfg:
+    if failed_count == 0 and 'schedule' in cfg:
         auto.next_run_at = _compute_next_run_from_config(auto.type, cfg, from_time=auto.last_run_at)
+    elif failed_count > 0:
+        print(f"[Automation] Clear column suspended. {failed_count} tasks failed. Will retry.")
+        
     await db.commit()
 
     if deleted_count > 0:
@@ -326,6 +344,9 @@ def _compute_next_run_from_config(auto_type: str, cfg: dict, from_time: datetime
     """Вычисляет next_run_at в зависимости от типа автоматизации."""
     if auto_type == 'sort_column':
         # sort_column срабатывает по событиям, не по расписанию
+        return None
+    if auto_type == 'clear_column' and cfg.get('max_age_minutes') == 0:
+        # Мгновенная очистка тоже срабатывает только по событиям
         return None
     if 'schedule' in cfg:
         from src.schemas.automation import ScheduleConfig
