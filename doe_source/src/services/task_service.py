@@ -392,15 +392,6 @@ async def move_task(db: AsyncSession, task_id: int, target_column_id: int) -> Ta
     
     _calculate_task_time(task)
 
-    # 🔁 Автоматизация: сортировка колонок при перемещении
-    try:
-        from src.services.automation_service import trigger_sort_for_column
-        await trigger_sort_for_column(db, target_column_id)
-        if source_column.id != target_column_id:
-            await trigger_sort_for_column(db, source_column.id)
-    except Exception as e:
-        print(f"[Automation] Hook error in move_task: {e}")
-
     return task
 
 async def reorder_tasks(db: AsyncSession, ordered_ids: list[int]) -> None:
@@ -458,14 +449,6 @@ async def clear_task_timer(db: AsyncSession, task_id: int) -> TaskModel:
     await db.refresh(task)
     
     _calculate_task_time(task)
-
-    # 🔁 Автоматизация: сортировка колонки при изменении времени
-    try:
-        from src.services.automation_service import trigger_sort_for_column
-        await trigger_sort_for_column(db, task.column_id)
-    except Exception as e:
-        print(f"[Automation] Hook error in set_task_time: {e}")
-
     return task
 
 async def get_task_with_details(db: AsyncSession, task_id: int) -> TaskModel:
@@ -646,12 +629,4 @@ async def set_task_time(db: AsyncSession, task_id: int, total_seconds: int) -> T
     await db.refresh(task)
     
     _calculate_task_time(task)
-
-    # 🔁 Автоматизация: сортировка колонки при очистке времени
-    try:
-        from src.services.automation_service import trigger_sort_for_column
-        await trigger_sort_for_column(db, task.column_id)
-    except Exception as e:
-        print(f"[Automation] Hook error in clear_task_timer: {e}")
-
     return task

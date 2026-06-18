@@ -19,7 +19,7 @@ const translations = {
     ru: {
         searchPlaceholder: 'Поиск...',
         loading: 'Загрузка...',
-        settings: 'Настройки', theme: 'Тема', language: 'Язык', about: 'О приложении', workspace: 'Doe Board', cancel: 'Отмена', close: 'Закрыть',
+        settings: 'Настройки', theme: 'Тема', language: 'Язык', about: 'О приложении', workspace: 'Doe Board', cancel: 'Отмена',
         newColumn: '+ Создать колонку', newTask: '+ Новая карточка', subtasks: 'Чек-лист',
         menu: { 
             mode: 'Режим колонки', collapse: 'Свернуть колонку', rename: 'Переименовать', 
@@ -63,40 +63,7 @@ const translations = {
             attWarning: 'При использовании внешней папки файлы не будут копироваться на флешку автоматически при переносе хранилища.',
             exportTitle: 'Экспорт карточки', exportIncludeAtt: 'Экспортировать с вложениями', exportIncludeCode: 'Экспортировать кодовую базу проекта', btnExport: 'Экспортировать',
             detachTitle: 'Отвязать карточку?', detachDesc: 'Эта карточка привязана к нескольким карточкам.',
-            detachCurrent: 'Только от текущей карточки', detachAll: 'От всех карточек (сделать независимой)',
-            // Автоматизации
-            autoTitle: 'Автоматизации', autoEmpty: 'Нет автоматизаций. Нажмите «+» чтобы создать.',
-            autoAddBtn: '+ Новая автоматизация',
-            autoType: 'Тип автоматизации',
-            autoTypeRecurring: '🔄 Повторяющаяся карточка',
-            autoTypeSort: '↕️ Сортировка колонки',
-            autoTypeClear: '🧹 Очистка колонки',
-            autoNamePlaceholder: 'Название автоматизации...', autoColumn: 'Колонка',
-            autoTitlePlaceholder: 'Шаблон заголовка, например: Обзор {date}',
-            autoDescPlaceholder: 'Шаблон описания (опционально)...',
-            autoVarsHint: 'Переменные: {date}, {date:формат}, {time}, {weekday}, {week_number}, {month_name}',
-            autoSortBy: 'Сортировать по:', autoSortPosition: 'Позиции', autoSortTitle: 'Названию',
-            autoSortCreated: 'Дате создания', autoSortPriority: 'Приоритету', autoSortDue: 'Сроку',
-            autoSortOrder: 'Порядок:', autoSortAsc: 'По возрастанию', autoSortDesc: 'По убыванию',
-            autoSortHint: 'Срабатывает автоматически при создании или перемещении карточки в эту колонку.',
-            autoMaxAge: 'Удалять карточки старше:', autoMaxAgeUnit: 'мин.',
-            autoClearHint: 'Карточки старше указанного времени будут удалены при следующей проверке по расписанию.',
-            autoClearOlder: 'Старше', autoCheck: 'Проверка',
-            autoSchedule: 'Расписание', autoHourly: 'Каждый час', autoDaily: 'Ежедневно', autoWeekdays: 'По будням',
-            autoWeekly: 'Еженедельно', autoMonthly: 'Ежемесячно', autoTime: 'Время:',
-            autoDayOfMonth: 'День месяца:', autoNextRun: 'След. запуск',
-            autoOnEvent: 'По событию',
-            autoRunNow: 'Запустить сейчас', autoRunDone: (id) => `Создана карточка #${id}`,
-            autoRunDoneClear: (n) => `Удалено карточек: ${n}`,
-            autoEdit: 'Редактировать', autoDelete: 'Удалить',
-            autoDeleteTitle: 'Удалить автоматизацию?', autoDeleteConfirm: 'Автоматизация будет удалена безвозвратно.',
-            autoValidationError: 'Заполните название и выберите колонку',
-            autoNoDaysError: 'Выберите хотя бы один день недели',
-            autoSaveError: 'Ошибка сохранения', autoNetworkError: 'Сетевая ошибка',
-            autoRunError: 'Не удалось запустить',
-            autoOrdinal: (n) => `${n}-е`,
-            btnSave: 'Сохранить', btnCreate: 'Создать',
-            extAutomations: 'Автоматизации',
+            detachCurrent: 'Только от текущей карточки', detachAll: 'От всех карточек (сделать независимой)'
         },
         copyLink: 'Копировать ссылку',
         detachSubtask: 'Отвязать от чек-листа (сделать независимой)',
@@ -221,7 +188,7 @@ const translations = {
     en: {
         searchPlaceholder: 'Search...',
         loading: 'Loading...',
-        settings: 'Settings', theme: 'Theme', language: 'Language', about: 'About', workspace: 'Doe Board', cancel: 'Cancel', close: 'Close',
+        settings: 'Settings', theme: 'Theme', language: 'Language', about: 'About', workspace: 'Doe Board', cancel: 'Cancel',
         newColumn: '+ Create column', newTask: '+ New card', subtasks: 'Checklist',
         menu: { 
             mode: 'Column mode', collapse: 'Collapse column', rename: 'Rename', 
@@ -260,40 +227,7 @@ const translations = {
             attWarning: 'When using an external folder, files will not copy automatically if you move the vault to a USB drive.',
             exportTitle: 'Export Card', exportIncludeAtt: 'Export with attachments', exportIncludeCode: 'Export project codebase', btnExport: 'Export',
             detachTitle: 'Detach card?', detachDesc: 'This card is attached to multiple cards.',
-            detachCurrent: 'Only from current card', detachAll: 'From all cards (make independent)',
-            // Automations
-            autoTitle: 'Automations', autoEmpty: 'No automations. Press «+» to create.',
-            autoAddBtn: '+ New automation',
-            autoType: 'Automation type',
-            autoTypeRecurring: '🔄 Recurring card',
-            autoTypeSort: '↕️ Column sort',
-            autoTypeClear: '🧹 Column cleanup',
-            autoNamePlaceholder: 'Automation name...', autoColumn: 'Column',
-            autoTitlePlaceholder: 'Title template, e.g.: Review {date}',
-            autoDescPlaceholder: 'Description template (optional)...',
-            autoVarsHint: 'Variables: {date}, {date:format}, {time}, {weekday}, {week_number}, {month_name}',
-            autoSortBy: 'Sort by:', autoSortPosition: 'Position', autoSortTitle: 'Title',
-            autoSortCreated: 'Creation date', autoSortPriority: 'Priority', autoSortDue: 'Due date',
-            autoSortOrder: 'Order:', autoSortAsc: 'Ascending', autoSortDesc: 'Descending',
-            autoSortHint: 'Triggers automatically when a card is created or moved into this column.',
-            autoMaxAge: 'Delete cards older than:', autoMaxAgeUnit: 'min',
-            autoClearHint: 'Cards older than the specified time will be deleted on the next scheduled check.',
-            autoClearOlder: 'Older than', autoCheck: 'Check',
-            autoSchedule: 'Schedule', autoHourly: 'Hourly', autoDaily: 'Daily', autoWeekdays: 'Weekdays',
-            autoWeekly: 'Weekly', autoMonthly: 'Monthly', autoTime: 'Time:',
-            autoDayOfMonth: 'Day of month:', autoNextRun: 'Next run',
-            autoOnEvent: 'On event',
-            autoRunNow: 'Run now', autoRunDone: (id) => `Created card #${id}`,
-            autoRunDoneClear: (n) => `Deleted cards: ${n}`,
-            autoEdit: 'Edit', autoDelete: 'Delete',
-            autoDeleteTitle: 'Delete automation?', autoDeleteConfirm: 'The automation will be permanently deleted.',
-            autoValidationError: 'Fill in name and select a column',
-            autoNoDaysError: 'Select at least one day of the week',
-            autoSaveError: 'Save error', autoNetworkError: 'Network error',
-            autoRunError: 'Failed to run',
-            autoOrdinal: (n) => { const v = n % 100; if (v >= 11 && v <= 13) return 'th'; return ['th','st','nd','rd'][n % 10] || 'th'; },
-            btnSave: 'Save', btnCreate: 'Create',
-            extAutomations: 'Automations',
+            detachCurrent: 'Only from current card', detachAll: 'From all cards (make independent)'
         },
         columnModes: { default: 'Standard', track_time: 'Track time', completion: 'Completed' },
         defaultWorkspace: 'Main Board',
@@ -517,7 +451,7 @@ window.resetCustomFont = async () => {
 };
 
 window.applyExtensionsUI = (exts) => {
-    if (!exts) exts = { search: true, calendar: true, reminders: true, graph: true, tabs: true, deadlines: true, export: true, priority: true, ai: true, automations: true };
+    if (!exts) exts = { search: true, calendar: true, reminders: true, graph: true, tabs: true, deadlines: true, export: true, priority: true, ai: true };
     
     // Скрываем или показываем UI дедлайнов глобально через CSS-класс
     document.body.classList.toggle('ext-deadlines-hidden', !exts.deadlines);
@@ -527,7 +461,6 @@ window.applyExtensionsUI = (exts) => {
     document.body.classList.toggle('ext-priority-hidden', !exts.priority);
     // Скрываем AI
     document.body.classList.toggle('ext-ai-hidden', !exts.ai);
-    document.body.classList.toggle('ext-automations-hidden', !exts.automations);
     
     const searchWrapper = document.getElementById('global-search-wrapper');
     const calendarBtn = document.getElementById('calendar-trigger');
@@ -540,9 +473,6 @@ window.applyExtensionsUI = (exts) => {
     if (remindersBtn) remindersBtn.style.display = exts.reminders ? '' : 'none';
     if (graphBtn) graphBtn.style.display = exts.graph ? '' : 'none';
     if (tabsWrapper) tabsWrapper.style.display = exts.tabs ? '' : 'none';
-
-    const automationsBtn = document.getElementById('automations-trigger');
-    if (automationsBtn) automationsBtn.style.display = exts.automations ? '' : 'none';
 
     // Скрываем пункт в глобальном контекстном меню
     const notifyMenuItem = document.querySelector('.menu-item[data-action="notify-card"]');
@@ -565,7 +495,6 @@ window.applyExtensionsUI = (exts) => {
     const tExport = document.getElementById('ext-toggle-export');
     const tPriority = document.getElementById('ext-toggle-priority');
     const tAi = document.getElementById('ext-toggle-ai');
-    const tAutomations = document.getElementById('ext-toggle-automations');
 
     if (tSearch) tSearch.checked = exts.search;
     if (tCalendar) tCalendar.checked = exts.calendar;
@@ -576,7 +505,6 @@ window.applyExtensionsUI = (exts) => {
     if (tExport) tExport.checked = exts.export;
     if (tPriority) tPriority.checked = exts.priority;
     if (tAi) tAi.checked = exts.ai;
-    if (tAutomations) tAutomations.checked = exts.automations;
 };
 
 window.toggleExtension = async (key, value) => {
@@ -1184,19 +1112,15 @@ async function handleClearDueDate(taskId) {
     try {
         await updateTask(taskId, { due_date: null });
         
-        let updatedColId = null;
         for (let col of state.columns) {
             let t = col.tasks.find(task => task.id == taskId);
             if (t) {
                 t.due_date = null;
-                updatedColId = col.id;
                 const cardEl = document.querySelector(`.card[data-card-id="${taskId}"]`);
                 if (cardEl) updateCardAppearance(cardEl, t, col.mode);
                 break;
             }
         }
-        
-        if (updatedColId) await syncColumnDOM(updatedColId); // Триггер анимации
         
         const taskModal = document.getElementById('task-modal');
         if (taskModal.classList.contains('show') && parseInt(taskModal.dataset.taskId) === taskId) {
@@ -1401,118 +1325,6 @@ function renderBoard() {
         if (window.updateBoardScrollbar) window.updateBoardScrollbar();
     });
 }
-
-window.syncColumnDOM = async function(columnId) {
-    try {
-        const freshCols = await fetchColumns(state.activeWorkspaceId);
-        state.columns = freshCols.map(col => ({ ...col, collapsed: col.collapsed || false }));
-        
-        const colEl = document.querySelector(`.column[data-column-id="${columnId}"]`);
-        if (!colEl) {
-            renderBoard();
-            return;
-        }
-
-        const colState = state.columns.find(c => c.id === columnId);
-        if (!colState) return;
-
-        const cardList = colEl.querySelector('.card-list');
-        if (!cardList) return;
-
-        // Сохраняем текущие DOM-ноды для FLIP-анимации
-        const oldCards = Array.from(cardList.querySelectorAll('.card'));
-        const cardRects = new Map();
-        oldCards.forEach(c => cardRects.set(c.dataset.cardId, c.getBoundingClientRect()));
-
-        // Очищаем и перерисовываем
-        cardList.innerHTML = '';
-        const sortedTasks = [...colState.tasks].sort((a, b) => a.position - b.position);
-        sortedTasks.forEach(task => {
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = generateCardHtml(task, colState.mode).trim();
-            const newCard = tempDiv.firstChild;
-            cardList.appendChild(newCard);
-
-            // FLIP Анимация перестроения
-            const oldRect = cardRects.get(String(task.id));
-            if (oldRect) {
-                requestAnimationFrame(() => {
-                    const newRect = newCard.getBoundingClientRect();
-                    const deltaY = oldRect.top - newRect.top;
-                    if (deltaY !== 0) {
-                        newCard.style.transform = `translateY(${deltaY}px)`;
-                        newCard.style.transition = 'none';
-                        requestAnimationFrame(() => {
-                            newCard.style.transform = '';
-                            newCard.style.transition = 'transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1)';
-                        });
-                    }
-                });
-            }
-        });
-
-        updateColumnCount(colEl, sortedTasks.length);
-    } catch (e) {
-        console.error("Ошибка синхронизации колонки:", e);
-        renderBoard(); // Fallback
-    }
-};
-
-window.syncColumnDOM = async function(columnId) {
-    try {
-        const freshCols = await fetchColumns(state.activeWorkspaceId);
-        state.columns = freshCols.map(col => ({ ...col, collapsed: col.collapsed || false }));
-        
-        const colEl = document.querySelector(`.column[data-column-id="${columnId}"]`);
-        if (!colEl) {
-            renderBoard();
-            return;
-        }
-
-        const colState = state.columns.find(c => c.id === columnId);
-        if (!colState) return;
-
-        const cardList = colEl.querySelector('.card-list');
-        if (!cardList) return;
-
-        // Сохраняем текущие DOM-ноды для FLIP-анимации
-        const oldCards = Array.from(cardList.querySelectorAll('.card'));
-        const cardRects = new Map();
-        oldCards.forEach(c => cardRects.set(c.dataset.cardId, c.getBoundingClientRect()));
-
-        // Очищаем и перерисовываем
-        cardList.innerHTML = '';
-        const sortedTasks = [...colState.tasks].sort((a, b) => a.position - b.position);
-        sortedTasks.forEach(task => {
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = generateCardHtml(task, colState.mode).trim();
-            const newCard = tempDiv.firstChild;
-            cardList.appendChild(newCard);
-
-            // FLIP Анимация перестроения
-            const oldRect = cardRects.get(String(task.id));
-            if (oldRect) {
-                requestAnimationFrame(() => {
-                    const newRect = newCard.getBoundingClientRect();
-                    const deltaY = oldRect.top - newRect.top;
-                    if (deltaY !== 0) {
-                        newCard.style.transform = `translateY(${deltaY}px)`;
-                        newCard.style.transition = 'none';
-                        requestAnimationFrame(() => {
-                            newCard.style.transform = '';
-                            newCard.style.transition = 'transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1)';
-                        });
-                    }
-                });
-            }
-        });
-
-        updateColumnCount(colEl, sortedTasks.length);
-    } catch (e) {
-        console.error("Ошибка синхронизации колонки:", e);
-        renderBoard(); // Fallback
-    }
-};
 
 function updateCardAppearance(cardElement, task, columnMode) {
     if (task.completed_at) cardElement.classList.add('is-completed');
@@ -3218,10 +3030,6 @@ function startCardRename(cardEl, task) {
 
                 await updateTask(task.id, { title: newTitle });
                 task.title = newTitle;
-                
-                // На случай если стоит авто-сортировка по алфавиту
-                const colEl = cardEl.closest('.column');
-                if (colEl) await syncColumnDOM(parseInt(colEl.dataset.columnId));
             } catch (_) {
                 cardEl.classList.add('is-error');
                 const div = cardEl.querySelector('.card-title');
@@ -4296,16 +4104,8 @@ async function endDrag() {
 
                     await saveTasksOrder(orderedIds);
                     
-                    // Синхронизируем DOM с сервером (включая работу автоматизаций)
-                    if (window.syncColumnDOM) {
-                        await window.syncColumnDOM(newColumnId);
-                        if (sourceColumnId !== newColumnId) {
-                            await window.syncColumnDOM(sourceColumnId);
-                        }
-                    } else {
-                        if (targetCol) {
-                            targetCol.tasks.forEach(t => { t.position = orderedIds.indexOf(t.id); });
-                        }
+                    if (targetCol) {
+                        targetCol.tasks.forEach(t => { t.position = orderedIds.indexOf(t.id); });
                     }
                     updateTimers();
 
@@ -5521,11 +5321,7 @@ async function loadTaskIntoModal(taskId, pushToStack = true, highlightQuery = nu
                         updateCardAppearance(boardCard, updatedTask, col.mode);
                     }
                     
-                    if (col && window.syncColumnDOM) {
-                        await window.syncColumnDOM(col.id);
-                    } else {
-                        refreshBoard();
-                    }
+                    refreshBoard();
                 }
             } catch (err) {
                 console.error("Ошибка сохранения времени:", err);
@@ -7094,19 +6890,13 @@ function initTaskDescriptionLogic() {
             
             bumpModalUpdatedDate();
 
-            let updatedColId = null;
             for (let col of state.columns) {
                 let currentTask = col.tasks.find(t => t.id == taskId);
                 if (currentTask) {
                     currentTask.description = newDesc;
                     currentTask.attachments_order = newOrderPaths;
-                    updatedColId = col.id;
                     break;
                 }
-            }
-            
-            if (updatedColId && window.syncColumnDOM) {
-                await window.syncColumnDOM(updatedColId);
             }
             
             exitEditingUI(newDesc, extracted);
@@ -10130,19 +9920,16 @@ function openPriorityModal(taskId) {
 
         try {
             await updateTask(taskId, { priority: finalVal, priority_data: pData });
-            let updatedColId = null;
             for (let col of state.columns) {
                 let t = col.tasks.find(task => task.id == taskId);
                 if (t) {
                     t.priority = finalVal;
                     t.priority_data = pData;
-                    updatedColId = col.id;
                     const cardEl = document.querySelector(`.card[data-card-id="${taskId}"]`);
                     if (cardEl) updateCardAppearance(cardEl, t, col.mode);
                     break;
                 }
             }
-            if (updatedColId) await syncColumnDOM(updatedColId); // Триггер анимации перестроения
             modal.classList.remove('show');
         } catch (err) {
             window.showToast(t('alerts.error'), 'Не удалось сохранить приоритет', true);
@@ -10158,19 +9945,16 @@ function openPriorityModal(taskId) {
 
         try {
             await updateTask(taskId, { priority: null, priority_data: null });
-            let updatedColId = null;
             for (let col of state.columns) {
                 let t = col.tasks.find(task => task.id == taskId);
                 if (t) {
                     t.priority = null;
                     t.priority_data = null;
-                    updatedColId = col.id;
                     const cardEl = document.querySelector(`.card[data-card-id="${taskId}"]`);
                     if (cardEl) updateCardAppearance(cardEl, t, col.mode);
                     break;
                 }
             }
-            if (updatedColId) await syncColumnDOM(updatedColId); // Триггер анимации
             modal.classList.remove('show');
         } catch (err) {
             window.showToast(t('alerts.error'), 'Не удалось очистить приоритет', true);
@@ -10249,19 +10033,15 @@ function openDueDateModal(taskId, currentDueDate) {
             const isoString = dpSelectedDate.toISOString();
             await updateTask(taskId, { due_date: isoString });
             
-            let updatedColId = null;
             for (let col of state.columns) {
                 let t = col.tasks.find(task => task.id == taskId);
                 if (t) {
                     t.due_date = isoString;
-                    updatedColId = col.id;
                     const cardEl = document.querySelector(`.card[data-card-id="${taskId}"]`);
                     if (cardEl) updateCardAppearance(cardEl, t, col.mode);
                     break;
                 }
             }
-            
-            if (updatedColId) await syncColumnDOM(updatedColId); // Триггер анимации
             
             loadTaskIntoModal(taskId, false);
             modal.classList.remove('show');
@@ -11088,588 +10868,6 @@ document.getElementById('graph-trigger')?.addEventListener('click', (e) => {
     closeAllDropdowns();
     openGraphModal();
 });
-
-// ═══════════════════════════════════════════════
-//  АВТОМАТИЗАЦИИ
-// ═══════════════════════════════════════════════
-
-document.getElementById('automations-trigger')?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    closeAllDropdowns();
-    openAutomationsModal();
-});
-
-const AUTO_API = `${API_BASE}/automations`;
-let _editingAutomationId = null;
-let _selectedWeekdays = [];
-
-window.openAutomationsModal = async () => {
-    _editingAutomationId = null;
-    hideAutomationForm();
-    document.getElementById('automations-modal').classList.add('show');
-    await renderAutomationsList();
-};
-
-function hideAutomationForm() {
-    document.getElementById('automation-form').style.display = 'none';
-    document.getElementById('btn-add-automation').style.display = '';
-    document.getElementById('automations-list').style.display = '';
-    const list = document.getElementById('automations-list');
-    document.getElementById('automations-empty').style.display = (list && list.children.length > 0) ? 'none' : '';
-}
-
-// ⚡ Умная обёртка для превращения нативных <select> в красивые dropdown-меню
-function syncCustomSelect(selectEl) {
-    if (!selectEl) return;
-
-    // Инициализация кастомного UI (выполняется один раз на элемент)
-    if (!selectEl._customUI) {
-        const wrapper = document.createElement('div');
-        wrapper.className = 'custom-select';
-        // Прокидываем важные стили для сохранения верстки
-        wrapper.style.flex = selectEl.style.flex || '1';
-        wrapper.style.width = selectEl.style.width || '100%';
-
-        const trigger = document.createElement('button');
-        trigger.type = 'button';
-        trigger.className = 'setting-input custom-select-trigger';
-        trigger.style.display = 'flex';
-        trigger.style.alignItems = 'center';
-        trigger.style.justifyContent = 'space-between';
-        trigger.style.width = '100%';
-        trigger.style.paddingRight = '12px';
-
-        trigger.innerHTML = `
-            <span class="trigger-text" style="flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-align:left;"></span>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="opacity: 0.5; flex-shrink: 0; margin-left: 8px;"><polyline points="6 9 12 15 18 9"></polyline></svg>
-        `;
-
-        const menu = document.createElement('div');
-        menu.className = 'dropdown-menu custom-select-menu';
-        menu.style.top = '100%';
-        menu.style.left = '0';
-        menu.style.right = '0';
-        menu.style.minWidth = '100%';
-        menu.style.transformOrigin = 'top center';
-        menu.style.marginTop = '4px';
-        menu.style.maxHeight = '200px';
-        menu.style.overflowY = 'auto';
-        menu.style.scrollbarWidth = 'none'; // Скрываем скролл в Firefox
-
-        trigger.onclick = (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            const isShowing = menu.classList.contains('show');
-            closeAllDropdowns();
-            if (!isShowing) menu.classList.add('show');
-        };
-
-        wrapper.appendChild(trigger);
-        wrapper.appendChild(menu);
-
-        // Вставляем рядом с селектом и прячем оригинал
-        selectEl.parentNode.insertBefore(wrapper, selectEl.nextSibling);
-        selectEl.style.display = 'none';
-
-        selectEl._customUI = { wrapper, triggerSpan: trigger.querySelector('.trigger-text'), menu };
-    }
-
-    const { triggerSpan, menu } = selectEl._customUI;
-    menu.innerHTML = '';
-    let activeText = '';
-
-    // Синхронизируем опции
-    Array.from(selectEl.options).forEach(opt => {
-        const item = document.createElement('div');
-        item.className = 'menu-item';
-
-        // Проверка по value - самая надёжная (отлавливает JS изменения)
-        if (opt.value === selectEl.value) {
-            item.classList.add('selected');
-            activeText = opt.textContent;
-        }
-
-        item.textContent = opt.textContent;
-        item.onclick = (e) => {
-            e.stopPropagation();
-            selectEl.value = opt.value;
-            selectEl.dispatchEvent(new Event('change')); // Запускаем логику (скрытие/показ секций)
-            syncCustomSelect(selectEl); // Перерисовываем для обновления текста триггера
-            menu.classList.remove('show');
-        };
-        menu.appendChild(item);
-    });
-
-    triggerSpan.textContent = activeText || (selectEl.options[0] ? selectEl.options[0].textContent : '');
-}
-
-function showAutomationForm(autoData = null) {
-    document.getElementById('automation-form').style.display = 'flex';
-    document.getElementById('btn-add-automation').style.display = 'none';
-    document.getElementById('automations-list').style.display = 'none';
-    document.getElementById('automations-empty').style.display = 'none';
-
-    // Снимаем overflow: hidden с карточек, чтобы наше меню не обрезалось
-    document.querySelectorAll('#automation-form .settings-group-card').forEach(card => {
-        card.style.overflow = 'visible';
-    });
-
-    // Заполняем колонки
-    const select = document.getElementById('auto-column');
-    select.innerHTML = '';
-    state.columns.forEach(col => {
-        const opt = document.createElement('option');
-        opt.value = col.id;
-        opt.textContent = col.title;
-        select.appendChild(opt);
-    });
-
-    if (autoData) {
-        _editingAutomationId = autoData.id;
-        document.getElementById('auto-type').value = autoData.type || 'recurring_card';
-        document.getElementById('auto-name').value = autoData.name || '';
-
-        const cfg = autoData.config || {};
-
-        // Общие поля
-        document.getElementById('auto-column').value = cfg.column_id || '';
-
-        // recurring_card: шаблоны
-        document.getElementById('auto-title-template').value = cfg.title_template || '';
-        document.getElementById('auto-desc-template').value = cfg.description_template || '';
-
-        // sort_column: параметры сортировки
-        document.getElementById('auto-sort-by').value = cfg.sort_by || 'position';
-        document.getElementById('auto-sort-order').value = cfg.sort_order || 'asc';
-
-        // clear_column: макс. возраст
-        document.getElementById('auto-max-age').value = cfg.max_age_minutes || 1440;
-
-        // Расписание
-        const sched = cfg.schedule || {};
-        document.getElementById('auto-schedule-type').value = sched.type || 'daily';
-        document.getElementById('auto-time').value = sched.time || '09:00';
-        _selectedWeekdays = sched.days || [];
-        document.getElementById('auto-day-of-month').value = sched.day_of_month || 1;
-        document.getElementById('btn-save-automation').textContent = t('modals.btnSave');
-    } else {
-        _editingAutomationId = null;
-        document.getElementById('auto-type').value = 'recurring_card';
-        document.getElementById('auto-name').value = '';
-        document.getElementById('auto-title-template').value = '';
-        document.getElementById('auto-desc-template').value = '';
-        if (state.columns.length > 0) document.getElementById('auto-column').value = state.columns[0].id;
-        document.getElementById('auto-sort-by').value = 'position';
-        document.getElementById('auto-sort-order').value = 'asc';
-        document.getElementById('auto-max-age').value = 1440;
-        document.getElementById('auto-schedule-type').value = 'daily';
-        document.getElementById('auto-time').value = '09:00';
-        _selectedWeekdays = [0, 1, 2, 3, 4]; // ПН–ПТ по умолчанию
-        document.getElementById('auto-day-of-month').value = 1;
-        document.getElementById('btn-save-automation').textContent = t('modals.btnCreate');
-    }
-
-    updateAutomationTypeUI();
-    updateScheduleUI();
-    renderWeekdayButtons();
-
-    // 🔥 Превращаем все нативные селекты в кастомные
-    ['auto-type', 'auto-column', 'auto-sort-by', 'auto-sort-order', 'auto-schedule-type'].forEach(id => {
-        syncCustomSelect(document.getElementById(id));
-    });
-}
-
-// ⚡ Переключение внешнего вида при смене типа автоматизации
-function updateAutomationTypeUI() {
-    const type = document.getElementById('auto-type').value;
-
-    // recurring_card: шаблоны карточки + расписание
-    const recurringSection = document.getElementById('auto-section-recurring-card');
-    // sort_column: параметры сортировки
-    const sortSection = document.getElementById('auto-section-sort');
-    // clear_column: возраст карточек + расписание
-    const clearSection = document.getElementById('auto-section-clear');
-    // Расписание (для recurring_card и clear_column)
-    const scheduleSection = document.getElementById('auto-section-schedule');
-
-    // Скрываем все опциональные секции
-    if (recurringSection) recurringSection.style.display = 'none';
-    if (sortSection) sortSection.style.display = 'none';
-    if (clearSection) clearSection.style.display = 'none';
-    if (scheduleSection) scheduleSection.style.display = 'none';
-
-    switch (type) {
-        case 'recurring_card':
-            if (recurringSection) recurringSection.style.display = 'flex';
-            if (scheduleSection) scheduleSection.style.display = 'flex';
-            break;
-        case 'sort_column':
-            if (sortSection) sortSection.style.display = 'flex';
-            // sort_column не имеет расписания — срабатывает по событию
-            break;
-        case 'clear_column':
-            if (clearSection) clearSection.style.display = 'flex';
-            if (scheduleSection) scheduleSection.style.display = 'flex';
-            break;
-    }
-}
-
-// Слушатель изменения типа
-document.getElementById('auto-type')?.addEventListener('change', () => {
-    updateAutomationTypeUI();
-    updateScheduleUI();
-    renderWeekdayButtons();
-});
-
-function updateScheduleUI() {
-    const type = document.getElementById('auto-schedule-type').value;
-    document.getElementById('auto-weekdays').style.display = type === 'weekly' ? 'flex' : 'none';
-    document.getElementById('auto-monthly-day').style.display = type === 'monthly' ? 'flex' : 'none';
-}
-
-function renderWeekdayButtons() {
-    const container = document.getElementById('auto-weekdays');
-    if (!container) return;
-    container.querySelectorAll('.auto-wday-btn').forEach(btn => {
-        const day = parseInt(btn.dataset.day);
-        const active = _selectedWeekdays.includes(day);
-        btn.classList.toggle('active', active);
-        btn.setAttribute('aria-pressed', active ? 'true' : 'false');
-    });
-}
-
-// Делегирование кликов по кнопкам дней недели
-document.getElementById('auto-weekdays')?.addEventListener('click', (e) => {
-    const btn = e.target.closest('.auto-wday-btn');
-    if (!btn) return;
-    toggleWeekdayBtn(btn);
-});
-
-document.getElementById('auto-weekdays')?.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        const btn = e.target.closest('.auto-wday-btn');
-        if (btn) toggleWeekdayBtn(btn);
-    }
-});
-
-function toggleWeekdayBtn(btn) {
-    const day = parseInt(btn.dataset.day);
-    if (_selectedWeekdays.includes(day)) {
-        _selectedWeekdays = _selectedWeekdays.filter(d => d !== day);
-    } else {
-        _selectedWeekdays.push(day);
-    }
-    renderWeekdayButtons();
-}
-
-document.getElementById('auto-schedule-type')?.addEventListener('change', updateScheduleUI);
-
-window.cancelAutomationForm = () => {
-    _editingAutomationId = null;
-    hideAutomationForm();
-    renderAutomationsList();
-};
-
-document.getElementById('btn-save-automation')?.addEventListener('click', async () => {
-    const autoType = document.getElementById('auto-type').value;
-    const name = document.getElementById('auto-name').value.trim();
-    const columnId = parseInt(document.getElementById('auto-column').value);
-
-    if (!name || !columnId) {
-        showToast(t('alerts.error'), t('modals.autoValidationError'), true);
-        return;
-    }
-
-    // Строим конфиг в зависимости от типа
-    let config = { column_id: columnId };
-
-    switch (autoType) {
-        case 'recurring_card': {
-            const titleTemplate = document.getElementById('auto-title-template').value.trim();
-            const descTemplate = document.getElementById('auto-desc-template').value.trim();
-            if (!titleTemplate) {
-                showToast(t('alerts.error'), t('modals.autoValidationError'), true);
-                return;
-            }
-            const schedType = document.getElementById('auto-schedule-type').value;
-            const schedTime = document.getElementById('auto-time').value;
-            const dayOfMonth = parseInt(document.getElementById('auto-day-of-month').value) || 1;
-            if (schedType === 'weekly' && _selectedWeekdays.length === 0) {
-                showToast(t('alerts.error'), t('modals.autoNoDaysError'), true);
-                return;
-            }
-            config.title_template = titleTemplate;
-            config.description_template = descTemplate;
-            config.schedule = {
-                type: schedType,
-                time: schedTime,
-                days: _selectedWeekdays.sort((a, b) => a - b),
-                day_of_month: dayOfMonth,
-            };
-            break;
-        }
-        case 'sort_column': {
-            config.sort_by = document.getElementById('auto-sort-by').value;
-            config.sort_order = document.getElementById('auto-sort-order').value;
-            break;
-        }
-        case 'clear_column': {
-            const maxAge = parseInt(document.getElementById('auto-max-age').value) || 1440;
-            const schedType = document.getElementById('auto-schedule-type').value;
-            const schedTime = document.getElementById('auto-time').value;
-            const dayOfMonth = parseInt(document.getElementById('auto-day-of-month').value) || 1;
-            if (schedType === 'weekly' && _selectedWeekdays.length === 0) {
-                showToast(t('alerts.error'), t('modals.autoNoDaysError'), true);
-                return;
-            }
-            config.max_age_minutes = maxAge;
-            config.schedule = {
-                type: schedType,
-                time: schedTime,
-                days: _selectedWeekdays.sort((a, b) => a - b),
-                day_of_month: dayOfMonth,
-            };
-            break;
-        }
-    }
-
-    const payload = {
-        type: autoType,
-        name,
-        enabled: true,
-        config
-    };
-
-    try {
-        let res;
-        if (_editingAutomationId) {
-            res = await fetch(`${AUTO_API}/${_editingAutomationId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-        } else {
-            res = await fetch(AUTO_API, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-        }
-
-        if (res.ok) {
-            _editingAutomationId = null;
-            hideAutomationForm();
-            await renderAutomationsList();
-            if (window.syncColumnDOM) {
-                await window.syncColumnDOM(columnId); // 🪄 Магия красивой анимации вместо жесткого refreshBoard
-            } else {
-                await refreshBoard();
-            }
-        } else {
-            const err = await res.json().catch(() => ({}));
-            showToast(t('alerts.error'), err.detail || t('modals.autoSaveError'), true);
-        }
-    } catch (e) {
-        console.error(e);
-        showToast(t('alerts.error'), t('modals.autoNetworkError'), true);
-    }
-});
-
-async function renderAutomationsList() {
-    const list = document.getElementById('automations-list');
-    const empty = document.getElementById('automations-empty');
-    if (!list) return;
-
-    try {
-        const res = await fetch(AUTO_API);
-        if (!res.ok) throw new Error('Failed to fetch');
-        const automations = await res.json();
-
-        list.innerHTML = '';
-
-        if (automations.length === 0) {
-            if (empty) empty.style.display = '';
-            return;
-        }
-        if (empty) empty.style.display = 'none';
-
-        automations.forEach(auto => {
-            const cfg = auto.config || {};
-            let typeLabel = '';
-            let typeIcon = '';
-            let desc = '';
-
-            switch (auto.type) {
-                case 'recurring_card': {
-                    typeIcon = '🔄';
-                    typeLabel = t('modals.autoTypeRecurring') || 'Повторяющаяся карточка';
-                    const sched = cfg.schedule || {};
-                    switch (sched.type) {
-                        case 'hourly': desc = t('modals.autoHourly'); break;
-                        case 'daily': desc = `${t('modals.autoDaily')}, ${sched.time || '09:00'}`; break;
-                        case 'weekdays': desc = `${t('modals.autoWeekdays')}, ${sched.time || '09:00'}`; break;
-                        case 'weekly': {
-                            const dayKeys = ['cal.dayMon','cal.dayTue','cal.dayWed','cal.dayThu','cal.dayFri','cal.daySat','cal.daySun'];
-                            const days = (sched.days || []).map(d => t(dayKeys[d]) || '').filter(Boolean).join(',');
-                            desc = `${t('modals.autoWeekly')} (${days}), ${sched.time || '09:00'}`;
-                            break;
-                        }
-                        case 'monthly': {
-                            const dom = sched.day_of_month || 1;
-                            desc = `${t('modals.autoMonthly')} (${dom}${t('modals.autoOrdinal', dom)}), ${sched.time || '09:00'}`;
-                            break;
-                        }
-                        default: desc = sched.type || '';
-                    }
-                    break;
-                }
-                case 'sort_column': {
-                    typeIcon = '↕️';
-                    typeLabel = t('modals.autoTypeSort') || 'Сортировка колонки';
-                    const sortLabels = {
-                        position: t('modals.autoSortPosition') || 'Позиции',
-                        title: t('modals.autoSortTitle') || 'Названию',
-                        created_at: t('modals.autoSortCreated') || 'Дате создания',
-                        priority: t('modals.autoSortPriority') || 'Приоритету',
-                        due_date: t('modals.autoSortDue') || 'Сроку',
-                    };
-                    const sortBy = sortLabels[cfg.sort_by] || cfg.sort_by || t('modals.autoSortPosition');
-                    const sortOrder = cfg.sort_order === 'desc' ? '↓' : '↑';
-                    desc = `${sortBy} ${sortOrder}`;
-                    break;
-                }
-                case 'clear_column': {
-                    typeIcon = '🧹';
-                    typeLabel = t('modals.autoTypeClear') || 'Очистка колонки';
-                    const maxAge = cfg.max_age_minutes || 1440;
-                    if (maxAge < 60) {
-                        desc = `${t('modals.autoClearOlder')}: ${maxAge} ${t('timeUnitsFull.m')}`;
-                    } else if (maxAge < 1440) {
-                        desc = `${t('modals.autoClearOlder')}: ${Math.round(maxAge / 60)} ${t('timeUnitsFull.h')}`;
-                    } else {
-                        desc = `${t('modals.autoClearOlder')}: ${Math.round(maxAge / 1440)} ${t('timeUnitsFull.d')}`;
-                    }
-                    const sched = cfg.schedule || {};
-                    if (sched.type) {
-                        desc += ` · ${t('modals.autoCheck')}: ${sched.type === 'daily' ? t('modals.autoDaily') : sched.type}`;
-                    }
-                    break;
-                }
-                default: {
-                    typeIcon = '⚡';
-                    typeLabel = auto.type;
-                    desc = '';
-                }
-            }
-
-            const nextRun = auto.next_run_at
-                ? new Date(auto.next_run_at + 'Z').toLocaleString(currentLang === 'ru' ? 'ru-RU' : 'en-US', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
-                : (auto.type === 'sort_column' ? t('modals.autoOnEvent') || 'По событию' : '—');
-
-            const row = document.createElement('div');
-            row.className = 'setting-row';
-            row.style.cssText = 'cursor: default; align-items: flex-start; gap: 12px; padding: 14px 12px;';
-            row.innerHTML = `
-                <div style="display: flex; align-items: flex-start; gap: 10px; flex: 1; min-width: 0;">
-                    <div style="width: 24px; height: 24px; border-radius: 8px; background: var(--brand-pale); color: var(--brand-pine); display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; opacity: ${auto.enabled ? '1' : '0.4'}; font-size: 12px;">
-                        ${escapeHtml(typeIcon)}
-                    </div>
-                    <div style="flex: 1; min-width: 0; padding-top: 2px;">
-                        <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 2px;">
-                            <div style="font-size: 14px; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(auto.name)}</div>
-                            <span style="font-size: 10px; font-weight: 500; color: var(--text-secondary); opacity: 0.6; background: rgba(0,0,0,0.04); padding: 2px 6px; border-radius: 4px; white-space: nowrap;">${escapeHtml(typeLabel)}</span>
-                        </div>
-                        <div style="font-size: 12px; color: var(--text-secondary); line-height: 1.4;">${escapeHtml(desc)}</div>
-                        <div style="font-size: 11px; color: var(--text-secondary); opacity: 0.6; margin-top: 4px; font-family: var(--font-mono);">${t('modals.autoNextRun')}: ${nextRun}</div>
-                    </div>
-                </div>
-                <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px; flex-shrink: 0;">
-                    <label class="toggle-switch" style="transform: scale(0.8); transform-origin: right center;" onclick="event.stopPropagation();">
-                        <input type="checkbox" ${auto.enabled ? 'checked' : ''} onchange="toggleAutomation(${auto.id}, this.checked, this)">
-                        <span class="toggle-slider"></span>
-                    </label>
-                    <div style="display: flex; gap: 4px; margin-top: auto;">
-                        <button class="icon-btn" title="${t('modals.autoRunNow')}" onclick="event.stopPropagation(); runAutomationNow(${auto.id})" style="width: 28px; height: 28px; background: rgba(0,0,0,0.03);">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                        </button>
-                        <button class="icon-btn" title="${t('modals.autoEdit')}" onclick="event.stopPropagation(); editAutomation(${auto.id})" style="width: 28px; height: 28px; background: rgba(0,0,0,0.03);">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
-                        </button>
-                        <button class="icon-btn danger-icon" title="${t('modals.autoDelete')}" onclick="event.stopPropagation(); deleteAutomation(${auto.id})" style="width: 28px; height: 28px; background: rgba(211,84,70,0.08); color: #D35446;">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                        </button>
-                    </div>
-                </div>
-            `;
-            list.appendChild(row);
-        });
-    } catch (e) {
-        console.error('Failed to load automations', e);
-    }
-}
-
-window.toggleAutomation = async (id, enabled, checkbox) => {
-    try {
-        await fetch(`${AUTO_API}/${id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ enabled })
-        });
-    } catch (e) {
-        console.error(e);
-        // Откатываем чекбокс при ошибке
-        if (checkbox) checkbox.checked = !enabled;
-        showToast(t('alerts.error'), t('modals.autoNetworkError'), true);
-    }
-};
-
-window.runAutomationNow = async (id) => {
-    try {
-        const res = await fetch(`${AUTO_API}/${id}/run`, { method: 'POST' });
-        if (res.ok) {
-            const data = await res.json();
-            if (data.cleared !== undefined) {
-                // sort_column / clear_column
-                showToast(t('modals.autoRunNow'), t('modals.autoRunDoneClear', data.cleared));
-            } else {
-                showToast(t('modals.autoRunNow'), t('modals.autoRunDone', data.task_id));
-            }
-            await renderAutomationsList();
-            await refreshBoard(); // СИНХРОНИЗАЦИЯ: заново стягиваем стейт доски с бэкенда
-        } else {
-            showToast(t('alerts.error'), t('modals.autoRunError'), true);
-        }
-    } catch (e) {
-        console.error(e);
-        showToast(t('alerts.error'), t('modals.autoNetworkError'), true);
-    }
-};
-
-window.editAutomation = async (id) => {
-    try {
-        const res = await fetch(`${AUTO_API}/${id}`);
-        if (res.ok) {
-            const auto = await res.json();
-            showAutomationForm(auto);
-        } else {
-            showToast(t('alerts.error'), t('modals.autoNetworkError'), true);
-        }
-    } catch (e) {
-        console.error(e);
-    }
-};
-
-window.deleteAutomation = async (id) => {
-    const confirmed = await showConfirmModal(t('modals.autoDeleteTitle'), t('modals.autoDeleteConfirm'));
-    if (!confirmed) return;
-    try {
-        await fetch(`${AUTO_API}/${id}`, { method: 'DELETE' });
-        await renderAutomationsList();
-    } catch (e) {
-        console.error(e);
-    }
-};
 
 const originalFetch = window.fetch;
 window._lastLocalEdit = 0;
@@ -12569,52 +11767,35 @@ async function applyColumnSort(columnId, criteria, dir) {
 
     column.tasks.sort((a, b) => {
         let valA, valB;
-        let isNullA = false;
-        let isNullB = false;
-
-        if (criteria === 'priority') {
-            valA = a.priority != null ? parseFloat(a.priority) : null;
-            valB = b.priority != null ? parseFloat(b.priority) : null;
-            isNullA = valA === null;
-            isNullB = valB === null;
-        } else if (criteria === 'deadline') {
-            valA = a.due_date ? new Date(a.due_date).getTime() : null;
-            valB = b.due_date ? new Date(b.due_date).getTime() : null;
-            isNullA = valA === null;
-            isNullB = valB === null;
-        } else if (criteria === 'created') {
+        if (criteria === 'created') {
             valA = new Date(a.created_at).getTime();
             valB = new Date(b.created_at).getTime();
         } else if (criteria === 'updated') {
             valA = new Date(a.updated_at).getTime();
             valB = new Date(b.updated_at).getTime();
+        } else if (criteria === 'priority') {
+            valA = a.priority != null ? a.priority : -1;
+            valB = b.priority != null ? b.priority : -1;
+        } else if (criteria === 'deadline') {
+            valA = a.due_date ? new Date(a.due_date).getTime() : Infinity;
+            valB = b.due_date ? new Date(b.due_date).getTime() : Infinity;
+            if (dir === 'desc') {
+                if (valA === Infinity) valA = -Infinity;
+                if (valB === Infinity) valB = -Infinity;
+            }
         }
-
-        // Правило 1: Если оба пустые - сохраняем текущий пользовательский порядок
-        if (isNullA && isNullB) return a.position - b.position;
         
-        // Правило 2: NULLS LAST (пустые значения ВСЕГДА в самом низу списка)
-        if (isNullA) return 1;
-        if (isNullB) return -1;
-
-        // Правило 3: Стандартная сортировка с учетом направления
-        if (valA < valB) return dir === 'asc' ? -1 : 1;
-        if (valA > valB) return dir === 'asc' ? 1 : -1;
-        
-        // Правило 4: При равенстве значений сохраняем текущий пользовательский порядок
-        return a.position - b.position;
+        if (valA < valB) return -1 * modifier;
+        if (valA > valB) return 1 * modifier;
+        return 0;
     });
 
     const orderedIds = column.tasks.map(t => t.id);
     column.tasks.forEach((t, i) => t.position = i);
+    renderBoard();
 
     try {
         await saveTasksOrder(orderedIds);
-        if (window.syncColumnDOM) {
-            await window.syncColumnDOM(columnId); // 🪄 Магия красивой анимации
-        } else {
-            renderBoard();
-        }
     } catch (err) {
         console.error("Ошибка сортировки:", err);
         window.showToast(t('alerts.error'), 'Не удалось сохранить порядок', true);

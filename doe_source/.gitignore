@@ -1,0 +1,34 @@
+# Python
+venv/
+__pycache__/
+*.py[cod]
+*.so
+.Python
+.env
+*.log
+
+# Database
+*.db
+*.db.doe
+*.sqlite3
+
+# Mac & Windows OS Files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# PyInstaller Build Folders
+build/
+dist/
+*.spec
+
+# IDEs (VSCode, PyCharm)
+.vscode/
+.idea/
+*.swp
+
+board_dev.db
+
+# Doe Logs
+*.log.doe.txt
+.log.doe.txt

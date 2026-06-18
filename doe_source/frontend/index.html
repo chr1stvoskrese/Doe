@@ -209,13 +209,6 @@
             </svg>
         </button>
 
-        <!-- КНОПКА АВТОМАТИЗАЦИЙ -->
-        <button class="icon-btn" id="automations-trigger" aria-label="Автоматизации">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-            </svg>
-        </button>
-
         <!-- КНОПКА КАЛЕНДАРЯ -->
         <button class="icon-btn" id="calendar-trigger" aria-label="Календарь">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -980,16 +973,6 @@
                     </label>
                 </div>
 
-                <div class="setting-row" style="cursor: default;">
-                    <div class="setting-text-box">
-                        <div class="setting-title" data-i18n="modals.extAutomations">Автоматизации</div>
-                    </div>
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="ext-toggle-automations" onchange="toggleExtension('automations', this.checked)">
-                        <span class="toggle-slider"></span>
-                    </label>
-                </div>
-
                 <!-- НАСТРОЙКИ AI ДЛЯ ПРИОРИТЕТОВ -->
                 <div class="setting-row" id="ai-settings-row" style="display: none; justify-content: center; background: transparent; border: none;">
                     <button class="confirm-btn cancel-btn" onclick="openAiSettingsModal()" style="font-size: 12px; padding: 6px 12px;" data-i18n="ai.setupBtn">✨ Настроить ИИ-ассистента</button>
@@ -1289,136 +1272,6 @@
 
             
             <button class="confirm-btn vault-submit-btn" style="color: white;" onclick="document.getElementById('ai-settings-modal').classList.remove('show')" data-i18n="ai.readyBtn">Готово</button>
-        </div>
-    </div>
-</div>
-
-<!-- ⚡ МОДАЛКА АВТОМАТИЗАЦИЙ -->
-<div class="modal-overlay" id="automations-modal">
-    <div class="modal-card" style="width: 420px;">
-        <div class="modal-header">
-            <div style="display: flex; align-items: center; gap: 8px;">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-                </svg>
-                <span class="modal-title" data-i18n="modals.autoTitle">Автоматизации</span>
-            </div>
-            <button class="modal-close" data-i18n-aria="close" aria-label="Закрыть">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-            </button>
-        </div>
-        <div class="modal-body" style="padding: 12px 16px 16px; gap: 12px;">
-            <!-- Список автоматизаций -->
-            <div id="automations-list" style="display: flex; flex-direction: column; gap: 4px;">
-                <!-- Заполняется JS -->
-            </div>
-            <div id="automations-empty" class="setting-hint" style="text-align: center; padding: 12px;" data-i18n="modals.autoEmpty">
-                Нет автоматизаций. Нажмите «+» чтобы создать.
-            </div>
-            <!-- Форма создания (скрыта) -->
-            <div id="automation-form" style="display: none; flex-direction: column; gap: 12px; margin-top: 4px;">
-                
-                <!-- ⚡ ТИП АВТОМАТИЗАЦИИ (самый первый элемент) -->
-                <div class="settings-group-card" style="padding: 12px; display: flex; flex-direction: column; gap: 4px;">
-                    <label for="auto-type" style="font-size: 11px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px;" data-i18n="modals.autoType">Тип автоматизации</label>
-                    <select id="auto-type" class="setting-input custom-select-arrow">
-                        <option value="recurring_card" data-i18n="modals.autoTypeRecurring">🔄 Повторяющаяся карточка</option>
-                        <option value="sort_column" data-i18n="modals.autoTypeSort">↕️ Сортировка колонки</option>
-                        <option value="clear_column" data-i18n="modals.autoTypeClear">🧹 Очистка колонки</option>
-                    </select>
-                </div>
-
-                <!-- Группа: Основные данные (имя + колонка) -->
-                <div id="auto-section-basic" class="settings-group-card" style="padding: 12px; display: flex; flex-direction: column; gap: 8px;">
-                    <input type="text" id="auto-name" class="setting-input" style="font-size: 14px; font-weight: 600; padding: 10px 12px;" data-i18n="modals.autoNamePlaceholder" placeholder="Название автоматизации..." autocomplete="off" spellcheck="false">
-                    <label for="auto-column" style="font-size: 11px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;" data-i18n="modals.autoColumn">Колонка</label>
-                    <select id="auto-column" class="setting-input custom-select-arrow"></select>
-                </div>
-
-                <!-- recurring_card: Контент карточки -->
-                <div id="auto-section-recurring-card" class="settings-group-card" style="padding: 12px; display: flex; flex-direction: column; gap: 8px;">
-                    <input type="text" id="auto-title-template" class="setting-input" data-i18n="modals.autoTitlePlaceholder" placeholder="Шаблон заголовка, например: Обзор {date}" autocomplete="off" spellcheck="false">
-                    <textarea id="auto-desc-template" class="setting-input" data-i18n="modals.autoDescPlaceholder" placeholder="Шаблон описания (опционально)..." rows="3" style="resize: none; min-height: 60px;" autocomplete="off" spellcheck="false"></textarea>
-                    <div class="setting-hint" style="font-size: 11px; padding: 0 4px; margin-top: -2px;" data-i18n="modals.autoVarsHint">
-                        Переменные: {date}, {date:формат}, {time}, {weekday}, {week_number}, {month_name}
-                    </div>
-                </div>
-
-                <!-- sort_column: Параметры сортировки -->
-                <div id="auto-section-sort" class="settings-group-card" style="padding: 12px; display: none; flex-direction: column; gap: 8px;">
-                    <div style="display: flex; gap: 8px; align-items: center;">
-                        <label for="auto-sort-by" style="font-size: 12px; font-weight: 500; color: var(--text-secondary); flex: 0 0 auto;" data-i18n="modals.autoSortBy">Сортировать по:</label>
-                        <select id="auto-sort-by" class="setting-input custom-select-arrow" style="flex: 1;">
-                            <option value="position" data-i18n="modals.autoSortPosition">Позиции</option>
-                            <option value="title" data-i18n="modals.autoSortTitle">Названию</option>
-                            <option value="created_at" data-i18n="modals.autoSortCreated">Дате создания</option>
-                            <option value="priority" data-i18n="modals.autoSortPriority">Приоритету</option>
-                            <option value="due_date" data-i18n="modals.autoSortDue">Сроку</option>
-                        </select>
-                    </div>
-                    <div style="display: flex; gap: 8px; align-items: center;">
-                        <label for="auto-sort-order" style="font-size: 12px; font-weight: 500; color: var(--text-secondary); flex: 0 0 auto;" data-i18n="modals.autoSortOrder">Порядок:</label>
-                        <select id="auto-sort-order" class="setting-input custom-select-arrow" style="flex: 1;">
-                            <option value="asc" data-i18n="modals.autoSortAsc">По возрастанию</option>
-                            <option value="desc" data-i18n="modals.autoSortDesc">По убыванию</option>
-                        </select>
-                    </div>
-                    <div class="setting-hint" style="font-size: 11px; padding: 0 4px;" data-i18n="modals.autoSortHint">
-                        Срабатывает автоматически при создании или перемещении карточки в эту колонку.
-                    </div>
-                </div>
-
-                <!-- clear_column: Параметры очистки -->
-                <div id="auto-section-clear" class="settings-group-card" style="padding: 12px; display: none; flex-direction: column; gap: 8px;">
-                    <div style="display: flex; gap: 8px; align-items: center;">
-                        <label for="auto-max-age" style="font-size: 12px; font-weight: 500; color: var(--text-secondary); flex: 1;" data-i18n="modals.autoMaxAge">Удалять карточки старше:</label>
-                        <input type="number" id="auto-max-age" class="setting-input" value="1440" min="1" max="43200" style="width: 80px; text-align: center; padding: 6px 8px;">
-                        <span style="font-size: 12px; color: var(--text-secondary); flex: 0 0 auto;" data-i18n="modals.autoMaxAgeUnit">мин.</span>
-                    </div>
-                    <div class="setting-hint" style="font-size: 11px; padding: 0 4px;" data-i18n="modals.autoClearHint">
-                        Карточки старше указанного времени будут удалены при следующей проверке по расписанию.
-                    </div>
-                </div>
-
-                <!-- Расписание (для recurring_card и clear_column) -->
-                <div id="auto-section-schedule" class="settings-group-card" style="padding: 12px; display: flex; flex-direction: column; gap: 12px;">
-                    <div style="font-size: 11px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;" data-i18n="modals.autoSchedule">Расписание</div>
-                    <div style="display: flex; gap: 8px; align-items: center;">
-                        <select id="auto-schedule-type" class="setting-input custom-select-arrow" style="flex: 1;">
-                            <option value="hourly" data-i18n="modals.autoHourly">Каждый час</option>
-                            <option value="daily" data-i18n="modals.autoDaily">Ежедневно</option>
-                            <option value="weekdays" data-i18n="modals.autoWeekdays">По будням</option>
-                            <option value="weekly" data-i18n="modals.autoWeekly">Еженедельно</option>
-                            <option value="monthly" data-i18n="modals.autoMonthly">Ежемесячно</option>
-                        </select>
-                        <label for="auto-time" style="font-size: 12px; font-weight: 500; color: var(--text-secondary); flex: 0 0 auto;" data-i18n="modals.autoTime">Время:</label>
-                        <input type="time" id="auto-time" class="setting-input" value="09:00" style="width: 90px; flex: none; text-align: center;">
-                    </div>
-                    
-                    <!-- Дни недели в виде Segmented Control -->
-                    <div id="auto-weekdays" class="auto-weekdays-group" style="display: none;">
-                        <span class="auto-wday-btn" data-day="0" data-i18n="cal.dayMon" tabindex="0" role="button">ПН</span>
-                        <span class="auto-wday-btn" data-day="1" data-i18n="cal.dayTue" tabindex="0" role="button">ВТ</span>
-                        <span class="auto-wday-btn" data-day="2" data-i18n="cal.dayWed" tabindex="0" role="button">СР</span>
-                        <span class="auto-wday-btn" data-day="3" data-i18n="cal.dayThu" tabindex="0" role="button">ЧТ</span>
-                        <span class="auto-wday-btn" data-day="4" data-i18n="cal.dayFri" tabindex="0" role="button">ПТ</span>
-                        <span class="auto-wday-btn" data-day="5" data-i18n="cal.daySat" tabindex="0" role="button">СБ</span>
-                        <span class="auto-wday-btn" data-day="6" data-i18n="cal.daySun" tabindex="0" role="button">ВС</span>
-                    </div>
-
-                    <div id="auto-monthly-day" style="display: none; gap: 8px; align-items: center; background: rgba(0,0,0,0.02); padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-light);">
-                        <label for="auto-day-of-month" style="font-size: 12px; font-weight: 500; color: var(--text-secondary); flex: 1;" data-i18n="modals.autoDayOfMonth">День месяца:</label>
-                        <input type="number" id="auto-day-of-month" class="setting-input" value="1" min="1" max="28" style="width: 60px; text-align: center; padding: 4px 8px;">
-                    </div>
-                </div>
-
-                <div class="confirm-actions" style="padding: 0; margin-top: 4px;">
-                    <button class="confirm-btn cancel-btn" onclick="cancelAutomationForm()" data-i18n="cancel">Отмена</button>
-                    <button class="confirm-btn vault-submit-btn" style="color: white;" id="btn-save-automation" data-i18n="modals.btnSave">Сохранить</button>
-                </div>
-            </div>
-            <!-- Кнопка добавления -->
-            <button id="btn-add-automation" class="confirm-btn cancel-btn" onclick="showAutomationForm()" style="width: 100%; font-size: 13px; padding: 8px;" data-i18n="modals.autoAddBtn">+ Новая автоматизация</button>
         </div>
     </div>
 </div>
