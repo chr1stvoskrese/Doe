@@ -39,7 +39,10 @@ const translations = {
             priorityTitle: 'Приоритетность', prioC: 'Одобренная ценность (через год)', prioD: 'Шанс успеха', prioA: 'Фоновая грызня (висит грузом)', prioB: 'Боль процесса', prioE: 'Затянутость', prioResult: 'Итоговая приоритетность:', btnClear: 'Очистить',
             prioSettingsTitle: 'Приоритетность', // <--- ДОБАВЛЕНО
             prioSettingsDesc: 'Настройте границы, цвета и эмодзи', // <--- ДОБАВЛЕНО
+            prioShowAlways: 'Показывать на всех карточках',
             prioShowAlwaysDesc: 'Отображать пустой приоритет, если он не задан',
+            prioBound: 'Граница: до',
+            prioNone: 'Не указан (если включено)',
             prioLvlLow: 'Низкий (< %)', // <--- ДОБАВЛЕНО
             prioLvlMid: 'Средний (< %)', // <--- ДОБАВЛЕНО
             prioLvlHigh: 'Высокий (Остальное)', // <--- ДОБАВЛЕНО
@@ -81,6 +84,8 @@ const translations = {
             autoSortHint: 'Срабатывает автоматически при создании или перемещении карточки в эту колонку.',
             autoMaxAge: 'Удалять карточки старше:', autoMaxAgeUnit: 'мин.',
             autoClearHint: 'Карточки старше указанного времени будут удалены при следующей проверке по расписанию.',
+            autoClearImmediateTitle: 'Мгновенное удаление',
+            autoClearImmediateDesc: 'Удалять карточку сразу при её попадании в колонку',
             autoClearOlder: 'Старше', autoCheck: 'Проверка',
             autoSchedule: 'Расписание', autoHourly: 'Каждый час', autoDaily: 'Ежедневно', autoWeekdays: 'По будням',
             autoWeekly: 'Еженедельно', autoMonthly: 'Ежемесячно', autoTime: 'Время:',
@@ -146,6 +151,7 @@ const translations = {
         errors: { tooLong: 'Максимум 1000 символов' },
         graph: { title: 'Граф связей', empty: 'Карточек пока нет.\nСоздайте карточки на доске.', arrows: 'Стрелки' },
         calendar: { today: 'Сегодня', month: 'Месяц', week: 'Неделя', day: 'День', loading: 'Загрузка данных...', error: 'Ошибка загрузки' },
+        cal: { dayMon: 'ПН', dayTue: 'ВТ', dayWed: 'СР', dayThu: 'ЧТ', dayFri: 'ПТ', daySat: 'СБ', daySun: 'ВС' },
         alerts: { loadError: 'Не удалось загрузить доску', error: 'Ошибка' },
         ai: {
             hardwareRam: 'Оперативная память',
@@ -231,7 +237,8 @@ const translations = {
             exportJson: 'Export to JSON', importJson: 'Import from JSON',
             copyCardLink: 'Copy link', dueDate: 'Set deadline', clearDueDate: 'Clear deadline', notify: 'Remind me',
             reminders: 'Active Reminders', remindersEmpty: 'No active reminders', extensions: 'Extensions',
-            priority: 'Priority', sort: 'Sort'
+            priority: 'Priority', sort: 'Sort',
+            prioritySettings: 'Priority Settings'
         },
         copied: 'Copied!',
         sort: { created: 'By creation date', updated: 'By modification date', priority: 'By priority', deadline: 'By deadline', asc: 'Ascending', desc: 'Descending', apply: 'Apply' },
@@ -239,7 +246,14 @@ const translations = {
             extTitle: 'Extensions', extSearch: 'Search', extCalendar: 'Calendar', extReminders: 'Reminders', extGraph: 'Connections Graph', extTabs: 'Tabs', extDeadlines: 'Deadlines', extExport: 'Card Export', extPriority: 'Priority', extAi: 'AI-assistant', sortTitle: 'Sorting',
             priorityTitle: 'Priority', prioC: 'Approved value (in a year)', prioD: 'Chance of success', prioA: 'Background gnawing (weighs heavy)', prioB: 'Pain of the process', prioE: 'Protraction', prioResult: 'Total Priority:', btnClear: 'Clear',
             prioSettingsTitle: 'Priority',
+            prioSettingsDesc: 'Configure thresholds, colors and emojis',
+            prioShowAlways: 'Show on all cards',
             prioShowAlwaysDesc: 'Display empty priority if not set',
+            prioLvlLow: 'Low (< %)',
+            prioLvlMid: 'Mid (< %)',
+            prioLvlHigh: 'High (rest)',
+            prioBound: 'Threshold: up to',
+            prioNone: 'None (if enabled)',
             prioSec1: 'Drivers of Doing', prioSec2: 'Psycho-Emotional Balance', prioSec3: 'Execution Costs',
             prioF: 'Do you need to report on this task within 2 weeks?', prioP: 'Is it better to do this task simply in advance?', prioS: 'Will execution bring tranquility right here and now?', prioH: 'Can the task cause physical or mental harm?',
             prioNo: 'No', prioMaybe: 'Dunno', prioYes: 'Yes',
@@ -278,6 +292,8 @@ const translations = {
             autoSortHint: 'Triggers automatically when a card is created or moved into this column.',
             autoMaxAge: 'Delete cards older than:', autoMaxAgeUnit: 'min',
             autoClearHint: 'Cards older than the specified time will be deleted on the next scheduled check.',
+            autoClearImmediateTitle: 'Instant deletion',
+            autoClearImmediateDesc: 'Delete a card as soon as it enters the column',
             autoClearOlder: 'Older than', autoCheck: 'Check',
             autoSchedule: 'Schedule', autoHourly: 'Hourly', autoDaily: 'Daily', autoWeekdays: 'Weekdays',
             autoWeekly: 'Weekly', autoMonthly: 'Monthly', autoTime: 'Time:',
@@ -340,6 +356,7 @@ const translations = {
         errors: { tooLong: 'Maximum 1000 characters' },
         graph: { title: 'Connections Graph', empty: 'No cards yet.\nCreate cards on the board.', arrows: 'Arrows' },
         calendar: { today: 'Today', month: 'Month', week: 'Week', day: 'Day', loading: 'Loading data...', error: 'Load error' },
+        cal: { dayMon: 'Mon', dayTue: 'Tue', dayWed: 'Wed', dayThu: 'Thu', dayFri: 'Fri', daySat: 'Sat', daySun: 'Sun' },
         alerts: { loadError: 'Failed to load board', error: 'Error' },
         ai: {
             hardwareRam: 'RAM',
@@ -1419,21 +1436,56 @@ window.syncColumnDOM = async function(columnId) {
         const cardList = colEl.querySelector('.card-list');
         if (!cardList) return;
 
-        // Сохраняем текущие DOM-ноды для FLIP-анимации
-        const oldCards = Array.from(cardList.querySelectorAll('.card'));
-        const cardRects = new Map();
-        oldCards.forEach(c => cardRects.set(c.dataset.cardId, c.getBoundingClientRect()));
+        const oldCards = Array.from(cardList.querySelectorAll('.card:not(.card-drag-clone)'));
+        const newIds = new Set(colState.tasks.map(t => String(t.id)));
 
-        // Очищаем и перерисовываем
+        // 1. Анимируем удаление карточек, которые исчезли (например, из-за автоматизаций)
+        oldCards.forEach(card => {
+            if (!newIds.has(card.dataset.cardId)) {
+                // Функция animateCardDeletion превратит .card в плавно исчезающий .card-spacer
+                animateCardDeletion(card); 
+            }
+        });
+
+        // 2. Получаем геометрию оставшихся карточек для FLIP анимации
+        const remainingCards = Array.from(cardList.querySelectorAll('.card:not(.card-drag-clone)'));
+        const cardRects = new Map();
+        remainingCards.forEach(c => cardRects.set(c.dataset.cardId, c.getBoundingClientRect()));
+
+        // 3. Сохраняем спейсеры (от анимации удаления) и их позицию относительно следующих карточек,
+        // чтобы они не уничтожились при перерисовке innerHTML и список не "прыгнул" вверх.
+        const spacers = Array.from(cardList.querySelectorAll('.card-spacer'));
+        const spacerMap = new Map();
+        spacers.forEach(s => {
+            let nextCard = s.nextElementSibling;
+            // Ищем следующую реальную карточку после спейсера
+            while (nextCard && !nextCard.classList.contains('card')) {
+                nextCard = nextCard.nextElementSibling;
+            }
+            const nextId = nextCard ? nextCard.dataset.cardId : 'END';
+            
+            if (!spacerMap.has(nextId)) spacerMap.set(nextId, []);
+            spacerMap.get(nextId).push(s);
+            
+            s.remove(); // Временно убираем из DOM
+        });
+
+        // 4. Очищаем список и строим заново
         cardList.innerHTML = '';
         const sortedTasks = [...colState.tasks].sort((a, b) => a.position - b.position);
+        
         sortedTasks.forEach(task => {
+            // Вставляем спейсеры, которые стояли ПЕРЕД этой карточкой (чтобы пустота сжималась там, где нужно)
+            if (spacerMap.has(String(task.id))) {
+                spacerMap.get(String(task.id)).forEach(s => cardList.appendChild(s));
+            }
+
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = generateCardHtml(task, colState.mode).trim();
             const newCard = tempDiv.firstChild;
             cardList.appendChild(newCard);
 
-            // FLIP Анимация перестроения
+            // FLIP Анимация перестроения (для карточек, которые сдвинулись)
             const oldRect = cardRects.get(String(task.id));
             if (oldRect) {
                 requestAnimationFrame(() => {
@@ -1451,66 +1503,15 @@ window.syncColumnDOM = async function(columnId) {
             }
         });
 
-        updateColumnCount(colEl, sortedTasks.length);
-    } catch (e) {
-        console.error("Ошибка синхронизации колонки:", e);
-        renderBoard(); // Fallback
-    }
-};
-
-window.syncColumnDOM = async function(columnId) {
-    try {
-        const freshCols = await fetchColumns(state.activeWorkspaceId);
-        state.columns = freshCols.map(col => ({ ...col, collapsed: col.collapsed || false }));
-        
-        const colEl = document.querySelector(`.column[data-column-id="${columnId}"]`);
-        if (!colEl) {
-            renderBoard();
-            return;
+        // Вставляем спейсеры, которые были в самом конце колонки
+        if (spacerMap.has('END')) {
+            spacerMap.get('END').forEach(s => cardList.appendChild(s));
         }
 
-        const colState = state.columns.find(c => c.id === columnId);
-        if (!colState) return;
-
-        const cardList = colEl.querySelector('.card-list');
-        if (!cardList) return;
-
-        // Сохраняем текущие DOM-ноды для FLIP-анимации
-        const oldCards = Array.from(cardList.querySelectorAll('.card'));
-        const cardRects = new Map();
-        oldCards.forEach(c => cardRects.set(c.dataset.cardId, c.getBoundingClientRect()));
-
-        // Очищаем и перерисовываем
-        cardList.innerHTML = '';
-        const sortedTasks = [...colState.tasks].sort((a, b) => a.position - b.position);
-        sortedTasks.forEach(task => {
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = generateCardHtml(task, colState.mode).trim();
-            const newCard = tempDiv.firstChild;
-            cardList.appendChild(newCard);
-
-            // FLIP Анимация перестроения
-            const oldRect = cardRects.get(String(task.id));
-            if (oldRect) {
-                requestAnimationFrame(() => {
-                    const newRect = newCard.getBoundingClientRect();
-                    const deltaY = oldRect.top - newRect.top;
-                    if (deltaY !== 0) {
-                        newCard.style.transform = `translateY(${deltaY}px)`;
-                        newCard.style.transition = 'none';
-                        requestAnimationFrame(() => {
-                            newCard.style.transform = '';
-                            newCard.style.transition = 'transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1)';
-                        });
-                    }
-                });
-            }
-        });
-
         updateColumnCount(colEl, sortedTasks.length);
     } catch (e) {
         console.error("Ошибка синхронизации колонки:", e);
-        renderBoard(); // Fallback
+        renderBoard(); // Fallback на полную перерисовку при сбоях
     }
 };
 
@@ -11670,7 +11671,7 @@ async function renderAutomationsList() {
                     const maxAge = cfg.max_age_minutes !== undefined ? cfg.max_age_minutes : 1440;
                     
                     if (maxAge === 0) {
-                        desc = 'Мгновенное удаление при попадании в колонку';
+                        desc = t('modals.autoClearImmediateDesc') || 'Мгновенное удаление при попадании в колонку';
                     } else {
                         if (maxAge < 60) {
                             desc = `${t('modals.autoClearOlder')}: ${maxAge} ${t('timeUnitsFull.m')}`;
@@ -11770,12 +11771,14 @@ window.runAutomationNow = async (id) => {
                 showToast(t('modals.autoRunNow'), 'Выполнено');
             }
             await renderAutomationsList();
-
-
-            await refreshBoard(); // СИНХРОНИЗАЦИЯ: заново стягиваем стейт доски с бэкенда
-        } else {
-            showToast(t('alerts.error'), t('modals.autoRunError'), true);
-        }
+            // Даём всплывающему Toast-уведомлению время на отрисовку 
+            // перед тем, как заблокировать поток запросом и перерендером доски
+            setTimeout(async () => {
+                await refreshBoard(); // СИНХРОНИЗАЦИЯ: заново стягиваем стейт доски с бэкенда
+            }, 50);
+            } else {
+                showToast(t('alerts.error'), t('modals.autoRunError'), true);
+            }
     } catch (e) {
         console.error(e);
         showToast(t('alerts.error'), t('modals.autoNetworkError'), true);
@@ -11801,7 +11804,11 @@ window.deleteAutomation = async (id) => {
     if (!confirmed) return;
     try {
         await fetch(`${AUTO_API}/${id}`, { method: 'DELETE' });
-        await renderAutomationsList();
+        // Уступаем главный поток на 15 мс (1 кадр), чтобы анимация закрытия модалки 
+        // успела начаться до тяжелого перерендера DOM
+        setTimeout(async () => {
+            await renderAutomationsList();
+        }, 100);
     } catch (e) {
         console.error(e);
     }
@@ -12609,7 +12616,7 @@ const Calendar = {
                     behavior: 'smooth'
                 });
             }
-        }, 50);
+        }, 100);
     },
     
     attachEventClicks() {
