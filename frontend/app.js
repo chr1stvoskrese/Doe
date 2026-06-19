@@ -1260,7 +1260,128 @@ async function updateSettings(data) {
 
 const _escapeDiv = document.createElement('div');
 function escapeHtml(text) { _escapeDiv.textContent = text; return _escapeDiv.innerHTML; }
+function renderInlineMarkdown(text) {
+    if (!text) return '';
+
+    // Шаг 0: Находим все doe://task/ ссылки (с bracket-counting) и заменяем на плейсхолдеры
+    const doeLinks = [];
+    const doePattern = /\]\(doe:\/\/task\/\d+\)/g;
+    let match;
+    let raw = text;
+    while ((match = doePattern.exec(raw)) !== null) {
+        const closePos = match.index;
+        let depth = 1, openPos = -1;
+        for (let i = closePos - 1; i >= 0; i--) {
+            if (raw[i] === ']') depth++;
+            else if (raw[i] === '[') { depth--; if (depth === 0) { openPos = i; break; } }
+        }
+        if (openPos >= 0) {
+            const inner = raw.substring(openPos + 1, closePos);
+            const taskId = match[0].match(/\d+/)[0];
+            const placeholder = `\uE000DOE_${doeLinks.length}\uE000`;
+            doeLinks.push({ inner, taskId, placeholder, start: openPos, end: match.index + match[0].length });
+        }
+    }
+    for (let i = doeLinks.length - 1; i >= 0; i--) {
+        const dl = doeLinks[i];
+        raw = raw.substring(0, dl.start) + dl.placeholder + raw.substring(dl.end);
+    }
+
+    // Шаг 1: Escape HTML
+    let html = escapeHtml(raw);
+    // Шаг 1.5: Переносы строк
+    html = html.replace(/\n/g, '<br>');
+    // Шаг 2: <u>
+    html = html.replace(/&lt;u&gt;/g, '<u>').replace(/&lt;\/u&gt;/g, '</u>');
+    // Шаг 3: `code`
+    html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+    // Шаг 4: **bold**
+    html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    // Шаг 5: *italic*
+    html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+    // Шаг 6: ~~strike~~
+    html = html.replace(/~~([^~]+)~~/g, '<del>$1</del>');
+    // Шаг 7: Оставшиеся ссылки [text](url) (не doe://, они уже в плейсхолдерах)
+    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+
+    // Шаг 8: Раскрываем плейсхолдеры — рендерим inner и оборачиваем в doe:// ссылку
+    for (const dl of doeLinks) {
+        // Убираем ссылочный синтаксис из inner (вложенные <a> невалидны)
+        const innerClean = dl.inner.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1');
+        const innerHtml = renderInlineMarkdown(innerClean);
+        html = html.replace(dl.placeholder, `<a href="doe://task/${dl.taskId}" target="_blank" rel="noopener">${innerHtml}</a>`);
+    }
+
+    return html;
+}
 function unescapeHtml(html) { const div = document.createElement('div'); div.innerHTML = html; return div.textContent; }
+
+// Вырезает [...](doe://task/NNN) из текста, оставляя только внутренний контент
+// Работает с вложенными скобками (напр. [текст с [ссылкой](url)](doe://task/1) → текст с [ссылкой](url))
+function stripDoeTaskLinks(text) {
+    if (!text) return text;
+    const pattern = /\]\(doe:\/\/task\/\d+\)/g;
+    let match;
+    const replacements = [];
+    while ((match = pattern.exec(text)) !== null) {
+        const closePos = match.index;
+        let depth = 1, openPos = -1;
+        for (let i = closePos - 1; i >= 0; i--) {
+            if (text[i] === ']') depth++;
+            else if (text[i] === '[') { depth--; if (depth === 0) { openPos = i; break; } }
+        }
+        if (openPos >= 0) {
+            replacements.push({ start: openPos, end: match.index + match[0].length, inner: text.substring(openPos + 1, closePos) });
+        }
+    }
+    for (let i = replacements.length - 1; i >= 0; i--) {
+        const r = replacements[i];
+        text = text.substring(0, r.start) + r.inner + text.substring(r.end);
+    }
+    return text;
+}
+
+function bindTitleFormattingShortcuts(inputEl) {
+    const toggleFormat = (before, after) => {
+        const start = inputEl.selectionStart;
+        const end = inputEl.selectionEnd;
+        const selected = inputEl.value.substring(start, end);
+        if (selected) {
+            if (selected.startsWith(before) && selected.endsWith(after)) {
+                inputEl.setRangeText(selected.substring(before.length, selected.length - after.length), start, end, 'select');
+            } else {
+                inputEl.setRangeText(before + selected + after, start, end, 'select');
+            }
+        } else {
+            inputEl.setRangeText(before + after, start, end, 'start');
+            inputEl.setSelectionRange(start + before.length, start + before.length);
+        }
+    };
+    const insertLink = () => {
+        const start = inputEl.selectionStart;
+        const end = inputEl.selectionEnd;
+        const selected = inputEl.value.substring(start, end);
+        if (selected) {
+            inputEl.setRangeText(`[${selected}](url)`, start, end, 'end');
+            const newEnd = start + selected.length + 7;
+            inputEl.setSelectionRange(newEnd - 4, newEnd - 1);
+        } else {
+            inputEl.setRangeText('[](url)', start, end, 'start');
+            inputEl.setSelectionRange(start + 1, start + 1);
+        }
+    };
+    inputEl.addEventListener('keydown', (e) => {
+        const mod = e.metaKey || e.ctrlKey;
+        if (!mod) return;
+        const key = e.key.toLowerCase();
+        if (key === 'b') { e.preventDefault(); toggleFormat('**', '**'); }
+        else if (key === 'i') { e.preventDefault(); toggleFormat('*', '*'); }
+        else if (key === 'u') { e.preventDefault(); toggleFormat('<u>', '</u>'); }
+        else if (key === 'k') { e.preventDefault(); insertLink(); }
+        else if (key === 'e') { e.preventDefault(); toggleFormat('`', '`'); }
+        else if (e.shiftKey && (key === 'x')) { e.preventDefault(); toggleFormat('~~', '~~'); }
+    });
+}
 
 // ── Состояние полноэкранного режима ──
 let _isFullscreen = false;
@@ -1708,7 +1829,7 @@ function generateCardHtml(task, columnMode) {
         <div class="card ${extraClasses.join(' ')}" data-card-id="${task.id}">
             <div class="card-title-wrapper">
                 <svg class="completed-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
-                <div class="card-title">${escapeHtml(task.title)}</div>
+                <div class="card-title">${renderInlineMarkdown(task.title)}</div>
                 <div class="card-menu-wrapper">
                     <button class="card-menu-btn" title="Редактировать">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
@@ -1914,6 +2035,7 @@ async function onAddCardInline(plusBtn) {
     input.addEventListener('input', autoResize);
     autoResize();
     input.focus();
+    bindTitleFormattingShortcuts(input);
 
     let isResolved = false;
 
@@ -2048,7 +2170,7 @@ async function onAddCardInline(plusBtn) {
     };
 
     input.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') { e.preventDefault(); submit(); }
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit(); }
         if (e.key === 'Escape') { e.preventDefault(); cancel(true); }
     });
 
@@ -2127,6 +2249,7 @@ async function onAddTask(columnId) {
     input.addEventListener('input', autoResize);
     autoResize();
     input.focus();
+    bindTitleFormattingShortcuts(input);
 
     let isResolved = false;
 
@@ -2235,7 +2358,7 @@ async function onAddTask(columnId) {
     };
 
     input.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') { e.preventDefault(); submit(true); }
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit(true); }
         if (e.key === 'Escape') { e.preventDefault(); cancel(true); }
     });
 
@@ -2450,7 +2573,7 @@ async function onCreateColumn() {
     };
 
     input.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
+        if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
             submit();
         }
@@ -3075,7 +3198,7 @@ function startTabRename(tabEl, ws) {
 
     input.addEventListener('keydown', (e) => {
         e.stopPropagation();
-        if (e.key === 'Enter')  { e.preventDefault(); commit(); }
+        if (e.key === 'Enter' && !e.shiftKey)  { e.preventDefault(); commit(); }
         if (e.key === 'Escape') { e.preventDefault(); cancel(); }
     });
 
@@ -3168,7 +3291,7 @@ function startColumnRename(columnEl, column) {
 
     input.addEventListener('keydown', (e) => {
         e.stopPropagation();
-        if (e.key === 'Enter')  { e.preventDefault(); commit(); }
+        if (e.key === 'Enter' && !e.shiftKey)  { e.preventDefault(); commit(); }
         if (e.key === 'Escape') { e.preventDefault(); cancel(); }
     });
 
@@ -3217,6 +3340,7 @@ function startCardRename(cardEl, task) {
     
     input.focus();
     input.setSelectionRange(input.value.length, input.value.length); 
+    bindTitleFormattingShortcuts(input);
 
     let committed = false;
 
@@ -3249,7 +3373,7 @@ function startCardRename(cardEl, task) {
     const restore = (title) => {
         const div = document.createElement('div');
         div.className = 'card-title';
-        div.textContent = title;
+        div.innerHTML = renderInlineMarkdown(title);
         
         const hint = cardEl.querySelector('.card-error-hint');
         if (hint) hint.remove();
@@ -3279,7 +3403,8 @@ function startCardRename(cardEl, task) {
             try {
                 const subtaskTitleEl = document.querySelector(`.subtask-item[data-subtask-id="${task.id}"] .subtask-title`);
                 if (subtaskTitleEl) {
-                    subtaskTitleEl.textContent = newTitle;
+                    subtaskTitleEl.innerHTML = renderInlineMarkdown(newTitle);
+                    subtaskTitleEl.dataset.rawTitle = newTitle;
                 }
 
                 await updateTask(task.id, { title: newTitle });
@@ -3291,11 +3416,12 @@ function startCardRename(cardEl, task) {
             } catch (_) {
                 cardEl.classList.add('is-error');
                 const div = cardEl.querySelector('.card-title');
-                if (div) div.textContent = task.title;
+                if (div) div.innerHTML = renderInlineMarkdown(task.title);
                 
                 const subtaskTitleEl = document.querySelector(`.subtask-item[data-subtask-id="${task.id}"] .subtask-title`);
                 if (subtaskTitleEl) {
-                    subtaskTitleEl.textContent = task.title;
+                    subtaskTitleEl.innerHTML = renderInlineMarkdown(task.title);
+                    subtaskTitleEl.dataset.rawTitle = task.title;
                 }
             }
         }
@@ -3304,7 +3430,7 @@ function startCardRename(cardEl, task) {
     input.addEventListener('mousedown', (e) => e.stopPropagation());
 
     input.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
+        if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
             e.stopPropagation();
             if (validateAndShake()) commit();
@@ -3331,7 +3457,7 @@ function startModalTaskRename(titleEl) {
     if (modal.classList.contains('is-renaming')) return;
 
     const taskId = parseInt(modal.dataset.taskId);
-    const originalTitle = titleEl.textContent;
+    const originalTitle = titleEl.dataset.rawTitle || titleEl.textContent;
 
     const input = document.createElement('textarea');
     input.className = 'task-modal-title-input';
@@ -3358,6 +3484,7 @@ function startModalTaskRename(titleEl) {
     
     input.focus();
     input.setSelectionRange(input.value.length, input.value.length);
+    bindTitleFormattingShortcuts(input);
 
     let committed = false;
 
@@ -3365,8 +3492,9 @@ function startModalTaskRename(titleEl) {
         const span = document.createElement('span');
         span.className = 'modal-title';
         span.id = 'task-modal-title';
-        span.textContent = title;
-        
+        span.innerHTML = renderInlineMarkdown(title);
+        span.dataset.rawTitle = title;
+
         const header = input.closest('.modal-header');
         if (header) {
             header.classList.remove('is-error');
@@ -3407,7 +3535,7 @@ function startModalTaskRename(titleEl) {
             try {
                 const boardCardTitle = document.querySelector(`.card[data-card-id="${taskId}"] .card-title`);
                 if (boardCardTitle) {
-                    boardCardTitle.textContent = newTitle;
+                    boardCardTitle.innerHTML = renderInlineMarkdown(newTitle);
                 }
 
                 await updateTask(taskId, { title: newTitle });
@@ -3430,7 +3558,7 @@ function startModalTaskRename(titleEl) {
                 
                 const boardCardTitle = document.querySelector(`.card[data-card-id="${taskId}"] .card-title`);
                 if (boardCardTitle) {
-                    boardCardTitle.textContent = originalTitle;
+                    boardCardTitle.innerHTML = renderInlineMarkdown(originalTitle);
                 }
             }
         }
@@ -3442,7 +3570,7 @@ function startModalTaskRename(titleEl) {
 
     input.addEventListener('keydown', (e) => {
         e.stopPropagation();
-        if (e.key === 'Enter') { e.preventDefault(); commit(); }
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); commit(); }
         if (e.key === 'Escape') { e.preventDefault(); committed = true; restore(originalTitle); }
     });
     input.addEventListener('blur', () => setTimeout(() => { if (!committed) commit(); }, 120));
@@ -3453,7 +3581,7 @@ function startSubtaskRename(subtaskEl) {
     if (!titleDiv || subtaskEl.classList.contains('is-renaming')) return;
 
     const subtaskId = parseInt(subtaskEl.dataset.subtaskId);
-    const originalTitle = titleDiv.textContent;
+    const originalTitle = titleDiv.dataset.rawTitle || titleDiv.textContent;
 
     const input = document.createElement('textarea');
     input.className = 'subtask-title-input';
@@ -3481,14 +3609,16 @@ function startSubtaskRename(subtaskEl) {
     
     input.focus();
     input.setSelectionRange(input.value.length, input.value.length);
+    bindTitleFormattingShortcuts(input);
 
     let committed = false;
 
     const restore = (title) => {
         const div = document.createElement('div');
         div.className = 'subtask-title';
-        div.textContent = title;
-        
+        div.innerHTML = renderInlineMarkdown(title);
+        div.dataset.rawTitle = title;
+
         const hint = subtaskEl.querySelector('.card-error-hint');
         if (hint) hint.remove();
 
@@ -3499,7 +3629,7 @@ function startSubtaskRename(subtaskEl) {
     const commit = async () => {
         if (committed) return;
         
-        const newTitle = input.value.trim();
+        const newTitle = stripDoeTaskLinks(input.value.trim());
         
         if (newTitle.length > 1000) {
             if (!subtaskEl.querySelector('.card-error-hint')) {
@@ -3523,7 +3653,7 @@ function startSubtaskRename(subtaskEl) {
             try {
                 const boardCardTitle = document.querySelector(`.card[data-card-id="${subtaskId}"] .card-title`);
                 if (boardCardTitle) {
-                    boardCardTitle.textContent = newTitle;
+                    boardCardTitle.innerHTML = renderInlineMarkdown(newTitle);
                 }
 
                 for (let col of state.columns) {
@@ -3556,7 +3686,7 @@ function startSubtaskRename(subtaskEl) {
                 
                 const boardCardTitle = document.querySelector(`.card[data-card-id="${subtaskId}"] .card-title`);
                 if (boardCardTitle) {
-                    boardCardTitle.textContent = originalTitle;
+                    boardCardTitle.innerHTML = renderInlineMarkdown(originalTitle);
                 }
             }
         }
@@ -3568,7 +3698,7 @@ function startSubtaskRename(subtaskEl) {
 
     input.addEventListener('keydown', (e) => {
         e.stopPropagation();
-        if (e.key === 'Enter') { e.preventDefault(); commit(); }
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); commit(); }
         if (e.key === 'Escape') { e.preventDefault(); committed = true; restore(originalTitle); }
     });
     input.addEventListener('blur', () => setTimeout(() => { if (!committed) commit(); }, 120));
@@ -4471,6 +4601,35 @@ document.addEventListener('click', async (e) => {
     }
 
     const target = e.target;
+
+    // Обработка ссылок внутри заголовков (Markdown)
+    const titleLink = target.closest('a');
+    if (titleLink) {
+        const inTitle = target.closest('.card-title, .subtask-title, #task-modal-title, .breadcrumb-item');
+        if (inTitle) {
+            e.stopPropagation(); // Предотвращаем переименование / другие действия
+            const href = titleLink.getAttribute('href');
+            if (href && href.startsWith('doe://task/')) {
+                e.preventDefault();
+                const taskId = parseInt(href.replace('doe://task/', ''));
+                if (taskId && !isNaN(taskId)) {
+                    closeAllDropdowns();
+                    fetch(`${API_BASE}/tasks/${taskId}/context`)
+                        .then(res => res.json())
+                        .then(context => {
+                            window.navigateToEntityGlobal(context.workspace_id, context.column_id, taskId, null, true);
+                        })
+                        .catch(err => {
+                            console.error("Не удалось найти контекст задачи", err);
+                            loadTaskIntoModal(taskId, true);
+                            document.getElementById('task-modal').classList.add('show');
+                        });
+                }
+            }
+            // Внешние ссылки — даём браузеру обработать, stopPropagation уже сделан
+            return;
+        }
+    }
 
     const collapsedCol = target.closest('.column.collapsed');
     if (collapsedCol) {
@@ -5446,7 +5605,8 @@ async function loadTaskIntoModal(taskId, pushToStack = true, highlightQuery = nu
 
         modal.dataset.taskId = task.id;
         modal.dataset.columnId = task.column_id;
-        titleEl.textContent = task.title;
+        titleEl.innerHTML = renderInlineMarkdown(task.title);
+        titleEl.dataset.rawTitle = task.title;
         
         const detachBtn = modal.querySelector('.modal-detach');
         if (detachBtn) {
@@ -5711,15 +5871,22 @@ async function renderGraphBreadcrumbs(taskId) {
                 const isLast = index === path.length - 1;
                 
                 const rawTitle = node.title || "";
-                const displayTitle = rawTitle.length > 15 
-                    ? rawTitle.substring(0, 14) + '…' 
-                    : rawTitle;
+                // Многострочные: берём только первую строку
+                const firstLine = rawTitle.includes('\n') ? rawTitle.split('\n')[0] : rawTitle;
+                const isMultiLine = rawTitle.includes('\n');
+                // Обрезаем по длине и/или по строкам
+                let displayTitle = firstLine;
+                if (firstLine.length > 15) {
+                    displayTitle = firstLine.substring(0, 14) + '…';
+                } else if (isMultiLine) {
+                    displayTitle = firstLine + '…';
+                }
 
                 html += `<div class="breadcrumb-node">`;
                 
                 html += `<span class="breadcrumb-item ${isLast ? 'active' : ''}" 
                                data-id="${node.id}" 
-                               data-full-title="${escapeHtml(rawTitle)}">${escapeHtml(displayTitle)}</span>`;
+                               data-full-title="${escapeHtml(rawTitle)}">${renderInlineMarkdown(displayTitle)}</span>`;
                 
                 if (!isLast) {
                     html += '<span class="breadcrumb-separator"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg></span>';
@@ -6253,8 +6420,8 @@ function initTooltip() {
 
         activeTitle = titleEl;
         
-        tooltipInner.style.webkitLineClamp = 'unset';
-        tooltipInner.textContent = titleEl.dataset.fullTitle || titleEl.textContent;
+        tooltipInner.style.maxHeight = 'none';
+        tooltipInner.innerHTML = renderInlineMarkdown(titleEl.dataset.fullTitle || titleEl.textContent);
         
         const paddingY = 16; 
         const safeMarginY = 32; 
@@ -6265,7 +6432,7 @@ function initTooltip() {
         
         const maxLines = Math.max(1, Math.floor(maxAvailableHeight / lineHeight));
         
-        tooltipInner.style.webkitLineClamp = maxLines.toString();
+        tooltipInner.style.maxHeight = (maxLines * lineHeight) + 'px';
 
         tooltip.classList.add('visible');
         updateTooltipPosition(e);
@@ -6515,7 +6682,7 @@ function generateSubtaskHtml(sub, parentMode = 'default') {
                 </button>
             </div>
             
-            <div class="subtask-title">${escapeHtml(sub.title)}</div>
+            <div class="subtask-title" data-raw-title="${escapeHtml(sub.title)}">${renderInlineMarkdown(sub.title)}</div>
             
             <div class="subtask-actions">
                 <button class="subtask-open-btn" title="${t('menu.open')}">${openIconSvg}</button>
@@ -6566,6 +6733,7 @@ async function onAddSubtask() {
     
     autoResize();
     input.focus({ preventScroll: true });
+    bindTitleFormattingShortcuts(input);
 
     requestAnimationFrame(() => {
         formItem.classList.add('entered');
@@ -6582,10 +6750,11 @@ async function onAddSubtask() {
     };
 
     const submit = async () => {
-        const title = input.value.trim();
-        if (!title) { cancel(); return; }
+        const rawTitle = input.value.trim();
+        if (!rawTitle) { cancel(); return; }
 
-        const linkMatch = title.match(/^\[(.*?)\]\(doe:\/\/task\/(\d+)\)$/) || title.match(/^doe:\/\/task\/(\d+)$/);
+        // Чистая ссылка на карточку — привязываем существующую задачу как подзадачу
+        const linkMatch = rawTitle.match(/^\[(.*?)\]\(doe:\/\/task\/(\d+)\)$/) || rawTitle.match(/^doe:\/\/task\/(\d+)$/);
         if (linkMatch) {
             const linkedTaskId = parseInt(linkMatch[2] || linkMatch[1]);
             
@@ -6654,6 +6823,9 @@ async function onAddSubtask() {
                 return;
             }
         }
+
+        // Убираем обрамляющие doe:// ссылки — в подзадачах они не нужны
+        const title = stripDoeTaskLinks(rawTitle);
 
         if (title.length > 1000) {
             if (!formItem.querySelector('.card-error-hint')) {

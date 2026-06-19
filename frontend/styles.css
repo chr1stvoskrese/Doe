@@ -2084,8 +2084,7 @@ body.is-dragging-card .column-header {
 }
 
 .tooltip-inner {
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
+    white-space: pre-wrap;
     overflow: hidden;
 }
 
@@ -3423,6 +3422,16 @@ body.is-dragging-modal * {
 .markdown-body p:last-child { margin-bottom: 0; }
 .markdown-body a { color: var(--brand-pine); text-decoration: none; }
 .markdown-body a:hover { text-decoration: underline; }
+.card-title a,
+.subtask-title a,
+#task-modal-title a,
+.breadcrumb-item a,
+.tooltip-inner a { color: var(--brand-pine); text-decoration: none; pointer-events: auto; }
+.card-title a:hover,
+.subtask-title a:hover,
+#task-modal-title a:hover,
+.breadcrumb-item a:hover,
+.tooltip-inner a:hover { text-decoration: underline; }
 .markdown-body ul, .markdown-body ol { margin-bottom: 16px; padding-left: 24px; }
 .markdown-body li { margin-bottom: 6px; }
 .markdown-body blockquote {
@@ -3440,6 +3449,13 @@ body.is-dragging-modal * {
     padding: 2px 6px;
     border-radius: 4px;
     font-size: 13px;
+}
+.tooltip-inner code {
+    font-family: var(--font-mono);
+    background: rgba(0, 0, 0, 0.05);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 12px;
 }
 
 .markdown-body hr {
@@ -3512,6 +3528,7 @@ body.is-dragging-modal * {
 .markdown-body pre code { background: transparent; padding: 0; }
 
 [data-theme="dark"] .markdown-body code { background: rgba(255, 255, 255, 0.1); }
+[data-theme="dark"] .tooltip-inner code { background: rgba(255, 255, 255, 0.1); }
 [data-theme="dark"] .markdown-body pre { background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-light); }
 
 .markdown-body pre {
@@ -3768,6 +3785,7 @@ body.is-dragging-modal * {
 .markdown-body {
     line-height: 1.2;
     user-select: text !important;
+    white-space: pre-wrap;
 }
 
 .description-input {
