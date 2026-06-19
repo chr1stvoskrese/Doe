@@ -7078,14 +7078,16 @@ input#notify-amount.notify-field::-webkit-inner-spin-button {
 #notify-modal .modal-card,
 #due-date-modal .modal-card,
 #font-settings-modal .modal-card,
-#automations-modal .modal-card {
+#automations-modal .modal-card,
+#move-modal .modal-card {
     overflow: visible !important;
 }
 
 #notify-modal .modal-header,
 #due-date-modal .modal-header,
 #font-settings-modal .modal-header,
-#automations-modal .modal-header {
+#automations-modal .modal-header,
+#move-modal .modal-header {
     border-top-left-radius: var(--radius-card) !important;
     border-top-right-radius: var(--radius-card) !important;
     padding: 12px !important;

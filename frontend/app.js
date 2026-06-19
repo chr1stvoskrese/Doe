@@ -25,7 +25,7 @@ const translations = {
             mode: 'Режим колонки', collapse: 'Свернуть колонку', rename: 'Переименовать', 
             delete: 'Удалить', clear: 'Очистить', open: 'Открыть', 
             deleteCard: 'Удалить карточку', clearTimer: 'Очистить таймер',
-            exportCard: 'Экспорт в Markdown', attachmentsSettings: 'Хранилище вложений', fontSettings: 'Шрифт',
+            exportCard: 'Экспорт в Markdown', moveCard: 'Переместить...', attachmentsSettings: 'Хранилище вложений', fontSettings: 'Шрифт',
             exportJson: 'Экспорт в JSON', importJson: 'Импорт из JSON',
             copyCardLink: 'Скопировать ссылку', dueDate: 'Установить дедлайн', clearDueDate: 'Очистить дедлайн', notify: 'Напомнить',
             reminders: 'Активные напоминания', remindersEmpty: 'Нет активных напоминаний', extensions: 'Расширения',
@@ -65,6 +65,7 @@ const translations = {
             attSelectBtn: 'Выбрать папку...',
             attWarning: 'При использовании внешней папки файлы не будут копироваться на флешку автоматически при переносе хранилища.',
             exportTitle: 'Экспорт карточки', exportIncludeAtt: 'Экспортировать с вложениями', exportIncludeCode: 'Экспортировать кодовую базу проекта', btnExport: 'Экспортировать',
+            moveTitle: 'Перемещение карточки', moveSelectCol: 'Вкладка и колонка', btnMove: 'Переместить',
             detachTitle: 'Отвязать карточку?', detachDesc: 'Эта карточка привязана к нескольким карточкам.',
             detachCurrent: 'Только от текущей карточки', detachAll: 'От всех карточек (сделать независимой)',
             // Автоматизации
@@ -233,7 +234,7 @@ const translations = {
             mode: 'Column mode', collapse: 'Collapse column', rename: 'Rename', 
             delete: 'Delete', clear: 'Clear', open: 'Open', 
             deleteCard: 'Delete card', clearTimer: 'Clear timer',
-            exportCard: 'Export to Markdown', attachmentsSettings: 'Attachments Storage', fontSettings: 'Font',
+            exportCard: 'Export to Markdown', moveCard: 'Move...', attachmentsSettings: 'Attachments Storage', fontSettings: 'Font',
             exportJson: 'Export to JSON', importJson: 'Import from JSON',
             copyCardLink: 'Copy link', dueDate: 'Set deadline', clearDueDate: 'Clear deadline', notify: 'Remind me',
             reminders: 'Active Reminders', remindersEmpty: 'No active reminders', extensions: 'Extensions',
@@ -273,6 +274,7 @@ const translations = {
             attSelectBtn: 'Choose folder...',
             attWarning: 'When using an external folder, files will not copy automatically if you move the vault to a USB drive.',
             exportTitle: 'Export Card', exportIncludeAtt: 'Export with attachments', exportIncludeCode: 'Export project codebase', btnExport: 'Export',
+            moveTitle: 'Move Card', moveSelectCol: 'Tab and Column', btnMove: 'Move',
             detachTitle: 'Detach card?', detachDesc: 'This card is attached to multiple cards.',
             detachCurrent: 'Only from current card', detachAll: 'From all cards (make independent)',
             // Automations
@@ -4891,6 +4893,9 @@ document.addEventListener('click', async (e) => {
                         console.error("Failed to copy link: ", err);
                     }
                 }
+                else if (action === 'move-card-menu') {
+                    openMoveTaskModal(taskId);
+                }
                 else if (action === 'export-card') {
                     if (window.pywebview && window.pywebview.api && window.pywebview.api.choose_directory) {
                         const exportModal = document.getElementById('export-modal');
@@ -5235,7 +5240,7 @@ document.addEventListener('click', async (e) => {
         if (!modalToClose) return;
 
         // Запрещаем закрывать по клику на фон все модалки с формами ввода
-        const nonDismissibleModals = ['task-modal', 'font-settings-modal', 'due-date-modal', 'notify-modal', 'priority-modal', 'priority-settings-modal'];
+        const nonDismissibleModals = ['task-modal', 'font-settings-modal', 'due-date-modal', 'notify-modal', 'priority-modal', 'priority-settings-modal', 'move-modal'];
         if (nonDismissibleModals.includes(modalToClose.id) && isOverlayClick) {
             return; 
         }
@@ -6957,6 +6962,45 @@ function initTaskDescriptionLogic() {
 
     let lastSavedValue = "";
 
+    const toggleFormat = (cm, syntaxBefore, syntaxAfter) => {
+        const selection = cm.getSelection();
+        if (selection) {
+            // Если выделение уже обёрнуто в этот синтаксис, удаляем его (Unwrap)
+            if (selection.startsWith(syntaxBefore) && selection.endsWith(syntaxAfter)) {
+                const unwrapped = selection.substring(syntaxBefore.length, selection.length - syntaxAfter.length);
+                cm.replaceSelection(unwrapped);
+            } else {
+                // Иначе оборачиваем выделенный фрагмент (Wrap)
+                cm.replaceSelection(syntaxBefore + selection + syntaxAfter);
+            }
+        } else {
+            // Если ничего не выделено, вставляем пустые маркеры и ставим курсор между ними
+            const cursor = cm.getCursor();
+            cm.replaceSelection(syntaxBefore + syntaxAfter);
+            cm.setCursor({ line: cursor.line, ch: cursor.ch + syntaxBefore.length });
+        }
+    };
+
+    const insertLink = (cm) => {
+        const selection = cm.getSelection();
+        if (selection) {
+            // Оборачиваем выделенный текст в ссылку с плейсхолдером (url)
+            cm.replaceSelection(`[${selection}](url)`);
+            const cursor = cm.getCursor();
+            const endCh = cursor.ch;
+            // Автоматически выделяем слово "url", чтобы его можно было сразу заменить вставкой ссылки (Ctrl+V)
+            cm.setSelection(
+                { line: cursor.line, ch: endCh - 4 },
+                { line: cursor.line, ch: endCh - 1 }
+            );
+        } else {
+            // Если ничего не выделено, вставляем пустой шаблон ссылки и ставим курсор в скобки названия
+            const cursor = cm.getCursor();
+            cm.replaceSelection("[](url)");
+            cm.setCursor({ line: cursor.line, ch: cursor.ch + 1 });
+        }
+    };
+
     if (!cmEditor && window.CodeMirror) {
         cmEditor = CodeMirror.fromTextArea(inputArea, {
             lineWrapping: true,      
@@ -6969,7 +7013,31 @@ function initTaskDescriptionLogic() {
             // Перехватываем Cmd+F / Ctrl+F внутри редактора
             extraKeys: {
                 "Cmd-F": (cm) => { if (window.openLocalSearch) window.openLocalSearch(); },
-                "Ctrl-F": (cm) => { if (window.openLocalSearch) window.openLocalSearch(); }
+                "Ctrl-F": (cm) => { if (window.openLocalSearch) window.openLocalSearch(); },
+                
+                // Жирный текст (Bold)
+                "Cmd-B": (cm) => toggleFormat(cm, "**", "**"),
+                "Ctrl-B": (cm) => toggleFormat(cm, "**", "**"),
+                
+                // Курсив (Italic)
+                "Cmd-I": (cm) => toggleFormat(cm, "*", "*"),
+                "Ctrl-I": (cm) => toggleFormat(cm, "*", "*"),
+                
+                // Подчеркивание (Underline через HTML тег <u>)
+                "Cmd-U": (cm) => toggleFormat(cm, "<u>", "</u>"),
+                "Ctrl-U": (cm) => toggleFormat(cm, "<u>", "</u>"),
+                
+                // Зачеркнутый (Strikethrough)
+                "Shift-Cmd-X": (cm) => toggleFormat(cm, "~~", "~~"),
+                "Shift-Ctrl-X": (cm) => toggleFormat(cm, "~~", "~~"),
+                
+                // Моноширинный (Monospace / Inline code)
+                "Cmd-E": (cm) => toggleFormat(cm, "`", "`"),
+                "Ctrl-E": (cm) => toggleFormat(cm, "`", "`"),
+                
+                // Ссылка (Link)
+                "Cmd-K": (cm) => insertLink(cm),
+                "Ctrl-K": (cm) => insertLink(cm)
             }
         });
         cmEditor.getWrapperElement().style.display = 'none';
@@ -12795,6 +12863,63 @@ const Calendar = {
 document.addEventListener('DOMContentLoaded', () => {
     Calendar.init();
 });
+
+async function openMoveTaskModal(taskId) {
+    const modal = document.getElementById('move-modal');
+    modal.dataset.taskId = taskId;
+    const select = document.getElementById('move-column-select');
+    
+    // Временно удаляем кастомную обертку (если была сгенерирована), чтобы обновить данные
+    if (select._customUI) {
+        select._customUI.wrapper.remove();
+        select._customUI = null;
+        select.style.display = '';
+    }
+
+    select.innerHTML = `<option value="">${t('loading')}</option>`;
+    modal.classList.add('show');
+    
+    try {
+        let optionsHtml = '';
+        // Собираем колонки со ВСЕХ вкладок текущего хранилища
+        for (const ws of state.workspaces) {
+            const cols = await fetchColumns(ws.id);
+            for (const col of cols) {
+                // Отображаем в формате "Вкладка → Колонка"
+                optionsHtml += `<option value="${col.id}">${escapeHtml(ws.name)} → ${escapeHtml(col.title)}</option>`;
+            }
+        }
+        select.innerHTML = optionsHtml;
+        syncCustomSelect(select); // Оживляем наш нативный кастомный селект
+    } catch (e) {
+        console.error(e);
+        window.showToast(t('alerts.error'), currentLang === 'ru' ? 'Не удалось загрузить колонки' : 'Failed to load columns', true);
+    }
+
+    const applyBtn = document.getElementById('btn-apply-move');
+    const newApplyBtn = applyBtn.cloneNode(true);
+    applyBtn.replaceWith(newApplyBtn);
+
+    newApplyBtn.onclick = async () => {
+        const targetColId = parseInt(select.value);
+        if (!targetColId || isNaN(targetColId)) return;
+        
+        newApplyBtn.disabled = true;
+        newApplyBtn.style.opacity = '0.5';
+        
+        try {
+            await moveTask(taskId, targetColId);
+            modal.classList.remove('show');
+            await refreshBoard(); // Полная перерисовка стянет все изменения и корректно отобразит, если перенос был на другой экран
+            window.showToast(currentLang === 'ru' ? 'Успех' : 'Success', currentLang === 'ru' ? 'Карточка перемещена' : 'Card moved');
+        } catch (e) {
+            window.showToast(t('alerts.error'), currentLang === 'ru' ? 'Не удалось переместить' : 'Failed to move', true);
+        } finally {
+            newApplyBtn.disabled = false;
+            newApplyBtn.style.opacity = '1';
+        }
+    };
+}
 
 function openSortModal(columnId) {
     const modal = document.getElementById('sort-modal');

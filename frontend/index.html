@@ -639,6 +639,10 @@
         <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         <span data-i18n="menu.exportCard">Экспорт в Markdown</span>
     </div>
+    <div class="menu-item" data-action="move-card-menu">
+        <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><polyline points="12 5 19 12 12 19"/></svg>
+        <span data-i18n="menu.moveCard">Переместить...</span>
+    </div>
     <div class="menu-item" data-action="set-priority" id="menu-set-priority">
         <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
         <span data-i18n="menu.priority">Приоритетность</span>
@@ -999,6 +1003,27 @@
         </div>
     </div>
 </div>
+<!-- 🚚 МОДАЛКА ПЕРЕМЕЩЕНИЯ КАРТОЧКИ -->
+<div class="modal-overlay" id="move-modal">
+    <div class="modal-card" style="width: 320px;">
+        <div class="modal-header">
+            <span class="modal-title" data-i18n="modals.moveTitle">Перемещение карточки</span>
+            <button class="modal-close" aria-label="Закрыть">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+        </div>
+        <div class="modal-body" style="padding: 16px; gap: 12px;">
+            <div class="settings-group-card" style="padding: 12px; display: flex; flex-direction: column; gap: 4px; overflow: visible;">
+                <label for="move-column-select" style="font-size: 11px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;" data-i18n="modals.moveSelectCol">Вкладка и колонка</label>
+                <select id="move-column-select" class="setting-input custom-select-arrow"></select>
+            </div>
+            <div class="confirm-actions" style="padding: 0; margin-top: 8px;">
+                <button class="confirm-btn vault-submit-btn" id="btn-apply-move" style="color:white;" data-i18n="modals.btnMove">Переместить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- 🗂 МОДАЛКА СОРТИРОВКИ КОЛОНКИ -->
 <div class="modal-overlay" id="sort-modal">
     <div class="modal-card" style="width: 320px;">
