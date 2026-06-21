@@ -226,6 +226,15 @@
             </svg>
         </button>
 
+        <!-- КНОПКА СТАТИСТИКИ -->
+        <button class="icon-btn" id="statistics-trigger" aria-label="Статистика">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="20" x2="18" y2="10"></line>
+                <line x1="12" y1="20" x2="12" y2="4"></line>
+                <line x1="6" y1="20" x2="6" y2="14"></line>
+            </svg>
+        </button>
+
         <!-- НОВЫЙ БЛОК ПОИСКА -->
         <div class="search-wrapper" id="global-search-wrapper">
             <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
@@ -799,6 +808,83 @@
     </div>
 </div>
 
+<!-- 📊 МОДАЛКА СТАТИСТИКИ (PRO) -->
+<div class="modal-overlay" id="statistics-modal">
+    <div class="modal-card" style="width: 520px;">
+        <div class="modal-header" style="justify-content: center; position: relative;">
+            <div class="stats-nav">
+                <button class="icon-btn" id="stats-prev-btn" title="Прошлая неделя">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                </button>
+                <span class="modal-title" id="stats-date-label" style="min-width: 140px; text-align: center; font-variant-numeric: tabular-nums;">Загрузка...</span>
+                <!-- Кнопка скрыта по умолчанию (visibility: hidden сохраняет ширину, центрируя заголовок) -->
+                <button class="icon-btn" id="stats-next-btn" title="Следующая неделя" style="visibility: hidden;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </button>
+            </div>
+            
+            <button class="modal-close" aria-label="Закрыть" style="position: absolute; right: 16px;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+        </div>
+        <!-- Обнуляем нижний padding у родителя (0 20px) и переносим его в дочерний элемент -->
+        <div class="modal-body" style="padding: 20px 20px 0 20px; gap: 16px; max-height: 80vh; overflow-y: auto;">
+            <div id="stats-loading" style="text-align: center; color: var(--text-secondary); font-size: 13px; padding: 40px;" data-i18n="loading">Загрузка данных...</div>
+            
+            <!-- Строго 20px снизу — это решит проблему скролла и уберет лишний воздух в большом окне -->
+            <div id="stats-content" class="stats-content" style="display: none; flex-direction: column; gap: 20px; padding-bottom: 20px;">
+                
+                <!-- Умный Инсайт -->
+                <div class="stats-insight-box" id="stats-insight">
+                    ✨ Инсайт: Вы были на 20% продуктивнее, чем на прошлой неделе.
+                </div>
+
+                <!-- Карточки с метриками -->
+                <div class="stats-metrics-grid">
+                    <div class="stats-metric-card">
+                        <div class="stats-metric-header">
+                            <span class="stats-metric-label" data-i18n="stats.timeTracked">В фокусе</span>
+                            <span class="stats-trend" id="stat-trend-time" style="display: none;">0%</span>
+                        </div>
+                        <div class="stats-metric-value" id="stat-val-time">0ч 0м</div>
+                    </div>
+                    
+                    <div class="stats-metric-card">
+                        <div class="stats-metric-header">
+                            <span class="stats-metric-label" data-i18n="stats.tasksDone">Завершено</span>
+                            <span class="stats-trend" id="stat-trend-done" style="display: none;">0%</span>
+                        </div>
+                        <div class="stats-metric-value" id="stat-val-done">0</div>
+                    </div>
+
+                    <div class="stats-metric-card">
+                        <div class="stats-metric-header">
+                            <span class="stats-metric-label" data-i18n="stats.overdue">Просрочено</span>
+                        </div>
+                        <div class="stats-metric-value" id="stat-val-overdue" style="color: #D35446;">0</div>
+                    </div>
+                </div>
+
+                <!-- График активности -->
+                <div style="padding: 8px 0;">
+                    <div class="setting-title" style="margin-bottom: 20px; text-align: center;" data-i18n="stats.activityChart">Активность по дням</div>
+                    <div class="stats-chart" id="stats-activity-chart">
+                        <!-- Бары генерируются JS -->
+                    </div>
+                </div>
+
+                <!-- Топ задач по времени -->
+                <div>
+                    <div class="setting-title" id="stats-top-title-el" style="margin-bottom: 12px; margin-left: 4px;" data-i18n="stats.topTasks">Куда ушло время</div>
+                    <div id="stats-top-tasks" style="display: flex; flex-direction: column; gap: 8px;">
+                        <!-- Элементы генерируются JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- 🕸️ МОДАЛКА ГРАФА СВЯЗЕЙ -->
 <div class="modal-overlay" id="graph-modal">
     <div class="modal-card graph-card">
@@ -990,6 +1076,16 @@
                     </div>
                     <label class="toggle-switch">
                         <input type="checkbox" id="ext-toggle-automations" onchange="toggleExtension('automations', this.checked)">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                
+                <div class="setting-row" style="cursor: default;">
+                    <div class="setting-text-box">
+                        <div class="setting-title" data-i18n="modals.extStatistics">Статистика</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="ext-toggle-statistics" onchange="toggleExtension('statistics', this.checked)">
                         <span class="toggle-slider"></span>
                     </label>
                 </div>

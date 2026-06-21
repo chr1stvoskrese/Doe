@@ -34,8 +34,19 @@ const translations = {
         },
         copied: 'Скопировано!',
         sort: { created: 'По дате создания', updated: 'По дате изменения', priority: 'По приоритетности', deadline: 'По дедлайну', asc: 'По возрастанию', desc: 'По убыванию', apply: 'Применить' },
+        stats: {
+            title: 'Статистика', tasksDone: 'Завершено', timeTracked: 'В фокусе', overdue: 'Просрочено',
+            activityChart: 'Активность по дням', topTasks: 'Куда ушло время', dayTasks: (day) => `Куда ушло время (${day})`,
+            emptyTop: 'На этой неделе вы еще не трекали время. Пора за работу!',
+            emptyDay: 'В этот день активности не было',
+            tooltip: (done, time) => `Завершено задач: ${done}\nВ фокусе: ${time}`,
+            insightPositive: (pct, day) => `Отлично! Вы были на ${pct}% продуктивнее, чем на прошлой неделе. Самый мощный день — ${day}.`,
+            insightNegative: (pct, day) => `Продуктивность снизилась на ${Math.abs(pct)}% по сравнению с прошлой неделей. Но ${day} вы поработали хорошо.`,
+            insightNeutral: (day) => `Стабильная неделя. Больше всего времени вы были в фокусе в ${day}.`,
+            insightEmpty: 'Трекайте время и закрывайте задачи, чтобы собрать аналитику.'
+        },
         modals: { 
-            extTitle: 'Расширения', extSearch: 'Поиск', extCalendar: 'Календарь', extReminders: 'Напоминания', extGraph: 'Граф связей', extTabs: 'Вкладки', extDeadlines: 'Дедлайны', extExport: 'Экспорт карточек', extPriority: 'Приоритетность', extAi: 'ИИ-ассистент', sortTitle: 'Сортировка',
+            extTitle: 'Расширения', extSearch: 'Поиск', extCalendar: 'Календарь', extReminders: 'Напоминания', extGraph: 'Граф связей', extTabs: 'Вкладки', extDeadlines: 'Дедлайны', extExport: 'Экспорт карточек', extPriority: 'Приоритетность', extAi: 'ИИ-ассистент', extStatistics: 'Статистика', sortTitle: 'Сортировка',
             priorityTitle: 'Приоритетность', prioC: 'Одобренная ценность (через год)', prioD: 'Шанс успеха', prioA: 'Фоновая грызня (висит грузом)', prioB: 'Боль процесса', prioE: 'Затянутость', prioResult: 'Итоговая приоритетность:', btnClear: 'Очистить',
             prioSettingsTitle: 'Приоритетность', // <--- ДОБАВЛЕНО
             prioSettingsDesc: 'Настройте границы, цвета и эмодзи', // <--- ДОБАВЛЕНО
@@ -243,8 +254,19 @@ const translations = {
         },
         copied: 'Copied!',
         sort: { created: 'By creation date', updated: 'By modification date', priority: 'By priority', deadline: 'By deadline', asc: 'Ascending', desc: 'Descending', apply: 'Apply' },
+        stats: {
+            title: 'Statistics', tasksDone: 'Done', timeTracked: 'In Focus', overdue: 'Overdue',
+            activityChart: 'Daily Activity', topTasks: 'Where time went', dayTasks: (day) => `Where time went (${day})`,
+            emptyTop: 'You haven\'t tracked any time this week. Let\'s get to work!',
+            emptyDay: 'No activity on this day',
+            tooltip: (done, time) => `Tasks done: ${done}\nTime spent: ${time}`,
+            insightPositive: (pct, day) => `Great job! You were ${pct}% more productive than last week. Your best day was ${day}.`,
+            insightNegative: (pct, day) => `Productivity dropped by ${Math.abs(pct)}% compared to last week. But you did well on ${day}.`,
+            insightNeutral: (day) => `A stable week. You focused the most on ${day}.`,
+            insightEmpty: 'Track your time and complete tasks to build analytics.'
+        },
         modals: { 
-            extTitle: 'Extensions', extSearch: 'Search', extCalendar: 'Calendar', extReminders: 'Reminders', extGraph: 'Connections Graph', extTabs: 'Tabs', extDeadlines: 'Deadlines', extExport: 'Card Export', extPriority: 'Priority', extAi: 'AI-assistant', sortTitle: 'Sorting',
+            extTitle: 'Extensions', extSearch: 'Search', extCalendar: 'Calendar', extReminders: 'Reminders', extGraph: 'Connections Graph', extTabs: 'Tabs', extDeadlines: 'Deadlines', extExport: 'Card Export', extPriority: 'Priority', extAi: 'AI-assistant', extStatistics: 'Statistics', sortTitle: 'Sorting',
             priorityTitle: 'Priority', prioC: 'Approved value (in a year)', prioD: 'Chance of success', prioA: 'Background gnawing (weighs heavy)', prioB: 'Pain of the process', prioE: 'Protraction', prioResult: 'Total Priority:', btnClear: 'Clear',
             prioSettingsTitle: 'Priority',
             prioSettingsDesc: 'Configure thresholds, colors and emojis',
@@ -536,7 +558,7 @@ window.resetCustomFont = async () => {
 };
 
 window.applyExtensionsUI = (exts) => {
-    if (!exts) exts = { search: true, calendar: true, reminders: true, graph: true, tabs: true, deadlines: true, export: true, priority: true, ai: true, automations: true };
+    if (!exts) exts = { search: true, calendar: true, reminders: true, graph: true, tabs: true, deadlines: true, export: true, priority: true, ai: true, automations: true, statistics: true };
     
     // Скрываем или показываем UI дедлайнов глобально через CSS-класс
     document.body.classList.toggle('ext-deadlines-hidden', !exts.deadlines);
@@ -547,15 +569,18 @@ window.applyExtensionsUI = (exts) => {
     // Скрываем AI
     document.body.classList.toggle('ext-ai-hidden', !exts.ai);
     document.body.classList.toggle('ext-automations-hidden', !exts.automations);
+    document.body.classList.toggle('ext-statistics-hidden', !exts.statistics);
     
     const searchWrapper = document.getElementById('global-search-wrapper');
     const calendarBtn = document.getElementById('calendar-trigger');
+    const statisticsBtn = document.getElementById('statistics-trigger');
     const remindersBtn = document.getElementById('reminders-bell-wrapper');
     const graphBtn = document.getElementById('graph-trigger');
     const tabsWrapper = document.getElementById('tabs-wrapper');
 
     if (searchWrapper) searchWrapper.style.display = exts.search ? '' : 'none';
     if (calendarBtn) calendarBtn.style.display = exts.calendar ? '' : 'none';
+    if (statisticsBtn) statisticsBtn.style.display = exts.statistics ? '' : 'none';
     if (remindersBtn) remindersBtn.style.display = exts.reminders ? '' : 'none';
     if (graphBtn) graphBtn.style.display = exts.graph ? '' : 'none';
     if (tabsWrapper) tabsWrapper.style.display = exts.tabs ? '' : 'none';
@@ -585,6 +610,7 @@ window.applyExtensionsUI = (exts) => {
     const tPriority = document.getElementById('ext-toggle-priority');
     const tAi = document.getElementById('ext-toggle-ai');
     const tAutomations = document.getElementById('ext-toggle-automations');
+    const tStatistics = document.getElementById('ext-toggle-statistics');
 
     if (tSearch) tSearch.checked = exts.search;
     if (tCalendar) tCalendar.checked = exts.calendar;
@@ -596,6 +622,7 @@ window.applyExtensionsUI = (exts) => {
     if (tPriority) tPriority.checked = exts.priority;
     if (tAi) tAi.checked = exts.ai;
     if (tAutomations) tAutomations.checked = exts.automations;
+    if (tStatistics) tStatistics.checked = exts.statistics;
 };
 
 window.toggleExtension = async (key, value) => {
@@ -1356,6 +1383,7 @@ function bindTitleFormattingShortcuts(inputEl) {
             inputEl.setRangeText(before + after, start, end, 'start');
             inputEl.setSelectionRange(start + before.length, start + before.length);
         }
+        inputEl.dispatchEvent(new Event('input', { bubbles: true }));
     };
     const insertLink = () => {
         const start = inputEl.selectionStart;
@@ -1369,6 +1397,7 @@ function bindTitleFormattingShortcuts(inputEl) {
             inputEl.setRangeText('[](url)', start, end, 'start');
             inputEl.setSelectionRange(start + 1, start + 1);
         }
+        inputEl.dispatchEvent(new Event('input', { bubbles: true }));
     };
     inputEl.addEventListener('keydown', (e) => {
         const mod = e.metaKey || e.ctrlKey;
@@ -4625,8 +4654,14 @@ document.addEventListener('click', async (e) => {
                             document.getElementById('task-modal').classList.add('show');
                         });
                 }
+            } else if (href && (href.startsWith('doe/') || href.startsWith('/doe/'))) {
+                e.preventDefault();
+                const cleanHref = href.startsWith('/') ? href.slice(1) : href;
+                fetch(`${API_BASE}/system/open-file`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({path: decodeURIComponent(cleanHref)}) });
+            } else if (href) {
+                e.preventDefault();
+                fetch(`${API_BASE}/system/open-link`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({url: href}) });
             }
-            // Внешние ссылки — даём браузеру обработать, stopPropagation уже сделан
             return;
         }
     }
@@ -7358,6 +7393,7 @@ function initTaskDescriptionLogic() {
             if (placeholderRange) {
                 cmEditor.replaceRange(finalMarkdown, placeholderRange.from, placeholderRange.to);
             }
+            refreshAttachmentsList();
         } catch (err) {
             if (placeholderRange) {
                 cmEditor.replaceRange(`${prefix}[❌ Ошибка: ${fileName}]()`, placeholderRange.from, placeholderRange.to);
@@ -8183,6 +8219,7 @@ function createAttachmentElement(att) {
 
                 if (isEditMode) {
                     cmEditor.focus();
+                    refreshAttachmentsList();
                 } else {
                     // Режим чтения: сохраняем описание и перерендериваем.
                     const taskId = parseInt(document.getElementById('task-modal').dataset.taskId);
@@ -8218,7 +8255,8 @@ function createAttachmentElement(att) {
 
                         const attachmentsList = document.getElementById('attachments-list');
                         const attachmentsCount = document.getElementById('attachments-count');
-                        const extracted = extractAttachments(newText, []);
+                        const currentOrder = Array.from(document.querySelectorAll('#attachments-list .attachment-item')).map(el => el.dataset.path);
+                        const extracted = extractAttachments(newText, currentOrder);
                         const enriched = await enrichAttachments(extracted);
                         if (attachmentsCount) attachmentsCount.textContent = enriched.length;
                         if (attachmentsList) {
@@ -8236,7 +8274,25 @@ function createAttachmentElement(att) {
     return div;
 }
 
-function replaceBrokenAttachment(att, newData) {
+async function refreshAttachmentsList() {
+    const attachmentsList = document.getElementById('attachments-list');
+    const attachmentsCount = document.getElementById('attachments-count');
+    if (!attachmentsList || !attachmentsCount) return;
+
+    const taskId = parseInt(document.getElementById('task-modal').dataset.taskId);
+    if (!taskId) return;
+
+    const desc = cmEditor ? cmEditor.getValue() : '';
+    const currentOrder = Array.from(document.querySelectorAll('#attachments-list .attachment-item')).map(el => el.dataset.path);
+    const extracted = extractAttachments(desc, currentOrder);
+    const enriched = await enrichAttachments(extracted);
+
+    attachmentsCount.textContent = enriched.length;
+    attachmentsList.innerHTML = '';
+    enriched.forEach(att => attachmentsList.appendChild(createAttachmentElement(att)));
+}
+
+async function replaceBrokenAttachment(att, newData) {
     const isEditMode = document.getElementById('task-desc-render').style.display === 'none';
 
     const encodedNewPath = encodeMarkdownPath(newData.path);
@@ -8257,8 +8313,43 @@ function replaceBrokenAttachment(att, newData) {
     
     if (isEditMode) {
         cmEditor.focus();
+        refreshAttachmentsList();
     } else {
-        cmEditor.getInputField().blur(); 
+        // Режим чтения: сохраняем и перерендериваем
+        const taskId = parseInt(document.getElementById('task-modal').dataset.taskId);
+        if (taskId) {
+            const newText = cmEditor.getValue();
+            try {
+                await fetch(`${API_BASE}/tasks/${taskId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ description: newText })
+                });
+                bumpModalUpdatedDate();
+                for (let col of state.columns) {
+                    let t = col.tasks.find(t => t.id == taskId);
+                    if (t) { t.description = newText; break; }
+                }
+            } catch (err) {
+                console.error('Failed to save after attachment relink:', err);
+            }
+
+            const renderDiv = document.getElementById('task-desc-render');
+            const cleanRegex = /(!?)\[[^\]]+\]\(doe\/[^)]+\)!\s*/g;
+            const cleanContent = newText.replace(cleanRegex, '');
+            if (cleanContent.trim()) {
+                renderMarkdownProgressively(cleanContent, renderDiv, {
+                    onComplete: () => {
+                        initHeadingFolding(renderDiv, []);
+                        applyTextExpansion();
+                    }
+                });
+            } else {
+                renderDiv.innerHTML = `<span class="markdown-empty">${t('taskModal.descPlaceholder')}</span>`;
+                applyTextExpansion();
+            }
+            refreshAttachmentsList();
+        }
     }
 }
 
@@ -8286,15 +8377,60 @@ function appendAttachmentToDescription(name, path) {
         const insertText = `${pfx}${attachmentMarkdown}\n`;
         cmEditor.replaceSelection(insertText);
         cmEditor.focus();
+        refreshAttachmentsList();
     } else {
-        const text = cmEditor.getValue();
-        let pfx = "";
-        if (text.trim() !== "") {
-            if (text.endsWith('\n')) pfx = "\n";
-            else pfx = "\n\n";
-        }
-        cmEditor.setValue(text + pfx + attachmentMarkdown);
-        cmEditor.getInputField().blur(); 
+        (async () => {
+            const text = cmEditor.getValue();
+            let pfx = "";
+            if (text.trim() !== "") {
+                if (text.endsWith('\n')) pfx = "\n";
+                else pfx = "\n\n";
+            }
+            cmEditor.setValue(text + pfx + attachmentMarkdown);
+
+            // Сохраняем и обновляем UI (read-режим)
+            const taskId = parseInt(document.getElementById('task-modal').dataset.taskId);
+            if (!taskId) return;
+            const newText = cmEditor.getValue();
+            const currentOrder = Array.from(document.querySelectorAll('#attachments-list .attachment-item')).map(el => el.dataset.path);
+            const extracted = extractAttachments(newText, currentOrder);
+            const newOrderPaths = extracted.map(a => a.path);
+
+            try {
+                await fetch(`${API_BASE}/tasks/${taskId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ description: newText, attachments_order: newOrderPaths })
+                });
+                bumpModalUpdatedDate();
+                for (let col of state.columns) {
+                    let t = col.tasks.find(t => t.id == taskId);
+                    if (t) { t.description = newText; t.attachments_order = newOrderPaths; break; }
+                }
+            } catch (err) {
+                console.error('Failed to save after attachment add:', err);
+            }
+
+            const renderedAtts = await enrichAttachments(extracted);
+            const attachmentsList = document.getElementById('attachments-list');
+            const attachmentsCount = document.getElementById('attachments-count');
+            if (attachmentsCount) attachmentsCount.textContent = renderedAtts.length;
+            if (attachmentsList) {
+                attachmentsList.innerHTML = '';
+                renderedAtts.forEach(att => attachmentsList.appendChild(createAttachmentElement(att)));
+            }
+
+            const cleanRegex = /(!?)\[[^\]]+\]\(doe\/[^)]+\)!\s*/g;
+            const cleanContent = newText.replace(cleanRegex, '');
+            if (cleanContent.trim()) {
+                renderMarkdownProgressively(cleanContent, renderDiv, {
+                    onComplete: () => { initHeadingFolding(renderDiv, []); applyTextExpansion(); }
+                });
+            } else {
+                renderDiv.innerHTML = `<span class="markdown-empty">${t('taskModal.descPlaceholder')}</span>`;
+                applyTextExpansion();
+            }
+        })();
     }
 }
 
@@ -11516,6 +11652,245 @@ document.getElementById('graph-trigger')?.addEventListener('click', (e) => {
     closeAllDropdowns();
     openGraphModal();
 });
+
+// ═══════════════════════════════════════════════
+//  СТАТИСТИКА (PRO)
+// ═══════════════════════════════════════════════
+let statsWeekOffset = 0;
+
+document.getElementById('statistics-trigger')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    closeAllDropdowns();
+    statsWeekOffset = 0; // При открытии всегда сбрасываем на текущую неделю
+    openStatisticsModal();
+});
+
+document.getElementById('stats-prev-btn')?.addEventListener('click', () => {
+    statsWeekOffset++;
+    openStatisticsModal();
+});
+
+document.getElementById('stats-next-btn')?.addEventListener('click', () => {
+    if (statsWeekOffset > 0) {
+        statsWeekOffset--;
+        openStatisticsModal();
+    }
+});
+
+async function openStatisticsModal() {
+    const modal = document.getElementById('statistics-modal');
+    const loading = document.getElementById('stats-loading');
+    const content = document.getElementById('stats-content');
+    
+    modal.classList.add('show');
+    
+    // Скрываем кнопку Вперед, если мы на текущей неделе (будущее еще не наступило)
+    const nextBtn = document.getElementById('stats-next-btn');
+    if (statsWeekOffset === 0) {
+        nextBtn.style.visibility = 'hidden';
+    } else {
+        nextBtn.style.visibility = 'visible';
+    }
+    
+    // Анимация затухания старых данных
+    if (content.style.display === 'flex') {
+        content.style.opacity = '0.4';
+        content.style.pointerEvents = 'none';
+    } else {
+        loading.style.display = 'block';
+    }
+    
+    try {
+        const res = await fetch(`${API_BASE}/system/statistics?offset_weeks=${statsWeekOffset}`);
+        if (!res.ok) throw new Error("Failed to fetch stats");
+        const data = await res.json();
+        
+        document.getElementById('stats-date-label').textContent = data.date_range_label;
+        
+        // Значения верхнего ряда
+        document.getElementById('stat-val-done').textContent = data.total_done;
+        
+        let h = Math.floor(data.total_time / 3600);
+        let m = Math.floor((data.total_time % 3600) / 60);
+        document.getElementById('stat-val-time').textContent = h > 0 ? `${h}${t('timeUnits.h')} ${m}${t('timeUnits.m')}` : `${m}${t('timeUnits.m')}`;
+        
+        document.getElementById('stat-val-overdue').textContent = data.overdue_count;
+        
+        // Функция для рендера бейджей трендов
+        const applyTrend = (elId, pct, currentTotal) => {
+            const el = document.getElementById(elId);
+            if (!el) return;
+            if (currentTotal === 0 && pct === 0) {
+                el.style.display = 'none';
+            } else {
+                el.style.display = 'block';
+                if (pct > 0) {
+                    el.textContent = `+${pct}%`;
+                    el.className = 'stats-trend positive';
+                } else if (pct < 0) {
+                    el.textContent = `${pct}%`;
+                    el.className = 'stats-trend negative';
+                } else {
+                    el.textContent = `0%`;
+                    el.className = 'stats-trend neutral';
+                }
+            }
+        };
+
+        // Применяем тренды для Времени и Завершенных задач
+        applyTrend('stat-trend-time', data.trend_time_pct, data.total_time);
+        applyTrend('stat-trend-done', data.trend_done_pct, data.total_done);
+
+        // Инсайт
+        const insightEl = document.getElementById('stats-insight');
+        const fullDayNamesRu = ['в Понедельник', 'во Вторник', 'в Среду', 'в Четверг', 'в Пятницу', 'в Субботу', 'в Воскресенье'];
+        const fullDayNamesEn = ['on Monday', 'on Tuesday', 'on Wednesday', 'on Thursday', 'on Friday', 'on Saturday', 'on Sunday'];
+        const fullDayNames = currentLang === 'ru' ? fullDayNamesRu : fullDayNamesEn;
+        
+        if (data.total_time === 0) {
+            insightEl.textContent = `💡 ${t('stats.insightEmpty')}`;
+        } else {
+            const bestDayName = data.best_day !== null ? fullDayNames[data.best_day] : '';
+            if (data.trend_time_pct > 0) {
+                insightEl.textContent = `✨ ${t('stats.insightPositive', data.trend_time_pct, bestDayName)}`;
+            } else if (data.trend_time_pct < 0) {
+                insightEl.textContent = `📉 ${t('stats.insightNegative', data.trend_time_pct, bestDayName)}`;
+            } else {
+                insightEl.textContent = `⚖️ ${t('stats.insightNeutral', bestDayName)}`;
+            }
+        }
+        
+        // Вспомогательная функция для рендера списка задач (Топ недели или Топ дня)
+        const topContainer = document.getElementById('stats-top-tasks');
+        const topTitleEl = document.getElementById('stats-top-title-el');
+        
+        const renderTasksList = (title, tasks, emptyMsg) => {
+            topTitleEl.textContent = title;
+            topContainer.innerHTML = '';
+            
+            if (tasks.length === 0) {
+                // Раскладываем паддинги (20px сверху, 12px снизу) для идеальной симметрии в 32px
+                topContainer.innerHTML = `<div style="font-size: 13px; color: var(--text-secondary); opacity: 0.7; text-align: center; padding: 20px 16px 12px;">${emptyMsg}</div>`;
+                return;
+            }
+            
+            tasks.forEach(task => {
+                const timeFormatted = formatDetailedDuration(task.time_spent);
+                topContainer.innerHTML += `
+                    <div class="stats-top-item" onclick="document.getElementById('statistics-modal').classList.remove('show'); loadTaskIntoModal(${task.id}, true); document.getElementById('task-modal').classList.add('show');">
+                        <div class="stats-top-header">
+                            <div class="stats-top-title">${escapeHtml(task.title)}</div>
+                            <div class="stats-top-time">${timeFormatted}</div>
+                        </div>
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 4px;">
+                            <div class="stats-top-progress-bg">
+                                <div class="stats-top-progress-fill" style="width: 0%;" data-target="${task.percentage}%"></div>
+                            </div>
+                            <div class="stats-top-pct" style="margin-left: auto;">${task.percentage}%</div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            // Анимация прогресс-баров для свежеотрисованного списка
+            setTimeout(() => {
+                topContainer.querySelectorAll('.stats-top-progress-fill').forEach(fill => fill.style.width = fill.dataset.target);
+            }, 50);
+        };
+
+        // Рендер графика
+        const chartContainer = document.getElementById('stats-activity-chart');
+        chartContainer.innerHTML = '';
+        
+        let maxTime = Math.max(...data.chart_data.map(d => d.time_spent));
+        if (maxTime === 0) maxTime = 1; 
+        
+        const daysShort = currentLang === 'ru' ? ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'] : ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+        
+        data.chart_data.forEach((day, index) => {
+            // Если времени 0, высота строго 0%, иначе минимум 2% для красоты
+            const pct = day.time_spent === 0 ? 0 : Math.max(2, Math.round((day.time_spent / maxTime) * 100)); 
+            const timeFormatted = formatDetailedDuration(day.time_spent);
+            const tooltipText = t('stats.tooltip', day.tasks_done, timeFormatted);
+            const isBest = day.day_name === data.best_day;
+            const dayNameStr = daysShort[day.day_name];
+            
+            // Определяем, является ли этот день "сегодняшним"
+            const dateObj = new Date(day.date);
+            const todayObj = new Date();
+            const isToday = dateObj.getFullYear() === todayObj.getFullYear() && 
+                            dateObj.getMonth() === todayObj.getMonth() && 
+                            dateObj.getDate() === todayObj.getDate();
+            
+            const colDiv = document.createElement('div');
+            colDiv.className = `stats-chart-col ${isBest ? 'is-best' : ''}`;
+            colDiv.title = tooltipText;
+            colDiv.innerHTML = `
+                <div class="stats-chart-bar-bg">
+                    <div class="stats-chart-bar-fill" style="height: 0%;" data-target="${pct}%"></div>
+                </div>
+                <div class="stats-chart-label-wrapper">
+                    <div class="stats-chart-label">${dayNameStr}</div>
+                    <div class="stats-chart-indicator ${isToday ? 'is-today' : ''}"></div>
+                </div>
+            `;
+            
+            // Логика клика по столбику
+            colDiv.onclick = () => {
+                const isAlreadySelected = colDiv.classList.contains('is-selected');
+                
+                // Сбрасываем выбор со всех
+                chartContainer.querySelectorAll('.stats-chart-col').forEach(c => c.classList.remove('is-selected'));
+                
+                if (isAlreadySelected) {
+                    // Возвращаемся к топу за неделю
+                    renderTasksList(t('stats.topTasks'), data.top_tasks, t('stats.emptyTop'));
+                } else {
+                    // Показываем детали конкретного дня
+                    colDiv.classList.add('is-selected');
+                    renderTasksList(t('stats.dayTasks', dayNameStr), day.tasks, t('stats.emptyDay'));
+                }
+            };
+            
+            chartContainer.appendChild(colDiv);
+        });
+        
+        // Изначально рендерим топ за всю неделю
+        renderTasksList(t('stats.topTasks'), data.top_tasks, t('stats.emptyTop'));
+        
+        // Сброс фильтра по дню при клике в любую пустую область модалки
+        const modalBody = modal.querySelector('.modal-body');
+        modalBody.onclick = (e) => {
+            // Игнорируем клики по самим столбикам графика и карточкам задач
+            if (!e.target.closest('.stats-chart-col') && !e.target.closest('.stats-top-item')) {
+                const hasSelection = chartContainer.querySelector('.stats-chart-col.is-selected');
+                if (hasSelection) {
+                    // Снимаем выделение и возвращаем топ за неделю
+                    chartContainer.querySelectorAll('.stats-chart-col').forEach(c => c.classList.remove('is-selected'));
+                    renderTasksList(t('stats.topTasks'), data.top_tasks, t('stats.emptyTop'));
+                }
+            }
+        };
+
+        // Показываем контент
+        loading.style.display = 'none';
+        content.style.display = 'flex';
+        content.style.opacity = '1';
+        content.style.pointerEvents = 'auto';
+        
+        // Анимация столбиков
+        setTimeout(() => {
+            const bars = chartContainer.querySelectorAll('.stats-chart-bar-fill');
+            bars.forEach(bar => bar.style.height = bar.dataset.target);
+        }, 50);
+        
+    } catch (e) {
+        console.error("Stats loading error", e);
+        loading.textContent = t('alerts.error');
+        content.style.opacity = '1';
+        content.style.pointerEvents = 'auto';
+    }
+}
 
 // ═══════════════════════════════════════════════
 //  АВТОМАТИЗАЦИИ
