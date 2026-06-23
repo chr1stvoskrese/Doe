@@ -13918,11 +13918,8 @@ async function applyColumnSort(columnId, criteria, dir) {
     window.addEventListener('blur', endInteraction);
     document.addEventListener('pointercancel', endInteraction);
 
-    // --- 1. РЕСАЙЗ ЧЕРЕЗ ОПРОС GetCursorPos (работает для безрамочного окна) ---
-    // start_window_resize (SC_SIZE) НЕ работает на frameless-окне: у него нет
-    // неклиентской области, и WM_NCHITTEST возвращает HTCLIENT везде. Поэтому
-    // используем begin_win_resize + фоновый опрос в Python.
-    // Внимание: окно выбора хранилища (mode=vault) НЕ ресайзится.
+    // --- 1. НАТИВНЫЙ РЕСАЙЗ ЧЕРЕЗ WM_SYSCOMMAND (DWM Compositor Sync) ---
+    const htMap = { l: 10, r: 11, t: 12, tl: 13, tr: 14, b: 15, bl: 16, br: 17 };
     if (!isVault) {
         ['t','b','l','r','tl','tr','bl','br'].forEach((cls) => {
             const h = document.createElement('div');
@@ -13931,15 +13928,13 @@ async function applyColumnSort(columnId, criteria, dir) {
                 if (e.button !== 0) return;
                 e.preventDefault();
                 e.stopPropagation();
-                try { h.setPointerCapture(e.pointerId); } catch (_) {}
-                api()?.begin_win_resize?.(cls);
+                api()?.start_window_resize?.(htMap[cls]) || api()?.begin_win_resize?.(cls);
             });
             document.body.appendChild(h);
         });
     }
 
-    // --- 2. ПЕРЕТАСКИВАНИЕ ЧЕРЕЗ ОПРОС GetCursorPos (работает для безрамочного окна) ---
-    // Аналогично: SC_MOVE на frameless-окне не запускается. Используем begin_win_move.
+    // --- 2. НАТИВНОЕ ПЕРЕТАСКИВАНИЕ ЧЕРЕЗ WM_SYSCOMMAND ---
     const NO_DRAG = 'button, input, textarea, select, a, [contenteditable="true"], [draggable="true"], [data-action],' +
         '.search-wrapper, .settings-wrapper, .tabs-wrapper, .board-tab, .card, .column, .card-list,' +
         '.subtask-item, .attachment-item, .vault-container, .vault-actions, .vault-create-form, .vault-history-section, .vault-history-list, .vault-history-item, .vault-action-card,' +
@@ -13950,7 +13945,7 @@ async function applyColumnSort(columnId, criteria, dir) {
         if (!e.target.closest('.app-header, .vault-screen')) return;
         if (e.target.closest(NO_DRAG)) return;
         e.preventDefault();
-        api()?.begin_win_move?.();
+        api()?.start_window_drag?.() || api()?.begin_win_move?.();
     }, true);
 
 })();
