@@ -13921,17 +13921,20 @@ async function applyColumnSort(columnId, criteria, dir) {
     // start_window_resize (SC_SIZE) НЕ работает на frameless-окне: у него нет
     // неклиентской области, и WM_NCHITTEST возвращает HTCLIENT везде. Поэтому
     // используем begin_win_resize + фоновый опрос в Python.
-    ['t','b','l','r','tl','tr','bl','br'].forEach((cls) => {
-        const h = document.createElement('div');
-        h.className = `win-rh win-rh-${cls}`;
-        h.addEventListener('pointerdown', (e) => {
-            if (e.button !== 0) return;
-            e.preventDefault();
-            e.stopPropagation();
-            api()?.begin_win_resize?.(cls);
+    // Внимание: окно выбора хранилища (mode=vault) НЕ ресайзится.
+    if (!isVault) {
+        ['t','b','l','r','tl','tr','bl','br'].forEach((cls) => {
+            const h = document.createElement('div');
+            h.className = `win-rh win-rh-${cls}`;
+            h.addEventListener('pointerdown', (e) => {
+                if (e.button !== 0) return;
+                e.preventDefault();
+                e.stopPropagation();
+                api()?.begin_win_resize?.(cls);
+            });
+            document.body.appendChild(h);
         });
-        document.body.appendChild(h);
-    });
+    }
 
     // --- 2. ПЕРЕТАСКИВАНИЕ ЧЕРЕЗ ОПРОС GetCursorPos (работает для безрамочного окна) ---
     // Аналогично: SC_MOVE на frameless-окне не запускается. Используем begin_win_move.
