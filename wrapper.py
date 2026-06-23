@@ -1347,14 +1347,19 @@ class WindowAPI:
             
         self._win_maximized = False
         
-        # 1. Заставляем UI-поток легально сбросить захват мыши Chromium
-        WM_CANCELMODE = 0x001F
-        ctypes.windll.user32.SendMessageW(hwnd, WM_CANCELMODE, 0, 0)
+        # 1. КРИТИЧНО: Принудительно отбираем захват мыши у Chromium
+        ctypes.windll.user32.ReleaseCapture()
         
-        # 2. Асинхронно пинаем системный Drag (SC_MOVE + HTCAPTION = 0xF012)
-        WM_SYSCOMMAND = 0x0112
-        SC_MOVE_HTCAPTION = 0xF012
-        ctypes.windll.user32.PostMessageW(hwnd, WM_SYSCOMMAND, SC_MOVE_HTCAPTION, 0)
+        # 2. Получаем координаты курсора для ядра Windows
+        class POINT(ctypes.Structure):
+            _fields_ = [("x", ctypes.c_long), ("y", ctypes.c_long)]
+        pt = POINT()
+        ctypes.windll.user32.GetCursorPos(ctypes.byref(pt))
+        lparam = ((pt.y & 0xFFFF) << 16) | (pt.x & 0xFFFF)
+        
+        # 3. Начинаем нативный Drag, вызывающий Aero Snap (HTCAPTION = 2)
+        WM_NCLBUTTONDOWN = 0x00A1
+        ctypes.windll.user32.PostMessageW(hwnd, WM_NCLBUTTONDOWN, 2, lparam)
         return True
 
     def start_window_resize(self, ht):
@@ -1370,14 +1375,19 @@ class WindowAPI:
             
         self._win_maximized = False
         
-        WM_CANCELMODE = 0x001F
-        ctypes.windll.user32.SendMessageW(hwnd, WM_CANCELMODE, 0, 0)
+        # 1. КРИТИЧНО: Принудительно отбираем захват мыши у Chromium
+        ctypes.windll.user32.ReleaseCapture()
         
-        WM_SYSCOMMAND = 0x0112
-        SC_SIZE = 0xF000
-        direction = int(ht) - 9
+        # 2. Получаем координаты курсора для ядра Windows
+        class POINT(ctypes.Structure):
+            _fields_ = [("x", ctypes.c_long), ("y", ctypes.c_long)]
+        pt = POINT()
+        ctypes.windll.user32.GetCursorPos(ctypes.byref(pt))
+        lparam = ((pt.y & 0xFFFF) << 16) | (pt.x & 0xFFFF)
         
-        ctypes.windll.user32.PostMessageW(hwnd, WM_SYSCOMMAND, SC_SIZE + direction, 0)
+        # 3. Начинаем нативный ресайз ядром DWM (без подергиваний)
+        WM_NCLBUTTONDOWN = 0x00A1
+        ctypes.windll.user32.PostMessageW(hwnd, WM_NCLBUTTONDOWN, int(ht), lparam)
         return True
 
     def _win_rect(self, hwnd):
