@@ -1385,6 +1385,30 @@ class WindowAPI:
         user32.SetWindowPos(hwnd, 0, int(x), int(y), int(w), int(h),
                             SWP_NOZORDER | SWP_NOACTIVATE)
 
+    def _start_interactive_loop(self, kind):
+        """Запускает фоновый поток-таймер, который ~60 раз в секунду вызывает
+        update_win_move/update_win_resize, пока номер поколения не сменится.
+        Жизненно важно для безрамочного окна: когда курсор покидает клиентскую
+        область (выходит за край окна при перетаскивании), события mousemove из
+        WebView прекращаются. Опрос GetCursorPos ведёт себя независимо от этого,
+        поэтому движение/ресайз не "залипают" на границе окна."""
+        gen = self._interactive_gen
+        import threading
+
+        def _loop():
+            while getattr(self, '_interactive_gen', -1) == gen:
+                try:
+                    if kind == 'move':
+                        self.update_win_move()
+                    else:
+                        self.update_win_resize()
+                except Exception:
+                    pass
+                time.sleep(1.0 / 60.0)
+
+        t = threading.Thread(target=_loop, daemon=True)
+        t.start()
+
     def begin_win_move(self):
         import sys
         if sys.platform != 'win32':
@@ -1396,6 +1420,10 @@ class WindowAPI:
         cx, cy = self._cursor()
         self._winmv = {'hwnd': hwnd, 'x': l, 'y': t, 'cx': cx, 'cy': cy}
         self._win_maximized = False
+        # Поднимаем поколение -> останавливаем возможный прошлый цикл и
+        # стартуем новый, привязанный к этому перетаскиванию.
+        self._interactive_gen = getattr(self, '_interactive_gen', 0) + 1
+        self._start_interactive_loop('move')
         return True
 
     def update_win_move(self):
@@ -1408,7 +1436,7 @@ class WindowAPI:
         cx, cy = self._cursor()
         nx = mv['x'] + (cx - mv['cx'])
         ny = mv['y'] + (cy - mv['cy'])
-        
+
         SWP_NOSIZE = 0x0001
         SWP_NOZORDER = 0x0004
         SWP_NOACTIVATE = 0x0010
@@ -1416,6 +1444,8 @@ class WindowAPI:
         return True
 
     def end_win_move(self):
+        # Смена поколения останавливает фоновый цикл опроса.
+        self._interactive_gen = getattr(self, '_interactive_gen', 0) + 1
         self._winmv = None
         return True
 
@@ -1431,6 +1461,8 @@ class WindowAPI:
         self._winrz = {'hwnd': hwnd, 'l': l, 't': t, 'r': r, 'b': b,
                        'cx': cx, 'cy': cy, 'edges': str(edges)}
         self._win_maximized = False
+        self._interactive_gen = getattr(self, '_interactive_gen', 0) + 1
+        self._start_interactive_loop('resize')
         return True
 
     def update_win_resize(self):
@@ -1459,6 +1491,7 @@ class WindowAPI:
         return True
 
     def end_win_resize(self):
+        self._interactive_gen = getattr(self, '_interactive_gen', 0) + 1
         self._winrz = None
         return True
 

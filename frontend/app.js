@@ -13907,26 +13907,34 @@ async function applyColumnSort(columnId, criteria, dir) {
     controls.querySelector('.close').onclick = () => api()?.close_window?.();
     controls.querySelector('.max')?.addEventListener('click', () => api()?.toggle_maximize_window?.());
 
-    // --- 1. НАТИВНЫЙ РЕСАЙЗ ЧЕРЕЗ SC_SIZE ---
-    if (!isVault) {
-        const hitCodes = {
-            'l': 10, 'r': 11, 't': 12, 'tl': 13, 'tr': 14,
-            'b': 15, 'bl': 16, 'br': 17
-        };
+    // --- Завершение перетаскивания/ресайза ---
+    // Независимо от того, где курсор отпустили, останавливаем фоновый цикл опроса.
+    const endInteraction = () => {
+        try { window.pywebview?.api?.end_win_move?.(); } catch (err) {}
+        try { window.pywebview?.api?.end_win_resize?.(); } catch (err) {}
+    };
+    document.addEventListener('pointerup', endInteraction);
+    window.addEventListener('blur', endInteraction);
+    document.addEventListener('pointercancel', endInteraction);
 
-        ['t','b','l','r','tl','tr','bl','br'].forEach((cls) => {
-            const h = document.createElement('div');
-            h.className = `win-rh win-rh-${cls}`;
-            h.addEventListener('pointerdown', (e) => {
-                if (e.button !== 0) return;
-                e.preventDefault();
-                api()?.start_window_resize?.(hitCodes[cls]);
-            });
-            document.body.appendChild(h);
+    // --- 1. РЕСАЙЗ ЧЕРЕЗ ОПРОС GetCursorPos (работает для безрамочного окна) ---
+    // start_window_resize (SC_SIZE) НЕ работает на frameless-окне: у него нет
+    // неклиентской области, и WM_NCHITTEST возвращает HTCLIENT везде. Поэтому
+    // используем begin_win_resize + фоновый опрос в Python.
+    ['t','b','l','r','tl','tr','bl','br'].forEach((cls) => {
+        const h = document.createElement('div');
+        h.className = `win-rh win-rh-${cls}`;
+        h.addEventListener('pointerdown', (e) => {
+            if (e.button !== 0) return;
+            e.preventDefault();
+            e.stopPropagation();
+            api()?.begin_win_resize?.(cls);
         });
-    }
+        document.body.appendChild(h);
+    });
 
-    // --- 2. НАТИВНЫЙ ПЕРЕХВАТ ПЕРЕТАСКИВАНИЯ (SC_MOVE) ---
+    // --- 2. ПЕРЕТАСКИВАНИЕ ЧЕРЕЗ ОПРОС GetCursorPos (работает для безрамочного окна) ---
+    // Аналогично: SC_MOVE на frameless-окне не запускается. Используем begin_win_move.
     const NO_DRAG = 'button, input, textarea, select, a, [contenteditable="true"],' +
         '.search-wrapper, .settings-wrapper, .tabs-wrapper, .board-tab,' +
         '.vault-actions, .vault-create-form, .menu-btn, .card-menu-btn, .win-controls, .win-rh';
@@ -13936,8 +13944,7 @@ async function applyColumnSort(columnId, criteria, dir) {
         if (!e.target.closest('.app-header, .vault-screen')) return;
         if (e.target.closest(NO_DRAG)) return;
         e.preventDefault();
-
-        api()?.start_window_drag?.();
+        api()?.begin_win_move?.();
     }, true);
 
 })();
