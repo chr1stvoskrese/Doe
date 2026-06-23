@@ -13918,8 +13918,9 @@ async function applyColumnSort(columnId, criteria, dir) {
     window.addEventListener('blur', endInteraction);
     document.addEventListener('pointercancel', endInteraction);
 
-    // --- 1. НАТИВНЫЙ РЕСАЙЗ WINDOWS ---
-    const htMap = { l: 10, r: 11, t: 12, tl: 13, tr: 14, b: 15, bl: 16, br: 17 };
+    // --- 1. РЕСАЙЗ ЧЕРЕЗ ОПРОС GetCursorPos ---
+    // Рассинхрон при ресайзе слева/сверху — это аппаратная особенность DWM+Chromium.
+    // Оставляем надежный ручной расчет координат через Python.
     if (!isVault) {
         ['t','b','l','r','tl','tr','bl','br'].forEach((cls) => {
             const h = document.createElement('div');
@@ -13928,25 +13929,21 @@ async function applyColumnSort(columnId, criteria, dir) {
                 if (e.button !== 0) return;
                 e.preventDefault();
                 e.stopPropagation();
+                try { h.setPointerCapture(e.pointerId); } catch (_) {}
 
-                // КРИТИЧНО: Заставляем браузер отпустить мышь
-                if (h.hasPointerCapture(e.pointerId)) {
-                    h.releasePointerCapture(e.pointerId);
-                }
-
-                // Вызываем идеальный нативный ресайз DWM
-                if (window.pywebview && window.pywebview.api && window.pywebview.api.start_window_resize) {
-                    window.pywebview.api.start_window_resize(htMap[cls]);
+                if (window.pywebview && window.pywebview.api && window.pywebview.api.begin_win_resize) {
+                    window.pywebview.api.begin_win_resize(cls);
                 }
             });
             document.body.appendChild(h);
         });
     }
 
-    // --- 2. НАТИВНОЕ ПЕРЕТАСКИВАНИЕ WINDOWS (Белый список зон) ---
+    // --- 2. ПЕРЕТАСКИВАНИЕ ОКНА (Строгий белый список) ---
     document.addEventListener('pointerdown', (e) => {
         if (e.button !== 0) return;
 
+        // Окно можно перетаскивать ТОЛЬКО если клик пришёлся строго по пустому фону этих контейнеров
         const allowedDragZones = [
             'app-header',
             'header-left-controls',
@@ -13955,19 +13952,13 @@ async function applyColumnSort(columnId, criteria, dir) {
             'vault-screen'
         ];
 
+        // Если кликнули по тексту, карточке, элементу истории или иконке - игнорируем
         const isDirectClickOnBackground = allowedDragZones.some(cls => e.target.classList.contains(cls));
         if (!isDirectClickOnBackground) return;
 
         e.preventDefault();
-
-        // КРИТИЧНО: Заставляем браузер отпустить мышь
-        if (e.target.hasPointerCapture(e.pointerId)) {
-            e.target.releasePointerCapture(e.pointerId);
-        }
-
-        // Вызываем нативное перетаскивание ОС
-        if (window.pywebview && window.pywebview.api && window.pywebview.api.start_window_drag) {
-            window.pywebview.api.start_window_drag();
+        if (window.pywebview && window.pywebview.api && window.pywebview.api.begin_win_move) {
+            window.pywebview.api.begin_win_move();
         }
     }, true);
 
