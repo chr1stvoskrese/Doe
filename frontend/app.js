@@ -13918,8 +13918,10 @@ async function applyColumnSort(columnId, criteria, dir) {
     window.addEventListener('blur', endInteraction);
     document.addEventListener('pointercancel', endInteraction);
 
-    // --- 1. НАТИВНЫЙ РЕСАЙЗ ЧЕРЕЗ WM_SYSCOMMAND (DWM Compositor Sync) ---
-    const htMap = { l: 10, r: 11, t: 12, tl: 13, tr: 14, b: 15, bl: 16, br: 17 };
+    // --- 1. РЕСАЙЗ ЧЕРЕЗ ОПРОС GetCursorPos (фоновый поллинг Python) ---
+    // При ресайзе слева/сверху контент визуально "дергается" — это неустранимый
+    // рассинхрон между DWM (который сразу двигает окно) и Chromium (который
+    // тратит 1 кадр на перерисовку новой ширины). Справа/снизу этого эффекта нет.
     if (!isVault) {
         ['t','b','l','r','tl','tr','bl','br'].forEach((cls) => {
             const h = document.createElement('div');
@@ -13928,24 +13930,40 @@ async function applyColumnSort(columnId, criteria, dir) {
                 if (e.button !== 0) return;
                 e.preventDefault();
                 e.stopPropagation();
-                api()?.start_window_resize?.(htMap[cls]) || api()?.begin_win_resize?.(cls);
+                try { h.setPointerCapture(e.pointerId); } catch (_) {}
+
+                // ВАЖНО: вызываем только надежный ручной опрос
+                if (window.pywebview && window.pywebview.api && window.pywebview.api.begin_win_resize) {
+                    window.pywebview.api.begin_win_resize(cls);
+                }
             });
             document.body.appendChild(h);
         });
     }
 
-    // --- 2. НАТИВНОЕ ПЕРЕТАСКИВАНИЕ ЧЕРЕЗ WM_SYSCOMMAND ---
-    const NO_DRAG = 'button, input, textarea, select, a, [contenteditable="true"], [draggable="true"], [data-action],' +
-        '.search-wrapper, .settings-wrapper, .tabs-wrapper, .board-tab, .card, .column, .card-list,' +
-        '.subtask-item, .attachment-item, .vault-container, .vault-actions, .vault-create-form, .vault-history-section, .vault-history-list, .vault-history-item, .vault-action-card,' +
-        '.modal-overlay, .modal-card, .dropdown-menu, .menu-btn, .card-menu-btn, .win-controls, .win-rh';
-
+    // --- 2. ПЕРЕТАСКИВАНИЕ ОКНА ---
+    // Вместо хрупкого чёрного списка (NO_DRAG), используем строгий белый список (Whitelist).
+    // Окно будет перемещаться ТОЛЬКО при клике строго по пустому фону указанных контейнеров.
     document.addEventListener('pointerdown', (e) => {
         if (e.button !== 0) return;
-        if (!e.target.closest('.app-header, .vault-screen')) return;
-        if (e.target.closest(NO_DRAG)) return;
+
+        // Проверяем, что клик пришёлся ровно в фон, а не в какой-то дочерний элемент (карточку, кнопку, текст)
+        const allowedDragZones = [
+            'app-header',
+            'header-left-controls',
+            'tabs-wrapper',
+            'tabs-container',
+            'vault-screen'
+        ];
+
+        const isDirectClickOnBackground = allowedDragZones.some(cls => e.target.classList.contains(cls));
+
+        if (!isDirectClickOnBackground) return;
+
         e.preventDefault();
-        api()?.start_window_drag?.() || api()?.begin_win_move?.();
+        if (window.pywebview && window.pywebview.api && window.pywebview.api.begin_win_move) {
+            window.pywebview.api.begin_win_move();
+        }
     }, true);
 
 })();
