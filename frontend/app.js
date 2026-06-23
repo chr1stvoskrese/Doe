@@ -13835,9 +13835,10 @@ async function applyColumnSort(columnId, criteria, dir) {
 
     let dragging = false, rafScheduled = false;
 
-    const NO_DRAG = 'button, input, textarea, select, a, [contenteditable="true"],' +
-        '.search-wrapper, .settings-wrapper, .tabs-wrapper, .board-tab,' +
-        '.vault-container, .menu-btn, .card-menu-btn, .traffic-btn';
+    const NO_DRAG = 'button, input, textarea, select, a, [contenteditable="true"], [draggable="true"], [data-action],' +
+        '.search-wrapper, .settings-wrapper, .tabs-wrapper, .board-tab, .card, .column, .card-list,' +
+        '.subtask-item, .attachment-item, .vault-container, .vault-actions, .vault-create-form, .vault-history-section, .vault-history-list, .vault-history-item, .vault-action-card,' +
+        '.modal-overlay, .modal-card, .dropdown-menu, .menu-btn, .card-menu-btn, .traffic-btn';
 
     document.addEventListener('mousedown', (e) => {
         if (e.button !== 0) return;
@@ -13882,14 +13883,14 @@ async function applyColumnSort(columnId, criteria, dir) {
       .win-ctrl svg { width: 11px; height: 11px; }
       html[data-theme="dark"] .win-ctrl { color: #ddd; }
       .win-rh { position: fixed; z-index: 2147483646; }
-      .win-rh-t{top:0;left:8px;right:8px;height:6px;cursor:ns-resize}
-      .win-rh-b{bottom:0;left:8px;right:8px;height:6px;cursor:ns-resize}
-      .win-rh-l{left:0;top:8px;bottom:8px;width:6px;cursor:ew-resize}
-      .win-rh-r{right:0;top:8px;bottom:8px;width:6px;cursor:ew-resize}
-      .win-rh-tl{top:0;left:0;width:10px;height:10px;cursor:nwse-resize}
-      .win-rh-tr{top:0;right:0;width:10px;height:10px;cursor:nesw-resize}
-      .win-rh-bl{bottom:0;left:0;width:10px;height:10px;cursor:nesw-resize}
-      .win-rh-br{bottom:0;right:0;width:10px;height:10px;cursor:nwse-resize}
+      .win-rh-t{top:0;left:8px;right:8px;height:8px;cursor:ns-resize}
+      .win-rh-b{bottom:0;left:8px;right:8px;height:8px;cursor:ns-resize}
+      .win-rh-l{left:0;top:8px;bottom:8px;width:8px;cursor:ew-resize}
+      .win-rh-r{right:0;top:8px;bottom:8px;width:8px;cursor:ew-resize}
+      .win-rh-tl{top:0;left:0;width:12px;height:12px;cursor:nwse-resize}
+      .win-rh-tr{top:0;right:0;width:12px;height:12px;cursor:nesw-resize}
+      .win-rh-bl{bottom:0;left:0;width:12px;height:12px;cursor:nesw-resize}
+      .win-rh-br{bottom:0;right:0;width:12px;height:12px;cursor:nwse-resize}
     `;
     document.head.appendChild(style);
 
@@ -13930,6 +13931,7 @@ async function applyColumnSort(columnId, criteria, dir) {
                 if (e.button !== 0) return;
                 e.preventDefault();
                 e.stopPropagation();
+                try { h.setPointerCapture(e.pointerId); } catch (_) {}
                 api()?.begin_win_resize?.(cls);
             });
             document.body.appendChild(h);
@@ -13938,9 +13940,10 @@ async function applyColumnSort(columnId, criteria, dir) {
 
     // --- 2. ПЕРЕТАСКИВАНИЕ ЧЕРЕЗ ОПРОС GetCursorPos (работает для безрамочного окна) ---
     // Аналогично: SC_MOVE на frameless-окне не запускается. Используем begin_win_move.
-    const NO_DRAG = 'button, input, textarea, select, a, [contenteditable="true"],' +
-        '.search-wrapper, .settings-wrapper, .tabs-wrapper, .board-tab,' +
-        '.vault-actions, .vault-create-form, .menu-btn, .card-menu-btn, .win-controls, .win-rh';
+    const NO_DRAG = 'button, input, textarea, select, a, [contenteditable="true"], [draggable="true"], [data-action],' +
+        '.search-wrapper, .settings-wrapper, .tabs-wrapper, .board-tab, .card, .column, .card-list,' +
+        '.subtask-item, .attachment-item, .vault-container, .vault-actions, .vault-create-form, .vault-history-section, .vault-history-list, .vault-history-item, .vault-action-card,' +
+        '.modal-overlay, .modal-card, .dropdown-menu, .menu-btn, .card-menu-btn, .win-controls, .win-rh';
 
     document.addEventListener('pointerdown', (e) => {
         if (e.button !== 0) return;
