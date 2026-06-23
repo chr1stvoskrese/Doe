@@ -1347,11 +1347,11 @@ class WindowAPI:
             
         self._win_maximized = False
         
-        # 1. Заставляем UI-поток легально сбросить захват мыши Chromium
-        WM_CANCELMODE = 0x001F
-        ctypes.windll.user32.SendMessageW(hwnd, WM_CANCELMODE, 0, 0)
+        # КРИТИЧЕСКИЙ ФИКС: Жестко отбираем захват мыши у Chromium (WebView2)
+        # Без этого Windows проигнорирует команду на перетаскивание
+        ctypes.windll.user32.ReleaseCapture()
         
-        # 2. Асинхронно пинаем системный Drag (SC_MOVE + HTCAPTION = 0xF012)
+        # Асинхронно пинаем системный Drag (SC_MOVE + HTCAPTION = 0xF012)
         WM_SYSCOMMAND = 0x0112
         SC_MOVE_HTCAPTION = 0xF012
         ctypes.windll.user32.PostMessageW(hwnd, WM_SYSCOMMAND, SC_MOVE_HTCAPTION, 0)
@@ -1370,8 +1370,9 @@ class WindowAPI:
             
         self._win_maximized = False
         
-        WM_CANCELMODE = 0x001F
-        ctypes.windll.user32.SendMessageW(hwnd, WM_CANCELMODE, 0, 0)
+        # КРИТИЧЕСКИЙ ФИКС: Жестко отбираем захват мыши у Chromium (WebView2)
+        # Без этого ресайз левого/верхнего края вызовет шизофрению координат
+        ctypes.windll.user32.ReleaseCapture()
         
         WM_SYSCOMMAND = 0x0112
         SC_SIZE = 0xF000
