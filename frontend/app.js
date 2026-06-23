@@ -13918,10 +13918,8 @@ async function applyColumnSort(columnId, criteria, dir) {
     window.addEventListener('blur', endInteraction);
     document.addEventListener('pointercancel', endInteraction);
 
-    // --- 1. РЕСАЙЗ ЧЕРЕЗ ОПРОС GetCursorPos (фоновый поллинг Python) ---
-    // При ресайзе слева/сверху контент визуально "дергается" — это неустранимый
-    // рассинхрон между DWM (который сразу двигает окно) и Chromium (который
-    // тратит 1 кадр на перерисовку новой ширины). Справа/снизу этого эффекта нет.
+    // --- 1. НАТИВНЫЙ РЕСАЙЗ WINDOWS ---
+    const htMap = { l: 10, r: 11, t: 12, tl: 13, tr: 14, b: 15, bl: 16, br: 17 };
     if (!isVault) {
         ['t','b','l','r','tl','tr','bl','br'].forEach((cls) => {
             const h = document.createElement('div');
@@ -13930,24 +13928,25 @@ async function applyColumnSort(columnId, criteria, dir) {
                 if (e.button !== 0) return;
                 e.preventDefault();
                 e.stopPropagation();
-                try { h.setPointerCapture(e.pointerId); } catch (_) {}
 
-                // ВАЖНО: вызываем только надежный ручной опрос
-                if (window.pywebview && window.pywebview.api && window.pywebview.api.begin_win_resize) {
-                    window.pywebview.api.begin_win_resize(cls);
+                // КРИТИЧНО: Заставляем браузер отпустить мышь
+                if (h.hasPointerCapture(e.pointerId)) {
+                    h.releasePointerCapture(e.pointerId);
+                }
+
+                // Вызываем идеальный нативный ресайз DWM
+                if (window.pywebview && window.pywebview.api && window.pywebview.api.start_window_resize) {
+                    window.pywebview.api.start_window_resize(htMap[cls]);
                 }
             });
             document.body.appendChild(h);
         });
     }
 
-    // --- 2. ПЕРЕТАСКИВАНИЕ ОКНА ---
-    // Вместо хрупкого чёрного списка (NO_DRAG), используем строгий белый список (Whitelist).
-    // Окно будет перемещаться ТОЛЬКО при клике строго по пустому фону указанных контейнеров.
+    // --- 2. НАТИВНОЕ ПЕРЕТАСКИВАНИЕ WINDOWS (Белый список зон) ---
     document.addEventListener('pointerdown', (e) => {
         if (e.button !== 0) return;
 
-        // Проверяем, что клик пришёлся ровно в фон, а не в какой-то дочерний элемент (карточку, кнопку, текст)
         const allowedDragZones = [
             'app-header',
             'header-left-controls',
@@ -13957,12 +13956,18 @@ async function applyColumnSort(columnId, criteria, dir) {
         ];
 
         const isDirectClickOnBackground = allowedDragZones.some(cls => e.target.classList.contains(cls));
-
         if (!isDirectClickOnBackground) return;
 
         e.preventDefault();
-        if (window.pywebview && window.pywebview.api && window.pywebview.api.begin_win_move) {
-            window.pywebview.api.begin_win_move();
+
+        // КРИТИЧНО: Заставляем браузер отпустить мышь
+        if (e.target.hasPointerCapture(e.pointerId)) {
+            e.target.releasePointerCapture(e.pointerId);
+        }
+
+        // Вызываем нативное перетаскивание ОС
+        if (window.pywebview && window.pywebview.api && window.pywebview.api.start_window_drag) {
+            window.pywebview.api.start_window_drag();
         }
     }, true);
 
