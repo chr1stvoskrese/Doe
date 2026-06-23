@@ -1311,7 +1311,7 @@ class WindowAPI:
         return _win32_hwnd_for(win)
 
     def start_window_drag(self):
-        """Бесшовное нативное перетаскивание без артефактов и ложных срабатываний Aero Shake."""
+        """Бесшовное нативное перетаскивание заголовочной рамки."""
         import sys
         if sys.platform != 'win32':
             return False
@@ -1323,21 +1323,18 @@ class WindowAPI:
             
         self._win_maximized = False
         
-        # 1. Снимаем захват с текущего IPC потока
-        ctypes.windll.user32.ReleaseCapture()
+        # 1. Заставляем UI-поток легально сбросить захват мыши Chromium
+        WM_CANCELMODE = 0x001F
+        ctypes.windll.user32.SendMessageW(hwnd, WM_CANCELMODE, 0, 0)
         
-        # 2. КРИТИЧЕСКИЙ ФИКС: Шлём UI-потоку WM_CANCELMODE (0x001F). 
-        # DefWindowProc получив его, сам легально сделает ReleaseCapture() на нужном потоке!
-        ctypes.windll.user32.SendMessageW(hwnd, 0x001F, 0, 0)
-        
-        # 3. Синхронно пинаем системный Drag (SC_MOVE + HTCAPTION = 0xF012)
+        # 2. Асинхронно пинаем системный Drag (SC_MOVE + HTCAPTION = 0xF012)
         WM_SYSCOMMAND = 0x0112
         SC_MOVE_HTCAPTION = 0xF012
-        ctypes.windll.user32.SendMessageW(hwnd, WM_SYSCOMMAND, SC_MOVE_HTCAPTION, 0)
+        ctypes.windll.user32.PostMessageW(hwnd, WM_SYSCOMMAND, SC_MOVE_HTCAPTION, 0)
         return True
 
     def start_window_resize(self, ht):
-        """Плавный нативный ресайз за края окна."""
+        """Плавный нативный ресайз за любые края окна."""
         import sys
         if sys.platform != 'win32':
             return False
@@ -1349,14 +1346,14 @@ class WindowAPI:
             
         self._win_maximized = False
         
-        ctypes.windll.user32.ReleaseCapture()
-        ctypes.windll.user32.SendMessageW(hwnd, 0x001F, 0, 0) # WM_CANCELMODE
+        WM_CANCELMODE = 0x001F
+        ctypes.windll.user32.SendMessageW(hwnd, WM_CANCELMODE, 0, 0)
         
         WM_SYSCOMMAND = 0x0112
         SC_SIZE = 0xF000
         direction = int(ht) - 9
         
-        ctypes.windll.user32.SendMessageW(hwnd, WM_SYSCOMMAND, SC_SIZE + direction, 0)
+        ctypes.windll.user32.PostMessageW(hwnd, WM_SYSCOMMAND, SC_SIZE + direction, 0)
         return True
 
     def _win_rect(self, hwnd):

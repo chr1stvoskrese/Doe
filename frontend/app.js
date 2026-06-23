@@ -13907,14 +13907,12 @@ async function applyColumnSort(columnId, criteria, dir) {
     controls.querySelector('.close').onclick = () => api()?.close_window?.();
     controls.querySelector('.max')?.addEventListener('click', () => api()?.toggle_maximize_window?.());
 
-    // --- 1. ПЛАВНЫЙ РУЧНОЙ РЕСАЙЗ ---
+    // --- 1. НАТИВНЫЙ РЕСАЙЗ ЧЕРЕЗ SC_SIZE ---
     if (!isVault) {
-        const edgeMap = {
-            't': 't', 'b': 'b', 'l': 'l', 'r': 'r',
-            'tl': 'tl', 'tr': 'tr', 'bl': 'bl', 'br': 'br'
+        const hitCodes = {
+            'l': 10, 'r': 11, 't': 12, 'tl': 13, 'tr': 14,
+            'b': 15, 'bl': 16, 'br': 17
         };
-
-        let isResizing = false, rzScheduled = false;
 
         ['t','b','l','r','tl','tr','bl','br'].forEach((cls) => {
             const h = document.createElement('div');
@@ -13922,36 +13920,16 @@ async function applyColumnSort(columnId, criteria, dir) {
             h.addEventListener('pointerdown', (e) => {
                 if (e.button !== 0) return;
                 e.preventDefault();
-                isResizing = true;
-                api()?.begin_win_resize?.(edgeMap[cls]);
+                api()?.start_window_resize?.(hitCodes[cls]);
             });
             document.body.appendChild(h);
         });
-
-        window.addEventListener('pointermove', () => {
-            if (!isResizing || rzScheduled) return;
-            rzScheduled = true;
-            requestAnimationFrame(() => {
-                rzScheduled = false;
-                if (isResizing) api()?.update_win_resize?.();
-            });
-        });
-
-        const stopRz = () => {
-            if (!isResizing) return;
-            isResizing = false;
-            api()?.end_win_resize?.();
-        };
-        window.addEventListener('pointerup', stopRz);
-        window.addEventListener('blur', stopRz);
     }
 
-    // --- 2. ПЛАВНОЕ РУЧНОЕ ПЕРЕТАСКИВАНИЕ ОКНА ---
+    // --- 2. НАТИВНЫЙ ПЕРЕХВАТ ПЕРЕТАСКИВАНИЯ (SC_MOVE) ---
     const NO_DRAG = 'button, input, textarea, select, a, [contenteditable="true"],' +
         '.search-wrapper, .settings-wrapper, .tabs-wrapper, .board-tab,' +
         '.vault-actions, .vault-create-form, .menu-btn, .card-menu-btn, .win-controls, .win-rh';
-
-    let isWinDragging = false, mvScheduled = false;
 
     document.addEventListener('pointerdown', (e) => {
         if (e.button !== 0) return;
@@ -13959,24 +13937,7 @@ async function applyColumnSort(columnId, criteria, dir) {
         if (e.target.closest(NO_DRAG)) return;
         e.preventDefault();
 
-        isWinDragging = true;
-        api()?.begin_win_move?.();
+        api()?.start_window_drag?.();
     }, true);
 
-    window.addEventListener('pointermove', () => {
-        if (!isWinDragging || mvScheduled) return;
-        mvScheduled = true;
-        requestAnimationFrame(() => {
-            mvScheduled = false;
-            if (isWinDragging) api()?.update_win_move?.();
-        });
-    });
-
-    const stopMv = () => {
-        if (!isWinDragging) return;
-        isWinDragging = false;
-        api()?.end_win_move?.();
-    };
-    window.addEventListener('pointerup', stopMv);
-    window.addEventListener('blur', stopMv);
 })();

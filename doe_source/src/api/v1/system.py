@@ -285,17 +285,28 @@ async def switch_vault_endpoint(req: SwitchVaultRequest):
                                             zoom_btn.setEnabled_(True)
                                 elif sys.platform == 'win32':
                                     import ctypes
-                                    # Ищем HWND окна по текущему или старому заголовку
+                                    
+                                    # 1. Снимаем внутренние тиски .NET Form.MaximumSize
+                                    try:
+                                        from webview.platforms.winforms import BrowserView
+                                        from System.Drawing import Size
+                                        if webview.windows:
+                                            bv = BrowserView.instances.get(webview.windows[0].uid)
+                                            if bv:
+                                                bv.MinimumSize = Size(800, 600)
+                                                bv.MaximumSize = Size(0, 0) # 0,0 в WinForms = безлимит!
+                                    except Exception as ex_form:
+                                        print(f"[System] WinForms unclamp bypassed: {ex_form}")
+
+                                    # 2. Внедряем нативные стили ресайза WinAPI
                                     hwnd = ctypes.windll.user32.FindWindowW(None, target_window.title)
                                     if not hwnd:
                                         hwnd = ctypes.windll.user32.FindWindowW(None, 'Doe — Select Vault')
                                     
                                     if hwnd:
-                                        # GWL_STYLE = -16
                                         style = ctypes.windll.user32.GetWindowLongW(hwnd, -16)
-                                        # Внедряем WS_THICKFRAME (ресайз) | WS_MAXIMIZEBOX | WS_MINIMIZEBOX
+                                        # WS_THICKFRAME (ресайз) | WS_MAXIMIZEBOX | WS_MINIMIZEBOX
                                         ctypes.windll.user32.SetWindowLongW(hwnd, -16, style | 0x00040000 | 0x00010000 | 0x00020000)
-                                        # Принудительно заставляем Windows перерисовать рамку: 
                                         # SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED (0x27)
                                         ctypes.windll.user32.SetWindowPos(hwnd, 0, 0, 0, 0, 0, 0x27)
                                 print("[System] ✅ window resizability restored natively")
