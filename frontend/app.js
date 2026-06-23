@@ -1,3 +1,4 @@
+window.addEventListener('scroll', () => { if (window.scrollX !== 0 || window.scrollY !== 0) window.scrollTo(0, 0); });
 let state = { columns: [], workspaces: [], activeWorkspaceId: null };
 const API_BASE = '/api/v1';
 window.prioritySettings = { 
@@ -2742,11 +2743,10 @@ function renderTabs(scrollToActive = false, newTabId = null) {
         requestAnimationFrame(() => {
             const activeTab = container.querySelector('.board-tab.active');
             if (activeTab) {
-                activeTab.scrollIntoView({ 
-                    behavior: newTabId ? 'smooth' : 'auto', 
-                    block: 'nearest', 
-                    inline: 'center' 
-                });
+                const cRect = container.getBoundingClientRect();
+                const tRect = activeTab.getBoundingClientRect();
+                const targetLeft = container.scrollLeft + (tRect.left - cRect.left) - (cRect.width / 2) + (tRect.width / 2);
+                container.scrollTo({ left: targetLeft, behavior: newTabId ? 'smooth' : 'auto' });
             }
             if (window.updateTabsScrollbar) window.updateTabsScrollbar();
         });

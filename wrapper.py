@@ -1249,6 +1249,30 @@ class WindowAPI:
         """Закрывает окно (красная кнопка) — abort AI в JS уже сделан, просто выходим."""
         import sys
         if sys.platform == 'darwin':
+            # ── Сохраняем геометрию окна ПЕРЕД os._exit ──
+            # events.closing не сработает: os._exit убивает процесс мгновенно,
+            # в обход Cocoa windowShouldClose_. А отложенный таймер
+            # bind_resize_event (1 с) мог ещё не отработать, если пользователь
+            # изменил размер окна и сразу закрыл приложение.
+            try:
+                win = webview.windows[-1] if webview.windows else None
+                if win:
+                    w, h = win.width, win.height
+                    try:
+                        x, y = win.x, win.y
+                    except Exception:
+                        x, y = None, None
+                    # Не сохраняем геометрию окна выбора хранилищ
+                    if not (w <= 760 and h <= 680):
+                        from src.core.config import set_vault_geometry, get_active_vault
+                        vault = get_active_vault()
+                        if vault:
+                            set_vault_geometry(vault, int(w), int(h),
+                                              int(x) if x is not None else None,
+                                              int(y) if y is not None else None)
+            except Exception:
+                pass
+
             import os as _os
             import threading
             # Не ждём main run loop — выходим немедленно из фонового потока
