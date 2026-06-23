@@ -13907,34 +13907,76 @@ async function applyColumnSort(columnId, criteria, dir) {
     controls.querySelector('.close').onclick = () => api()?.close_window?.();
     controls.querySelector('.max')?.addEventListener('click', () => api()?.toggle_maximize_window?.());
 
+    // --- 1. ПЛАВНЫЙ РУЧНОЙ РЕСАЙЗ ---
     if (!isVault) {
-        const htMap = {
-            'l': 10, 'r': 11, 't': 12, 'tl': 13,
-            'tr': 14, 'b': 15, 'bl': 16, 'br': 17
+        const edgeMap = {
+            't': 't', 'b': 'b', 'l': 'l', 'r': 'r',
+            'tl': 'tl', 'tr': 'tr', 'bl': 'bl', 'br': 'br'
         };
-        
+
+        let isResizing = false, rzScheduled = false;
+
         ['t','b','l','r','tl','tr','bl','br'].forEach((cls) => {
             const h = document.createElement('div');
             h.className = `win-rh win-rh-${cls}`;
             h.addEventListener('pointerdown', (e) => {
                 if (e.button !== 0) return;
                 e.preventDefault();
-                api()?.start_window_resize?.(htMap[cls]);
+                isResizing = true;
+                api()?.begin_win_resize?.(edgeMap[cls]);
             });
             document.body.appendChild(h);
         });
+
+        window.addEventListener('pointermove', () => {
+            if (!isResizing || rzScheduled) return;
+            rzScheduled = true;
+            requestAnimationFrame(() => {
+                rzScheduled = false;
+                if (isResizing) api()?.update_win_resize?.();
+            });
+        });
+
+        const stopRz = () => {
+            if (!isResizing) return;
+            isResizing = false;
+            api()?.end_win_resize?.();
+        };
+        window.addEventListener('pointerup', stopRz);
+        window.addEventListener('blur', stopRz);
     }
 
+    // --- 2. ПЛАВНОЕ РУЧНОЕ ПЕРЕТАСКИВАНИЕ ОКНА ---
     const NO_DRAG = 'button, input, textarea, select, a, [contenteditable="true"],' +
         '.search-wrapper, .settings-wrapper, .tabs-wrapper, .board-tab,' +
         '.vault-actions, .vault-create-form, .menu-btn, .card-menu-btn, .win-controls, .win-rh';
+
+    let isWinDragging = false, mvScheduled = false;
 
     document.addEventListener('pointerdown', (e) => {
         if (e.button !== 0) return;
         if (!e.target.closest('.app-header, .vault-screen')) return;
         if (e.target.closest(NO_DRAG)) return;
         e.preventDefault();
-        
-        api()?.start_window_drag?.();
+
+        isWinDragging = true;
+        api()?.begin_win_move?.();
     }, true);
+
+    window.addEventListener('pointermove', () => {
+        if (!isWinDragging || mvScheduled) return;
+        mvScheduled = true;
+        requestAnimationFrame(() => {
+            mvScheduled = false;
+            if (isWinDragging) api()?.update_win_move?.();
+        });
+    });
+
+    const stopMv = () => {
+        if (!isWinDragging) return;
+        isWinDragging = false;
+        api()?.end_win_move?.();
+    };
+    window.addEventListener('pointerup', stopMv);
+    window.addEventListener('blur', stopMv);
 })();

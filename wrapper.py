@@ -1411,14 +1411,15 @@ class WindowAPI:
         cx, cy = self._cursor()
         nx = mv['x'] + (cx - mv['cx'])
         ny = mv['y'] + (cy - mv['cy'])
-        from ctypes import wintypes
-        user32 = ctypes.windll.user32
-        user32.SetWindowPos.argtypes = [wintypes.HWND, wintypes.HWND,
-                                        ctypes.c_int, ctypes.c_int,
-                                        ctypes.c_int, ctypes.c_int, ctypes.c_uint]
-        SWP_NOSIZE, SWP_NOZORDER, SWP_NOACTIVATE = 0x0001, 0x0004, 0x0010
-        user32.SetWindowPos(mv['hwnd'], 0, int(nx), int(ny), 0, 0,
-                            SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE)
+        
+        SWP_NOSIZE = 0x0001
+        SWP_NOZORDER = 0x0004
+        SWP_NOACTIVATE = 0x0010
+        ctypes.windll.user32.SetWindowPos(mv['hwnd'], 0, int(nx), int(ny), 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE)
+        return True
+
+    def end_win_move(self):
+        self._winmv = None
         return True
 
     def begin_win_resize(self, edges):
@@ -1458,6 +1459,10 @@ class WindowAPI:
             if 't' in e: t = b - MINH
             else: b = t + MINH
         self._set_bounds(rz['hwnd'], l, t, r - l, b - t)
+        return True
+
+    def end_win_resize(self):
+        self._winrz = None
         return True
 
     def toggle_maximize_window(self):
