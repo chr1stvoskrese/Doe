@@ -1,5 +1,15 @@
 #!/bin/bash
 
+# Активируем виртуальное окружение
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+if [ -f "$SCRIPT_DIR/venv/bin/activate" ]; then
+    source "$SCRIPT_DIR/venv/bin/activate"
+    echo "🐍 venv activated: $VIRTUAL_ENV" >> "$LOG_FILE"
+else
+    echo "❌ venv not found at $SCRIPT_DIR/venv/bin/activate" >> "$LOG_FILE"
+    exit 1
+fi
+
 LOG_FILE="build_mac.log"
 > "$LOG_FILE" # Очищаем лог при старте
 

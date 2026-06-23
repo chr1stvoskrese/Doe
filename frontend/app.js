@@ -79,6 +79,8 @@ const translations = {
             moveTitle: 'Перемещение карточки', moveSelectCol: 'Вкладка и колонка', btnMove: 'Переместить',
             detachTitle: 'Отвязать карточку?', detachDesc: 'Эта карточка привязана к нескольким карточкам.',
             detachCurrent: 'Только от текущей карточки', detachAll: 'От всех карточек (сделать независимой)',
+            completeSubtask: 'Отметить как выполненную', uncompleteSubtask: 'Снять отметку о выполнении',
+            completeSubtaskTitle: 'Выполнить подзадачу?', completeSubtaskDesc: 'Она будет отмечена как выполненная у всех родительских карточек.', btnComplete: 'Выполнить',
             // Автоматизации
             autoTitle: 'Автоматизации', autoEmpty: 'Нет автоматизаций. Нажмите «+» чтобы создать.',
             autoAddBtn: '+ Новая автоматизация',
@@ -299,6 +301,8 @@ const translations = {
             moveTitle: 'Move Card', moveSelectCol: 'Tab and Column', btnMove: 'Move',
             detachTitle: 'Detach card?', detachDesc: 'This card is attached to multiple cards.',
             detachCurrent: 'Only from current card', detachAll: 'From all cards (make independent)',
+            completeSubtask: 'Mark as completed', uncompleteSubtask: 'Mark as uncompleted',
+            completeSubtaskTitle: 'Complete subtask?', completeSubtaskDesc: 'It will be marked as completed in all parent cards.', btnComplete: 'Complete',
             // Automations
             autoTitle: 'Automations', autoEmpty: 'No automations. Press «+» to create.',
             autoAddBtn: '+ New automation',
@@ -1233,6 +1237,14 @@ async function handleClearDueDate(taskId) {
         let updatedColId = null;
         for (let col of state.columns) {
             let t = col.tasks.find(task => task.id == taskId);
+            if (!t) {
+                for (let pt of col.tasks) {
+                    if (pt.subtasks) {
+                        t = pt.subtasks.find(s => s.id == taskId);
+                        if (t) break;
+                    }
+                }
+            }
             if (t) {
                 t.due_date = null;
                 updatedColId = col.id;
@@ -2923,14 +2935,24 @@ function toggleColumnMenu(e, columnEl) {
     }
 }
 
-function showConfirmModal(title, message, confirmBtnText = t('menu.delete')) {
+function showConfirmModal(title, message, confirmBtnText = t('menu.delete'), isDanger = true) {
     return new Promise((resolve) => {
         const modal = document.getElementById('confirm-modal');
         modal.querySelector('.confirm-title').textContent = title;
         modal.querySelector('.confirm-text').textContent = message;
         
         modal.querySelector('.cancel-btn').textContent = t('cancel');
-        modal.querySelector('.danger-btn').textContent = confirmBtnText;
+        
+        // Находим кнопку по атрибуту (т.к. классы могут меняться туда-сюда)
+        const confirmBtn = modal.querySelector('[data-action="confirm-delete"]');
+        if (isDanger) {
+            confirmBtn.className = 'confirm-btn danger-btn';
+            confirmBtn.style.color = '';
+        } else {
+            confirmBtn.className = 'confirm-btn vault-submit-btn';
+            confirmBtn.style.color = 'white';
+        }
+        confirmBtn.textContent = confirmBtnText;
         
         activeConfirmResolve = resolve;
         modal.classList.add('show');
@@ -3571,10 +3593,20 @@ function startModalTaskRename(titleEl) {
                 
                 bumpModalUpdatedDate();
                 
+                let taskUpdated = false;
                 for (let col of state.columns) {
                     let t = col.tasks.find(t => t.id === taskId);
+                    if (!t) {
+                        for (let pt of col.tasks) {
+                            if (pt.subtasks) {
+                                t = pt.subtasks.find(s => s.id === taskId);
+                                if (t) break;
+                            }
+                        }
+                    }
                     if (t) {
                         t.title = newTitle;
+                        taskUpdated = true;
                         break;
                     }
                 }
@@ -4747,6 +4779,78 @@ document.addEventListener('click', async (e) => {
         return;
     }
 
+    const completeSubtaskBtn = target.closest('.modal-complete-subtask');
+    if (completeSubtaskBtn) {
+        e.stopPropagation();
+        const modal = document.getElementById('task-modal');
+        const taskId = parseInt(modal.dataset.taskId);
+
+        let currentTask = null;
+        for (let col of state.columns) {
+            currentTask = col.tasks.find(t => t.id === taskId);
+            if (!currentTask) {
+                for (let pt of col.tasks) {
+                    if (pt.subtasks) {
+                        currentTask = pt.subtasks.find(s => s.id === taskId);
+                        if (currentTask) break;
+                    }
+                }
+            }
+            if (currentTask) break;
+        }
+
+        if (!currentTask) return;
+
+        const isCurrentlyDone = !!currentTask.completed_at;
+
+        (async () => {
+            // Выдаем окно подтверждения только при отметке "Выполнено"
+            if (!isCurrentlyDone) {
+                const isConfirmed = await showConfirmModal(t('modals.completeSubtaskTitle'), t('modals.completeSubtaskDesc'), t('modals.btnComplete'), false);
+                if (!isConfirmed) return;
+            }
+
+            const timestamp = isCurrentlyDone ? null : new Date().toISOString();
+
+            try {
+                await updateTask(taskId, { completed_at: timestamp });
+                currentTask.completed_at = timestamp;
+
+                // Обновляем визуальное состояние (счетчики) у родительских карточек на доске
+                state.columns.forEach(col => {
+                    col.tasks.forEach(task => {
+                        if (task.subtasks) {
+                            const subIndex = task.subtasks.findIndex(s => s.id === taskId);
+                            if (subIndex !== -1) {
+                                task.subtasks[subIndex].completed_at = timestamp;
+                                const cardEl = document.querySelector(`.card[data-card-id="${task.id}"]`);
+                                if (cardEl) {
+                                    updateCardAppearance(cardEl, task, col.mode);
+                                }
+                            }
+                        }
+                    });
+                });
+
+                bumpModalUpdatedDate();
+                
+                // Обновляем саму кнопку
+                if (timestamp) {
+                    completeSubtaskBtn.title = t('modals.uncompleteSubtask');
+                    completeSubtaskBtn.style.color = 'var(--success-done)';
+                } else {
+                    completeSubtaskBtn.title = t('modals.completeSubtask');
+                    completeSubtaskBtn.style.color = '';
+                }
+
+            } catch (err) {
+                console.error("Ошибка изменения статуса подзадачи:", err);
+                window.showToast(t('alerts.error'), 'Не удалось обновить статус', true);
+            }
+        })();
+        return;
+    }
+
     const calMenuDeleteBtn = target.closest('#cal-menu-delete');
     if (calMenuDeleteBtn) {
         e.stopPropagation();
@@ -4843,6 +4947,77 @@ document.addEventListener('click', async (e) => {
         const modal = document.getElementById('task-modal');
         const taskId = parseInt(modal.dataset.taskId);
         openPriorityModal(taskId);
+        return;
+    }
+
+    const deleteModalBtn = target.closest('.modal-delete-task');
+    if (deleteModalBtn) {
+        e.stopPropagation();
+        const modal = document.getElementById('task-modal');
+        const taskId = parseInt(modal.dataset.taskId);
+
+        (async () => {
+            const isConfirmed = await showConfirmModal(
+                t('menu.deleteCard'), 
+                currentLang === 'ru' ? 'Карточка и все её подзадачи будут удалены.' : 'Card and all its subtasks will be deleted.'
+            );
+            if (!isConfirmed) return;
+
+            // Корректно закрываем модалку со всеми ее очистками
+            const closeBtn = modal.querySelector('.modal-close');
+            if (closeBtn) closeBtn.click();
+
+            // Находим карточку на доске и запускаем анимацию удаления
+            const cardEl = document.querySelector(`.card[data-card-id="${taskId}"]`);
+            if (cardEl) {
+                animateCardDeletion(cardEl);
+            }
+
+            // Вычищаем из локального стейта, чтобы счетчики и связи корректно отработали
+            for (let col of state.columns) {
+                col.tasks = col.tasks.filter(t => t.id !== taskId);
+                col.tasks.forEach(parentTask => {
+                    if (parentTask.subtasks) {
+                        const originalLength = parentTask.subtasks.length;
+                        parentTask.subtasks = parentTask.subtasks.filter(s => s.id !== taskId);
+                        if (parentTask.subtasks.length !== originalLength) {
+                            const parentCardEl = document.querySelector(`.card[data-card-id="${parentTask.id}"]`);
+                            if (parentCardEl) {
+                                updateCardAppearance(parentCardEl, parentTask, col.mode);
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Удаляем через бэкенд
+            deleteTask(taskId).then(data => {
+                const deletedIds = data.deleted_ids || [];
+                deletedIds.forEach(id => {
+                    if (id === taskId) return;
+                    // Рекурсивное удаление подзадач, если они тоже на доске
+                    const boardCard = document.querySelector(`.card[data-card-id="${id}"]`);
+                    if (boardCard) animateCardDeletion(boardCard);
+                    
+                    for (let col of state.columns) {
+                        col.tasks = col.tasks.filter(t => t.id !== id);
+                        col.tasks.forEach(parentTask => {
+                            if (parentTask.subtasks) {
+                                const originalLength = parentTask.subtasks.length;
+                                parentTask.subtasks = parentTask.subtasks.filter(s => s.id !== id);
+                                if (parentTask.subtasks.length !== originalLength) {
+                                    const parentCardEl = document.querySelector(`.card[data-card-id="${parentTask.id}"]`);
+                                    if (parentCardEl) updateCardAppearance(parentCardEl, parentTask, col.mode);
+                                }
+                            }
+                        });
+                    }
+                });
+            }).catch(err => {
+                console.error(err);
+                refreshBoard();
+            });
+        })();
         return;
     }
 
@@ -5617,6 +5792,14 @@ async function loadTaskIntoModal(taskId, pushToStack = true, highlightQuery = nu
         let localTask = null;
         for (let col of state.columns) {
             localTask = col.tasks.find(t => t.id === taskId);
+            if (!localTask) {
+                for (let pt of col.tasks) {
+                    if (pt.subtasks) {
+                        localTask = pt.subtasks.find(s => s.id === taskId);
+                        if (localTask) break;
+                    }
+                }
+            }
             if (localTask) break;
         }
 
@@ -5647,6 +5830,23 @@ async function loadTaskIntoModal(taskId, pushToStack = true, highlightQuery = nu
         if (detachBtn) {
             detachBtn.style.display = (task.parent_ids && task.parent_ids.length > 0) ? 'flex' : 'none';
             detachBtn.title = t('detachSubtask');
+        }
+
+        const completeSubtaskBtn = modal.querySelector('.modal-complete-subtask');
+        if (completeSubtaskBtn) {
+            // Кнопка появляется только если есть родители И карточка скрыта с доски
+            if (task.parent_ids && task.parent_ids.length > 0 && !task.is_visible_on_board) {
+                completeSubtaskBtn.style.display = 'flex';
+                if (task.completed_at) {
+                    completeSubtaskBtn.title = t('modals.uncompleteSubtask');
+                    completeSubtaskBtn.style.color = 'var(--success-done)';
+                } else {
+                    completeSubtaskBtn.title = t('modals.completeSubtask');
+                    completeSubtaskBtn.style.color = '';
+                }
+            } else {
+                completeSubtaskBtn.style.display = 'none';
+            }
         }
 
         const datesMetaEl = document.getElementById('task-dates-meta');
@@ -7284,6 +7484,14 @@ function initTaskDescriptionLogic() {
         let currentTask = null;
         for (let col of state.columns) {
             currentTask = col.tasks.find(t => t.id === taskId);
+            if (!currentTask) {
+                for (let pt of col.tasks) {
+                    if (pt.subtasks) {
+                        currentTask = pt.subtasks.find(s => s.id === taskId);
+                        if (currentTask) break;
+                    }
+                }
+            }
             if (currentTask) break;
         }
 
@@ -7506,6 +7714,14 @@ function initTaskDescriptionLogic() {
             let updatedColId = null;
             for (let col of state.columns) {
                 let currentTask = col.tasks.find(t => t.id == taskId);
+                if (!currentTask) {
+                    for (let pt of col.tasks) {
+                        if (pt.subtasks) {
+                            currentTask = pt.subtasks.find(s => s.id == taskId);
+                            if (currentTask) break;
+                        }
+                    }
+                }
                 if (currentTask) {
                     currentTask.description = newDesc;
                     currentTask.attachments_order = newOrderPaths;
@@ -10508,7 +10724,15 @@ function openPriorityModal(taskId) {
     let currentPriority = null;
     let priorityData = null;
     for (const col of state.columns) {
-        const task = col.tasks.find(t => t.id === taskId);
+        let task = col.tasks.find(t => t.id === taskId);
+        if (!task) {
+            for (let pt of col.tasks) {
+                if (pt.subtasks) {
+                    task = pt.subtasks.find(s => s.id === taskId);
+                    if (task) break;
+                }
+            }
+        }
         if (task) {
             currentPriority = task.priority;
             priorityData = task.priority_data;
@@ -10697,6 +10921,14 @@ function openPriorityModal(taskId) {
             let updatedColId = null;
             for (let col of state.columns) {
                 let t = col.tasks.find(task => task.id == taskId);
+                if (!t) {
+                    for (let pt of col.tasks) {
+                        if (pt.subtasks) {
+                            t = pt.subtasks.find(s => s.id == taskId);
+                            if (t) break;
+                        }
+                    }
+                }
                 if (t) {
                     t.priority = finalVal;
                     t.priority_data = pData;
@@ -10725,6 +10957,14 @@ function openPriorityModal(taskId) {
             let updatedColId = null;
             for (let col of state.columns) {
                 let t = col.tasks.find(task => task.id == taskId);
+                if (!t) {
+                    for (let pt of col.tasks) {
+                        if (pt.subtasks) {
+                            t = pt.subtasks.find(s => s.id == taskId);
+                            if (t) break;
+                        }
+                    }
+                }
                 if (t) {
                     t.priority = null;
                     t.priority_data = null;
@@ -10816,6 +11056,14 @@ function openDueDateModal(taskId, currentDueDate) {
             let updatedColId = null;
             for (let col of state.columns) {
                 let t = col.tasks.find(task => task.id == taskId);
+                if (!t) {
+                    for (let pt of col.tasks) {
+                        if (pt.subtasks) {
+                            t = pt.subtasks.find(s => s.id == taskId);
+                            if (t) break;
+                        }
+                    }
+                }
                 if (t) {
                     t.due_date = isoString;
                     updatedColId = col.id;
@@ -11319,9 +11567,7 @@ function initGraphModal() {
             G.hoverNode = nodeAt(mx, my);
             if (G.hoverNode) {
                 canvas.style.cursor = 'pointer';
-                tooltipInner.textContent = G.hoverNode.title || '';
-                tooltip.style.left = (e.clientX + 14) + 'px';
-                tooltip.style.top = (e.clientY + 14) + 'px';
+                tooltipInner.innerHTML = renderInlineMarkdown(G.hoverNode.title || '');
                 tooltip.classList.add('visible');
             } else {
                 canvas.style.cursor = 'grab';
@@ -11627,6 +11873,9 @@ function runGraphLoop() {
                 if (n.x + r < viewLeft || n.x - r > viewRight || n.y + r < viewTop || n.y - r > viewBottom) continue;
 
                 let label = n.title || '';
+                // Очищаем от Markdown ссылок и форматирования для отрисовки на канвасе
+                label = label.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/[*_~`]/g, '').trim();
+                
                 if (label.length > 15) label = label.substring(0, 14) + '…';
                 ctx.fillText(label, n.x, n.y + r + 14 / G.scale);
             }
@@ -11634,6 +11883,24 @@ function runGraphLoop() {
         }
 
         ctx.restore();
+
+        const tooltip = document.getElementById('graph-tooltip');
+        if (G.hoverNode && tooltip && tooltip.classList.contains('visible')) {
+            const rect = canvas.getBoundingClientRect();
+            const rScaled = G.graphNodeRadius(G.hoverNode) * G.scale;
+            
+            // Вычисляем экранные координаты узла + отступ радиуса, чтобы тултип не перекрывал саму точку
+            let tx = G.hoverNode.x * G.scale + G.offsetX + rect.left + rScaled + 12;
+            let ty = G.hoverNode.y * G.scale + G.offsetY + rect.top + rScaled + 12;
+            
+            // Защита от ухода тултипа за края экрана
+            const tRect = tooltip.getBoundingClientRect();
+            if (tx + tRect.width > window.innerWidth - 12) tx = window.innerWidth - tRect.width - 12;
+            if (ty + tRect.height > window.innerHeight - 12) ty = window.innerHeight - tRect.height - 12;
+
+            tooltip.style.left = tx + 'px';
+            tooltip.style.top = ty + 'px';
+        }
 
         if (totalKineticEnergy < 0.1 && !G.dragNode) {
             requestAnimationFrame(step);
@@ -11717,46 +11984,47 @@ async function openStatisticsModal() {
         document.getElementById('stat-val-overdue').textContent = data.overdue_count;
         
         // Функция для рендера бейджей трендов
-        const applyTrend = (elId, pct, currentTotal) => {
+        const applyTrend = (elId, pct) => {
             const el = document.getElementById(elId);
             if (!el) return;
-            if (currentTotal === 0 && pct === 0) {
+            
+            // Полностью скрываем бейдж, если тренд нулевой
+            if (pct === 0) {
                 el.style.display = 'none';
             } else {
                 el.style.display = 'block';
                 if (pct > 0) {
                     el.textContent = `+${pct}%`;
                     el.className = 'stats-trend positive';
-                } else if (pct < 0) {
+                } else {
                     el.textContent = `${pct}%`;
                     el.className = 'stats-trend negative';
-                } else {
-                    el.textContent = `0%`;
-                    el.className = 'stats-trend neutral';
                 }
             }
         };
 
         // Применяем тренды для Времени и Завершенных задач
-        applyTrend('stat-trend-time', data.trend_time_pct, data.total_time);
-        applyTrend('stat-trend-done', data.trend_done_pct, data.total_done);
+        applyTrend('stat-trend-time', data.trend_time_pct);
+        applyTrend('stat-trend-done', data.trend_done_pct);
 
         // Инсайт
         const insightEl = document.getElementById('stats-insight');
-        const fullDayNamesRu = ['в Понедельник', 'во Вторник', 'в Среду', 'в Четверг', 'в Пятницу', 'в Субботу', 'в Воскресенье'];
-        const fullDayNamesEn = ['on Monday', 'on Tuesday', 'on Wednesday', 'on Thursday', 'on Friday', 'on Saturday', 'on Sunday'];
+        // Зашиваем теги <b> прямо в массив, оставляя предлоги "в/во" снаружи
+        const fullDayNamesRu = ['в <b>понедельник</b>', 'во <b>вторник</b>', 'в <b>среду</b>', 'в <b>четверг</b>', 'в <b>пятницу</b>', 'в <b>субботу</b>', 'в <b>воскресенье</b>'];
+        const fullDayNamesEn = ['on <b>Monday</b>', 'on <b>Tuesday</b>', 'on <b>Wednesday</b>', 'on <b>Thursday</b>', 'on <b>Friday</b>', 'on <b>Saturday</b>', 'on <b>Sunday</b>'];
         const fullDayNames = currentLang === 'ru' ? fullDayNamesRu : fullDayNamesEn;
         
         if (data.total_time === 0) {
-            insightEl.textContent = `💡 ${t('stats.insightEmpty')}`;
+            insightEl.innerHTML = `<span>💡 ${t('stats.insightEmpty')}</span>`;
         } else {
             const bestDayName = data.best_day !== null ? fullDayNames[data.best_day] : '';
+            // Оборачиваем всё сообщение в <span>, чтобы Flexbox не разрывал предложение на части из-за тега <b>
             if (data.trend_time_pct > 0) {
-                insightEl.textContent = `✨ ${t('stats.insightPositive', data.trend_time_pct, bestDayName)}`;
+                insightEl.innerHTML = `<span>✨ ${t('stats.insightPositive', data.trend_time_pct, bestDayName)}</span>`;
             } else if (data.trend_time_pct < 0) {
-                insightEl.textContent = `📉 ${t('stats.insightNegative', data.trend_time_pct, bestDayName)}`;
+                insightEl.innerHTML = `<span>📉 ${t('stats.insightNegative', data.trend_time_pct, bestDayName)}</span>`;
             } else {
-                insightEl.textContent = `⚖️ ${t('stats.insightNeutral', bestDayName)}`;
+                insightEl.innerHTML = `<span>⚖️ ${t('stats.insightNeutral', bestDayName)}</span>`;
             }
         }
         
@@ -13659,7 +13927,7 @@ async function applyColumnSort(columnId, criteria, dir) {
 
     const NO_DRAG = 'button, input, textarea, select, a, [contenteditable="true"],' +
         '.search-wrapper, .settings-wrapper, .tabs-wrapper, .board-tab,' +
-        '.vault-container, .menu-btn, .card-menu-btn, .win-controls, .win-rh';
+        '.vault-actions, .vault-create-form, .menu-btn, .card-menu-btn, .win-controls, .win-rh';
 
     document.addEventListener('pointerdown', (e) => {
         if (e.button !== 0) return;

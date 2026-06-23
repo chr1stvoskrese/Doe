@@ -1296,13 +1296,19 @@ class WindowAPI:
                 webview.windows[-1].minimize()
 
     def _win_hwnd(self):
-        """Достаём HWND текущего окна (тем же способом, что и reveal_window)."""
-        import ctypes
-        try:
-            title = webview.windows[-1].title
-            return ctypes.windll.user32.FindWindowW(None, title)
-        except Exception:
+        """100% надёжное получение HWND текущего окна из внутренностей WinForms."""
+        import sys
+        if sys.platform != 'win32' or not webview.windows:
             return None
+        win = webview.windows[-1]
+        try:
+            from webview.platforms.winforms import BrowserView
+            bv = BrowserView.instances.get(win.uid)
+            if bv is not None:
+                return int(bv.Handle.ToInt64())
+        except Exception:
+            pass
+        return _win32_hwnd_for(win)
 
     def start_window_drag(self):
         """Бесшовное нативное перетаскивание без артефактов и ложных срабатываний Aero Shake."""
@@ -1311,22 +1317,23 @@ class WindowAPI:
             return False
         import ctypes
         
-        # Используем наш метод, это надежнее, чем GetForegroundWindow
         hwnd = self._win_hwnd()
         if not hwnd:
             return False
             
         self._win_maximized = False
         
-        # Отпускаем захват мыши (вызов безопасен без AttachThreadInput, 
-        # т.к. e.preventDefault() на клиенте не дает браузеру заблокировать мышь)
+        # 1. Снимаем захват с текущего IPC потока
         ctypes.windll.user32.ReleaseCapture()
         
-        # Идеальный способ: отправляем команду перемещения (SC_MOVE + HTCAPTION = 0xF012).
-        # ОС сама берет координаты мыши, окно не дергается и не сворачивает другие окна.
+        # 2. КРИТИЧЕСКИЙ ФИКС: Шлём UI-потоку WM_CANCELMODE (0x001F). 
+        # DefWindowProc получив его, сам легально сделает ReleaseCapture() на нужном потоке!
+        ctypes.windll.user32.SendMessageW(hwnd, 0x001F, 0, 0)
+        
+        # 3. Синхронно пинаем системный Drag (SC_MOVE + HTCAPTION = 0xF012)
         WM_SYSCOMMAND = 0x0112
         SC_MOVE_HTCAPTION = 0xF012
-        ctypes.windll.user32.PostMessageW(hwnd, WM_SYSCOMMAND, SC_MOVE_HTCAPTION, 0)
+        ctypes.windll.user32.SendMessageW(hwnd, WM_SYSCOMMAND, SC_MOVE_HTCAPTION, 0)
         return True
 
     def start_window_resize(self, ht):
@@ -1343,14 +1350,13 @@ class WindowAPI:
         self._win_maximized = False
         
         ctypes.windll.user32.ReleaseCapture()
+        ctypes.windll.user32.SendMessageW(hwnd, 0x001F, 0, 0) # WM_CANCELMODE
         
-        # Переводим код границы из JS (HTLEFT = 10, HTRIGHT = 11, и т.д.) 
-        # в константы SC_SIZE для системной команды. Формула: (HT - 9).
         WM_SYSCOMMAND = 0x0112
         SC_SIZE = 0xF000
         direction = int(ht) - 9
         
-        ctypes.windll.user32.PostMessageW(hwnd, WM_SYSCOMMAND, SC_SIZE + direction, 0)
+        ctypes.windll.user32.SendMessageW(hwnd, WM_SYSCOMMAND, SC_SIZE + direction, 0)
         return True
 
     def _win_rect(self, hwnd):

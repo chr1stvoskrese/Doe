@@ -1521,12 +1521,14 @@ body[class*="is-dragging-"] .card-inline-trigger {
     margin-top: 0;
 }
 
+.modal-delete-task,
 .modal-close,
 .modal-maximize,
 .modal-export,
 .modal-copy-link,
 .modal-search,
 .modal-detach,
+.modal-complete-subtask,
 .modal-notify,
 .modal-due-date,
 .modal-priority {
@@ -1546,12 +1548,14 @@ body[class*="is-dragging-"] .card-inline-trigger {
     flex-shrink: 0;
 }
 
+.modal-delete-task svg,
 .modal-close svg,
 .modal-maximize svg,
 .modal-export svg,
 .modal-copy-link svg,
 .modal-search svg,
 .modal-detach svg,
+.modal-complete-subtask svg,
 .modal-notify svg,
 .modal-due-date svg,
 .modal-priority svg {
@@ -1565,6 +1569,7 @@ body[class*="is-dragging-"] .card-inline-trigger {
 .modal-copy-link:hover,
 .modal-search:hover,
 .modal-detach:hover,
+.modal-complete-subtask:hover,
 .modal-notify:hover,
 .modal-due-date:hover,
 .modal-priority:hover {
@@ -1574,16 +1579,27 @@ body[class*="is-dragging-"] .card-inline-trigger {
 
 .modal-copy-link.copied { color: var(--success-done); }
 
+.modal-delete-task:hover {
+    background: rgba(211, 84, 70, 0.1);
+    color: #D35446;
+}
+
 [data-theme="dark"] .modal-close:hover,
 [data-theme="dark"] .modal-maximize:hover,
 [data-theme="dark"] .modal-export:hover,
 [data-theme="dark"] .modal-copy-link:hover,
 [data-theme="dark"] .modal-search:hover,
 [data-theme="dark"] .modal-detach:hover,
+[data-theme="dark"] .modal-complete-subtask:hover,
 [data-theme="dark"] .modal-notify:hover,
 [data-theme="dark"] .modal-due-date:hover,
 [data-theme="dark"] .modal-priority:hover {
     background: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .modal-delete-task:hover {
+    background: rgba(214, 90, 75, 0.15);
+    color: #D65A4B;
 }
 
 .segmented-control {
@@ -7367,7 +7383,7 @@ body.ext-statistics-hidden #statistics-trigger {
     padding: 14px 16px;
     display: flex;
     flex-direction: column;
-    justify-content: flex-start;
+    justify-content: space-between; /* <--- ИСПРАВЛЕНО: теперь цифры всегда прижаты к низу */
     text-align: left;
     box-shadow: 0 4px 12px rgba(0,0,0,0.02);
 }
@@ -7378,11 +7394,12 @@ body.ext-statistics-hidden #statistics-trigger {
 .stats-metric-header {
     display: flex;
     justify-content: space-between;
-    align-items: center; /* 1. Строгое выравнивание по центру */
+    align-items: center;
     gap: 8px;
     width: 100%;
     margin-bottom: 12px;
-    min-width: 0; /* Для работы обрезки текста */
+    min-width: 0;
+    min-height: 17px; /* <--- ДОБАВЛЕНО: жестко резервирует высоту под бейдж тренда */
 }
 
 .stats-metric-label {

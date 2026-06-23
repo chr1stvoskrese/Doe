@@ -936,7 +936,7 @@ async def get_statistics(offset_weeks: int = 0, db: AsyncSession = Depends(get_s
         total_done=cur_done,
         total_time=cur_time,
         overdue_count=overdue_count,
-        trend_done_pct=round(trend_time_pct, 1), # Да-да, тренд времени используем как главный показатель
+        trend_done_pct=round(trend_done_pct, 1), # Теперь показывает реальную динамику по задачам
         trend_time_pct=round(trend_time_pct, 1),
         best_day=best_day_idx,
         chart_data=chart_array,
