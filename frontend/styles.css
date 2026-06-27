@@ -884,12 +884,30 @@ body, button, input, textarea, select,
 }
 
 .reminder-task-title {
-    font-size: 13px;
-    font-weight: 600;
+    font-size: 14px; /* Сделали 14px вместо 13px для полного соответствия карточке */
+    font-weight: 500; /* Понизили базовый вес с 600 до 500 */
     color: var(--text-primary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+.reminder-task-title * {
+    display: inline;
+    line-height: inherit;
+    white-space: nowrap;
+}
+
+.reminder-task-title code {
+    background: rgba(0, 0, 0, 0.05);
+    padding: 1px 4px;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+}
+
+[data-theme="dark"] .reminder-task-title code {
+    background: rgba(255, 255, 255, 0.1);
 }
 
 .reminder-time {
@@ -2574,6 +2592,24 @@ body.is-dragging-card .column-header {
     -webkit-user-select: none;
     -webkit-user-drag: element;
     position: relative;
+
+    transition: max-width 0.35s cubic-bezier(0.16, 1, 0.3, 1), 
+                opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), 
+                transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+                padding 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+                margin 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+                background 0.15s, color 0.15s, box-shadow 0.15s;
+    max-width: 300px;
+    transform: translate3d(0, 0, 0);
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    /* overflow: hidden; Убрано, чтобы не обрезались разделители (::after с отрицательным right) */
+}
+
+/* Скрываем разделитель у самого сепаратора и у вкладки ПЕРЕД ним */
+.board-tab.hb-separator::after,
+.board-tab:has(+ .hb-separator)::after {
+    display: none !important;
 }
 
 .tab-name {
@@ -2611,8 +2647,12 @@ body:not(.is-dragging-tab) .board-tab:not(.active):hover {
     opacity: 0;
 
     margin-right: -8px;
+    flex-shrink: 0; /* Не даем крестику сплющиваться во время анимации max-width */
+    transform: translate3d(0, 0, 0);
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
 
-    transition: background 0.15s, color 0.15s;
+    transition: opacity 0.15s, background 0.15s, color 0.15s;
 }
 
 body:not([class*="is-dragging-"]) .board-tab:hover .tab-close-btn:not(.hidden),
@@ -2648,8 +2688,18 @@ body:not([class*="is-dragging-"]) .board-tab:hover .tab-close-btn:not(.hidden),
     flex-shrink: 0;
     position: relative;
 
-    transition: opacity 0.2s ease, background 0.2s ease, transform 0.2s ease;
-    will-change: opacity, transform;
+    transition: max-width 0.35s cubic-bezier(0.16, 1, 0.3, 1), 
+                opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), 
+                transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+                padding 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+                margin 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+                background 0.2s;
+    max-width: 32px;
+    overflow: hidden;
+    transform: translate3d(0, 0, 0);
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    will-change: max-width, opacity, transform, padding, margin;
 }
 
 .add-tab-btn.is-hidden { display: none; }
@@ -3412,15 +3462,24 @@ body.is-dragging-modal * {
 .markdown-body h4,
 .markdown-body h5,
 .markdown-body h6 {
-    margin-top: 0;
-    margin-bottom: 12px;
+    margin-top: 18px !important; /* Комфортный отступ сверху в обычном состоянии */
+    margin-bottom: 12px !important;
+    margin-block-start: 0 !important; /* Полное уничтожение браузерных отступов */
+    margin-block-end: 0 !important;
     font-weight: 600;
     color: var(--text-primary);
     letter-spacing: -0.02em;
 }
 
+/* Когда заголовки свернуты, они стягиваются в плотный красивый список-индекс */
+.markdown-body .foldable-heading.is-folded {
+    margin-top: 0px !important;
+    margin-bottom: 2px !important;
+    opacity: 0.85;
+}
+
 .foldable-heading {
-    display: inline-flex;
+    display: flex;
     align-items: center;
     cursor: pointer;
     user-select: none;
@@ -3477,11 +3536,13 @@ body.is-dragging-modal * {
 .subtask-title a,
 #task-modal-title a,
 .breadcrumb-item a,
+.reminder-task-title a,
 .tooltip-inner a { color: var(--brand-pine); text-decoration: none; pointer-events: auto; }
 .card-title a:hover,
 .subtask-title a:hover,
 #task-modal-title a:hover,
 .breadcrumb-item a:hover,
+.reminder-task-title a:hover,
 .tooltip-inner a:hover { text-decoration: underline; }
 .markdown-body ul, .markdown-body ol { margin-bottom: 16px; padding-left: 24px; }
 .markdown-body li { margin-bottom: 6px; }
@@ -3836,6 +3897,15 @@ body.is-dragging-modal * {
 .markdown-body {
     line-height: 1.2;
     user-select: text !important;
+    white-space: normal; /* Схлопываем пустые \n между HTML-тегами */
+}
+
+/* Сохраняем пробелы и переносы только внутри самих текстовых блоков */
+.markdown-body p, 
+.markdown-body li, 
+.markdown-body blockquote, 
+.markdown-body h1, .markdown-body h2, .markdown-body h3, 
+.markdown-body h4, .markdown-body h5, .markdown-body h6 {
     white-space: pre-wrap;
 }
 
@@ -4108,7 +4178,7 @@ body.is-dragging-modal * {
 
 .subtask-eye-btn.active-eye {
     opacity: 1;
-    color: var(--text-primary);
+    color: var(--accent-primary, #89A085);
 }
 
 .subtask-eye-btn:hover {
@@ -4377,7 +4447,7 @@ body.is-dragging-subtask .subtask-item {
 
 .subtask-eye-btn.active-eye {
     opacity: 1;
-    color: var(--text-primary);
+    color: var(--accent-primary, #89A085);
 }
 
 .subtask-item:hover .subtask-eye-btn,
@@ -4630,8 +4700,13 @@ body.is-dragging-attachment .attachment-item:not(.attachment-drag-clone) {
     width: 100%;
     margin-bottom: 24px;
     flex-shrink: 0;
-
     align-items: flex-start;
+    
+    /* ФИКС ГЛИТЧА: Выносим в отдельный слой GPU */
+    will-change: opacity, transform;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
 }
 
 .vault-action-card {
@@ -4643,13 +4718,16 @@ body.is-dragging-attachment .attachment-item:not(.attachment-drag-clone) {
     text-align: center;
     cursor: pointer;
     box-shadow: var(--shadow-card);
-
     transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
-
     overflow: hidden;
     display: flex;
     flex-direction: column;
     align-items: center;
+    
+    /* ФИКС ГЛИТЧА: Защита от "отслаивания" бордера при анимации контейнера */
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
 }
 
 .vault-action-card:hover {
@@ -4703,7 +4781,27 @@ body.is-dragging-attachment .attachment-item:not(.attachment-drag-clone) {
     margin-bottom: 24px;
     text-align: center;
     flex-shrink: 0;
-    animation: fadeInBtn 0.2s ease-out;
+    /* Идеальная кривая: быстрый старт, очень мягкое, дышащее замедление */
+    animation: formFadeIn 0.25s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+    
+    /* ФИКС ГЛИТЧА: Изначально прозрачен, закэширован в GPU */
+    opacity: 0;
+    will-change: opacity, transform;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+}
+
+@keyframes formFadeIn {
+    from { 
+        opacity: 0; 
+        /* Слегка "утоплено" вглубь экрана и сдвинуто вниз */
+        transform: translateY(6px) scale(0.98); 
+    }
+    to { 
+        opacity: 1; 
+        transform: translateY(0) scale(1); 
+    }
 }
 
 .vault-create-prompt {
@@ -8251,3 +8349,170 @@ body.ext-statistics-hidden #statistics-trigger {
     opacity: 0.5;
     cursor: not-allowed;
 }
+
+/* --- Инлайн-создание колонок --- */
+.column-inline-trigger {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: -25px; /* 24px (зазор) + 1px (рамка колонки) = идеальный центр */
+    width: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    opacity: 0;
+    /* Используем пропорциональный масштаб вместо scaleX */
+    transform: scale(0.95);
+    transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    pointer-events: auto;
+    cursor: default;
+}
+
+.column-inline-trigger:hover {
+    opacity: 1;
+    transform: scale(1);
+}
+
+/* Запрещаем кнопке сжиматься внутри флекс-контейнера */
+.column-inline-trigger .divider-plus-btn {
+    flex-shrink: 0;
+}
+
+/* Вертикальный пунктир */
+.column-inline-trigger::before {
+    content: '';
+    position: absolute;
+    top: 16px;
+    bottom: 16px;
+    left: 50%;
+    /* Сдвигаем влево ровно на половину толщины линии (1.5px / 2) для пиксель-перфект центрирования */
+    margin-left: -0.75px;
+    width: 0;
+    border-left: 1.5px dashed var(--brand-pine);
+    opacity: 0.25;
+    pointer-events: none;
+}
+
+[data-theme="dark"] .column-inline-trigger::before {
+    opacity: 0.4;
+}
+
+/* Анимация плюсика внутри */
+.column-inline-trigger:hover .divider-plus-btn {
+    transform: scale(1);
+}
+
+/* Скрываем у последней колонки или если рядом форма/скрытая колонка */
+.column:last-child .column-inline-trigger,
+.column:has(+ .new-column-btn) .column-inline-trigger,
+.column:has(+ .column-entering) .column-inline-trigger,
+.column.collapsed .column-inline-trigger {
+    display: none !important;
+}
+
+body[class*="is-dragging-"] .column-inline-trigger {
+    display: none !important;
+}
+
+/* --- Стили Markdown для названий в статистике --- */
+.stats-top-title a {
+    color: var(--brand-pine);
+    text-decoration: none;
+    pointer-events: auto; /* ВЕРНУЛИ КЛИКАБЕЛЬНОСТЬ */
+}
+
+.stats-top-title a:hover {
+    text-decoration: underline;
+}
+
+.stats-top-title code {
+    font-family: var(--font-mono);
+    background: rgba(0, 0, 0, 0.05);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 12px;
+}
+
+[data-theme="dark"] .stats-top-title a {
+    color: #89A085;
+}
+
+[data-theme="dark"] .stats-top-title code {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* ====================================================
+   HIDDEN BAR: СКРЫТИЕ ВКЛАДОК
+   ==================================================== */
+.hb-separator {
+    cursor: pointer;
+    color: var(--text-secondary);
+    width: 24px;
+    height: 32px;
+    padding: 0 !important;
+    border-radius: 10px !important;
+    opacity: 0.5;
+    flex-shrink: 0;
+    background-color: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transform: translateZ(0); /* Аппаратное ускорение контейнера */
+}
+
+.hb-separator:hover {
+    opacity: 1;
+    background-color: rgba(0, 0, 0, 0.06) !important;
+    color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .hb-separator:hover {
+    background-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.hb-chevron {
+    width: 8px;
+    height: 18px;
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    transform: rotate(0deg) translateZ(0); /* Фикс дергания SVG при CPU-рендеринге */
+    will-change: transform;
+}
+
+body.tabs-hidden .hb-chevron {
+    transform: rotate(180deg) translateZ(0);
+}
+
+body.tabs-hidden .hb-separator ~ .board-tab,
+body.tabs-hidden .hb-separator ~ .add-tab-btn {
+    max-width: 0px !important;
+    min-width: 0px !important;
+    opacity: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    transform: translate3d(-8px, 0, 0) !important;
+    pointer-events: none !important;
+    overflow: hidden !important;
+}
+
+body.tabs-hidden .hb-separator ~ .board-tab::after {
+    display: none !important;
+}
+
+/* Стили для глазика скрытия пароля */
+.pwd-eye-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.pwd-eye-btn:hover { color: var(--text-primary); }
+[data-theme="dark"] .pwd-eye-btn:hover { color: #E6E8E5; }

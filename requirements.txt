@@ -13,3 +13,4 @@ watchdog==5.0.3
 websockets==13.1
 huggingface-hub==0.23.4
 llama-cpp-python==0.3.29; sys_platform == "darwin" and platform_machine == "arm64"
+cryptography==42.0.5

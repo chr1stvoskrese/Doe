@@ -114,7 +114,10 @@ async def create_task(db: AsyncSession, task_in: TaskCreate) -> TaskModel:
     result = await db.execute(select(ColumnModel).where(ColumnModel.id == task_in.column_id))
     column = result.scalar_one()
 
-    if column.mode == ColumnMode.TRACK_TIME:
+    # Таймер запускается только для самостоятельных карточек (без родителей).
+    # Подзадачи управляют своим таймером только когда сами становятся
+    # видимыми на доске и сами перемещены в колонку с учётом времени.
+    if column.mode == ColumnMode.TRACK_TIME and not task_in.parent_ids:
         new_session = TimerSessionModel(
             task_id=db_task.id,
             start_time=datetime.utcnow(),
@@ -189,6 +192,8 @@ async def update_task(db: AsyncSession, task_id: int, task_in: TaskUpdate) -> Ta
     col = col_res.scalar_one()
 
     is_visible = update_data.get("is_visible_on_board", task.is_visible_on_board)
+    was_hidden = bool(task.parents) and not task.is_visible_on_board
+    is_now_visible = bool(task.parents) and is_visible
     is_active_on_board = not task.parents or is_visible
 
     if is_active_on_board:
@@ -202,6 +207,24 @@ async def update_task(db: AsyncSession, task_id: int, task_in: TaskUpdate) -> Ta
                 update_data.pop("completed_at")
             if task.completed_at is not None and "completed_at" not in update_data:
                 update_data["completed_at"] = None
+
+    # Логика таймеров при переключении "глазика" (видимости на доске)
+    if col.mode == ColumnMode.TRACK_TIME:
+        # Если включили глазик, и задача в колонке с таймером — запускаем таймер
+        if was_hidden and is_now_visible:
+            new_session = TimerSessionModel(
+                task_id=task.id,
+                start_time=datetime.utcnow(),
+                is_active=True,
+            )
+            db.add(new_session)
+            task.timer_sessions.append(new_session)
+        # Если выключили глазик, и задача в колонке с таймером — останавливаем таймер
+        elif not was_hidden and not is_active_on_board:
+            for session in task.timer_sessions:
+                if session.is_active:
+                    session.is_active = False
+                    session.end_time = datetime.utcnow()
 
     for field, value in update_data.items():
         setattr(task, field, value)
@@ -339,7 +362,8 @@ async def move_task(db: AsyncSession, task_id: int, target_column_id: int) -> Ta
         task.completed_at = None
 
     # 3. Обработка родителя: Заходим в колонку таймера - создаем НОВУЮ СЕССИЮ
-    if target_column.mode == ColumnMode.TRACK_TIME:
+    is_hidden_subtask = bool(task.parents) and not task.is_visible_on_board
+    if target_column.mode == ColumnMode.TRACK_TIME and not is_hidden_subtask:
         new_session = TimerSessionModel(
             task_id=task.id,
             start_time=datetime.utcnow(),
@@ -372,16 +396,9 @@ async def move_task(db: AsyncSession, task_id: int, target_column_id: int) -> Ta
                         session.end_time = datetime.utcnow()
                         
             # ❌ БЛОК АВТОЗАВЕРШЕНИЯ УДАЛЕН. ПОДЗАДАЧИ СОХРАНЯЮТ СВОЙ СТАТУС.
-                
-            # Таймеры (новые сессии) для подзадач
-            if target_mode == ColumnMode.TRACK_TIME:
-                new_session = TimerSessionModel(
-                    task_id=s.id,
-                    start_time=datetime.utcnow(),
-                    is_active=True,
-                )
-                db.add(new_session)
-                s.timer_sessions.append(new_session)
+            # ❌ БЛОК АВТОЗАПУСКА ТАЙМЕРА УДАЛЕН — подзадачи запускают таймер
+            #    только когда сами становятся видимыми на доске и сами перемещены
+            #    в колонку с учётом времени.
 
             await update_children_column(s.id, new_col_id, target_mode, source_mode)
 
@@ -430,7 +447,8 @@ async def clear_task_timer(db: AsyncSession, task_id: int) -> TaskModel:
         select(TaskModel)
         .options(
             selectinload(TaskModel.column),
-            selectinload(TaskModel.timer_sessions)
+            selectinload(TaskModel.timer_sessions),
+            selectinload(TaskModel.parents)
         )
         .where(TaskModel.id == task_id)
     )
@@ -445,8 +463,9 @@ async def clear_task_timer(db: AsyncSession, task_id: int) -> TaskModel:
     # Очищаем локальный массив
     task.timer_sessions = []
 
-    # Если задача прямо сейчас находится в колонке "Учёт времени", начинаем таймер с нуля
-    if task.column.mode == ColumnMode.TRACK_TIME:
+    # Если задача прямо сейчас находится в колонке "Учёт времени" И это
+    # самостоятельная карточка (не скрытая подзадача) — начинаем таймер с нуля.
+    if task.column.mode == ColumnMode.TRACK_TIME and not (task.parents and not task.is_visible_on_board):
         new_session = TimerSessionModel(
             task_id=task.id,
             start_time=datetime.utcnow(),

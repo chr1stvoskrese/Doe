@@ -16,7 +16,6 @@ from src.core.config import (
     get_ui_settings,
     _load_config,
     _save_config,
-    DEFAULT_VAULT,
 )
 import shutil
 from src.core.watcher import vault_observer # <-- ИМПОРТ НАШЕГО WATCHER'A
@@ -49,7 +48,14 @@ def _resolve_db_path(vault_path: str) -> Path:
     """
     vault_dir = Path(vault_path)
     
-    # 0.1 БЕСШОВНАЯ МИГРАЦИЯ со старого .doe.db на новый .db.doe
+    # 1. Сначала ищем рабочую БД
+    candidates = [f for f in vault_dir.glob("*.db.doe") if not _is_backup_file(f) and not f.name.startswith("._")]
+    if candidates:
+        target_db = max(candidates, key=lambda p: p.stat().st_mtime)
+        print(f"[Database] Found existing database file: {target_db.name}")
+        return target_db
+
+    # 2. БЕСШОВНАЯ МИГРАЦИЯ со старого .doe.db на новый .db.doe
     doe_db_candidates = [f for f in vault_dir.glob("*.doe.db") if not f.name.startswith("._")]
     if doe_db_candidates:
         old_db = max(doe_db_candidates, key=lambda p: p.stat().st_mtime)
@@ -62,7 +68,7 @@ def _resolve_db_path(vault_path: str) -> Path:
             print(f"[Database] ❌ Failed to migrate DB extension: {e}")
             return old_db
 
-    # 0.2 БЕСШОВНАЯ МИГРАЦИЯ: Если есть старый .db (не backup), переименовываем в .db.doe
+    # 3. БЕСШОВНАЯ МИГРАЦИЯ: Если есть старый .db (не backup), переименовываем в .db.doe
     legacy_candidates = [f for f in vault_dir.glob("*.db") if not f.name.endswith(".db.doe") and not f.name.endswith(".backup.db") and not f.name.endswith(".doe.db") and not f.name.startswith("._")]
     if legacy_candidates:
         old_db = max(legacy_candidates, key=lambda p: p.stat().st_mtime)
@@ -75,15 +81,14 @@ def _resolve_db_path(vault_path: str) -> Path:
             print(f"[Database] ❌ Failed to migrate DB extension: {e}")
             return old_db # Фолбэк на старый файл, если нет прав
 
-    # 1. Ищем все .db.doe файлы в папке
+    # 4. Повторный поиск после миграций
     candidates = [f for f in vault_dir.glob("*.db.doe") if not _is_backup_file(f) and not f.name.startswith("._")]
-    
     if candidates:
         target_db = max(candidates, key=lambda p: p.stat().st_mtime)
         print(f"[Database] Found existing database file: {target_db.name}")
         return target_db
 
-    # 2. Если файлов нет (создание абсолютно нового хранилища)
+    # 5. Если файлов нет (создание абсолютно нового хранилища)
     vault_name = vault_dir.name
     new_db_target = vault_dir / f"{vault_name}.db.doe"
     print(f"[Database] No existing DB found. Targeting new file: {new_db_target.name}")
@@ -208,32 +213,50 @@ def get_session_factory():
     return _session_factory
 
 async def close_database():
-    global _engine
+    global _engine, _session_factory
     if _engine:
+        from sqlalchemy import text
+        if _session_factory:
+            try:
+                async with _session_factory() as session:
+                    await session.execute(text("PRAGMA wal_checkpoint(TRUNCATE)"))
+                    await session.commit()
+            except Exception as e:
+                print(f"[Database] WAL Checkpoint failed: {e}")
+        
         await _engine.dispose()
         _engine = None
+        _session_factory = None
+        
+        # Гарантированное освобождение файловых дескрипторов SQLite
+        import gc
+        import asyncio
+        gc.collect()
+        await asyncio.sleep(0.5) # Даем ОС время снять локи
 
 async def init_dev_database():
     vault_path = get_active_vault()
+    if not vault_path:
+        return None
+        
     dev_vault = Path(vault_path)
     
-    # 🛡 Защита от воскрешения удалённого хранилища.
-    # Если active_vault указывает на несуществующую папку (юзер удалил её
-    # через Finder/Explorer или вынес флешку), НЕ создаём её обратно.
-    # Чистим протухший указатель в конфиге и откатываемся на DEFAULT_VAULT
-    # как нейтральный плейсхолдер — реальное хранилище пользователь выберет
-    # на экране Vault, который теперь откроет wrapper.py (т.к. active_vault пуст).
-    if not dev_vault.exists():
+    # 🛡 СТРОГАЯ ЗАЩИТА: Если папки нет ИЛИ в ней нет файлов БД (.db.doe)
+    # мы сбрасываем хранилище и возвращаем на экран выбора, чтобы не наплодить фантомов.
+    has_db = False
+    if dev_vault.exists() and dev_vault.is_dir():
+        has_db = any(f for f in dev_vault.iterdir() if f.is_file() and f.name.endswith(".db.doe") and "backup" not in f.name and not f.name.startswith("._"))
+        
+    if not has_db:
         config_data = _load_config()
         if config_data.get("active_vault") == str(dev_vault):
             config_data.pop("active_vault", None)
             active_ws = config_data.get("active_workspaces", {})
             active_ws.pop(str(dev_vault), None)
             _save_config(config_data)
-            print(f"[Database] Stale active_vault cleared: {dev_vault}")
-        dev_vault = Path(DEFAULT_VAULT)
+            print(f"[Database] Invalid or empty vault cleared from config: {dev_vault}")
+        return None # 🛑 НИЧЕГО НЕ СОЗДАЕМ САМИ!
     
-    dev_vault.mkdir(parents=True, exist_ok=True)
     await init_database(str(dev_vault))
     return dev_vault
 

@@ -18,6 +18,7 @@ if (navigator.userAgent.toLowerCase().includes('windows')) {
 
 const translations = {
     ru: {
+        zenToggle: 'Скрыть/Показать вкладки (Cmd/Ctrl + \\)',
         searchPlaceholder: 'Поиск...',
         loading: 'Загрузка...',
         settings: 'Настройки', theme: 'Тема', language: 'Язык', about: 'О приложении', workspace: 'Doe Board', cancel: 'Отмена', close: 'Закрыть',
@@ -237,9 +238,10 @@ const translations = {
             actionsPartial: '⚠️ Часть действий не удалось:',
             actionsError: '❌ Ошибка выполнения. Проверьте правильность ID.',
             taskRef: (id) => `Задача #${id}`,
-        }
+        },
     },
     en: {
+        zenToggle: 'Toggle Tabs (Cmd/Ctrl + \\)',
         searchPlaceholder: 'Search...',
         loading: 'Loading...',
         settings: 'Settings', theme: 'Theme', language: 'Language', about: 'About', workspace: 'Doe Board', cancel: 'Cancel', close: 'Close',
@@ -456,7 +458,15 @@ const translations = {
             actionsPartial: '⚠️ Some actions failed:',
             actionsError: '❌ Execution error. Check ID correctness.',
             taskRef: (id) => `Task #${id}`,
-        }
+        },
+    }
+};
+
+window.appExit = async () => {
+    if (window.pywebview && window.pywebview.api && window.pywebview.api.force_close) {
+        window.pywebview.api.force_close();
+    } else {
+        window.close();
     }
 };
 
@@ -1119,11 +1129,14 @@ async function saveColumnsOrder(orderedIds) {
     });
     if (!res.ok) throw new Error('Error');
 }
-async function createColumn(title, mode = 'default', workspaceId) {
+async function createColumn(title, mode = 'default', workspaceId, position = null) {
+    const body = { title, mode, workspace_id: workspaceId };
+    if (position !== null) body.position = position; // Передаем вычисленную позицию
+    
     const res = await fetch(`${API_BASE}/columns/`, { 
         method: 'POST', 
         headers: { 'Content-Type': 'application/json' }, 
-        body: JSON.stringify({ title, mode, workspace_id: workspaceId }) 
+        body: JSON.stringify(body) 
     });
     if (!res.ok) throw new Error('Error'); return res.json();
 }
@@ -1355,6 +1368,16 @@ function renderInlineMarkdown(text) {
     return html;
 }
 function unescapeHtml(html) { const div = document.createElement('div'); div.innerHTML = html; return div.textContent; }
+
+// Очищает Markdown до плоского текста для системных уведомлений
+function stripMarkdownToPlain(md) {
+    if (!md) return '';
+    return md.replace(/!\[.*?\]\(.*?\)/g, '')
+             .replace(/\[([^\]]+)\]\(.*?\)/g, '$1')
+             .replace(/[*_~`]/g, '')
+             .replace(/<[^>]+>/g, '')
+             .trim();
+}
 
 // Вырезает [...](doe://task/NNN) из текста, оставляя только внутренний контент
 // Работает с вложенными скобками (напр. [текст с [ссылкой](url)](doe://task/1) → текст с [ссылкой](url))
@@ -1755,7 +1778,7 @@ function updateCardAppearance(cardElement, task, columnMode) {
             }
         }
 
-        newContent += `<div class="due-date-pill ${overdueClass} clickable" onclick="openDueDateModal(${task.id}, '${task.due_date}')"><span class="due-icon">${icon}</span><span>${formatShortDate(task.due_date)}</span></div>`;
+	        newContent += `<div class="due-date-pill ${overdueClass}"><span class="due-icon">${icon}</span><span>${formatShortDate(task.due_date)}</span></div>`;
     }
 
     if (isTimerColumn) {
@@ -1834,7 +1857,7 @@ function generateCardHtml(task, columnMode) {
             }
         }
 
-        dueDateHtml = `<div class="due-date-pill ${overdueClass} clickable" onclick="openDueDateModal(${task.id}, '${task.due_date}')"><span class="due-icon">${icon}</span><span>${formatShortDate(task.due_date)}</span></div>`;
+	        dueDateHtml = `<div class="due-date-pill ${overdueClass}"><span class="due-icon">${icon}</span><span>${formatShortDate(task.due_date)}</span></div>`;
     }
 
     let timerHtml = '';
@@ -1972,6 +1995,16 @@ function createColumnElement(column) {
     const menuBtn = colDiv.querySelector('.menu-btn');
     menuBtn.addEventListener('click', (e) => toggleColumnMenu(e, colDiv));
 
+    // Inline trigger для создания колонки между текущими
+    const inlineTrigger = document.createElement('div');
+    inlineTrigger.className = 'column-inline-trigger';
+    inlineTrigger.innerHTML = `
+        <button class="divider-plus-btn">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        </button>
+    `;
+    colDiv.appendChild(inlineTrigger);
+
     return colDiv;
 }
 
@@ -1990,11 +2023,6 @@ async function refreshBoard(scrollToActive = false, newTabId = null) {
         ]);
         state.workspaces = _wsList;
         
-        if (state.workspaces.length === 0) {
-            const ws = await createWorkspaceAPI(t('defaultWorkspace'));
-            state.workspaces.push(ws);
-        }
-
         if (!state.activeWorkspaceId || !state.workspaces.find(w => w.id === state.activeWorkspaceId)) {
             state.activeWorkspaceId = state.workspaces[0].id;
         }
@@ -2731,6 +2759,44 @@ function renderTabs(scrollToActive = false, newTabId = null) {
         container.appendChild(tab);
     });
 
+    // --- Внедряем Hidden Bar Separator ---
+    const separator = document.createElement('div');
+    separator.className = 'board-tab hb-separator'; // .board-tab включает для него родной Drag & Drop
+    const hotkeyText = currentLang === 'ru' ? 'Скрыть/Показать вкладки (Cmd/Ctrl + \\)' : 'Toggle Tabs (Cmd/Ctrl + \\)';
+    separator.title = hotkeyText;
+    separator.innerHTML = `
+        <svg class="hb-chevron" viewBox="0 0 12 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="8 4 3 12 8 20"></polyline></svg>
+    `;
+    
+    separator.addEventListener('click', (e) => {
+        e.stopPropagation();
+        closeAllDropdowns();
+        const willBeHidden = document.body.classList.toggle('tabs-hidden');
+        
+        // Обновляем в локальной памяти и на бэкенде:
+        if (window.appSettings) window.appSettings.tabs_hidden = willBeHidden;
+        updateSettings({ tabs_hidden: willBeHidden }).catch(console.error);
+
+        // Оставляем фолбэк для быстрого UI
+        if (window.currentVaultPath) {
+            localStorage.setItem(`doe-tabs-hidden_${window.currentVaultPath}`, willBeHidden);
+        }
+    });
+
+    let hbIndex = window.appSettings?.hb_index;
+    if (typeof hbIndex !== 'number' || isNaN(hbIndex)) {
+        hbIndex = parseInt(localStorage.getItem(`doe-hb-index_${window.currentVaultPath}`));
+        if (isNaN(hbIndex)) hbIndex = 999; 
+    }
+    
+    const currentTabs = Array.from(container.querySelectorAll('.board-tab:not(.hb-separator)'));
+    if (hbIndex < currentTabs.length) {
+        container.insertBefore(separator, currentTabs[hbIndex]);
+    } else {
+        container.appendChild(separator);
+    }
+    // -------------------------------------
+
     const addBtn = document.createElement('button');
     addBtn.className = 'add-tab-btn';
     addBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>';
@@ -2768,6 +2834,7 @@ function renderTabs(scrollToActive = false, newTabId = null) {
             });
         });
     }
+
 }
 
 function restoreTabAddButton(container, replaceElement = null) {
@@ -3835,6 +3902,10 @@ let isHoveringTabs = false;
 let draggedTaskObject = null; 
 let currentDragScale = 1;
 let dragCloneWidth = 0;
+
+let autoExpandedColumnId = null;
+let autoExpandTimeout = null;
+let autoExpandTimeoutColumnId = null;
 let dragCloneHeight = 0;
 let pendingSwitchTabId = null;
 let tabSwitchTimeout = null;
@@ -3994,6 +4065,38 @@ function startDrag(element, type, e) {
     renderPhysics();
 }
 
+function autoExpandColumn(columnEl) {
+    if (!columnEl.classList.contains('collapsed')) return;
+    const columnId = parseInt(columnEl.dataset.columnId);
+    const column = state.columns.find(c => c.id === columnId);
+    if (!column) return;
+
+    autoExpandedColumnId = columnId;
+    columnEl.classList.remove('collapsed');
+    columnEl.classList.add('auto-expanded-temp');
+    
+    // Плавно возвращаем ширину
+    columnEl.style.width = column.width ? column.width + 'px' : '';
+
+    const titleEl = columnEl.querySelector('.column-title');
+    if (titleEl) {
+        titleEl.textContent = titleEl.dataset.fullTitle || titleEl.textContent;
+        titleEl.dataset.clamped = "false";
+        requestAnimationFrame(() => clampSingleTitle(titleEl));
+    }
+}
+
+function revertAutoExpandedColumn() {
+    if (autoExpandedColumnId === null) return;
+    const columnEl = document.querySelector(`.column.auto-expanded-temp[data-column-id="${autoExpandedColumnId}"]`);
+    if (columnEl) {
+        columnEl.classList.add('collapsed');
+        columnEl.classList.remove('auto-expanded-temp');
+        adjustCollapsedColumnWidths();
+    }
+    autoExpandedColumnId = null;
+}
+
 function performHitTest() {
     const elemUnderMouse = document.elementFromPoint(mouseX, mouseY);
     if (!elemUnderMouse) return;
@@ -4064,6 +4167,41 @@ function performHitTest() {
     }
     else if (dragType === 'card') {
         const hoverCard = elemUnderMouse.closest('.card:not(.is-ghost)');
+        const hoverCol = elemUnderMouse.closest('.column:not(.is-ghost)');
+
+        // --- ЛОГИКА АВТОРАСКРЫТИЯ СВЕРНУТЫХ КОЛОНОК ---
+        if (hoverCol) {
+            const colId = parseInt(hoverCol.dataset.columnId);
+            
+            // Если над свернутой и она еще не была нами раскрыта
+            if (hoverCol.classList.contains('collapsed') && !hoverCol.classList.contains('auto-expanded-temp')) {
+                if (autoExpandTimeoutColumnId !== colId) {
+                    clearTimeout(autoExpandTimeout);
+                    autoExpandTimeoutColumnId = colId;
+                    autoExpandTimeout = setTimeout(() => {
+                        autoExpandColumn(hoverCol);
+                    }, 400); // 400мс удержания курсора для раскрытия
+                }
+            } else if (colId === autoExpandedColumnId) {
+                // Если мы водим мышью внутри уже раскрытой колонки — сбрасываем таймеры
+                clearTimeout(autoExpandTimeout);
+                autoExpandTimeoutColumnId = null;
+            } else {
+                // Если ушли на другую раскрытую колонку — сворачиваем старую
+                if (autoExpandedColumnId && colId !== autoExpandedColumnId) {
+                    revertAutoExpandedColumn();
+                }
+                clearTimeout(autoExpandTimeout);
+                autoExpandTimeoutColumnId = null;
+            }
+        } else {
+            // Если ушли с колонок вообще (на фон)
+            if (autoExpandedColumnId) revertAutoExpandedColumn();
+            clearTimeout(autoExpandTimeout);
+            autoExpandTimeoutColumnId = null;
+        }
+        // ----------------------------------------------
+
         if (hoverCard && hoverCard !== draggedElement) {
             const rect = hoverCard.getBoundingClientRect();
             if (mouseY > rect.top + rect.height / 2) {
@@ -4073,9 +4211,9 @@ function performHitTest() {
             }
         } 
         else {
-            const hoverCol = elemUnderMouse.closest('.column:not(.is-ghost)');
-            if (hoverCol) {
-                const cardList = hoverCol.querySelector('.card-list');
+            const hoverCol2 = elemUnderMouse.closest('.column:not(.is-ghost)');
+            if (hoverCol2) {
+                const cardList = hoverCol2.querySelector('.card-list');
                 if (cardList && !cardList.contains(draggedElement)) {
                     const firstCard = cardList.firstElementChild;
                     if (firstCard && mouseY < firstCard.getBoundingClientRect().top) {
@@ -4326,6 +4464,10 @@ async function endDrag() {
     cancelAnimationFrame(rafId);
     clearTimeout(tabSwitchTimeout);
     
+    // Сбрасываем таймер автораскрытия
+    clearTimeout(autoExpandTimeout);
+    autoExpandTimeoutColumnId = null;
+
     // Сброс скоростей автоскролла и таймера коллизий
     lastHitTestTime = 0;
     wasScrolling = false;
@@ -4406,6 +4548,8 @@ async function endDrag() {
                 if (draggedElement) draggedElement.classList.remove('is-ghost');
                 dragType = null;
                 draggedElement = null;
+
+                revertAutoExpandedColumn();
             }, 350);
         })();
         return;
@@ -4445,7 +4589,9 @@ async function endDrag() {
         dragClone.remove();
         dragClone = null;
     }
-    
+
+    revertAutoExpandedColumn();
+
     if (draggedElement) {
         if (dragType === 'card') {
             const newColumnEl = draggedElement.closest('.column');
@@ -4516,10 +4662,25 @@ async function endDrag() {
         }
         
         if (dragType === 'tab') {
-            const currentTabs = Array.from(document.querySelectorAll('#tabs-container .board-tab'));
+            const currentTabs = Array.from(document.querySelectorAll('#tabs-container .board-tab:not(.hb-separator)'));
             const orderedIds = currentTabs.map(tab => parseInt(tab.dataset.workspaceId));
             state.workspaces.forEach(ws => { ws.position = orderedIds.indexOf(ws.id); });
             state.workspaces.sort((a, b) => a.position - b.position);
+
+            // Сохраняем позицию Hidden Bar после перетаскивания
+            const allElements = Array.from(document.querySelectorAll('#tabs-container .board-tab'));
+            const sepElement = document.querySelector('.hb-separator');
+            if (sepElement) {
+                const sepIndex = allElements.indexOf(sepElement);
+                
+                if (window.appSettings) window.appSettings.hb_index = sepIndex;
+                updateSettings({ hb_index: sepIndex }).catch(console.error);
+
+                if (window.currentVaultPath) {
+                    localStorage.setItem(`doe-hb-index_${window.currentVaultPath}`, sepIndex);
+                }
+            }
+
             if (window.updateTabsScrollbar) window.updateTabsScrollbar();
             try { await saveWorkspacesOrder(orderedIds); } catch (e) {}
         }
@@ -4666,7 +4827,7 @@ document.addEventListener('click', async (e) => {
     // Обработка ссылок внутри заголовков (Markdown)
     const titleLink = target.closest('a');
     if (titleLink) {
-        const inTitle = target.closest('.card-title, .subtask-title, #task-modal-title, .breadcrumb-item');
+        const inTitle = target.closest('.card-title, .subtask-title, #task-modal-title, .breadcrumb-item, .reminder-task-title');
         if (inTitle) {
             e.stopPropagation(); // Предотвращаем переименование / другие действия
             const href = titleLink.getAttribute('href');
@@ -4935,7 +5096,7 @@ document.addEventListener('click', async (e) => {
         const taskId = parseInt(modal.dataset.taskId);
         
         const titleNode = document.getElementById('task-modal-title') || document.querySelector('.task-modal-title-input');
-        const taskTitle = (titleNode.value !== undefined ? titleNode.value : titleNode.textContent).trim();
+        const taskTitle = (titleNode.value !== undefined ? titleNode.value : (titleNode.dataset.rawTitle || titleNode.textContent)).trim();
         
         openNotifyModal(taskId, taskTitle);
         return;
@@ -5305,8 +5466,8 @@ document.addEventListener('click', async (e) => {
                     }
                 }
                 else if (action === 'notify-card') {
-                    const titleNode = cardEl.querySelector('.card-title') || cardEl.querySelector('.card-title-input');
-                    const taskTitle = (titleNode.value !== undefined ? titleNode.value : titleNode.textContent).trim();
+                    const task = state.columns.find(c => c.id === parseInt(colEl.dataset.columnId))?.tasks.find(t => t.id === taskId);
+                    const taskTitle = task ? task.title : ((cardEl.querySelector('.card-title-input')?.value || cardEl.querySelector('.card-title')?.textContent).trim());
                     
                     openNotifyModal(taskId, taskTitle);
                 }
@@ -6988,8 +7149,10 @@ async function onAddSubtask() {
         const rawTitle = input.value.trim();
         if (!rawTitle) { cancel(); return; }
 
-        // Чистая ссылка на карточку — привязываем существующую задачу как подзадачу
-        const linkMatch = rawTitle.match(/^\[(.*?)\]\(doe:\/\/task\/(\d+)\)$/) || rawTitle.match(/^doe:\/\/task\/(\d+)$/);
+        // Чистая ссылка на карточку — привязываем существующую задачу как подзадачу.
+        // Ищем ссылку в любом месте строки (trim уже убрал пробелы, но мог остаться
+        // перенос строки или невидимый символ — поэтому без ^...$ якорей).
+        const linkMatch = rawTitle.match(/\[(.*?)\]\(doe:\/\/task\/(\d+)\)/i) || rawTitle.match(/doe:\/\/task\/(\d+)/i);
         if (linkMatch) {
             const linkedTaskId = parseInt(linkMatch[2] || linkMatch[1]);
             
@@ -8845,14 +9008,15 @@ async function renderVaultHistory() {
                 
                 if (res.ok) {
                     const result = await res.json();
-                    updateVaultName(result.name);
-                    const settings = await fetchSettings().catch(() => ({}));
-                    state.activeWorkspaceId = settings.active_workspace_id || null;
-                    await transitionToApp();
-                } else if (res.status === 400) {
-                    div.style.opacity = '1';
-                    div.style.pointerEvents = 'auto';
-                    div.classList.add('is-error');
+                
+                updateVaultName(result.name);
+                const settings = await fetchSettings().catch(() => ({}));
+                state.activeWorkspaceId = settings.active_workspace_id || null;
+                await transitionToApp();
+            } else if (res.status === 400) {
+                div.style.opacity = '1';
+                div.style.pointerEvents = 'auto';
+                div.classList.add('is-error');
                     setTimeout(() => {
                         div.classList.remove('is-error');
                         renderVaultHistory(); 
@@ -8931,14 +9095,40 @@ async function transitionToApp() {
 }
 
 window.handleVaultAction = async (actionType) => {
-    const cards = document.querySelectorAll('.vault-action-card');
-    const targetCard = (actionType === 'create') ? cards[0] : cards[1];
-    
+    // Снимаем фокус перед переключением
+    if (document.activeElement) {
+        document.activeElement.blur();
+    }
+
+    const cardsContainer = document.getElementById('vault-actions-cards');
+    const createForm = document.getElementById('vault-create-form');
+    const nameInput = document.getElementById('new-vault-name');
+
     if (actionType === 'create') {
-        document.getElementById('vault-actions-cards').style.display = 'none';
-        document.getElementById('vault-create-form').style.display = 'block';
-        document.getElementById('new-vault-name').focus();
-    } else {
+        if (cardsContainer && createForm) {
+            cardsContainer.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+            cardsContainer.style.opacity = '0';
+            cardsContainer.style.transform = 'translateY(-4px) scale(0.98)';
+            cardsContainer.style.pointerEvents = 'none';
+            
+            setTimeout(() => {
+                cardsContainer.style.display = 'none';
+                
+                // Делаем блок блочным, но браузер еще не начал его рисовать
+                createForm.style.display = 'block';
+                
+                // Строго ждем следующего кадра отрисовки GPU, чтобы избежать глитча рамки
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        if (nameInput) {
+                            nameInput.value = '';
+                            nameInput.focus();
+                        }
+                    });
+                });
+            }, 200);
+        }
+    } else if (actionType === 'open') {
         try {
             if (!window.pywebview || !window.pywebview.api) return;
             
@@ -8953,31 +9143,33 @@ window.handleVaultAction = async (actionType) => {
 
             if (res.ok) {
                 const result = await res.json();
+
                 updateVaultName(result.name);
                 const settings = await fetchSettings().catch(() => ({}));
                 state.activeWorkspaceId = settings.active_workspace_id || null;
                 
                 await transitionToApp();
-            } 
-            else if (res.status === 400) {
-                targetCard.classList.add('is-invalid');
-                let hint = targetCard.querySelector('.vault-error-hint');
-                if (!hint) {
-                    hint = document.createElement('div');
-                    hint.className = 'vault-error-hint';
-                    targetCard.appendChild(hint);
-                }
-                hint.textContent = t('vault.errorInvalid');
-                void hint.offsetWidth; 
-                hint.classList.add('visible');
+            } else if (res.status === 400) {
+                const cards = document.querySelectorAll('.vault-action-card');
+                const openCard = cards[1];
+                if (openCard) {
+                    openCard.classList.add('is-invalid');
+                    let hint = openCard.querySelector('.vault-error-hint');
+                    if (!hint) {
+                        hint = document.createElement('div');
+                        hint.className = 'vault-error-hint';
+                        openCard.appendChild(hint);
+                    }
+                    hint.textContent = t('vault.errorInvalid');
+                    void hint.offsetWidth;
+                    hint.classList.add('visible');
 
-                setTimeout(() => {
-                    targetCard.classList.remove('is-invalid');
-                    hint.classList.remove('visible');
                     setTimeout(() => {
-                        if (!hint.classList.contains('visible')) hint.remove();
-                    }, 200); 
-                }, 2200);
+                        openCard.classList.remove('is-invalid');
+                        hint.classList.remove('visible');
+                        setTimeout(() => { if (!hint.classList.contains('visible')) hint.remove(); }, 200);
+                    }, 2200);
+                }
             }
         } catch (err) {
             console.error("Vault selection error:", err);
@@ -8986,9 +9178,35 @@ window.handleVaultAction = async (actionType) => {
 };
 
 window.cancelVaultCreate = () => {
-    document.getElementById('vault-actions-cards').style.display = 'flex';
-    document.getElementById('vault-create-form').style.display = 'none';
-    document.getElementById('new-vault-name').value = '';
+    const cardsContainer = document.getElementById('vault-actions-cards');
+    const createForm = document.getElementById('vault-create-form');
+    const nameInput = document.getElementById('new-vault-name');
+
+    if (createForm && cardsContainer) {
+        // Убираем форму
+        createForm.style.display = 'none';
+        
+        // Возвращаем контейнер в поток
+        cardsContainer.style.display = 'flex';
+        cardsContainer.style.opacity = '0';
+        cardsContainer.style.transform = 'translateY(4px) scale(0.98)';
+        
+        // Двойной requestAnimationFrame — это золотой стандарт борьбы с Layout Thrashing
+        // Первый rAF говорит браузеру применить стили выше.
+        // Второй rAF говорит запустить анимацию ТОЛЬКО после того, как блок физически встал на место.
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                cardsContainer.style.transition = 'opacity 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1)';
+                cardsContainer.style.opacity = '1';
+                cardsContainer.style.transform = 'translateY(0) scale(1)';
+                cardsContainer.style.pointerEvents = 'auto';
+            });
+        });
+    }
+    
+    if (nameInput) {
+        nameInput.value = '';
+    }
 };
 
 window.confirmVaultCreate = async () => {
@@ -9626,6 +9844,23 @@ document.addEventListener('DOMContentLoaded', () => {
         autoHInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleAutoTimeChange(); });
         autoMInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleAutoTimeChange(); });
     }
+
+    // ─── ОБРАБОТЧИКИ ШИФРОВАНИЯ ───
+    const togglePwdViz = (btnId, inputId) => {
+        const btn = document.getElementById(btnId);
+        const inp = document.getElementById(inputId);
+        if(btn && inp) {
+            btn.onclick = () => {
+                const isText = inp.type === 'text';
+                inp.type = isText ? 'password' : 'text';
+                btn.innerHTML = isText 
+                    ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`
+                    : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`;
+            };
+        }
+    };
+    // ─── КОНЕЦ ИНИЦИАЛИЗАЦИИ НАСТРОЕК ───
+
 });
 
 let aiState = {
@@ -10674,9 +10909,10 @@ function openNotifyModal(taskId, taskTitle) {
         newConfirmBtn.disabled = true;
         
         try {
+            const plainTaskTitle = stripMarkdownToPlain(taskTitle);
             const notificationMsg = currentLang === 'ru' 
-                ? `Вы просили напомнить о карточке: "${taskTitle}"` 
-                : `Reminder for card: "${taskTitle}"`;
+                ? `Вы просили напомнить о карточке: "${plainTaskTitle}"` 
+                : `Reminder for card: "${plainTaskTitle}"`;
 
             const res = await fetch(`${API_BASE}/tasks/${taskId}/notify`, {
                 method: 'POST',
@@ -12045,9 +12281,9 @@ async function openStatisticsModal() {
             tasks.forEach(task => {
                 const timeFormatted = formatDetailedDuration(task.time_spent);
                 topContainer.innerHTML += `
-                    <div class="stats-top-item" onclick="document.getElementById('statistics-modal').classList.remove('show'); loadTaskIntoModal(${task.id}, true); document.getElementById('task-modal').classList.add('show');">
+                    <div class="stats-top-item" onclick="if(event.target.closest('a')) { document.getElementById('statistics-modal').classList.remove('show'); return; } document.getElementById('statistics-modal').classList.remove('show'); loadTaskIntoModal(${task.id}, true); document.getElementById('task-modal').classList.add('show');">
                         <div class="stats-top-header">
-                            <div class="stats-top-title">${escapeHtml(task.title)}</div>
+                            <div class="stats-top-title">${renderInlineMarkdown(task.title)}</div>
                             <div class="stats-top-time">${timeFormatted}</div>
                         </div>
                         <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 4px;">
@@ -12878,26 +13114,101 @@ function initCloudSync() {
     initGlobalSearch();
     initCloudSync();
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const isVaultMode = urlParams.get('mode') === 'vault';
+    document.addEventListener('keydown', (e) => {
+        if ((e.metaKey || e.ctrlKey) && e.key === '\\') {
+            e.preventDefault();
+            const hbBtn = document.querySelector('.hb-separator');
+            if (hbBtn) hbBtn.click();
+        }
+    });
 
-        try {
-            applyLanguage(localStorage.getItem('doe-lang') || 'ru', false);
-            applyTheme(localStorage.getItem('doe-theme') || 'light', false);
-        } catch (e) {}
+    try {
+        if (!localStorage.getItem('doe-notif-requested')) {
+            localStorage.setItem('doe-notif-requested', 'true');
+            if (window.Notification && Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+                Notification.requestPermission();
+            }
+        }
 
-        const pendingHighlight = localStorage.getItem('doe-pending-highlight');
-        if (pendingHighlight) {
-            localStorage.removeItem('doe-pending-highlight');
-            setTimeout(async () => {
-                try {
-                    const ctxRes = await fetch(`${API_BASE}/tasks/${pendingHighlight}/context`);
-                    if (ctxRes.ok) {
-                        const context = await ctxRes.json();
-                        window.navigateToEntityGlobal(context.workspace_id, context.column_id, parseInt(pendingHighlight), null, true, true);
-                    }
-                } catch (e) {}
-            }, 800);
+        // Получаем настройки и статус хранилища
+        const [settingsData, vaultData] = await Promise.all([
+            fetchSettings().catch(() => ({})),
+            fetchVault().catch(() => ({ name: null, path: null }))
+        ]);
+
+        window.appSettings = settingsData;
+
+        // 🔥 ЧИТАЕМ ПАРАМЕТР ИЗ URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const isVaultMode = urlParams.get('mode') === 'vault';
+
+        // 🛑 ПРАВИЛЬНАЯ ЛОГИКА ЭКРАНА ХРАНИЛИЩ
+        // Если база не выбрана ИЛИ нас принудительно отправили в меню (кнопкой смены хранилища)
+        if (!vaultData.path || isVaultMode) {
+            document.getElementById('vault-screen').classList.remove('hidden', 'content-hidden');
+            const lights = document.getElementById('mac-traffic-lights');
+            if (lights) lights.classList.add('vault-mode');
+            
+            document.body.classList.remove('preload');
+            setTimeout(triggerReveal, 50);
+            
+            try {
+                if (settingsData.theme) applyTheme(settingsData.theme, false);
+                if (settingsData.language) applyLanguage(settingsData.language, false);
+                window.applyExtensionsUI(settingsData.extensions);
+                updateAppFont(settingsData.ui_font, settingsData.custom_font);
+            } catch (e) {}
+
+            renderVaultHistory();
+            return; // 🛑 СТОП! Дальше не идем, доску не грузим
+        }
+
+        window.currentVaultPath = vaultData.path;
+
+        // ✅ ВСЁ ОТЛИЧНО, ГРУЗИМ ДОСКУ
+        
+        // 🔥 ФИКС: Жестко скрываем "ширму" выбора хранилищ, чтобы она не перекрывала доску!
+        const mainVaultScreen = document.getElementById('vault-screen');
+        if (mainVaultScreen) {
+            mainVaultScreen.classList.add('hidden', 'content-hidden');
+        }
+
+        const workspacesData = await fetchWorkspaces().catch(() => []);
+
+        const isTabsHidden = settingsData.tabs_hidden === true;
+        if (isTabsHidden) document.body.classList.add('tabs-hidden');
+        else document.body.classList.remove('tabs-hidden');
+
+        window.applyExtensionsUI(settingsData.extensions);
+        
+        if (settingsData.priority_settings) applyPriorityStyles(settingsData.priority_settings);
+        else applyPriorityStyles(window.prioritySettings);
+
+        updateAppFont(settingsData.ui_font, settingsData.custom_font);
+        const uiFontInput = document.getElementById('ui-font-input');
+        if (uiFontInput) uiFontInput.value = settingsData.ui_font ? settingsData.ui_font : `Inter (${t('modals.fontSystemDefault')})`;
+
+        updateVaultName(vaultData.name);
+        state.workspaces = workspacesData;
+
+        let targetWorkspaceId = settingsData.active_workspace_id;
+        if (!targetWorkspaceId || !state.workspaces.find(w => w.id === targetWorkspaceId)) {
+            if (state.workspaces.length > 0) targetWorkspaceId = state.workspaces[0].id;
+        }
+
+        state.activeWorkspaceId = targetWorkspaceId;
+        renderTabs(true);
+
+        if (state.activeWorkspaceId) {
+            const columnsData = await fetchColumns(state.activeWorkspaceId);
+            state.columns = columnsData.map(col => ({ ...col, collapsed: col.collapsed || false }));
+            
+            renderBoard();
+            adjustCollapsedColumnWidths();
+            clampExpandedTitles();
+            triggerGarbageCollector();
+        } else {
+            renderBoard(); 
         }
 
         initTimerCulling();
@@ -12916,182 +13227,29 @@ function initCloudSync() {
                 const data = await res.json();
                 
                 if (data.task_id) {
-                    const vaultRes = await fetch(`${API_BASE}/system/vault`);
-                    const currentVault = await vaultRes.json();
-                    
-                    if (data.vault_path && data.vault_path !== currentVault.path) {
-                        await fetch(`${API_BASE}/system/vault/switch`, {
-                            method: 'POST', headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ new_path: data.vault_path })
-                        });
-                        localStorage.setItem('doe-pending-highlight', data.task_id);
-                        window.location.reload();
-                        return;
-                    }
-                    
                     const ctxRes = await fetch(`${API_BASE}/tasks/${data.task_id}/context`);
                     if (!ctxRes.ok) return;
                     
                     const context = await ctxRes.json();
-                    
                     const taskModal = document.getElementById('task-modal');
-                    if (taskModal && taskModal.classList.contains('show')) {
-                        taskModal.classList.remove('show');
-                    }
+                    if (taskModal && taskModal.classList.contains('show')) taskModal.classList.remove('show');
                     
                     window.navigateToEntityGlobal(context.workspace_id, context.column_id, data.task_id, null, true, true);
-                    
                     updateBellBadge();
                 }
             } catch (e) {}
         }, 1000);
 
-        window.addEventListener('resize', () => {
-            requestAnimationFrame(() => {
-                clampExpandedTitles();
-                adjustCollapsedColumnWidths();
-                updateVaultHistoryScrollState();
-            });
-        });
-
-    if (isVaultMode) {
-        document.getElementById('vault-screen').classList.remove('hidden', 'content-hidden');
-
-        const lights = document.getElementById('mac-traffic-lights');
-        if (lights) lights.classList.add('vault-mode');
-
-        try {
-            const settingsData = await fetchSettings().catch(() => ({}));
-            if (settingsData.theme) applyTheme(settingsData.theme, false);
-            if (settingsData.language) applyLanguage(settingsData.language, false);
-            
-            window.applyExtensionsUI(settingsData.extensions);
-
-            // Применяем шрифты для окна Vault
-            updateAppFont(settingsData.ui_font, settingsData.custom_font);
-            const uiFontInput = document.getElementById('ui-font-input');
-            if (uiFontInput) {
-                uiFontInput.value = settingsData.ui_font ? settingsData.ui_font : `Inter (${t('modals.fontSystemDefault')})`;
-            }
-        } catch (e) { console.error("Settings load failed in vault mode", e); }
-
-        renderVaultHistory();
-
-        setInterval(async () => {
-            try {
-                const history = await fetchVaultHistory();
-                history.forEach(item => {
-                    const safePath = item.path.replace(/\\/g, '\\\\');
-                    const el = document.querySelector(`.vault-history-item[data-path="${safePath}"]`);
-                    
-                    if (el) {
-                        const isMissing = item.exists === false;
-                        const checkbox = el.querySelector('.subtask-checkbox');
-                        const nameEl = el.querySelector('.vault-history-name');
-                        const pathEl = el.querySelector('.vault-history-path');
-                        const revealBtn = el.querySelector('.vault-hist-reveal');
-
-                        if (isMissing && !checkbox.classList.contains('missing')) {
-                            checkbox.classList.add('missing');
-                            el.classList.add('is-missing');
-                            checkbox.title = currentLang === 'ru' ? 'Хранилище не найдено. Нажмите, чтобы перепривязать' : 'Vault not found. Click to relink';
-                            checkbox.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>`;
-                            nameEl.classList.add('missing-text');
-                            pathEl.classList.add('missing-text');
-                            if (revealBtn) revealBtn.style.display = 'none';
-                        } else if (!isMissing && checkbox.classList.contains('missing')) {
-                            checkbox.classList.remove('missing');
-                            el.classList.remove('is-missing');
-                            checkbox.removeAttribute('title');
-                            checkbox.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>`;
-                            nameEl.classList.remove('missing-text');
-                            pathEl.classList.remove('missing-text');
-                            if (revealBtn) revealBtn.style.display = '';
-                        }
-                    }
-                });
-            } catch (e) {}
-        }, 1500);
+        await updateBellBadge().catch(console.error);
 
         document.body.classList.remove('preload');
         setTimeout(triggerReveal, 50);
-        return; 
+
+    } catch (e) {
+        console.error("Fatal initialization error:", e);
+        document.body.classList.remove('preload');
+        setTimeout(triggerReveal, 50); 
     }
-
-    document.getElementById('vault-screen').classList.add('hidden', 'content-hidden');
-
-    try {
-        if (!localStorage.getItem('doe-notif-requested')) {
-            localStorage.setItem('doe-notif-requested', 'true');
-            if (window.Notification && Notification.permission !== 'granted' && Notification.permission !== 'denied') {
-                Notification.requestPermission();
-            }
-        }
-
-        const [settingsData, vaultData, workspacesData] = await Promise.all([
-            fetchSettings().catch(() => ({})),
-            fetchVault().catch(() => ({ name: "Doe Board" })),
-            fetchWorkspaces().catch(() => [])
-        ]);
-
-        window.applyExtensionsUI(settingsData.extensions);
-        
-        // Применяем настройки приоритетов
-        if (settingsData.priority_settings) {
-            applyPriorityStyles(settingsData.priority_settings);
-        } else {
-            applyPriorityStyles(window.prioritySettings);
-        }
-
-        // Применяем шрифты при старте основного окна
-        updateAppFont(settingsData.ui_font, settingsData.custom_font);
-        const uiFontInput = document.getElementById('ui-font-input');
-        if (uiFontInput) {
-            uiFontInput.value = settingsData.ui_font ? settingsData.ui_font : `Inter (${t('modals.fontSystemDefault')})`;
-        }
-
-        updateVaultName(vaultData.name);
-
-        state.workspaces = workspacesData;
-
-        let targetWorkspaceId = settingsData.active_workspace_id;
-
-        if (!targetWorkspaceId || !state.workspaces.find(w => w.id === targetWorkspaceId)) {
-            if (state.workspaces.length > 0) {
-                targetWorkspaceId = state.workspaces[0].id;
-            }
-        }
-
-        state.activeWorkspaceId = targetWorkspaceId;
-
-        renderTabs(true);
-
-        if (state.activeWorkspaceId) {
-                const columnsData = await fetchColumns(state.activeWorkspaceId);
-                state.columns = columnsData.map(col => ({ ...col, collapsed: col.collapsed || false }));
-                
-                renderBoard();
-                
-                adjustCollapsedColumnWidths();
-                clampExpandedTitles();
-
-                triggerGarbageCollector();
-
-            } else {
-                console.error("No workspaces found even after initialization");
-                renderBoard(); 
-            }
-
-            await updateBellBadge().catch(console.error);
-
-            document.body.classList.remove('preload');
-            setTimeout(triggerReveal, 50);
-
-        } catch (e) {
-            console.error("Fatal initialization error:", e);
-            document.body.classList.remove('preload');
-            setTimeout(triggerReveal, 50); 
-        }
 })();
 
 document.addEventListener('pointerdown', (e) => {
@@ -13100,9 +13258,160 @@ document.addEventListener('pointerdown', (e) => {
     if (plusBtn) {
         e.preventDefault();
         e.stopPropagation();
-        onAddCardInline(plusBtn);
+        
+        // Разделяем поведение: между карточками или между колонками
+        if (plusBtn.closest('.card-inline-trigger')) {
+            onAddCardInline(plusBtn);
+        } else if (plusBtn.closest('.column-inline-trigger')) {
+            onAddColumnInline(plusBtn);
+        }
     }
 }, { capture: true });
+
+// Функция инлайн создания колонки
+async function onAddColumnInline(plusBtn) {
+    const trigger = plusBtn.closest('.column-inline-trigger');
+    const columnEl = trigger.closest('.column');
+    const columnId = parseInt(columnEl.dataset.columnId);
+
+    // Рассчитываем точную математическую позицию (как у карточек)
+    const colIndex = state.columns.findIndex(c => c.id === columnId);
+    if (colIndex === -1) return;
+
+    const prevPos = state.columns[colIndex].position;
+    let nextPos = prevPos + 1.0;
+    if (colIndex + 1 < state.columns.length) {
+        nextPos = state.columns[colIndex + 1].position;
+    }
+    const targetPosition = (prevPos + nextPos) / 2.0;
+
+    const formCol = createColumnFormElement();
+    columnEl.after(formCol);
+
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            formCol.classList.add('entered');
+        });
+    });
+
+    const input = formCol.querySelector('.column-input');
+    input.focus();
+
+    // Авто-ресайз textarea формы колонки
+    const autoResize = () => {
+        const computed = window.getComputedStyle(input);
+        const borders = parseFloat(computed.borderTopWidth) + parseFloat(computed.borderBottomWidth);
+        input.style.height = '1px';
+        const sh = input.scrollHeight + borders;
+        const boardHeight = document.getElementById('board').clientHeight;
+        const maxAllowedHeight = Math.max(60, boardHeight - 250);
+        
+        if (sh > maxAllowedHeight) {
+            input.style.height = maxAllowedHeight + 'px';
+            input.style.overflowY = 'auto'; 
+        } else {
+            input.style.height = sh + 'px';
+            input.style.overflowY = 'hidden'; 
+        }
+    };
+
+    input.addEventListener('input', autoResize);
+    requestAnimationFrame(autoResize);
+
+    let isResolved = false;
+
+    const cancel = (animate = true) => {
+        if (isResolved) return;
+        isResolved = true;
+        input.blur();
+
+        if (!animate) {
+            formCol.remove();
+            return;
+        }
+
+        formCol.classList.remove('entered');
+        formCol.classList.add('is-exiting');
+
+        setTimeout(() => {
+            if (formCol.parentNode) formCol.remove();
+        }, 120);
+    };
+
+    const submit = async () => {
+        const title = input.value.trim();
+        if (!title) { cancel(true); return; }
+        if (isResolved) return;
+        isResolved = true;
+
+        input.disabled = true;
+        formCol.classList.add('is-submitting');
+
+        try {
+            // Передаем нашу вычисленную targetPosition в backend
+            const newColumn = await createColumn(title, 'default', state.activeWorkspaceId, targetPosition);
+
+            // Вставляем новую колонку в локальный стейт, сохраняя сортировку
+            state.columns.splice(colIndex + 1, 0, {
+                ...newColumn,
+                collapsed: false,
+                tasks: newColumn.tasks || []
+            });
+            state.columns.sort((a, b) => a.position - b.position);
+
+            const realCol = createColumnElement({
+                ...newColumn,
+                collapsed: false,
+                tasks: newColumn.tasks || []
+            });
+            realCol.classList.add('column-birth');
+
+            formCol.replaceWith(realCol);
+
+            requestAnimationFrame(() => {
+                const newTitle = realCol.querySelector('.column-title');
+                clampSingleTitle(newTitle);
+            });
+
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    realCol.classList.add('born');
+                });
+            });
+
+            const cleanup = (e) => {
+                if (e.propertyName === 'transform') {
+                    realCol.classList.remove('column-birth', 'born');
+                    realCol.removeEventListener('transitionend', cleanup);
+                }
+            };
+            realCol.addEventListener('transitionend', cleanup);
+            setTimeout(() => realCol.classList.remove('column-birth', 'born'), 500);
+
+        } catch (err) {
+            console.error('Column creation inline failed:', err);
+            isResolved = false;
+            input.disabled = false;
+            formCol.classList.remove('is-submitting');
+            formCol.classList.add('is-error');
+            setTimeout(() => formCol.classList.remove('is-error'), 400);
+            input.focus();
+        }
+    };
+
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit(); }
+        if (e.key === 'Escape') { e.preventDefault(); cancel(true); }
+    });
+
+    input.addEventListener('blur', () => {
+        if (isResolved) return;
+        requestAnimationFrame(() => {
+            if (isResolved) return;
+            if (input.value.trim()) submit(); else cancel(true);
+        });
+    });
+}
 
 async function fetchActiveReminders() {
     try {
@@ -13157,9 +13466,10 @@ async function renderRemindersDropdown() {
         
         const dueTimeStr = formatDateTime(r.due_time);
         
+        const plainTitle = escapeHtml(stripMarkdownToPlain(r.task_title));
         div.innerHTML = `
             <div class="reminder-info">
-                <div class="reminder-task-title">${escapeHtml(r.task_title)}</div>
+                <div class="reminder-task-title" title="${plainTitle}">${renderInlineMarkdown(r.task_title)}</div>
                 <div class="reminder-time">${dueTimeStr}</div>
             </div>
             <button class="subtask-delete-btn" title="${t('menu.delete')}">${trashIcon}</button>
@@ -13167,6 +13477,7 @@ async function renderRemindersDropdown() {
         
         div.addEventListener('click', async (e) => {
             if (e.target.closest('.subtask-delete-btn')) return;
+            if (e.target.closest('a')) return;
             document.getElementById('reminders-dropdown').classList.remove('show');
             document.getElementById('reminders-bell-trigger').classList.remove('active');
             
@@ -13905,7 +14216,7 @@ async function applyColumnSort(columnId, criteria, dir) {
     `;
     document.body.appendChild(controls);
     controls.querySelector('.min').onclick = () => api()?.minimize_window?.();
-    controls.querySelector('.close').onclick = () => api()?.close_window?.();
+    controls.querySelector('.close').onclick = () => window.appExit();
     controls.querySelector('.max')?.addEventListener('click', () => api()?.toggle_maximize_window?.());
 
     // --- Завершение перетаскивания/ресайза ---

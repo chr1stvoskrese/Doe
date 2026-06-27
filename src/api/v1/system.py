@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, status, UploadFile, File, Depends, WebSocket, WebSocketDisconnect
+from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.core.watcher import ws_manager  # <-- ДОБАВИТЬ ЭТО
 from src.db.database import get_session # Добавили
@@ -153,18 +154,6 @@ async def get_pending_highlights():
         
     return {"task_id": None}
 
-class VaultResponse(BaseModel):
-    name: Optional[str] = None
-    path: Optional[str] = None
-    canceled: bool = False
-    already_active: bool = False  # <-- ДОБАВЛЕН ФЛАГ
-
-@router.get("/vault", response_model=VaultResponse)
-async def get_vault():
-    path = get_active_vault()
-    name = Path(path).resolve().name
-    return VaultResponse(name=name, path=path)
-
 class ReorderHistoryReq(BaseModel):
     ordered_paths: list[str]
 
@@ -177,7 +166,29 @@ class VaultResponse(BaseModel):
     name: Optional[str] = None
     path: Optional[str] = None
     canceled: bool = False
-    already_active: bool = False  # <-- Флаг для фронтенда и wrapper'а
+    already_active: bool = False
+
+@router.get("/vault", response_model=VaultResponse)
+async def get_vault():
+    path = get_active_vault()
+    
+    if not path or not Path(path).exists():
+        return VaultResponse(
+            name=None, path=None, canceled=False, already_active=False
+        )
+
+    # 🛑 СТРОГАЯ ПРОВЕРКА: Является ли папка реальным хранилищем Doe?
+    has_db = any(
+        f for f in Path(path).iterdir()
+        if f.is_file() and (f.name.endswith(".db.doe") or f.name.endswith(".db")) and "backup" not in f.name and not f.name.startswith("._")
+    )
+    if not has_db:
+        return VaultResponse(
+            name=None, path=None, canceled=False, already_active=False
+        )
+
+    name = Path(path).resolve().name
+    return VaultResponse(name=name, path=path)
 
 class SwitchVaultRequest(BaseModel):
     new_path: str
@@ -206,8 +217,11 @@ async def switch_vault_endpoint(req: SwitchVaultRequest):
     import os
     current_vault = get_active_vault()
     
-    # Проверяем, открываем ли мы то же самое хранилище
-    already_active = (os.path.normpath(new_path) == os.path.normpath(current_vault))
+    # 🐛 ФИКС: Безопасная проверка на None при холодном старте
+    if current_vault is None:
+        already_active = False
+    else:
+        already_active = (os.path.normpath(new_path) == os.path.normpath(current_vault))
 
     if not already_active:
         await switch_vault(new_path)
@@ -405,7 +419,12 @@ async def switch_vault_endpoint(req: SwitchVaultRequest):
             import threading
             threading.Timer(0.1, _update_ui).start()
 
-    return VaultResponse(name=name, path=new_path, canceled=False, already_active=already_active)
+    return VaultResponse(
+        name=name, 
+        path=new_path, 
+        canceled=False, 
+        already_active=already_active
+    )
 
 
 class CreateVaultRequest(BaseModel):
@@ -434,7 +453,9 @@ class SettingsUpdate(BaseModel):
     reset_attachments: Optional[bool] = False
     ui_font: Optional[str] = None
     extensions: Optional[dict] = None
-    priority_settings: Optional[dict] = None  # <--- ДОБАВЛЕНО
+    priority_settings: Optional[dict] = None
+    tabs_hidden: Optional[bool] = None
+    hb_index: Optional[int] = None
 
 class SettingsResponse(BaseModel):
     theme: str
@@ -444,7 +465,9 @@ class SettingsResponse(BaseModel):
     custom_font: Optional[str] = None
     ui_font: Optional[str] = ""
     extensions: Optional[dict] = None
-    priority_settings: Optional[dict] = None  # <--- ДОБАВЛЕНО
+    priority_settings: Optional[dict] = None
+    tabs_hidden: Optional[bool] = False
+    hb_index: Optional[int] = 999
 
 # --- СХЕМЫ СТАТИСТИКИ (PRO-уровень) ---
 class TopTask(BaseModel):
@@ -554,7 +577,9 @@ async def update_settings_endpoint(settings: SettingsUpdate, db: AsyncSession = 
         reset_attachments=settings.reset_attachments,
         ui_font=settings.ui_font,
         extensions=settings.extensions,
-        priority_settings=settings.priority_settings
+        priority_settings=settings.priority_settings,
+        tabs_hidden=settings.tabs_hidden,
+        hb_index=settings.hb_index
     )
 
     # 3. Узнаем НОВУЮ папку вложений
@@ -813,7 +838,10 @@ async def get_statistics(offset_weeks: int = 0, db: AsyncSession = Depends(get_s
     
     # 2. ОПТИМИЗАЦИЯ: Достаем только задачи, которые имеют таймеры или завершены, 
     # чтобы не тянуть из БД 10 000 висяков.
-    stmt = select(TaskModel).options(selectinload(TaskModel.timer_sessions)).where(
+    stmt = select(TaskModel).options(
+        selectinload(TaskModel.timer_sessions),
+        selectinload(TaskModel.parents) # Нужно для проверки is_board_card
+    ).where(
         or_(
             TaskModel.completed_at.isnot(None),
             TaskModel.due_date.isnot(None),
@@ -840,12 +868,16 @@ async def get_statistics(offset_weeks: int = 0, db: AsyncSession = Depends(get_s
     prev_time = 0
 
     for t in tasks:
+        # Карточка считается самостоятельной на доске, если у нее нет родителей ИЛИ она вынесена (включен глазик)
+        is_board_card = not t.parents or t.is_visible_on_board
+
         # Просроченные (считаем только для текущей недели, если offset == 0)
         if offset_weeks == 0 and not t.completed_at and t.due_date and t.due_date < now:
-            overdue_count += 1
+            if is_board_card:
+                overdue_count += 1
             
-        # Завершенные
-        if t.completed_at:
+        # Завершенные (считаем только карточки, вынесенные на доску, чтобы подзадачи не ломали статистику)
+        if t.completed_at and is_board_card:
             if start_date <= t.completed_at <= end_date:
                 cur_done += 1
                 date_key = t.completed_at.strftime("%Y-%m-%d")
@@ -902,7 +934,7 @@ async def get_statistics(offset_weeks: int = 0, db: AsyncSession = Depends(get_s
 
     # --- Подготовка ответов ---
     # Топ задачи
-    sorted_top = sorted(top_tasks_dict.values(), key=lambda x: x["time_spent"], reverse=True)[:3]
+    sorted_top = sorted(top_tasks_dict.values(), key=lambda x: x["time_spent"], reverse=True)
     top_tasks = []
     for tt in sorted_top:
         pct = (tt["time_spent"] / cur_time * 100) if cur_time > 0 else 0
