@@ -19,21 +19,30 @@ from src.core.watcher import vault_observer # <-- ИМПОРТ
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    vault_path = await init_dev_database()
-    print(f"✅ База данных инициализирована в: {vault_path}")
+    from src.core.config import get_active_vault
+    
+    vault_path = get_active_vault()
+    
+    if vault_path and Path(vault_path).exists():
+        await init_dev_database()
+        print(f"✅ База данных инициализирована в: {vault_path}")
 
-    # Запускаем планировщик автоматизаций
-    from src.db.database import get_session_factory
-    from src.services.automation_service import start_scheduler
-    start_scheduler(get_session_factory())
-    
-    yield
-    
-    from src.services.automation_service import stop_scheduler
-    stop_scheduler()
-    vault_observer.stop() # <-- ГЛУШИМ WATCHER
-    await close_database()
-    print("🛑 Сервер останавливается...")
+        # Запускаем планировщик автоматизаций
+        from src.db.database import get_session_factory
+        from src.services.automation_service import start_scheduler
+        start_scheduler(get_session_factory())
+        
+        yield
+        
+        from src.services.automation_service import stop_scheduler
+        stop_scheduler()
+        vault_observer.stop() # <-- ГЛУШИМ WATCHER
+        await close_database()
+        print("🛑 Сервер останавливается...")
+    else:
+        print("⚠️ Хранилище не выбрано или удалено. Ждем действий пользователя.")
+        yield
+        await close_database()
 
 app = FastAPI(title="Doe API", version="0.1.0", lifespan=lifespan)
 

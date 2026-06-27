@@ -1238,13 +1238,50 @@ def bind_resize_event(win):
     except Exception:
         pass
     try:
-        win.events.closing += (lambda *a: _do_save())
+        def _on_closing():
+            _do_save()
+            if getattr(win, '_is_shutting_down', False):
+                return True
+            
+            win._is_shutting_down = True
+            try:
+                win.evaluate_js('if(window.appExit) { window.appExit(); } else { window.pywebview.api.force_close(); }')
+            except Exception:
+                import os
+                os._exit(0)
+            return False
+
+        win.events.closing += _on_closing
     except Exception:
         pass
 
 
 # --- ЗАМЕНИТЕ КЛАСС WindowAPI в wrapper.py на этот ---
 class WindowAPI:
+    def force_close(self):
+        """Вызывается из JS для завершения работы приложения."""
+        import os
+        import sys
+        import threading
+        import time
+            
+        # 🐛 ФИКС ЗАВИСАНИЯ (Beachball of Death на macOS):
+        # Если вызвать os._exit(0) прямо здесь, IPC-мост pywebview зависнет, 
+        # ожидая возврата функции, и не отдаст команду обратно в JS.
+        # Запускаем "убийцу" в отдельном потоке с микро-задержкой.
+        def _kill_process():
+            time.sleep(0.05) # Ждём 50мс, пока return True долетит до браузера
+            try:
+                sys.stdout.flush()
+                sys.stderr.flush()
+            except Exception:
+                pass
+            os._exit(0)
+
+        threading.Thread(target=_kill_process, daemon=True).start()
+        
+        return True # Освобождаем мост!
+
     def close_window(self):
         """Закрывает окно (красная кнопка) — abort AI в JS уже сделан, просто выходим."""
         import sys
@@ -1275,10 +1312,19 @@ class WindowAPI:
 
             import os as _os
             import threading
-            # Не ждём main run loop — выходим немедленно из фонового потока
-            threading.Thread(target=lambda: (
-                sys.stdout.flush(), sys.stderr.flush(), _os._exit(0)
-            ), daemon=True).start()
+            import time
+            
+            # Также используем отложенное закрытие, чтобы избежать дедлока UI потока
+            def _kill_process():
+                time.sleep(0.05)
+                try:
+                    sys.stdout.flush()
+                    sys.stderr.flush()
+                except: pass
+                _os._exit(0)
+                
+            threading.Thread(target=_kill_process, daemon=True).start()
+            return True
         else:
             if webview.windows:
                 import threading
@@ -2174,10 +2220,11 @@ if __name__ == '__main__':
         print("[WebView] Creating invisible browser window...")
         _dump_geometry_diagnostics()
         
-        # Проверяем, есть ли у нас уже активное хранилище
+        # Проверяем, есть ли у нас уже активное хранилище И СУЩЕСТВУЕТ ЛИ ОНО
         from src.core.config import _load_config
         config_data = _load_config()
-        is_configured = "active_vault" in config_data
+        active_vault = config_data.get("active_vault")
+        is_configured = bool(active_vault and os.path.exists(active_vault))
 
         # Задаем параметры в зависимости от того, первый ли это запуск
         if is_configured:

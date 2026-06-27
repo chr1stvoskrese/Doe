@@ -162,12 +162,18 @@ async def update_column_with_tasks(db: AsyncSession, column_id: int, update_data
     if new_mode != old_mode:
         tasks_result = await db.execute(
             select(TaskModel)
-            .options(selectinload(TaskModel.timer_sessions))
+            .options(
+                selectinload(TaskModel.timer_sessions),
+                selectinload(TaskModel.parents)
+            )
             .where(TaskModel.column_id == column_id)
         )
         tasks = tasks_result.scalars().all()
 
         for task in tasks:
+            # Подзадача без глазика — таймером не управляем, живёт за родителем
+            is_hidden_subtask = bool(task.parents) and not task.is_visible_on_board
+
             # 1. Уходим из режима таймера - СТАВИМ НА ПАУЗУ
             if old_mode == ColumnMode.TRACK_TIME and new_mode != ColumnMode.TRACK_TIME:
                 for session in task.timer_sessions:
@@ -183,13 +189,16 @@ async def update_column_with_tasks(db: AsyncSession, column_id: int, update_data
                 task.completed_at = None
 
             # 3. Приходим в режим таймера - СОЗДАЕМ НОВЫЕ СЕССИИ
+            #    Скрытые подзадачи таймер не получают — только самостоятельные
+            #    карточки и подзадачи с включённым глазиком.
             if new_mode == ColumnMode.TRACK_TIME and old_mode != ColumnMode.TRACK_TIME:
-                new_session = TimerSessionModel(
-                    task_id=task.id,
-                    start_time=datetime.utcnow(),
-                    is_active=True,
-                )
-                db.add(new_session)
+                if not is_hidden_subtask:
+                    new_session = TimerSessionModel(
+                        task_id=task.id,
+                        start_time=datetime.utcnow(),
+                        is_active=True,
+                    )
+                    db.add(new_session)
 
     await db.commit()
     await db.refresh(column)

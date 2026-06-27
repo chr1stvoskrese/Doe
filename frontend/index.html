@@ -17,7 +17,7 @@
 <body class="preload">
 
 <div class="mac-traffic-lights" id="mac-traffic-lights">
-    <button class="traffic-btn close" onclick="if(window.aiAbortController){aiAbortController.abort();aiAbortController=null;}if(window.aiState)aiState.isTyping=false;setTimeout(()=>window.pywebview&&window.pywebview.api.close_window(),150)">
+    <button class="traffic-btn close" onclick="if(window.aiAbortController){aiAbortController.abort();aiAbortController=null;}if(window.aiState)aiState.isTyping=false; if(window.appExit) window.appExit(); else if(window.pywebview) window.pywebview.api.force_close();">
         <svg class="traffic-icon" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M4 4L10 10M10 4L4 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
         </svg>
@@ -246,7 +246,7 @@
             </div>
         </div>
         <!-- КОНЕЦ НОВОГО БЛОКА -->
-        
+
     </div>
 
     <!-- КОНТЕЙНЕР ДЛЯ ВКЛАДОК -->
@@ -1606,5 +1606,7 @@
 <script src="static/prism.min.js"></script>
 <script src="static/marked.min.js"></script>
 <script src="/static/app.js?v=priority"></script>
+
+<!-- 🔐 МОДАЛКА НАСТРОЙКИ ШИФРОВАНИЯ -->
 </body>
 </html>

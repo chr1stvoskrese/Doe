@@ -5,7 +5,6 @@ from pathlib import Path
 from datetime import datetime, timedelta
 
 CONFIG_FILE = Path.home() / ".doe_config.json"
-DEFAULT_VAULT = Path.home() / "DoeDevVault"
 
 import copy
 
@@ -43,9 +42,9 @@ def _save_config(data: dict) -> None:
         _config_cache["stat"] = None
         _config_cache["data"] = None
 
-def get_active_vault() -> str:
+def get_active_vault() -> str | None:
     data = _load_config()
-    return data.get("active_vault", str(DEFAULT_VAULT))
+    return data.get("active_vault")
 
 def set_active_vault(vault_path: str) -> None:
     data = _load_config()
@@ -98,7 +97,10 @@ def get_attachments_dir() -> Path:
     custom_path = data.get("global_attachments_path")
     if custom_path and os.path.exists(custom_path):
         return Path(custom_path)
-    return Path(get_active_vault()) / "doe"
+    vault_path = get_active_vault()
+    if vault_path:
+        return Path(vault_path) / "doe"
+    return Path.home() / ".doe_temp_attachments" # Резервный фолбэк
 
 def get_ui_settings() -> dict:
     data = _load_config()
@@ -114,6 +116,10 @@ def get_ui_settings() -> dict:
         "c_low": "#D35446", "c_mid": "#B3863A", "c_high": "#89A085", "c_none": "#7C5CB7"
     }
 
+    # Читаем состояние для конкретного хранилища
+    vault_states = data.get("vault_states", {})
+    state = vault_states.get(vault_path, {})
+
     return {
         "theme": data.get("theme", "light"),
         "language": data.get("language", "ru"),
@@ -121,10 +127,23 @@ def get_ui_settings() -> dict:
         "global_attachments_path": data.get("global_attachments_path"),
         "ui_font": data.get("ui_font", ""),
         "extensions": data.get("extensions", default_extensions),
-        "priority_settings": data.get("priority_settings", default_priority) # <--- ДОБАВЛЕНО
+        "priority_settings": data.get("priority_settings", default_priority),
+        "tabs_hidden": state.get("tabs_hidden", False),
+        "hb_index": state.get("hb_index", 999)
     }
 
-def set_ui_settings(theme: str = None, language: str = None, active_workspace_id: int = None, global_attachments_path: str = None, reset_attachments: bool = False, ui_font: str = None, extensions: dict = None, priority_settings: dict = None) -> None:
+def set_ui_settings(
+    theme: str = None, 
+    language: str = None, 
+    active_workspace_id: int = None, 
+    global_attachments_path: str = None, 
+    reset_attachments: bool = False, 
+    ui_font: str = None, 
+    extensions: dict = None, 
+    priority_settings: dict = None,
+    tabs_hidden: bool = None,
+    hb_index: int = None
+) -> None:
     data = _load_config()
     if theme is not None: data["theme"] = theme
     if language is not None: data["language"] = language
@@ -133,7 +152,7 @@ def set_ui_settings(theme: str = None, language: str = None, active_workspace_id
         current_exts = data.get("extensions", {"search": True, "calendar": True, "reminders": True, "graph": True, "tabs": True, "deadlines": True, "export": True, "priority": True, "ai": True, "automations": True, "statistics": True})
         current_exts.update(extensions)
         data["extensions"] = current_exts
-    if priority_settings is not None: # <--- ДОБАВЛЕНО
+    if priority_settings is not None:
         current_prio = data.get("priority_settings", {
             "show_always": False,
             "t_low": 40, "t_mid": 70,
@@ -148,12 +167,25 @@ def set_ui_settings(theme: str = None, language: str = None, active_workspace_id
     elif global_attachments_path is not None:
         data["global_attachments_path"] = global_attachments_path
         
+    vault_path = get_active_vault()
+    
     if active_workspace_id is not None:
-        vault_path = get_active_vault()
         if "active_workspaces" not in data:
             data["active_workspaces"] = {}
         data["active_workspaces"][vault_path] = active_workspace_id
         
+    # Сохраняем состояние элементов для текущего хранилища
+    if tabs_hidden is not None or hb_index is not None:
+        if "vault_states" not in data:
+            data["vault_states"] = {}
+        if vault_path not in data["vault_states"]:
+            data["vault_states"][vault_path] = {}
+            
+        if tabs_hidden is not None:
+            data["vault_states"][vault_path]["tabs_hidden"] = tabs_hidden
+        if hb_index is not None:
+            data["vault_states"][vault_path]["hb_index"] = hb_index
+            
     _save_config(data)
 
 def reorder_vault_history(ordered_paths: list[str]) -> None:
