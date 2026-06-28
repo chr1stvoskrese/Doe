@@ -11,7 +11,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows-lightgrey" alt="Platform">
   <img src="https://img.shields.io/badge/version-1.0.0-blue" alt="Version">
-  <img src="https://img.shields.io/badge/license-GPL--3.0-green" alt="License">
+  <img src="https://img.shields.io/badge/license-PolyForm%20Shield-orange" alt="License">
   <img src="https://img.shields.io/badge/frontend-vanilla%20JS-f7df1e?logo=javascript" alt="Vanilla JS">
   <img src="https://img.shields.io/badge/backend-FastAPI-009688?logo=fastapi" alt="FastAPI">
   <img src="https://img.shields.io/badge/database-SQLite-003b57?logo=sqlite" alt="SQLite">
@@ -293,18 +293,25 @@ main.py              # FastAPI приложение
 
 ## 📄 Лицензия
 
-Doe распространяется под лицензией **GNU General Public License v3.0 (GPL-3.0)**.
+Doe распространяется под **PolyForm Shield License 1.0.0**.
 
-Это означает:
-- ✅ Ты можешь свободно использовать, изучать и модифицировать код
-- ✅ Ты можешь распространять свои изменения — но **обязан открыть исходный код**
-- ❌ Нельзя делать проприетарные форки и закрывать код
-- ❌ Нельзя использовать в проприетарном софте без раскрытия исходников
+Это **source-available** лицензия, а не open source:
 
-Полный текст лицензии: [LICENSE](LICENSE)
+| | |
+|---|---|
+| ✅ Личное использование | Можно ставить себе, друзьям, использовать в хобби-проектах |
+| ✅ Изучение кода | Читай, учись, делай некоммерческие форки |
+| ❌ Коммерческое использование | Нельзя продавать, встраивать в свой продукт, делать SaaS |
+| ❌ Распространение | Нельзя выкладывать как свой продукт |
+| ❌ Конкуренция | Нельзя делать конкурирующий продукт на основе кода |
+| 💼 **Автор** | Не связан лицензией — может делать проприетарные версии и продавать |
+
+**TL;DR:** Код открыт для просмотра и личного пользования. Коммерческие права — только у автора. Модель как у Obsidian: хочешь зарабатывать на Sync — зарабатываешь, никто не скопирует.
+
+Полный текст: [LICENSE](LICENSE)
 
 ---
 
 <p align="center">
-  <sub>Сделано с любовью к деталям. Данные — твои. Код — открытый. Приватность — абсолютная.</sub>
+  <sub>Сделано с любовью к деталям. Данные — твои. Код — защищён. Приватность — абсолютная.</sub>
 </p>
