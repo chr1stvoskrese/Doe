@@ -627,7 +627,6 @@ body, button, input, textarea, select,
     width: 6px;
     cursor: ew-resize;
     z-index: 10;
-    /* невидимый — только курсор меняется */
 }
 
 .column.collapsed .column-resize-handle {
@@ -884,8 +883,8 @@ body, button, input, textarea, select,
 }
 
 .reminder-task-title {
-    font-size: 14px; /* Сделали 14px вместо 13px для полного соответствия карточке */
-    font-weight: 500; /* Понизили базовый вес с 600 до 500 */
+    font-size: 14px;
+    font-weight: 500;
     color: var(--text-primary);
     white-space: nowrap;
     overflow: hidden;
@@ -1681,13 +1680,11 @@ select.custom-select-arrow {
     background-image: url('data:image/svg+xml;utf8,<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="%238B9088" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>');
 }
 
-/* Убираем страшную нативную иконку часов в Safari/Chrome на macOS */
 input[type="time"].setting-input::-webkit-calendar-picker-indicator {
     display: none;
     -webkit-appearance: none;
 }
 
-/* Убираем macOS синюю обводку (focus ring) у select */
 select.setting-input:focus,
 select.custom-select-arrow:focus,
 select.column-input:focus {
@@ -1774,7 +1771,6 @@ select.column-input:focus-visible {
     gap: 4px;
 }
 
-/* Эстетичный скроллбар для всех модальных окон (включая Статистику) */
 .modal-body::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -1949,7 +1945,7 @@ select.column-input:focus-visible {
 
 .column-input:focus {
     border-color: rgba(74, 90, 72, 0.45);
-    background: transparent; /* БЫЛО: var(--surface-card); */
+    background: transparent;
     box-shadow: none;
 }
 
@@ -2027,7 +2023,7 @@ select.column-input:focus-visible {
 
 [data-theme="dark"] .column-input:focus {
     border-color: rgba(137, 160, 133, 0.45);
-    background: transparent; /* БЫЛО: var(--surface-card); */
+    background: transparent;
     box-shadow: none;
 }
 
@@ -2603,10 +2599,8 @@ body.is-dragging-card .column-header {
     transform: translate3d(0, 0, 0);
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
-    /* overflow: hidden; Убрано, чтобы не обрезались разделители (::after с отрицательным right) */
 }
 
-/* Скрываем разделитель у самого сепаратора и у вкладки ПЕРЕД ним */
 .board-tab.hb-separator::after,
 .board-tab:has(+ .hb-separator)::after {
     display: none !important;
@@ -2647,7 +2641,7 @@ body:not(.is-dragging-tab) .board-tab:not(.active):hover {
     opacity: 0;
 
     margin-right: -8px;
-    flex-shrink: 0; /* Не даем крестику сплющиваться во время анимации max-width */
+    flex-shrink: 0;
     transform: translate3d(0, 0, 0);
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
@@ -3462,16 +3456,15 @@ body.is-dragging-modal * {
 .markdown-body h4,
 .markdown-body h5,
 .markdown-body h6 {
-    margin-top: 18px !important; /* Комфортный отступ сверху в обычном состоянии */
+    margin-top: 18px !important;
     margin-bottom: 12px !important;
-    margin-block-start: 0 !important; /* Полное уничтожение браузерных отступов */
+    margin-block-start: 0 !important;
     margin-block-end: 0 !important;
     font-weight: 600;
     color: var(--text-primary);
     letter-spacing: -0.02em;
 }
 
-/* Когда заголовки свернуты, они стягиваются в плотный красивый список-индекс */
 .markdown-body .foldable-heading.is-folded {
     margin-top: 0px !important;
     margin-bottom: 2px !important;
@@ -3897,10 +3890,9 @@ body.is-dragging-modal * {
 .markdown-body {
     line-height: 1.2;
     user-select: text !important;
-    white-space: normal; /* Схлопываем пустые \n между HTML-тегами */
+    white-space: normal;
 }
 
-/* Сохраняем пробелы и переносы только внутри самих текстовых блоков */
 .markdown-body p, 
 .markdown-body li, 
 .markdown-body blockquote, 
@@ -4702,7 +4694,6 @@ body.is-dragging-attachment .attachment-item:not(.attachment-drag-clone) {
     flex-shrink: 0;
     align-items: flex-start;
     
-    /* ФИКС ГЛИТЧА: Выносим в отдельный слой GPU */
     will-change: opacity, transform;
     transform: translateZ(0);
     backface-visibility: hidden;
@@ -4724,7 +4715,6 @@ body.is-dragging-attachment .attachment-item:not(.attachment-drag-clone) {
     flex-direction: column;
     align-items: center;
     
-    /* ФИКС ГЛИТЧА: Защита от "отслаивания" бордера при анимации контейнера */
     transform: translateZ(0);
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
@@ -4781,10 +4771,8 @@ body.is-dragging-attachment .attachment-item:not(.attachment-drag-clone) {
     margin-bottom: 24px;
     text-align: center;
     flex-shrink: 0;
-    /* Идеальная кривая: быстрый старт, очень мягкое, дышащее замедление */
     animation: formFadeIn 0.25s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
     
-    /* ФИКС ГЛИТЧА: Изначально прозрачен, закэширован в GPU */
     opacity: 0;
     will-change: opacity, transform;
     transform: translateZ(0);
@@ -4795,7 +4783,6 @@ body.is-dragging-attachment .attachment-item:not(.attachment-drag-clone) {
 @keyframes formFadeIn {
     from { 
         opacity: 0; 
-        /* Слегка "утоплено" вглубь экрана и сдвинуто вниз */
         transform: translateY(6px) scale(0.98); 
     }
     to { 
@@ -5451,7 +5438,6 @@ body.is-dragging-vault-history * {
     display: none !important;
 }
 
-/* Уничтожаем фантомный отступ: скрываем футер целиком, если выключенная приоритетность — его единственный ребёнок */
 body.ext-priority-hidden .card-footer:has(> .priority-pill:only-child) {
     display: none !important;
 }
@@ -5534,7 +5520,6 @@ body.ext-priority-hidden .card-footer:has(> .priority-pill:only-child) {
     color: #D65A4B !important;
 }
 
-/* Стили для пилюли Приоритетности (цвета теперь динамические, инжектятся через JS) */
 .priority-pill {
     gap: 4px;
     background: rgba(0, 0, 0, 0.04);
@@ -5545,7 +5530,6 @@ body.ext-priority-hidden .card-footer:has(> .priority-pill:only-child) {
 .priority-pill.clickable:hover { filter: brightness(0.95); }
 [data-theme="dark"] .priority-pill.clickable:hover { filter: brightness(1.2); }
 
-/* Подложки генерируются динамически через color-mix, fallback если переменная не успела */
 .priority-pill.level-low { 
     background: color-mix(in srgb, var(--prio-low-color, #D35446) 15%, transparent) !important; 
     color: var(--prio-low-color, #D35446) !important; 
@@ -5559,7 +5543,6 @@ body.ext-priority-hidden .card-footer:has(> .priority-pill:only-child) {
     color: var(--prio-high-color, #89A085) !important; 
 }
 
-/* Красивый инпут для выбора цвета (Apple Style) */
 .prio-color-picker {
     -webkit-appearance: none;
     -moz-appearance: none;
@@ -5590,7 +5573,6 @@ body.ext-priority-hidden .card-footer:has(> .priority-pill:only-child) {
     color: var(--prio-none-color, #828A80) !important; 
 }
 
-/* Модалка приоритетности */
 .priority-sliders-container {
     display: flex;
     flex-direction: column;
@@ -5863,7 +5845,6 @@ body.ext-priority-hidden .card-footer:has(> .priority-pill:only-child) {
     color: #89A085;
 }
 
-/* Оформление новых секций приоритетности */
 .prio-section-title {
     font-size: 11px;
     font-weight: 800;
@@ -7046,7 +7027,7 @@ span.local-search-highlight.active {
 
 .app-frame-title {
     position: absolute;
-    top: 2px; /* Прибиваем к самому верху рамки, в пустую зону! */
+    top: 2px;
     left: 50%;
     transform: translateX(-50%);
     font-size: 12px;
@@ -7076,11 +7057,11 @@ span.local-search-highlight.active {
 
 .app-global-title {
     position: fixed;
-    top: 8px; /* Поднимаем в самый верх, в пустую рамку над интерфейсом */
+    top: 8px;
     left: 50%;
     transform: translateX(-50%);
     font-family: var(--font-main);
-    font-size: 12px; /* Чуть меньше, под системный стиль */
+    font-size: 12px;
     font-weight: 600;
     color: var(--text-primary);
     opacity: 0.4;
@@ -7149,9 +7130,7 @@ span.local-search-highlight.active {
     display: none !important;
 }
 
-/* ── Полноэкранный режим: кнопки как в ZCode ── */
 
-/* Minimize: «пустая» кнопка — прозрачный фон, видимая граница */
 .mac-traffic-lights.is-fullscreen .traffic-btn.minimize {
     background-color: transparent;
     border: 1.5px solid rgba(255, 189, 46, 0.55);
@@ -7162,7 +7141,6 @@ span.local-search-highlight.active {
     display: none;
 }
 
-/* Zoom: скрываем иконку expand, показываем restore (стрелочки внутрь) */
 .mac-traffic-lights .traffic-icon.icon-restore {
     display: none;
 }
@@ -7173,7 +7151,6 @@ span.local-search-highlight.active {
     display: block;
 }
 
-/* При наведении в полноэкранном режиме иконки всё равно проявляются */
 .mac-traffic-lights.is-fullscreen:hover .traffic-icon {
     opacity: 1;
 }
@@ -7315,21 +7292,6 @@ input#notify-amount.notify-field::-webkit-inner-spin-button {
     transition: filter 0.15s, transform 0.2s ease, opacity 0.2s ease !important;
 }
 
-/* ── Газетная текстура (тёмная тема) ── */
-/* Раскомментируй ↓ чтобы вернуть зерно */
-/*
-[data-theme="dark"] body::after {
-    content: "";
-    position: fixed;
-    inset: 0;
-    z-index: 2147483647;
-    pointer-events: none;
-    opacity: 0.035;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='256' height='256'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-    background-repeat: repeat;
-    background-size: 256px 256px;
-}
-*/
 
 [data-theme="dark"] .card:not(.card-entering):hover:not(:has(.card-inline-trigger:hover)),
 [data-theme="dark"] .subtask-item:not(.subtask-entering):hover,
@@ -7382,7 +7344,7 @@ input#notify-amount.notify-field::-webkit-inner-spin-button {
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
 }
 .toggle-switch input:checked + .toggle-slider {
-    background-color: var(--text-primary); /* Используем строгий цвет текста вместо зеленого */
+    background-color: var(--text-primary);
 }
 .toggle-switch input:checked + .toggle-slider:before {
     transform: translateX(16px);
@@ -7398,7 +7360,6 @@ input#notify-amount.notify-field::-webkit-inner-spin-button {
     background-color: var(--surface-card);
 }
 
-/* Скрытие дедлайнов через настройки расширений */
 body.ext-deadlines-hidden .due-date-pill,
 body.ext-deadlines-hidden #modal-due-date,
 body.ext-deadlines-hidden #menu-set-due-date,
@@ -7406,13 +7367,11 @@ body.ext-deadlines-hidden #menu-clear-due-date {
     display: none !important;
 }
 
-/* Скрытие экспорта через настройки расширений */
 body.ext-export-hidden .modal-export,
 body.ext-export-hidden .menu-item[data-action="export-card"] {
     display: none !important;
 }
 
-/* Скрытие приоритетности через настройки расширений */
 body.ext-priority-hidden .priority-pill,
 body.ext-priority-hidden #modal-priority-btn,
 body.ext-priority-hidden #menu-set-priority,
@@ -7426,7 +7385,6 @@ body.ext-deadlines-hidden .ext-deadlines-dependent {
     display: none !important;
 }
 
-/* Скрытие AI-Психолога через настройки расширений */
 body.ext-ai-hidden #menu-ai-settings,
 body.ext-ai-hidden #divider-ai,
 body.ext-ai-hidden #ai-floating-btn {
@@ -7441,7 +7399,6 @@ body.ext-statistics-hidden #statistics-trigger {
     display: none !important;
 }
 
-/* --- СТИЛИ ДЛЯ СТАТИСТИКИ (PRO) --- */
 .stats-content {
     transition: opacity 0.2s ease;
 }
@@ -7483,7 +7440,7 @@ body.ext-statistics-hidden #statistics-trigger {
     padding: 14px 16px;
     display: flex;
     flex-direction: column;
-    justify-content: space-between; /* <--- ИСПРАВЛЕНО: теперь цифры всегда прижаты к низу */
+    justify-content: space-between;
     text-align: left;
     box-shadow: 0 4px 12px rgba(0,0,0,0.02);
 }
@@ -7499,7 +7456,7 @@ body.ext-statistics-hidden #statistics-trigger {
     width: 100%;
     margin-bottom: 12px;
     min-width: 0;
-    min-height: 17px; /* <--- ДОБАВЛЕНО: жестко резервирует высоту под бейдж тренда */
+    min-height: 17px;
 }
 
 .stats-metric-label {
@@ -7508,9 +7465,8 @@ body.ext-statistics-hidden #statistics-trigger {
     color: var(--text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    line-height: 1; /* Убираем лишний невидимый воздух шрифта */
+    line-height: 1;
     
-    /* 2. Защита от длинных текстов */
     white-space: nowrap; 
     overflow: hidden; 
     text-overflow: ellipsis; 
@@ -7526,7 +7482,6 @@ body.ext-statistics-hidden #statistics-trigger {
     border-radius: 6px;
     line-height: 1;
     
-    /* 3. Бейдж всегда целый и в одну строку */
     flex-shrink: 0; 
     white-space: nowrap; 
 }
@@ -7584,7 +7539,6 @@ body.ext-statistics-hidden #statistics-trigger {
     width: 100%;
     background: var(--brand-pine);
     border-radius: 8px;
-    /* Убрали min-height: 4px, теперь высоту контролирует строго JS */
     transition: height 0.8s cubic-bezier(0.16, 1, 0.3, 1), background 0.2s;
 }
 [data-theme="dark"] .stats-chart-bar-fill { background: #89A085; }
@@ -7727,7 +7681,6 @@ body.ext-statistics-hidden #statistics-trigger {
     border-radius: 4px;
 }
 
-/* Automation weekday buttons as Apple Segmented Control */
 .auto-weekdays-group {
     display: flex;
     background: rgba(0, 0, 0, 0.04);
@@ -7761,7 +7714,6 @@ body.ext-statistics-hidden #statistics-trigger {
     color: var(--text-primary); 
 }
 
-/* AI Chat Styles (Redesign) */
 .ai-journal-card {
     width: 540px !important;
     height: 700px !important;
@@ -7830,7 +7782,6 @@ body.ext-statistics-hidden #statistics-trigger {
     margin-top: 0;       
     margin-bottom: 12px; 
     
-    /* Маска скрытия резких границ списка */
     -webkit-mask-image: linear-gradient(
         to bottom,
         transparent 0px,
@@ -7864,7 +7815,6 @@ body.ext-statistics-hidden #statistics-trigger {
     background: rgba(255, 255, 255, 0.1);
 }
 
-/* Пузыри сообщений */
 .ai-msg {
     position: relative;
     padding: 14px 18px;
@@ -7879,7 +7829,6 @@ body.ext-statistics-hidden #statistics-trigger {
     color: #E6E8E5 !important;
 }
 
-/* Сообщение ИИ (хвостик слева внизу) */
 .ai-msg.ai {
     background: var(--bg-board) !important; 
     align-self: flex-start;
@@ -7889,7 +7838,6 @@ body.ext-statistics-hidden #statistics-trigger {
     background: #323530 !important; 
 }
 
-/* Сообщение пользователя (хвостик справа внизу) */
 .ai-msg.user {
     background: var(--brand-pine) !important; 
     color: #FFFFFF !important;
@@ -7902,7 +7850,6 @@ body.ext-statistics-hidden #statistics-trigger {
     color: #E6E8E5 !important;
 }
 
-/* Строка сообщения (пузырь + кнопки снизу) */
 .ai-msg-row {
     display: flex;
     flex-direction: column;
@@ -7916,12 +7863,10 @@ body.ext-statistics-hidden #statistics-trigger {
     margin-top: 4px;
 }
 
-/* Для AI: футер слева (как и пузырь) */
 .ai-msg.ai + .ai-msg-footer {
     align-self: flex-start;
 }
 
-/* Для user: футер справа */
 .ai-msg.user + .ai-msg-footer {
     align-self: flex-end;
 }
@@ -7994,7 +7939,6 @@ body.ext-statistics-hidden #statistics-trigger {
     background: rgba(232, 115, 106, 0.15) !important;
 }
 
-/* ── Режим редактирования сообщения ── */
 .ai-msg-edit {
     width: 100%;
 }
@@ -8065,7 +8009,6 @@ body.ext-statistics-hidden #statistics-trigger {
     color: var(--text-primary);
 }
 
-/* Анимация загрузки ИИ */
 .ai-loading-dots { display: inline-flex; gap: 4px; justify-content: center; width: 100%; }
 .ai-loading-dots span {
     width: 6px; height: 6px;
@@ -8097,7 +8040,6 @@ body.ext-statistics-hidden #statistics-trigger {
 }
 @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
 
-/* Поле ввода */
 .ai-journal-input-wrapper {
     position: relative;
     background: var(--bg-canvas); 
@@ -8177,7 +8119,6 @@ body.ext-statistics-hidden #statistics-trigger {
     height: 18px;
 }
 
-/* Стили плавающей кнопки ИИ */
 .ai-floating-btn {
     position: fixed;
     bottom: 32px;
@@ -8225,9 +8166,6 @@ body.ext-statistics-hidden #statistics-trigger {
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
 }
 
-/* =========================================
-   Скролл для списка моделей AI-Психолога
-========================================= */
 #ai-models-list {
     max-height: 240px;
     overflow-y: auto;
@@ -8250,7 +8188,6 @@ body.ext-statistics-hidden #statistics-trigger {
     background: var(--scrollbar-thumb-hover);
 }
 
-/* Корректировка отображения списков в сообщениях чата */
 .ai-msg ol {
     list-style-type: decimal !important;
     padding-left: 22px !important;
@@ -8271,7 +8208,6 @@ body.ext-statistics-hidden #statistics-trigger {
     line-height: 1.6;
 }
 
-/* Стилизация ссылок в чате под цвета приложения */
 .ai-msg a {
     color: var(--brand-pine) !important;
     text-decoration: underline;
@@ -8285,7 +8221,6 @@ body.ext-statistics-hidden #statistics-trigger {
     opacity: 0.8;
 }
 
-/* Стили для блока подтверждения действий ИИ */
 .ai-actions-box {
     background: rgba(0, 0, 0, 0.03) !important;
     border: 1px solid var(--border-light) !important;
@@ -8350,19 +8285,17 @@ body.ext-statistics-hidden #statistics-trigger {
     cursor: not-allowed;
 }
 
-/* --- Инлайн-создание колонок --- */
 .column-inline-trigger {
     position: absolute;
     top: 0;
     bottom: 0;
-    right: -25px; /* 24px (зазор) + 1px (рамка колонки) = идеальный центр */
+    right: -25px;
     width: 24px;
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 100;
     opacity: 0;
-    /* Используем пропорциональный масштаб вместо scaleX */
     transform: scale(0.95);
     transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     pointer-events: auto;
@@ -8374,19 +8307,16 @@ body.ext-statistics-hidden #statistics-trigger {
     transform: scale(1);
 }
 
-/* Запрещаем кнопке сжиматься внутри флекс-контейнера */
 .column-inline-trigger .divider-plus-btn {
     flex-shrink: 0;
 }
 
-/* Вертикальный пунктир */
 .column-inline-trigger::before {
     content: '';
     position: absolute;
     top: 16px;
     bottom: 16px;
     left: 50%;
-    /* Сдвигаем влево ровно на половину толщины линии (1.5px / 2) для пиксель-перфект центрирования */
     margin-left: -0.75px;
     width: 0;
     border-left: 1.5px dashed var(--brand-pine);
@@ -8398,12 +8328,10 @@ body.ext-statistics-hidden #statistics-trigger {
     opacity: 0.4;
 }
 
-/* Анимация плюсика внутри */
 .column-inline-trigger:hover .divider-plus-btn {
     transform: scale(1);
 }
 
-/* Скрываем у последней колонки или если рядом форма/скрытая колонка */
 .column:last-child .column-inline-trigger,
 .column:has(+ .new-column-btn) .column-inline-trigger,
 .column:has(+ .column-entering) .column-inline-trigger,
@@ -8415,11 +8343,10 @@ body[class*="is-dragging-"] .column-inline-trigger {
     display: none !important;
 }
 
-/* --- Стили Markdown для названий в статистике --- */
 .stats-top-title a {
     color: var(--brand-pine);
     text-decoration: none;
-    pointer-events: auto; /* ВЕРНУЛИ КЛИКАБЕЛЬНОСТЬ */
+    pointer-events: auto;
 }
 
 .stats-top-title a:hover {
@@ -8442,9 +8369,6 @@ body[class*="is-dragging-"] .column-inline-trigger {
     background: rgba(255, 255, 255, 0.1);
 }
 
-/* ====================================================
-   HIDDEN BAR: СКРЫТИЕ ВКЛАДОК
-   ==================================================== */
 .hb-separator {
     cursor: pointer;
     color: var(--text-secondary);
@@ -8460,7 +8384,7 @@ body[class*="is-dragging-"] .column-inline-trigger {
     display: flex;
     align-items: center;
     justify-content: center;
-    transform: translateZ(0); /* Аппаратное ускорение контейнера */
+    transform: translateZ(0);
 }
 
 .hb-separator:hover {
@@ -8477,7 +8401,7 @@ body[class*="is-dragging-"] .column-inline-trigger {
     width: 8px;
     height: 18px;
     transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-    transform: rotate(0deg) translateZ(0); /* Фикс дергания SVG при CPU-рендеринге */
+    transform: rotate(0deg) translateZ(0);
     will-change: transform;
 }
 
@@ -8503,7 +8427,6 @@ body.tabs-hidden .hb-separator ~ .board-tab::after {
     display: none !important;
 }
 
-/* Стили для глазика скрытия пароля */
 .pwd-eye-btn {
     background: transparent;
     border: none;

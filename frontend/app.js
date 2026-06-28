@@ -50,15 +50,15 @@ const translations = {
         modals: { 
             extTitle: 'Расширения', extSearch: 'Поиск', extCalendar: 'Календарь', extReminders: 'Напоминания', extGraph: 'Граф связей', extTabs: 'Вкладки', extDeadlines: 'Дедлайны', extExport: 'Экспорт карточек', extPriority: 'Приоритетность', extAi: 'ИИ-ассистент', extStatistics: 'Статистика', sortTitle: 'Сортировка',
             priorityTitle: 'Приоритетность', prioC: 'Одобренная ценность (через год)', prioD: 'Шанс успеха', prioA: 'Фоновая грызня (висит грузом)', prioB: 'Боль процесса', prioE: 'Затянутость', prioResult: 'Итоговая приоритетность:', btnClear: 'Очистить',
-            prioSettingsTitle: 'Приоритетность', // <--- ДОБАВЛЕНО
-            prioSettingsDesc: 'Настройте границы, цвета и эмодзи', // <--- ДОБАВЛЕНО
+            prioSettingsTitle: 'Приоритетность',
+            prioSettingsDesc: 'Настройте границы, цвета и эмодзи',
             prioShowAlways: 'Показывать на всех карточках',
             prioShowAlwaysDesc: 'Отображать пустой приоритет, если он не задан',
             prioBound: 'Граница: до',
             prioNone: 'Не указан (если включено)',
-            prioLvlLow: 'Низкий (< %)', // <--- ДОБАВЛЕНО
-            prioLvlMid: 'Средний (< %)', // <--- ДОБАВЛЕНО
-            prioLvlHigh: 'Высокий (Остальное)', // <--- ДОБАВЛЕНО
+            prioLvlLow: 'Низкий (< %)',
+            prioLvlMid: 'Средний (< %)',
+            prioLvlHigh: 'Высокий (Остальное)',
             prioSec1: 'Двигатели делания', prioSec2: 'Психоэмоциональный баланс', prioSec3: 'Издержки процесса',
             prioF: 'Нужно ли отчитываться за задачу в ближайшие 2 недели?', prioP: 'Лучше сделать данную задачу просто заранее?', prioS: 'Принесет ли выполнение спокойствие здесь и сейчас?', prioH: 'Способна ли задача навредить физически или ментально?',
             prioNo: 'Нет', prioMaybe: 'Хз', prioYes: 'Да',
@@ -83,7 +83,6 @@ const translations = {
             detachCurrent: 'Только от текущей карточки', detachAll: 'От всех карточек (сделать независимой)',
             completeSubtask: 'Отметить как выполненную', uncompleteSubtask: 'Снять отметку о выполнении',
             completeSubtaskTitle: 'Выполнить подзадачу?', completeSubtaskDesc: 'Она будет отмечена как выполненная у всех родительских карточек.', btnComplete: 'Выполнить',
-            // Автоматизации
             autoTitle: 'Автоматизации', autoEmpty: 'Нет автоматизаций. Нажмите «+» чтобы создать.',
             autoAddBtn: '+ Новая автоматизация',
             autoType: 'Тип автоматизации',
@@ -208,7 +207,6 @@ const translations = {
             searchModels: 'Поиск модели...',
             noCompatible: 'Совместимых моделей не найдено для вашего уровня ПК',
             toggleMenuTip: 'Включить / выключить AI в меню',
-            // AI actions in journal
             actionsHeader: 'Я хочу выполнить следующие действия:',
             actionCreateTask: (title, colName) => `Создать задачу «${title}» в колонке «${colName}»`,
             actionMoveTask: (taskName, colName) => `Переместить «${taskName}» в колонку «${colName}»`,
@@ -306,7 +304,6 @@ const translations = {
             detachCurrent: 'Only from current card', detachAll: 'From all cards (make independent)',
             completeSubtask: 'Mark as completed', uncompleteSubtask: 'Mark as uncompleted',
             completeSubtaskTitle: 'Complete subtask?', completeSubtaskDesc: 'It will be marked as completed in all parent cards.', btnComplete: 'Complete',
-            // Automations
             autoTitle: 'Automations', autoEmpty: 'No automations. Press «+» to create.',
             autoAddBtn: '+ New automation',
             autoType: 'Automation type',
@@ -428,7 +425,6 @@ const translations = {
             searchModels: 'Search models...',
             noCompatible: 'No compatible models found for your hardware tier',
             toggleMenuTip: 'Toggle AI in menu',
-            // AI actions in journal
             actionsHeader: 'I want to perform the following actions:',
             actionCreateTask: (title, colName) => `Create task «${title}» in column «${colName}»`,
             actionMoveTask: (taskName, colName) => `Move «${taskName}» to column «${colName}»`,
@@ -511,7 +507,6 @@ function updateAppFont(uiFont, customFontPath) {
         document.head.appendChild(styleTag);
     }
 
-    // Базовый стек Apple/Windows
     let fontString = '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro", "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
 
     if (customFontPath) {
@@ -529,12 +524,10 @@ function updateAppFont(uiFont, customFontPath) {
         styleTag.innerHTML = '';
     }
 
-    // Вписанный системный шрифт всегда применяется, если он есть
     if (uiFont && uiFont.trim() && uiFont.trim() !== "Inter") {
         fontString = `"${uiFont.trim()}", ${fontString}`;
     }
 
-    // !important не даёт браузеру сбрасывать шрифт на кнопках
     document.documentElement.style.setProperty('--font-main', fontString, 'important');
 }
 
@@ -575,13 +568,9 @@ window.resetCustomFont = async () => {
 window.applyExtensionsUI = (exts) => {
     if (!exts) exts = { search: true, calendar: true, reminders: true, graph: true, tabs: true, deadlines: true, export: true, priority: true, ai: true, automations: true, statistics: true };
     
-    // Скрываем или показываем UI дедлайнов глобально через CSS-класс
     document.body.classList.toggle('ext-deadlines-hidden', !exts.deadlines);
-    // Скрываем экспорт
     document.body.classList.toggle('ext-export-hidden', !exts.export);
-    // Скрываем приоритетность
     document.body.classList.toggle('ext-priority-hidden', !exts.priority);
-    // Скрываем AI
     document.body.classList.toggle('ext-ai-hidden', !exts.ai);
     document.body.classList.toggle('ext-automations-hidden', !exts.automations);
     document.body.classList.toggle('ext-statistics-hidden', !exts.statistics);
@@ -603,13 +592,11 @@ window.applyExtensionsUI = (exts) => {
     const automationsBtn = document.getElementById('automations-trigger');
     if (automationsBtn) automationsBtn.style.display = exts.automations ? '' : 'none';
 
-    // Скрываем пункт в глобальном контекстном меню
     const notifyMenuItem = document.querySelector('.menu-item[data-action="notify-card"]');
     if (notifyMenuItem) {
         notifyMenuItem.style.display = exts.reminders ? '' : 'none';
     }
 
-    // Скрываем кнопку "Напомнить" внутри открытой карточки
     const modalNotifyBtn = document.querySelector('.modal-notify');
     if (modalNotifyBtn) {
         modalNotifyBtn.style.display = exts.reminders ? '' : 'none';
@@ -645,7 +632,6 @@ window.toggleExtension = async (key, value) => {
         const payload = { extensions: {} };
         payload.extensions[key] = value;
         
-        // Сразу получаем обновленные настройки из ответа PUT
         const res = await fetch(`${API_BASE}/system/settings`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
@@ -661,7 +647,6 @@ window.toggleExtension = async (key, value) => {
     }
 };
 
-// ----------------------
 
 let toastTimeout;
 window.showToast = (title, message, isError = false) => {
@@ -726,9 +711,6 @@ function applyTheme(theme, saveToBackend = false) {
     }
 }
 
-// ==========================================
-// 🚀 WEB WORKER ДЛЯ ФОНОВОГО РЕНДЕРА MARKDOWN
-// ==========================================
 let markdownWorker = null;
 let markdownRenderId = 0;
 const markdownCallbacks = {};
@@ -736,7 +718,6 @@ const markdownCallbacks = {};
 function initMarkdownWorker() {
     if (markdownWorker) return;
     
-    // Изолированный код потока. Никакого доступа к DOM, только вычисления.
     const workerCode = `
         // Загружаем библиотеки парсинга напрямую в поток
         self.importScripts(
@@ -827,16 +808,14 @@ function initMarkdownWorker() {
         };
     `;
 
-    // Компилируем и запускаем Web Worker из строки
     const blob = new Blob([workerCode], { type: 'application/javascript' });
     markdownWorker = new Worker(URL.createObjectURL(blob));
     
-    // Обрабатываем ответ от воркера
     markdownWorker.onmessage = function(e) {
         const { id, html } = e.data;
         if (markdownCallbacks[id]) {
             markdownCallbacks[id](html);
-            delete markdownCallbacks[id]; // Очищаем память
+            delete markdownCallbacks[id];
         }
     };
 }
@@ -856,7 +835,6 @@ function renderMarkdownProgressively(text, container, options) {
         onComplete = options.onComplete;
     }
 
-    // Быстрый синхронный путь для маленьких текстов
     if (text.length < 5000) {
         container._renderToken = null;
         if (onBeforeInsert) onBeforeInsert();
@@ -869,7 +847,6 @@ function renderMarkdownProgressively(text, container, options) {
         return;
     }
 
-    // Асинхронный путь с воркером: возвращаем надпись "Loading..."
     const token = Symbol();
     container._renderToken = token;
     
@@ -885,7 +862,6 @@ function renderMarkdownProgressively(text, container, options) {
 
         if (onBeforeInsert) onBeforeInsert();
 
-        // Записываем весь HTML за один раз, чтобы избежать дробления высоты
         container.innerHTML = html;
 
         if (onFirstScreen) onFirstScreen();
@@ -1131,7 +1107,7 @@ async function saveColumnsOrder(orderedIds) {
 }
 async function createColumn(title, mode = 'default', workspaceId, position = null) {
     const body = { title, mode, workspace_id: workspaceId };
-    if (position !== null) body.position = position; // Передаем вычисленную позицию
+    if (position !== null) body.position = position;
     
     const res = await fetch(`${API_BASE}/columns/`, { 
         method: 'POST', 
@@ -1268,7 +1244,7 @@ async function handleClearDueDate(taskId) {
             }
         }
         
-        if (updatedColId) await syncColumnDOM(updatedColId); // Триггер анимации
+        if (updatedColId) await syncColumnDOM(updatedColId);
         
         const taskModal = document.getElementById('task-modal');
         if (taskModal.classList.contains('show') && parseInt(taskModal.dataset.taskId) === taskId) {
@@ -1316,7 +1292,6 @@ function escapeHtml(text) { _escapeDiv.textContent = text; return _escapeDiv.inn
 function renderInlineMarkdown(text) {
     if (!text) return '';
 
-    // Шаг 0: Находим все doe://task/ ссылки (с bracket-counting) и заменяем на плейсхолдеры
     const doeLinks = [];
     const doePattern = /\]\(doe:\/\/task\/\d+\)/g;
     let match;
@@ -1340,26 +1315,16 @@ function renderInlineMarkdown(text) {
         raw = raw.substring(0, dl.start) + dl.placeholder + raw.substring(dl.end);
     }
 
-    // Шаг 1: Escape HTML
     let html = escapeHtml(raw);
-    // Шаг 1.5: Переносы строк
     html = html.replace(/\n/g, '<br>');
-    // Шаг 2: <u>
     html = html.replace(/&lt;u&gt;/g, '<u>').replace(/&lt;\/u&gt;/g, '</u>');
-    // Шаг 3: `code`
     html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
-    // Шаг 4: **bold**
     html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-    // Шаг 5: *italic*
     html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
-    // Шаг 6: ~~strike~~
     html = html.replace(/~~([^~]+)~~/g, '<del>$1</del>');
-    // Шаг 7: Оставшиеся ссылки [text](url) (не doe://, они уже в плейсхолдерах)
     html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
 
-    // Шаг 8: Раскрываем плейсхолдеры — рендерим inner и оборачиваем в doe:// ссылку
     for (const dl of doeLinks) {
-        // Убираем ссылочный синтаксис из inner (вложенные <a> невалидны)
         const innerClean = dl.inner.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1');
         const innerHtml = renderInlineMarkdown(innerClean);
         html = html.replace(dl.placeholder, `<a href="doe://task/${dl.taskId}" target="_blank" rel="noopener">${innerHtml}</a>`);
@@ -1369,7 +1334,6 @@ function renderInlineMarkdown(text) {
 }
 function unescapeHtml(html) { const div = document.createElement('div'); div.innerHTML = html; return div.textContent; }
 
-// Очищает Markdown до плоского текста для системных уведомлений
 function stripMarkdownToPlain(md) {
     if (!md) return '';
     return md.replace(/!\[.*?\]\(.*?\)/g, '')
@@ -1379,8 +1343,6 @@ function stripMarkdownToPlain(md) {
              .trim();
 }
 
-// Вырезает [...](doe://task/NNN) из текста, оставляя только внутренний контент
-// Работает с вложенными скобками (напр. [текст с [ссылкой](url)](doe://task/1) → текст с [ссылкой](url))
 function stripDoeTaskLinks(text) {
     if (!text) return text;
     const pattern = /\]\(doe:\/\/task\/\d+\)/g;
@@ -1448,7 +1410,6 @@ function bindTitleFormattingShortcuts(inputEl) {
     });
 }
 
-// ── Состояние полноэкранного режима ──
 let _isFullscreen = false;
 
 window.toggleFullscreenState = (force) => {
@@ -1469,8 +1430,6 @@ window.toggleFullscreenState = (force) => {
 };
 
 function encodeMarkdownPath(path) {
-    // encodeURI пропускает # и ?, которые (особенно #) ломают img-src и href
-    // внутри описания. Используем encodeURIComponent и восстанавливаем слэши.
     return encodeURIComponent(path).replace(/%2F/g, '/');
 }
 
@@ -1553,8 +1512,6 @@ function renderBoard() {
     const board = document.getElementById('board');
     const savedScroll = board.scrollLeft;
 
-    // Сохраняем вертикальные позиции прокрутки каждой колонки,
-    // иначе при пересборке DOM они сбросятся в 0 (баг потери позиции чтения).
     const savedColScrolls = {};
     board.querySelectorAll('.column[data-column-id]').forEach(colEl => {
         const listEl = colEl.querySelector('.card-list');
@@ -1573,7 +1530,6 @@ function renderBoard() {
     frag.appendChild(addColBtn);
     board.appendChild(frag);
 
-    // Восстанавливаем позиции прокрутки колонок по id.
     board.querySelectorAll('.column[data-column-id]').forEach(colEl => {
         const listEl = colEl.querySelector('.card-list');
         const saved = savedColScrolls[colEl.dataset.columnId];
@@ -1627,26 +1583,20 @@ window.syncColumnDOM = async function(columnId) {
         const oldCards = Array.from(cardList.querySelectorAll('.card:not(.card-drag-clone)'));
         const newIds = new Set(colState.tasks.map(t => String(t.id)));
 
-        // 1. Анимируем удаление карточек, которые исчезли (например, из-за автоматизаций)
         oldCards.forEach(card => {
             if (!newIds.has(card.dataset.cardId)) {
-                // Функция animateCardDeletion превратит .card в плавно исчезающий .card-spacer
                 animateCardDeletion(card); 
             }
         });
 
-        // 2. Получаем геометрию оставшихся карточек для FLIP анимации
         const remainingCards = Array.from(cardList.querySelectorAll('.card:not(.card-drag-clone)'));
         const cardRects = new Map();
         remainingCards.forEach(c => cardRects.set(c.dataset.cardId, c.getBoundingClientRect()));
 
-        // 3. Сохраняем спейсеры (от анимации удаления) и их позицию относительно следующих карточек,
-        // чтобы они не уничтожились при перерисовке innerHTML и список не "прыгнул" вверх.
         const spacers = Array.from(cardList.querySelectorAll('.card-spacer'));
         const spacerMap = new Map();
         spacers.forEach(s => {
             let nextCard = s.nextElementSibling;
-            // Ищем следующую реальную карточку после спейсера
             while (nextCard && !nextCard.classList.contains('card')) {
                 nextCard = nextCard.nextElementSibling;
             }
@@ -1655,15 +1605,13 @@ window.syncColumnDOM = async function(columnId) {
             if (!spacerMap.has(nextId)) spacerMap.set(nextId, []);
             spacerMap.get(nextId).push(s);
             
-            s.remove(); // Временно убираем из DOM
+            s.remove();
         });
 
-        // 4. Очищаем список и строим заново
         cardList.innerHTML = '';
         const sortedTasks = [...colState.tasks].sort((a, b) => a.position - b.position);
         
         sortedTasks.forEach(task => {
-            // Вставляем спейсеры, которые стояли ПЕРЕД этой карточкой (чтобы пустота сжималась там, где нужно)
             if (spacerMap.has(String(task.id))) {
                 spacerMap.get(String(task.id)).forEach(s => cardList.appendChild(s));
             }
@@ -1673,7 +1621,6 @@ window.syncColumnDOM = async function(columnId) {
             const newCard = tempDiv.firstChild;
             cardList.appendChild(newCard);
 
-            // FLIP Анимация перестроения (для карточек, которые сдвинулись)
             const oldRect = cardRects.get(String(task.id));
             if (oldRect) {
                 requestAnimationFrame(() => {
@@ -1691,7 +1638,6 @@ window.syncColumnDOM = async function(columnId) {
             }
         });
 
-        // Вставляем спейсеры, которые были в самом конце колонки
         if (spacerMap.has('END')) {
             spacerMap.get('END').forEach(s => cardList.appendChild(s));
         }
@@ -1699,7 +1645,7 @@ window.syncColumnDOM = async function(columnId) {
         updateColumnCount(colEl, sortedTasks.length);
     } catch (e) {
         console.error("Ошибка синхронизации колонки:", e);
-        renderBoard(); // Fallback на полную перерисовку при сбоях
+        renderBoard();
     }
 };
 
@@ -1730,7 +1676,6 @@ function updateCardAppearance(cardElement, task, columnMode) {
         newContent += `<div class="checklist-meta ${allDone}"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:4px;"><line x1="6" y1="3" x2="6" y2="15"></line><circle cx="18" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><path d="M18 9a9 9 0 0 1-9 9"></path></svg><span>${done}/${total}</span></div>`;
     }
 
-    // --- ЛОГИКА ПРИОРИТЕТНОСТИ ---
     const ps = window.prioritySettings;
     const hasPriority = task.priority !== null && task.priority !== undefined;
     
@@ -1751,7 +1696,6 @@ function updateCardAppearance(cardElement, task, columnMode) {
         
         newContent += `<div class="priority-pill ${levelClass} clickable" onclick="openPriorityModal(${task.id})"><span>${displayValue}</span><span>${emoji}</span></div>`;
     }
-    // ----------------------------
 
     if (task.due_date) {
         const dateStr = task.due_date + (task.due_date.endsWith('Z') || task.due_date.includes('+') ? '' : 'Z');
@@ -1764,17 +1708,17 @@ function updateCardAppearance(cardElement, task, columnMode) {
         if (task.completed_at) {
             const completedDate = new Date(task.completed_at + (task.completed_at.endsWith('Z') || task.completed_at.includes('+') ? '' : 'Z'));
             if (completedDate > dueDate) {
-                icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="7.5" y1="7.5" x2="10.5" y2="10.5"/><line x1="10.5" y1="7.5" x2="7.5" y2="10.5"/><line x1="13.5" y1="7.5" x2="16.5" y2="10.5"/><line x1="16.5" y1="7.5" x2="13.5" y2="10.5"/><line x1="9" y1="16" x2="15" y2="16"/></svg>'; // просрочен + завершён
+                icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="7.5" y1="7.5" x2="10.5" y2="10.5"/><line x1="10.5" y1="7.5" x2="7.5" y2="10.5"/><line x1="13.5" y1="7.5" x2="16.5" y2="10.5"/><line x1="16.5" y1="7.5" x2="13.5" y2="10.5"/><line x1="9" y1="16" x2="15" y2="16"/></svg>';
                 overdueClass = 'overdue';
             } else {
-                icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"/><polyline points="7,12 11,16 17,8"/></svg>'; // завершён вовремя
+                icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"/><polyline points="7,12 11,16 17,8"/></svg>';
             }
         } else {
             if (isOverdue) {
-                icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="7.5" y1="7.5" x2="10.5" y2="10.5"/><line x1="10.5" y1="7.5" x2="7.5" y2="10.5"/><line x1="13.5" y1="7.5" x2="16.5" y2="10.5"/><line x1="16.5" y1="7.5" x2="13.5" y2="10.5"/><line x1="9" y1="16" x2="15" y2="16"/></svg>'; // просрочен
+                icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="7.5" y1="7.5" x2="10.5" y2="10.5"/><line x1="10.5" y1="7.5" x2="7.5" y2="10.5"/><line x1="13.5" y1="7.5" x2="16.5" y2="10.5"/><line x1="16.5" y1="7.5" x2="13.5" y2="10.5"/><line x1="9" y1="16" x2="15" y2="16"/></svg>';
                 overdueClass = 'overdue';
             } else {
-                icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c-4.42 0-8-3.58-8-8 0-3.1 1.76-5.8 4.36-7.14.33-.17.7-.06.88.24.41.69 1.05 1.34 1.7 1.15.65-.19.96-1.55 1.4-3.13C12.8 3.42 13.5 2 14.5 2c.28 0 .54.12.72.32 1.41 1.6 3.1 3.96 4.13 6.08C20.44 10.64 20 12.3 20 14c0 4.42-3.58 8-8 8z"></path></svg>'; // активный дедлайн
+                icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c-4.42 0-8-3.58-8-8 0-3.1 1.76-5.8 4.36-7.14.33-.17.7-.06.88.24.41.69 1.05 1.34 1.7 1.15.65-.19.96-1.55 1.4-3.13C12.8 3.42 13.5 2 14.5 2c.28 0 .54.12.72.32 1.41 1.6 3.1 3.96 4.13 6.08C20.44 10.64 20 12.3 20 14c0 4.42-3.58 8-8 8z"></path></svg>';
             }
         }
 
@@ -1807,8 +1751,7 @@ function generateCardHtml(task, columnMode) {
         checklistHtml = `<div class="checklist-meta ${done === total ? 'all-done' : ''}"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:4px;"><line x1="6" y1="3" x2="6" y2="15"></line><circle cx="18" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><path d="M18 9a9 9 0 0 1-9 9"></path></svg><span>${done}/${total}</span></div>`;
     }
 
-    // --- ЛОГИКА ПРИОРИТЕТНОСТИ ---
-    let priorityHtml = ''; // Обязательно объявляем переменную!
+    let priorityHtml = '';
     const ps = window.prioritySettings;
     const hasPriority = task.priority !== null && task.priority !== undefined;
 
@@ -1829,7 +1772,6 @@ function generateCardHtml(task, columnMode) {
         
         priorityHtml = `<div class="priority-pill ${levelClass} clickable" onclick="openPriorityModal(${task.id})"><span>${displayValue}</span><span>${emoji}</span></div>`;
     }
-    // ----------------------------
 
     let dueDateHtml = '';
     if (task.due_date) {
@@ -1843,17 +1785,17 @@ function generateCardHtml(task, columnMode) {
         if (task.completed_at) {
             const completedDate = new Date(task.completed_at + (task.completed_at.endsWith('Z') || task.completed_at.includes('+') ? '' : 'Z'));
             if (completedDate > dueDate) {
-                icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="7.5" y1="7.5" x2="10.5" y2="10.5"/><line x1="10.5" y1="7.5" x2="7.5" y2="10.5"/><line x1="13.5" y1="7.5" x2="16.5" y2="10.5"/><line x1="16.5" y1="7.5" x2="13.5" y2="10.5"/><line x1="9" y1="16" x2="15" y2="16"/></svg>'; // просрочен + завершён
+                icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="7.5" y1="7.5" x2="10.5" y2="10.5"/><line x1="10.5" y1="7.5" x2="7.5" y2="10.5"/><line x1="13.5" y1="7.5" x2="16.5" y2="10.5"/><line x1="16.5" y1="7.5" x2="13.5" y2="10.5"/><line x1="9" y1="16" x2="15" y2="16"/></svg>';
                 overdueClass = 'overdue';
             } else {
-                icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"/><polyline points="7,12 11,16 17,8"/></svg>'; // завершён вовремя
+                icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"/><polyline points="7,12 11,16 17,8"/></svg>';
             }
         } else {
             if (isOverdue) {
-                icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="7.5" y1="7.5" x2="10.5" y2="10.5"/><line x1="10.5" y1="7.5" x2="7.5" y2="10.5"/><line x1="13.5" y1="7.5" x2="16.5" y2="10.5"/><line x1="16.5" y1="7.5" x2="13.5" y2="10.5"/><line x1="9" y1="16" x2="15" y2="16"/></svg>'; // просрочен
+                icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="7.5" y1="7.5" x2="10.5" y2="10.5"/><line x1="10.5" y1="7.5" x2="7.5" y2="10.5"/><line x1="13.5" y1="7.5" x2="16.5" y2="10.5"/><line x1="16.5" y1="7.5" x2="13.5" y2="10.5"/><line x1="9" y1="16" x2="15" y2="16"/></svg>';
                 overdueClass = 'overdue';
             } else {
-                icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c-4.42 0-8-3.58-8-8 0-3.1 1.76-5.8 4.36-7.14.33-.17.7-.06.88.24.41.69 1.05 1.34 1.7 1.15.65-.19.96-1.55 1.4-3.13C12.8 3.42 13.5 2 14.5 2c.28 0 .54.12.72.32 1.41 1.6 3.1 3.96 4.13 6.08C20.44 10.64 20 12.3 20 14c0 4.42-3.58 8-8 8z"></path></svg>'; // активный дедлайн
+                icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c-4.42 0-8-3.58-8-8 0-3.1 1.76-5.8 4.36-7.14.33-.17.7-.06.88.24.41.69 1.05 1.34 1.7 1.15.65-.19.96-1.55 1.4-3.13C12.8 3.42 13.5 2 14.5 2c.28 0 .54.12.72.32 1.41 1.6 3.1 3.96 4.13 6.08C20.44 10.64 20 12.3 20 14c0 4.42-3.58 8-8 8z"></path></svg>';
             }
         }
 
@@ -1979,7 +1921,6 @@ function createColumnElement(column) {
         colDiv.style.width = column.width + 'px';
     }
 
-    // Resize handle (invisible, right edge)
     const resizeHandle = document.createElement('div');
     resizeHandle.className = 'column-resize-handle';
     resizeHandle.addEventListener('pointerdown', (e) => {
@@ -1995,7 +1936,6 @@ function createColumnElement(column) {
     const menuBtn = colDiv.querySelector('.menu-btn');
     menuBtn.addEventListener('click', (e) => toggleColumnMenu(e, colDiv));
 
-    // Inline trigger для создания колонки между текущими
     const inlineTrigger = document.createElement('div');
     inlineTrigger.className = 'column-inline-trigger';
     inlineTrigger.innerHTML = `
@@ -2759,9 +2699,8 @@ function renderTabs(scrollToActive = false, newTabId = null) {
         container.appendChild(tab);
     });
 
-    // --- Внедряем Hidden Bar Separator ---
     const separator = document.createElement('div');
-    separator.className = 'board-tab hb-separator'; // .board-tab включает для него родной Drag & Drop
+    separator.className = 'board-tab hb-separator';
     const hotkeyText = currentLang === 'ru' ? 'Скрыть/Показать вкладки (Cmd/Ctrl + \\)' : 'Toggle Tabs (Cmd/Ctrl + \\)';
     separator.title = hotkeyText;
     separator.innerHTML = `
@@ -2773,11 +2712,9 @@ function renderTabs(scrollToActive = false, newTabId = null) {
         closeAllDropdowns();
         const willBeHidden = document.body.classList.toggle('tabs-hidden');
         
-        // Обновляем в локальной памяти и на бэкенде:
         if (window.appSettings) window.appSettings.tabs_hidden = willBeHidden;
         updateSettings({ tabs_hidden: willBeHidden }).catch(console.error);
 
-        // Оставляем фолбэк для быстрого UI
         if (window.currentVaultPath) {
             localStorage.setItem(`doe-tabs-hidden_${window.currentVaultPath}`, willBeHidden);
         }
@@ -2795,7 +2732,6 @@ function renderTabs(scrollToActive = false, newTabId = null) {
     } else {
         container.appendChild(separator);
     }
-    // -------------------------------------
 
     const addBtn = document.createElement('button');
     addBtn.className = 'add-tab-btn';
@@ -3010,7 +2946,6 @@ function showConfirmModal(title, message, confirmBtnText = t('menu.delete'), isD
         
         modal.querySelector('.cancel-btn').textContent = t('cancel');
         
-        // Находим кнопку по атрибуту (т.к. классы могут меняться туда-сюда)
         const confirmBtn = modal.querySelector('[data-action="confirm-delete"]');
         if (isDanger) {
             confirmBtn.className = 'confirm-btn danger-btn';
@@ -3063,9 +2998,6 @@ function startColumnResize(colDiv, column, e) {
 
     colDiv.style.transition = 'none';
 
-    // Архитектурно чистая блокировка: имитируем "локальное редактирование".
-        // Вебсокет будет игнорировать внешние изменения БД, пока интервал обновляет таймер.
-        // Это никак не влияет на Drag&Drop или локальные таймеры карточек.
         window._lastLocalEdit = Date.now();
         const syncLockInterval = setInterval(() => {
             window._lastLocalEdit = Date.now();
@@ -3078,7 +3010,7 @@ function startColumnResize(colDiv, column, e) {
         };
 
         const onUp = async (e) => {
-            clearInterval(syncLockInterval); // Снимаем блокировку фоновой синхронизации
+            clearInterval(syncLockInterval);
     
         
         document.removeEventListener('pointermove', onMove);
@@ -3528,7 +3460,6 @@ function startCardRename(cardEl, task) {
                 await updateTask(task.id, { title: newTitle });
                 task.title = newTitle;
                 
-                // На случай если стоит авто-сортировка по алфавиту
                 const colEl = cardEl.closest('.column');
                 if (colEl) await syncColumnDOM(parseInt(colEl.dataset.columnId));
             } catch (_) {
@@ -3887,11 +3818,9 @@ let isPointerDown = false;
 let potentialDragTarget = null;
 let potentialDragType = null;
 
-// Переменные для плавного скролла и устранения Layout Thrashing
 let lastHitTestTime = 0;
 let wasScrolling = false;
 
-// Плавный скролл с ускорением (Enterprise Edge Panning)
 let scrollAccumX = 0;
 let scrollAccumY = 0;
 let currentScrollSpeedX = 0;
@@ -4075,7 +4004,6 @@ function autoExpandColumn(columnEl) {
     columnEl.classList.remove('collapsed');
     columnEl.classList.add('auto-expanded-temp');
     
-    // Плавно возвращаем ширину
     columnEl.style.width = column.width ? column.width + 'px' : '';
 
     const titleEl = columnEl.querySelector('.column-title');
@@ -4169,25 +4097,21 @@ function performHitTest() {
         const hoverCard = elemUnderMouse.closest('.card:not(.is-ghost)');
         const hoverCol = elemUnderMouse.closest('.column:not(.is-ghost)');
 
-        // --- ЛОГИКА АВТОРАСКРЫТИЯ СВЕРНУТЫХ КОЛОНОК ---
         if (hoverCol) {
             const colId = parseInt(hoverCol.dataset.columnId);
             
-            // Если над свернутой и она еще не была нами раскрыта
             if (hoverCol.classList.contains('collapsed') && !hoverCol.classList.contains('auto-expanded-temp')) {
                 if (autoExpandTimeoutColumnId !== colId) {
                     clearTimeout(autoExpandTimeout);
                     autoExpandTimeoutColumnId = colId;
                     autoExpandTimeout = setTimeout(() => {
                         autoExpandColumn(hoverCol);
-                    }, 400); // 400мс удержания курсора для раскрытия
+                    }, 400);
                 }
             } else if (colId === autoExpandedColumnId) {
-                // Если мы водим мышью внутри уже раскрытой колонки — сбрасываем таймеры
                 clearTimeout(autoExpandTimeout);
                 autoExpandTimeoutColumnId = null;
             } else {
-                // Если ушли на другую раскрытую колонку — сворачиваем старую
                 if (autoExpandedColumnId && colId !== autoExpandedColumnId) {
                     revertAutoExpandedColumn();
                 }
@@ -4195,12 +4119,10 @@ function performHitTest() {
                 autoExpandTimeoutColumnId = null;
             }
         } else {
-            // Если ушли с колонок вообще (на фон)
             if (autoExpandedColumnId) revertAutoExpandedColumn();
             clearTimeout(autoExpandTimeout);
             autoExpandTimeoutColumnId = null;
         }
-        // ----------------------------------------------
 
         if (hoverCard && hoverCard !== draggedElement) {
             const rect = hoverCard.getBoundingClientRect();
@@ -4309,10 +4231,8 @@ function handleEdgePanning() {
         containerX = document.querySelector('.board-container');
     } 
     else if (dragType === 'card') {
-        // КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: Доска ВСЕГДА может скроллиться по X при перетаскивании карточки!
         containerX = document.querySelector('.board-container');
         
-        // А если мы над колонкой — добавляем независимую возможность скроллить её по Y
         const hoverCol = document.elementFromPoint(mouseX, mouseY)?.closest('.column:not(.is-ghost)');
         if (hoverCol) {
             containerY = hoverCol.querySelector('.card-list');
@@ -4349,13 +4269,11 @@ function handleEdgePanning() {
         }
     }
 
-    // Инерция (Ease-out). Плавно разгоняемся и плавно останавливаемся
     currentScrollSpeedX += (targetSpeedX - currentScrollSpeedX) * 0.15;
     currentScrollSpeedY += (targetSpeedY - currentScrollSpeedY) * 0.15;
 
     let didScroll = false;
 
-    // Применяем скролл по X
     if (containerX && Math.abs(currentScrollSpeedX) > 0.1) {
         scrollAccumX += currentScrollSpeedX;
         const scrollStepX = Math.trunc(scrollAccumX);
@@ -4379,7 +4297,6 @@ function handleEdgePanning() {
         currentScrollSpeedX = 0;
     }
 
-    // Применяем скролл по Y
     if (containerY && Math.abs(currentScrollSpeedY) > 0.1) {
         scrollAccumY += currentScrollSpeedY;
         const scrollStepY = Math.trunc(scrollAccumY);
@@ -4437,8 +4354,6 @@ function renderPhysics() {
     
     const now = performance.now();
     if (didScroll) {
-        // Дросселируем (throttle) тяжелый расчет коллизий во время автоскролла до 50мс (20fps),
-        // предотвращая Layout Thrashing и высвобождая ресурсы процессора для плавных 60fps анимации.
         if (now - lastHitTestTime > 50) {
             performHitTest();
             lastHitTestTime = now;
@@ -4446,8 +4361,6 @@ function renderPhysics() {
         wasScrolling = true;
     } else {
         if (wasScrolling) {
-            // Выполняем один финальный расчет коллизий сразу после остановки скролла,
-            // чтобы карточка мгновенно примагнитилась на свое итоговое место.
             performHitTest();
             wasScrolling = false;
         }
@@ -4464,11 +4377,9 @@ async function endDrag() {
     cancelAnimationFrame(rafId);
     clearTimeout(tabSwitchTimeout);
     
-    // Сбрасываем таймер автораскрытия
     clearTimeout(autoExpandTimeout);
     autoExpandTimeoutColumnId = null;
 
-    // Сброс скоростей автоскролла и таймера коллизий
     lastHitTestTime = 0;
     wasScrolling = false;
     scrollAccumX = 0;
@@ -4617,7 +4528,6 @@ async function endDrag() {
                         optimisticTask.completed_at = new Date().toISOString();
                         optimisticTask.active_timer = null;
 
-                        // Смена иконки дедлайна при завершении
                         if (optimisticTask.due_date) {
                             const dueDate = new Date(optimisticTask.due_date + (optimisticTask.due_date.endsWith('Z') || optimisticTask.due_date.includes('+') ? '' : 'Z'));
                             const completedDate = new Date();
@@ -4667,7 +4577,6 @@ async function endDrag() {
             state.workspaces.forEach(ws => { ws.position = orderedIds.indexOf(ws.id); });
             state.workspaces.sort((a, b) => a.position - b.position);
 
-            // Сохраняем позицию Hidden Bar после перетаскивания
             const allElements = Array.from(document.querySelectorAll('#tabs-container .board-tab'));
             const sepElement = document.querySelector('.hb-separator');
             if (sepElement) {
@@ -4783,7 +4692,6 @@ async function endDrag() {
 
                     await saveTasksOrder(orderedIds);
                     
-                    // Синхронизируем DOM с сервером (включая работу автоматизаций)
                     if (window.syncColumnDOM) {
                         await window.syncColumnDOM(newColumnId);
                         if (sourceColumnId !== newColumnId) {
@@ -4824,12 +4732,11 @@ document.addEventListener('click', async (e) => {
 
     const target = e.target;
 
-    // Обработка ссылок внутри заголовков (Markdown)
     const titleLink = target.closest('a');
     if (titleLink) {
         const inTitle = target.closest('.card-title, .subtask-title, #task-modal-title, .breadcrumb-item, .reminder-task-title');
         if (inTitle) {
-            e.stopPropagation(); // Предотвращаем переименование / другие действия
+            e.stopPropagation();
             const href = titleLink.getAttribute('href');
             if (href && href.startsWith('doe://task/')) {
                 e.preventDefault();
@@ -4965,7 +4872,6 @@ document.addEventListener('click', async (e) => {
         const isCurrentlyDone = !!currentTask.completed_at;
 
         (async () => {
-            // Выдаем окно подтверждения только при отметке "Выполнено"
             if (!isCurrentlyDone) {
                 const isConfirmed = await showConfirmModal(t('modals.completeSubtaskTitle'), t('modals.completeSubtaskDesc'), t('modals.btnComplete'), false);
                 if (!isConfirmed) return;
@@ -4977,7 +4883,6 @@ document.addEventListener('click', async (e) => {
                 await updateTask(taskId, { completed_at: timestamp });
                 currentTask.completed_at = timestamp;
 
-                // Обновляем визуальное состояние (счетчики) у родительских карточек на доске
                 state.columns.forEach(col => {
                     col.tasks.forEach(task => {
                         if (task.subtasks) {
@@ -4995,7 +4900,6 @@ document.addEventListener('click', async (e) => {
 
                 bumpModalUpdatedDate();
                 
-                // Обновляем саму кнопку
                 if (timestamp) {
                     completeSubtaskBtn.title = t('modals.uncompleteSubtask');
                     completeSubtaskBtn.style.color = 'var(--success-done)';
@@ -5124,17 +5028,14 @@ document.addEventListener('click', async (e) => {
             );
             if (!isConfirmed) return;
 
-            // Корректно закрываем модалку со всеми ее очистками
             const closeBtn = modal.querySelector('.modal-close');
             if (closeBtn) closeBtn.click();
 
-            // Находим карточку на доске и запускаем анимацию удаления
             const cardEl = document.querySelector(`.card[data-card-id="${taskId}"]`);
             if (cardEl) {
                 animateCardDeletion(cardEl);
             }
 
-            // Вычищаем из локального стейта, чтобы счетчики и связи корректно отработали
             for (let col of state.columns) {
                 col.tasks = col.tasks.filter(t => t.id !== taskId);
                 col.tasks.forEach(parentTask => {
@@ -5151,12 +5052,10 @@ document.addEventListener('click', async (e) => {
                 });
             }
 
-            // Удаляем через бэкенд
             deleteTask(taskId).then(data => {
                 const deletedIds = data.deleted_ids || [];
                 deletedIds.forEach(id => {
                     if (id === taskId) return;
-                    // Рекурсивное удаление подзадач, если они тоже на доске
                     const boardCard = document.querySelector(`.card[data-card-id="${id}"]`);
                     if (boardCard) animateCardDeletion(boardCard);
                     
@@ -5526,7 +5425,6 @@ document.addEventListener('click', async (e) => {
                     }
                 }
                 
-                // Асинхронно сканируем систему на шрифты и кэшируем результат
                 fetch(`${API_BASE}/system/fonts/available`).then(res => {
                     if (res.ok) return res.json();
                     return [];
@@ -5573,7 +5471,6 @@ document.addEventListener('click', async (e) => {
             fetchSettings().then(data => {
                 const ps = data.priority_settings || window.prioritySettings;
                 
-                // Заполняем поля модалки
                 document.getElementById('cfg-prio-show-always').checked = !!ps.show_always;
 
                 document.getElementById('cfg-prio-e-none').value = ps.e_none || "❔";
@@ -5592,7 +5489,6 @@ document.addEventListener('click', async (e) => {
                 
                 document.getElementById('priority-settings-modal').classList.add('show');
 
-                // Логика автовосстановления смайлов при потере фокуса (если поле пустое)
                 const defEmojis = { low: "😞", mid: "😐", high: "🤩", none: "?" };
                 ['low', 'mid', 'high', 'none'].forEach(k => {
                     const inputEl = document.getElementById(`cfg-prio-e-${k}`);
@@ -5603,7 +5499,6 @@ document.addEventListener('click', async (e) => {
                     }
                 });
 
-                // Логика кнопки Сбросить
                 const resetBtn = document.getElementById('btn-reset-prio-cfg');
                 if (resetBtn) {
                     const newResetBtn = resetBtn.cloneNode(true);
@@ -5623,7 +5518,6 @@ document.addEventListener('click', async (e) => {
                     };
                 }
                 
-                // Логика кнопки Сохранить
                 const saveBtn = document.getElementById('btn-save-prio-cfg');
                 const newSaveBtn = saveBtn.cloneNode(true);
                 saveBtn.replaceWith(newSaveBtn);
@@ -5651,7 +5545,7 @@ document.addEventListener('click', async (e) => {
                         });
                         applyPriorityStyles(newPs);
                         document.getElementById('priority-settings-modal').classList.remove('show');
-                        refreshBoard(); // Перерендерим доску, чтобы обновились эмодзи и видимость
+                        refreshBoard();
                     } catch (e) { console.error("Error saving priority settings", e); }
                 };
             }).catch(console.error);
@@ -5676,7 +5570,6 @@ document.addEventListener('click', async (e) => {
                 jsonModal.classList.remove('show');
                 
                 if (window.pywebview && window.pywebview.api && window.pywebview.api.choose_directory) {
-                    // Задержка в 50мс гарантирует завершение браузерной анимации скрытия модалки
                     setTimeout(() => {
                         window.pywebview.api.choose_directory().then(async dir => {
                             if (dir) {
@@ -5769,7 +5662,6 @@ document.addEventListener('click', async (e) => {
         
         if (!modalToClose) return;
 
-        // Запрещаем закрывать по клику на фон все модалки с формами ввода
         const nonDismissibleModals = ['task-modal', 'font-settings-modal', 'due-date-modal', 'notify-modal', 'priority-modal', 'priority-settings-modal', 'move-modal'];
         if (nonDismissibleModals.includes(modalToClose.id) && isOverlayClick) {
             return; 
@@ -5840,7 +5732,6 @@ document.addEventListener('click', async (e) => {
             }
         }
 
-        // Если пользователь просто закрыл чат с ИИ (на крестик или по фону) - фиксируем дату
         if (modalToClose.id === 'ai-journal-modal') {
             localStorage.setItem('doe-ai-last-check', new Date().toDateString());
         }
@@ -5864,7 +5755,7 @@ document.addEventListener('click', async (e) => {
         !target.closest('.menu-btn') && 
         !target.closest('.card-menu-btn') &&
         !target.closest('.card.has-open-menu') &&
-        !target.closest('#ui-font-wrapper') // Игнорируем клики внутри контейнера поиска шрифтов
+        !target.closest('#ui-font-wrapper')
     ) {
         closeAllDropdowns();
     }
@@ -5995,7 +5886,6 @@ async function loadTaskIntoModal(taskId, pushToStack = true, highlightQuery = nu
 
         const completeSubtaskBtn = modal.querySelector('.modal-complete-subtask');
         if (completeSubtaskBtn) {
-            // Кнопка появляется только если есть родители И карточка скрыта с доски
             if (task.parent_ids && task.parent_ids.length > 0 && !task.is_visible_on_board) {
                 completeSubtaskBtn.style.display = 'flex';
                 if (task.completed_at) {
@@ -6267,10 +6157,8 @@ async function renderGraphBreadcrumbs(taskId) {
                 const isLast = index === path.length - 1;
                 
                 const rawTitle = node.title || "";
-                // Многострочные: берём только первую строку
                 const firstLine = rawTitle.includes('\n') ? rawTitle.split('\n')[0] : rawTitle;
                 const isMultiLine = rawTitle.includes('\n');
-                // Обрезаем по длине и/или по строкам
                 let displayTitle = firstLine;
                 if (firstLine.length > 15) {
                     displayTitle = firstLine.substring(0, 14) + '…';
@@ -6791,7 +6679,6 @@ function initTooltip() {
     document.addEventListener('mouseover', (e) => {
         if (typeof isDragging !== 'undefined' && isDragging) return;
 
-        // Добавили .cal-event-chip, .cal-ev-title, .cal-ev-time
         const titleEl = e.target.closest('.column-title, .tab-name, .breadcrumb-item, .vault-name-text, .vault-history-name, .cal-event-chip, .cal-ev-title, .cal-ev-time');
         if (!titleEl) return;
 
@@ -6846,7 +6733,6 @@ function initTooltip() {
     });
 
     document.addEventListener('mouseout', (e) => {
-        // Добавили .cal-event-chip, .cal-ev-title, .cal-ev-time
         const titleEl = e.target.closest('.column-title, .tab-name, .breadcrumb-item, .vault-name-text, .vault-history-name, .cal-event-chip, .cal-ev-title, .cal-ev-time');
         if (titleEl && titleEl === activeTitle) {
             activeTitle = null;
@@ -7149,9 +7035,6 @@ async function onAddSubtask() {
         const rawTitle = input.value.trim();
         if (!rawTitle) { cancel(); return; }
 
-        // Чистая ссылка на карточку — привязываем существующую задачу как подзадачу.
-        // Ищем ссылку в любом месте строки (trim уже убрал пробелы, но мог остаться
-        // перенос строки или невидимый символ — поэтому без ^...$ якорей).
         const linkMatch = rawTitle.match(/\[(.*?)\]\(doe:\/\/task\/(\d+)\)/i) || rawTitle.match(/doe:\/\/task\/(\d+)/i);
         if (linkMatch) {
             const linkedTaskId = parseInt(linkMatch[2] || linkMatch[1]);
@@ -7222,7 +7105,6 @@ async function onAddSubtask() {
             }
         }
 
-        // Убираем обрамляющие doe:// ссылки — в подзадачах они не нужны
         const title = stripDoeTaskLinks(rawTitle);
 
         if (title.length > 1000) {
@@ -7535,16 +7417,13 @@ function initTaskDescriptionLogic() {
     const toggleFormat = (cm, syntaxBefore, syntaxAfter) => {
         const selection = cm.getSelection();
         if (selection) {
-            // Если выделение уже обёрнуто в этот синтаксис, удаляем его (Unwrap)
             if (selection.startsWith(syntaxBefore) && selection.endsWith(syntaxAfter)) {
                 const unwrapped = selection.substring(syntaxBefore.length, selection.length - syntaxAfter.length);
                 cm.replaceSelection(unwrapped);
             } else {
-                // Иначе оборачиваем выделенный фрагмент (Wrap)
                 cm.replaceSelection(syntaxBefore + selection + syntaxAfter);
             }
         } else {
-            // Если ничего не выделено, вставляем пустые маркеры и ставим курсор между ними
             const cursor = cm.getCursor();
             cm.replaceSelection(syntaxBefore + syntaxAfter);
             cm.setCursor({ line: cursor.line, ch: cursor.ch + syntaxBefore.length });
@@ -7554,17 +7433,14 @@ function initTaskDescriptionLogic() {
     const insertLink = (cm) => {
         const selection = cm.getSelection();
         if (selection) {
-            // Оборачиваем выделенный текст в ссылку с плейсхолдером (url)
             cm.replaceSelection(`[${selection}](url)`);
             const cursor = cm.getCursor();
             const endCh = cursor.ch;
-            // Автоматически выделяем слово "url", чтобы его можно было сразу заменить вставкой ссылки (Ctrl+V)
             cm.setSelection(
                 { line: cursor.line, ch: endCh - 4 },
                 { line: cursor.line, ch: endCh - 1 }
             );
         } else {
-            // Если ничего не выделено, вставляем пустой шаблон ссылки и ставим курсор в скобки названия
             const cursor = cm.getCursor();
             cm.replaceSelection("[](url)");
             cm.setCursor({ line: cursor.line, ch: cursor.ch + 1 });
@@ -7580,32 +7456,25 @@ function initTaskDescriptionLogic() {
             workDelay: 100,
             spellcheck: false,
             autocorrect: false,
-            // Перехватываем Cmd+F / Ctrl+F внутри редактора
             extraKeys: {
                 "Cmd-F": (cm) => { if (window.openLocalSearch) window.openLocalSearch(); },
                 "Ctrl-F": (cm) => { if (window.openLocalSearch) window.openLocalSearch(); },
                 
-                // Жирный текст (Bold)
                 "Cmd-B": (cm) => toggleFormat(cm, "**", "**"),
                 "Ctrl-B": (cm) => toggleFormat(cm, "**", "**"),
                 
-                // Курсив (Italic)
                 "Cmd-I": (cm) => toggleFormat(cm, "*", "*"),
                 "Ctrl-I": (cm) => toggleFormat(cm, "*", "*"),
                 
-                // Подчеркивание (Underline через HTML тег <u>)
                 "Cmd-U": (cm) => toggleFormat(cm, "<u>", "</u>"),
                 "Ctrl-U": (cm) => toggleFormat(cm, "<u>", "</u>"),
                 
-                // Зачеркнутый (Strikethrough)
                 "Shift-Cmd-X": (cm) => toggleFormat(cm, "~~", "~~"),
                 "Shift-Ctrl-X": (cm) => toggleFormat(cm, "~~", "~~"),
                 
-                // Моноширинный (Monospace / Inline code)
                 "Cmd-E": (cm) => toggleFormat(cm, "`", "`"),
                 "Ctrl-E": (cm) => toggleFormat(cm, "`", "`"),
                 
-                // Ссылка (Link)
                 "Cmd-K": (cm) => insertLink(cm),
                 "Ctrl-K": (cm) => insertLink(cm)
             }
@@ -7701,9 +7570,6 @@ function initTaskDescriptionLogic() {
         const prefix = isImg ? '!' : '';
         const placeholder = `${prefix}[⏳ Загрузка ${fileName}...]()`;
 
-        // Диапазон вставленного placeholder в координатах документа.
-        // Заменяем результат через replaceRange, а не setValue(replace(...)):
-        // это сохраняет undo-историю и не уводит курсор в конец документа.
         let placeholderRange = null;
 
         if (isEditMode) {
@@ -7720,8 +7586,6 @@ function initTaskDescriptionLogic() {
             cmEditor.replaceSelection(insertText);
             cmEditor.focus();
 
-            // insertPos — снимок позиции до вставки; indexFromPos корректно
-            // отображает его на уже расширенный документ.
             const startIdx = cmEditor.indexFromPos(insertPos) + pfx.length;
             placeholderRange = {
                 from: cmEditor.posFromIndex(startIdx),
@@ -7742,9 +7606,6 @@ function initTaskDescriptionLogic() {
                 to: cmEditor.posFromIndex(startIdx + placeholder.length)
             };
 
-            // Превью на время загрузки — та же связка, что и в основном рендере:
-            // формулы (KaTeX), обёртки изображений и подсветка кода.
-            // Путь вложений — doe/ (как отдаёт бэкенд), не attachments/.
             const cleanRegex = /(!?)\[[^\]]+\]\(doe\/[^)]+\)!\s*/g;
             const tempText = cmEditor.getValue().replace(cleanRegex, '');
             renderDiv.innerHTML = parseMarkdownWithMath(tempText);
@@ -7787,8 +7648,6 @@ function initTaskDescriptionLogic() {
 
         const files = e.dataTransfer.files;
         if (!files || files.length === 0) return;
-        // Обрабатываем файлы последовательно: cmEditor — разделяемое состояние,
-        // при параллельной вставке диапазоны placeholder наложились бы друг на друга.
         for (const file of files) {
             await processFileForDescription(file);
         }
@@ -7813,8 +7672,6 @@ function initTaskDescriptionLogic() {
         }
     };
 
-    // Подсветка drop-зоны через счётчик enter/leave, чтобы бордюр не мигал
-    // при переходе курсора на дочерние элементы (img, p внутри описания).
     let dragEnterCount = 0;
     descWrapper.addEventListener('dragenter', (e) => {
         e.preventDefault();
@@ -7931,7 +7788,6 @@ function initTaskDescriptionLogic() {
             currentTask._editCursorPos = cmEditor.getCursor();
         }
 
-        // Переключаем видимость сразу, чтобы пользователь увидел плашку "Loading..."
         if (cmEditor) cmEditor.getWrapperElement().style.display = 'none';
         renderDiv.style.display = 'block';
 
@@ -8090,7 +7946,6 @@ function initTaskDescriptionLogic() {
     let preventBlurExit = false;
     let shouldRefocusCM = false;
 
-    // 1. Клик внутри самого описания удерживает фокус в редакторе
     descWrapper.addEventListener('mousedown', (e) => {
         if (cmEditor && cmEditor.getWrapperElement().style.display === 'block') {
             preventBlurExit = true;
@@ -8098,7 +7953,6 @@ function initTaskDescriptionLogic() {
         }
     });
 
-    // 2. Клик по виджету поиска, группе инструментов или кнопкам шапки НЕ закрывает редактирование
     const taskModal = document.getElementById('task-modal');
     taskModal.addEventListener('mousedown', (e) => {
         if (cmEditor && cmEditor.getWrapperElement().style.display === 'block') {
@@ -8109,13 +7963,12 @@ function initTaskDescriptionLogic() {
 
             if (isSearch || isTools || isHeaderActions || isDatePicker) {
                 preventBlurExit = true;
-                shouldRefocusCM = false; // Разрешаем фокусу уйти на кнопки/инпуты
+                shouldRefocusCM = false;
             }
         }
     });
 
     window.addEventListener('mouseup', () => {
-        // Фокусируем редактор мгновенно, чтобы не было задержек при вводе
         if (shouldRefocusCM) {
             shouldRefocusCM = false;
             if (cmEditor && cmEditor.getWrapperElement().style.display === 'block') {
@@ -8123,27 +7976,24 @@ function initTaskDescriptionLogic() {
             }
         }
         
-        // Задерживаем сброс флага блокировки, чтобы асинхронный blur в ОС успел его прочитать
         setTimeout(() => {
             preventBlurExit = false;
         }, 150);
     });
 
-    // 3. Умная обработка события потери фокуса
     cmEditor.on('blur', () => {
         setTimeout(() => {
             if (preventBlurExit) return;
 
-            // Фолбэк-проверка на случай перехода по Tab или горячим клавишам (Cmd+F)
             const activeEl = document.activeElement;
             if (activeEl) {
                 if (activeEl.closest('#local-search-widget') || activeEl.closest('#modal-tools-wrapper')) {
-                    return; // Блокируем выход, если фокус ушел в поиск или инструменты
+                    return;
                 }
             }
 
             switchToReadMode();
-        }, 120); // Задержка дает браузеру обновить activeElement
+        }, 120);
     });
 }
 
@@ -8600,7 +8450,6 @@ function createAttachmentElement(att) {
                     cmEditor.focus();
                     refreshAttachmentsList();
                 } else {
-                    // Режим чтения: сохраняем описание и перерендериваем.
                     const taskId = parseInt(document.getElementById('task-modal').dataset.taskId);
                     if (taskId) {
                         try {
@@ -8694,7 +8543,6 @@ async function replaceBrokenAttachment(att, newData) {
         cmEditor.focus();
         refreshAttachmentsList();
     } else {
-        // Режим чтения: сохраняем и перерендериваем
         const taskId = parseInt(document.getElementById('task-modal').dataset.taskId);
         if (taskId) {
             const newText = cmEditor.getValue();
@@ -8767,7 +8615,6 @@ function appendAttachmentToDescription(name, path) {
             }
             cmEditor.setValue(text + pfx + attachmentMarkdown);
 
-            // Сохраняем и обновляем UI (read-режим)
             const taskId = parseInt(document.getElementById('task-modal').dataset.taskId);
             if (!taskId) return;
             const newText = cmEditor.getValue();
@@ -8850,7 +8697,6 @@ document.addEventListener('click', async (e) => {
 });
 
 async function showVaultScreen() {
-    // Останавливаем генерацию ИИ перед уходом
     if (window.aiAbortController) {
         window.aiAbortController.abort();
         window.aiAbortController = null;
@@ -9095,7 +8941,6 @@ async function transitionToApp() {
 }
 
 window.handleVaultAction = async (actionType) => {
-    // Снимаем фокус перед переключением
     if (document.activeElement) {
         document.activeElement.blur();
     }
@@ -9114,10 +8959,8 @@ window.handleVaultAction = async (actionType) => {
             setTimeout(() => {
                 cardsContainer.style.display = 'none';
                 
-                // Делаем блок блочным, но браузер еще не начал его рисовать
                 createForm.style.display = 'block';
                 
-                // Строго ждем следующего кадра отрисовки GPU, чтобы избежать глитча рамки
                 requestAnimationFrame(() => {
                     requestAnimationFrame(() => {
                         if (nameInput) {
@@ -9183,17 +9026,12 @@ window.cancelVaultCreate = () => {
     const nameInput = document.getElementById('new-vault-name');
 
     if (createForm && cardsContainer) {
-        // Убираем форму
         createForm.style.display = 'none';
         
-        // Возвращаем контейнер в поток
         cardsContainer.style.display = 'flex';
         cardsContainer.style.opacity = '0';
         cardsContainer.style.transform = 'translateY(4px) scale(0.98)';
         
-        // Двойной requestAnimationFrame — это золотой стандарт борьбы с Layout Thrashing
-        // Первый rAF говорит браузеру применить стили выше.
-        // Второй rAF говорит запустить анимацию ТОЛЬКО после того, как блок физически встал на место.
         requestAnimationFrame(() => {
             requestAnimationFrame(() => {
                 cardsContainer.style.transition = 'opacity 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1)';
@@ -9270,15 +9108,12 @@ function initGlobalSearch() {
         if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'f') {
             const taskModal = document.getElementById('task-modal');
             
-            // Если карточка открыта — всегда открываем ЛОКАЛЬНЫЙ поиск, 
-            // даже если глобальный поиск отключен в расширениях
             if (taskModal && taskModal.classList.contains('show')) {
                 e.preventDefault(); 
                 if (window.openLocalSearch) window.openLocalSearch();
                 return;
             }
             
-            // Проверяем, не скрыт ли wrapper глобального поиска
             if (wrapper && wrapper.style.display !== 'none') {
                 e.preventDefault();
                 input.focus();
@@ -9568,12 +9403,10 @@ window.updateDatePickerTrigger = function() {
 
 document.addEventListener('DOMContentLoaded', () => {
 
-    // Выбор системного шрифта с выпадающим списком (Obsidian style)
     const uiFontInput = document.getElementById('ui-font-input');
     const uiFontDropdown = document.getElementById('ui-font-dropdown');
 
     if (uiFontInput && uiFontDropdown) {
-        // Динамический кэш системных шрифтов
         window.cachedSystemFonts = ["Inter"];
 
         const renderFontList = (query = '') => {
@@ -9594,7 +9427,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 const item = document.createElement('div');
                 item.className = 'menu-item';
                 
-                // Пробиваем CSS-правило !important с помощью setProperty
                 const family = font === "Inter" ? "var(--font-main)" : `"${font}"`;
                 item.style.setProperty('font-family', family, 'important');
                 
@@ -9613,14 +9445,12 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         };
 
-        // Live-Preview: ТОЛЬКО фильтруем список визуально. Никаких запросов к бэкенду на каждый чих!
         uiFontInput.addEventListener('input', () => {
             renderFontList(uiFontInput.value.trim());
         });
 
         uiFontInput.addEventListener('focus', () => {
             const val = uiFontInput.value.trim();
-            // Если там дефолтный текст, очищаем поле для удобного ввода новой строки
             if (val === `Inter (${t('modals.fontSystemDefault')})` || val === "Inter") {
                 uiFontInput.value = '';
             }
@@ -9656,13 +9486,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const applyAndSaveUiFont = async () => {
             const val = uiFontInput.value.trim();
             
-            // Если введено/выбрано дефолтное значение, сохраняем пустую строку в БД
             const isDefault = !val || val === `Inter (${t('modals.fontSystemDefault')})` || val.toLowerCase() === "inter";
             const saveVal = isDefault ? "" : val;
             
             await updateSettings({ ui_font: saveVal });
             
-            // В самом инпуте визуально оставляем красивый локализованный плейсхолдер
             uiFontInput.value = isDefault ? `Inter (${t('modals.fontSystemDefault')})` : val;
             
             const settings = await fetchSettings().catch(() => ({}));
@@ -9845,7 +9673,6 @@ document.addEventListener('DOMContentLoaded', () => {
         autoMInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleAutoTimeChange(); });
     }
 
-    // ─── ОБРАБОТЧИКИ ШИФРОВАНИЯ ───
     const togglePwdViz = (btnId, inputId) => {
         const btn = document.getElementById(btnId);
         const inp = document.getElementById(inputId);
@@ -9859,7 +9686,6 @@ document.addEventListener('DOMContentLoaded', () => {
             };
         }
     };
-    // ─── КОНЕЦ ИНИЦИАЛИЗАЦИИ НАСТРОЕК ───
 
 });
 
@@ -9871,10 +9697,8 @@ let aiState = {
     onlyVisible: localStorage.getItem('doe-ai-visible') !== 'false',
     chatHistory: [],
     isTyping: false,
-    // Характеристики железа для отображения в UI
     hardwareTier: null,
     ramGb: null,
-    // Метаданные моделей: {name: {family, params, min_tier, size_gb, downloaded}}
     modelsInfo: {}
 };
 
@@ -9892,30 +9716,23 @@ async function checkAiStatus() {
             }
             if (data.models_info) aiState.modelsInfo = data.models_info;
             
-            // === АВТОВЫБОР МОДЕЛИ (ЛОГИКА ИИ) ===
             const downloaded = aiState.downloadedModels || [];
             const savedModel = localStorage.getItem('doe-ai-model');
 
             if (downloaded.length === 1) {
-                // Если на диске ровно 1 модель — всегда выбираем её по умолчанию
                 aiState.selectedModel = downloaded[0];
                 localStorage.setItem('doe-ai-model', downloaded[0]);
             } else if (downloaded.length >= 2) {
-                // Если скачано две или более
                 if (savedModel && downloaded.includes(savedModel)) {
-                    // Возвращаем ту, что была в предыдущем сеансе работы
                     aiState.selectedModel = savedModel;
                 } else {
-                    // Если сохраненной нет или она удалена — берем первую из доступных
                     aiState.selectedModel = downloaded[0];
                     localStorage.setItem('doe-ai-model', downloaded[0]);
                 }
             } else {
-                // Если моделей на диске нет вообще — сбрасываем выбор
                 aiState.selectedModel = null;
                 localStorage.removeItem('doe-ai-model');
             }
-            // =====================================
             
             const menuBtn = document.getElementById('menu-ai-settings');
             if (menuBtn) {
@@ -9943,7 +9760,6 @@ async function checkAiStatus() {
     }
 }
 
-// Запускаем проверку при загрузке
 document.addEventListener('DOMContentLoaded', () => {
     setTimeout(checkAiStatus, 1000);
 });
@@ -9957,17 +9773,13 @@ function formatBytes(bytes) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
-// Превращает имя модели в безопасный слаг для использования в DOM id и ключах.
-// Имена вроде "Gemma 4 26B (A4B MoE)" содержат пробелы и скобки, которые
-// ломают getElementById и data-атрибуты.
 function modelSlug(model) {
     return model.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 }
 
-// Вспомогательная функция для запуска поллинга прогресса ИИ
 function startAiDownloadPolling(model) {
     const slug = modelSlug(model);
-    if (window[`ai_interval_${slug}`]) return; // Уже опрашиваем
+    if (window[`ai_interval_${slug}`]) return;
 
     window[`ai_interval_${slug}`] = setInterval(async () => {
         try {
@@ -9975,7 +9787,6 @@ function startAiDownloadPolling(model) {
             if (res.ok) {
                 const data = await res.json();
 
-                // Ищем активный элемент в открытой модалке (если она открыта)
                 const pctSpan = document.getElementById(`ai-pct-${slug}`);
                 const sizeSpan = document.getElementById(`ai-size-${slug}`);
                 const cancelBtn = document.getElementById(`ai-cancel-btn-${slug}`);
@@ -9997,12 +9808,11 @@ function startAiDownloadPolling(model) {
 
                     window.showToast(t('ai.toastReadyTitle'), t('ai.toastReadyMsg', model));
 
-                    // Показываем плавающую кнопку ИИ
                     const fab = document.getElementById('ai-floating-btn');
                     if (fab) fab.classList.add('show');
 
                     if (document.getElementById('ai-settings-modal').classList.contains('show')) {
-                        window.openAiSettingsModal(); // Перерисовываем UI
+                        window.openAiSettingsModal();
                     }
                 } else if (data.status === 'error') {
                     clearInterval(window[`ai_interval_${slug}`]);
@@ -10010,14 +9820,14 @@ function startAiDownloadPolling(model) {
 
                     window.showToast(t('ai.toastErrTitle'), data.error || t('ai.toastErrUnknown'), true);
                     if (document.getElementById('ai-settings-modal').classList.contains('show')) {
-                        window.openAiSettingsModal(); // Перерисовываем UI
+                        window.openAiSettingsModal();
                     }
                 } else if (data.status === 'cancelled' || data.status === 'idle') {
                     clearInterval(window[`ai_interval_${slug}`]);
                     delete window[`ai_interval_${slug}`];
 
                     if (document.getElementById('ai-settings-modal').classList.contains('show')) {
-                        window.openAiSettingsModal(); // Перерисовываем UI
+                        window.openAiSettingsModal();
                     }
                 }
             }
@@ -10031,7 +9841,6 @@ window.openAiSettingsModal = async () => {
         return;
     }
 
-    // Автовосстановление прогресса и синхронизация списка моделей
     try {
         const statusRes = await fetch(`${API_BASE}/ai/status`);
         if (statusRes.ok) {
@@ -10043,7 +9852,6 @@ window.openAiSettingsModal = async () => {
             }
             if (statusData.models_info) aiState.modelsInfo = statusData.models_info;
 
-            // === СИНХРОНИЗАЦИЯ ВЫБОРА ПРИ ОТКРЫТИИ НАСТРОЕК ===
             const downloaded = aiState.downloadedModels || [];
             const savedModel = localStorage.getItem('doe-ai-model');
 
@@ -10061,18 +9869,16 @@ window.openAiSettingsModal = async () => {
                 aiState.selectedModel = null;
                 localStorage.removeItem('doe-ai-model');
             }
-            // ===========================================
         }
     } catch(e) {}
 
-    // Для каждой модели проверяем, не идет ли фоновая загрузка прямо сейчас
     await Promise.all(aiState.availableModels.map(async (model) => {
         try {
             const pRes = await fetch(`${API_BASE}/ai/download-progress?model_name=${encodeURIComponent(model)}`);
             if (pRes.ok) {
                 const pData = await pRes.json();
                 if (pData.status === 'downloading') {
-                    startAiDownloadPolling(model); // Восстанавливаем интервал в фоне
+                    startAiDownloadPolling(model);
                 }
             }
         } catch(e) {}
@@ -10081,7 +9887,6 @@ window.openAiSettingsModal = async () => {
     const list = document.getElementById('ai-models-list');
     list.innerHTML = '';
 
-    // Заголовок с характеристиками железа
     const tierLabels = { light: t('ai.tierLight'), standard: t('ai.tierStandard'), pro: t('ai.tierPro') };
     if (aiState.ramGb) {
         const hwDiv = document.createElement('div');
@@ -10134,7 +9939,6 @@ window.openAiSettingsModal = async () => {
             `;
         }
 
-        // Описание модели: параметры + размер
         const descParts = [];
         if (info.params) descParts.push(info.params);
         if (info.size_gb) descParts.push(`${info.size_gb.toFixed(1)} ${t('ai.gbSuffix')}`);
@@ -10148,7 +9952,6 @@ window.openAiSettingsModal = async () => {
             ${controlsHtml}
         `;
         
-        // Вешаем событие на выбор модели (только если она скачана и неактивна)
         if (isDownloaded && !isSelected) {
             div.onclick = () => {
                 aiState.selectedModel = model;
@@ -10157,7 +9960,6 @@ window.openAiSettingsModal = async () => {
             };
         }
 
-        // Обработчик удаления
         const deleteBtn = div.querySelector('.ai-delete-btn');
         if (deleteBtn) {
             deleteBtn.onclick = async (e) => {
@@ -10192,7 +9994,6 @@ window.openAiSettingsModal = async () => {
             };
         }
 
-        // Клик по кнопке Скачать
         const downloadBtn = div.querySelector('.ai-download-btn');
         if (downloadBtn) {
             downloadBtn.onclick = async (e) => {
@@ -10206,7 +10007,7 @@ window.openAiSettingsModal = async () => {
                     });
                     if (res.ok) {
                         startAiDownloadPolling(model);
-                        window.openAiSettingsModal(); // Перерисовываем, чтобы показать кнопку отмены
+                        window.openAiSettingsModal();
                     } else {
                         throw new Error();
                     }
@@ -10217,7 +10018,6 @@ window.openAiSettingsModal = async () => {
             };
         }
 
-        // Клик по кнопке Отмена
         const cancelBtn = div.querySelector('.ai-cancel-btn');
         if (cancelBtn) {
             cancelBtn.onclick = async (e) => {
@@ -10247,7 +10047,6 @@ window.openAiSettingsModal = async () => {
 };
 
 function checkDailyJournal() {
-    // Не открываем ИИ-панель, если расширение ИИ выключено
     const aiEnabled = document.getElementById('ext-toggle-ai')?.checked !== false;
     if (!aiEnabled) return;
 
@@ -10256,7 +10055,6 @@ function checkDailyJournal() {
 
     if (aiState.selectedModel && aiState.downloadedModels.includes(aiState.selectedModel)) {
         if (lastCheck !== today) {
-            // Если доска загрузилась, показываем журнал
             if (state.columns.length > 0) {
                 openDailyJournal();
             }
@@ -10264,18 +10062,15 @@ function checkDailyJournal() {
     }
 }
 
-// Обработчик клика по плавающей кнопке
 document.getElementById('ai-floating-btn')?.addEventListener('click', (e) => {
     e.stopPropagation();
     openDailyJournal();
 });
 
 function openDailyJournal() {
-    // Защита: не открываем панель, если расширение ИИ выключено
     const aiEnabled = document.getElementById('ext-toggle-ai')?.checked !== false;
     if (!aiEnabled) return;
 
-    // Если диалог пуст И ИИ прямо сейчас НЕ генерирует приветствие (защита от спама)
     if (aiState.chatHistory.length === 0 && !aiState.isTyping) {
         const chatBox = document.getElementById('ai-chat-history');
         chatBox.innerHTML = '';
@@ -10299,7 +10094,6 @@ function appendUserMessage(text) {
     bubble.textContent = text;
     row.appendChild(bubble);
 
-    // Футер: кнопки справа (для user-сообщений)
     const footer = document.createElement('div');
     footer.className = 'ai-msg-footer';
     footer.style.justifyContent = 'flex-end';
@@ -10315,27 +10109,17 @@ function appendAiMessage(text, elapsedMs) {
     const div = document.createElement('div');
     div.className = 'ai-msg ai';
     
-    // --- ФОЛБЭК ДЛЯ ЛОКАЛЬНЫХ LLM (ПОДГОТОВКА) ---
-    // Если ИИ забыл сделать Markdown-ссылку и написал "Задача ID:26 'Название'",
-    // мы конвертируем это в сырой Markdown
-    // Модель может поставить пробел между ] и ( — чиним перед парсингом
     let safeText = text.replace(/\]\s+\(doe:\/\/task\//gi, '](doe://task/');
     safeText = safeText.replace(/(?:Задача|Task|Карточка|Карточку)\s*(?:ID:?|#)?\s*(\d+)(?:\s*['"«](.*?)['"»])?/gi, (match, id, title) => {
         const linkText = title ? title : t('ai.taskRef', id);
         return `[${linkText}](doe://task/${id})`;
     });
 
-    // --- СИСТЕМА АВТОРЕМОНТА ССЫЛОК (LINK REPAIR SYSTEM) ---
-    // Из-за ограничений контекста ИИ может привязать разные задачи к одному ID или вписать маркер списка внутрь ссылки.
-    // Мы находим все ссылки [Название](doe://task/ID), очищаем текст от маркеров списков,
-    // ищем реальную задачу с таким названием (или его частью) на доске и подставляем её настоящий ID.
     safeText = safeText.replace(/\[(.*?)\]\(doe:\/\/task\/(\d+)\)/gi, (match, title, id) => {
-        // Очищаем текст ссылки от маркеров списков: "1. Задача" -> "Задача", "- Задача" -> "Задача"
         const cleanTitle = title.trim().toLowerCase().replace(/^(?:\d+[\.)]\s*|[-•*]\s*)/, '').trim();
         let realId = id;
         let foundTask = null;
         
-        // Этап 1: Ищем точное совпадение названий (без учета маркеров списков)
         for (const col of state.columns) {
             foundTask = col.tasks.find(t => {
                 const boardTitle = t.title.trim().toLowerCase().replace(/^(?:\d+[\.)]\s*|[-•*]\s*)/, '').trim();
@@ -10344,7 +10128,6 @@ function appendAiMessage(text, elapsedMs) {
             if (foundTask) break;
         }
         
-        // Этап 2: Если точное совпадение не найдено, делаем нестрогий поиск по взаимному вхождению
         if (!foundTask && cleanTitle.length > 3) {
             for (const col of state.columns) {
                 foundTask = col.tasks.find(t => {
@@ -10360,17 +10143,13 @@ function appendAiMessage(text, elapsedMs) {
         }
         return `[${title}](doe://task/${realId})`;
     });
-    // --------------------------------------------------------
 
-    // Используем наш нативный парсер, чтобы рендерить жирный текст, списки и ссылки!
     div.innerHTML = parseMarkdownWithMath(safeText);
 
-    // Оборачиваем в .ai-msg-row ДО вставки в DOM (без flicker)
     const row = document.createElement('div');
     row.className = 'ai-msg-row';
     row.appendChild(div);
 
-    // Панель действий + время ответа в одной строке
     const footer = document.createElement('div');
     footer.className = 'ai-msg-footer';
     footer.innerHTML = `<div class="ai-msg-actions"><button class="ai-act-btn" data-action="copy" title="Копировать"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></button><button class="ai-act-btn danger" data-action="delete" title="Удалить"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button></div>`;
@@ -10383,10 +10162,9 @@ function appendAiMessage(text, elapsedMs) {
 
     document.getElementById('ai-chat-history').appendChild(row);
     div.scrollIntoView({behavior: 'smooth'});
-    aiState.chatHistory.push({role: "assistant", content: text}); // В историю пушим оригинал
+    aiState.chatHistory.push({role: "assistant", content: text});
 }
 
-// Панель действий под сообщениями (edit — только user, copy/delete — все)
 document.getElementById('ai-chat-history')?.addEventListener('click', (e) => {
     const actBtn = e.target.closest('.ai-act-btn');
     if (!actBtn) return;
@@ -10397,18 +10175,15 @@ document.getElementById('ai-chat-history')?.addEventListener('click', (e) => {
     const msgDiv = row.querySelector('.ai-msg');
     if (!msgDiv) return;
 
-    // Индекс среди всех .ai-msg-rows (не .ai-msg — typing-indicator тоже .ai-msg!)
     const allRows = Array.from(document.getElementById('ai-chat-history').querySelectorAll('.ai-msg-row'));
     const idx = allRows.indexOf(row);
 
     if (action === 'copy') {
-        // В режиме редактирования — только текст из поля, не кнопки
         const editArea = msgDiv.querySelector('.ai-msg-edit');
         let text;
         if (editArea) {
             text = editArea.querySelector('.ai-edit-textarea').value.trim();
         } else {
-            // Клонируем и вырезаем кнопки действий (Отмена/Разрешить), чтобы не копировались
             const clone = msgDiv.cloneNode(true);
             const actionBtns = clone.querySelector('.ai-actions-btns');
             if (actionBtns) actionBtns.remove();
@@ -10438,7 +10213,6 @@ document.getElementById('ai-chat-history')?.addEventListener('click', (e) => {
     if (action === 'edit') {
         if (idx === -1 || idx >= aiState.chatHistory.length) return;
 
-        // Останавливаем текущую генерацию, если ИИ печатает
         if (aiAbortController) {
             aiAbortController.abort();
             aiAbortController = null;
@@ -10453,7 +10227,6 @@ document.getElementById('ai-chat-history')?.addEventListener('click', (e) => {
         const entry = aiState.chatHistory[idx];
         const origText = entry.content;
 
-        // Заменяем содержимое bubble на поле редактирования
         const editArea = document.createElement('div');
         editArea.className = 'ai-msg-edit';
         editArea.innerHTML = `<textarea class="ai-edit-textarea" rows="3">${escapeHtml(origText)}</textarea><div class="ai-edit-btns"><button class="ai-edit-cancel" title="Отмена"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button><button class="ai-edit-send" title="Отправить"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg></button></div>`;
@@ -10464,7 +10237,6 @@ document.getElementById('ai-chat-history')?.addEventListener('click', (e) => {
         textarea.focus();
         textarea.setSelectionRange(textarea.value.length, textarea.value.length);
 
-        // Авто-рост
         const autoGrow = () => {
             textarea.style.height = 'auto';
             textarea.style.height = Math.max(44, textarea.scrollHeight) + 'px';
@@ -10472,7 +10244,6 @@ document.getElementById('ai-chat-history')?.addEventListener('click', (e) => {
         textarea.addEventListener('input', autoGrow);
         autoGrow();
 
-        // Enter = отправить, Shift+Enter = перенос строки
         textarea.addEventListener('keydown', (ke) => {
             if (ke.key === 'Enter' && !ke.shiftKey) {
                 ke.preventDefault();
@@ -10480,36 +10251,30 @@ document.getElementById('ai-chat-history')?.addEventListener('click', (e) => {
             }
         });
 
-        // Отмена — восстанавливаем исходный текст
         editArea.querySelector('.ai-edit-cancel').onclick = () => {
             msgDiv.innerHTML = entry.role === 'assistant'
                 ? parseMarkdownWithMath(origText)
                 : escapeHtml(origText);
         };
 
-        // Отправить (как в AI Studio: обрезает историю ниже, отправляет заново)
         editArea.querySelector('.ai-edit-send').onclick = async () => {
             const newText = textarea.value.trim();
             if (!newText) return;
 
-            // Обрезаем историю до этого сообщения включительно (с новым текстом)
             const role = entry.role;
             aiState.chatHistory = aiState.chatHistory.slice(0, idx);
             aiState.chatHistory.push({role, content: newText});
 
-            // Убираем все DOM-строки после текущей (пересчитываем на момент отправки)
             const liveRows = Array.from(document.getElementById('ai-chat-history').querySelectorAll('.ai-msg-row'));
             const curIdx = liveRows.indexOf(row);
             if (curIdx !== -1) {
                 liveRows.slice(curIdx + 1).forEach(r => r.remove());
             }
 
-            // Обновляем текущий bubble
             msgDiv.innerHTML = role === 'assistant'
                 ? parseMarkdownWithMath(newText)
                 : escapeHtml(newText);
 
-            // Отправляем запрос на продолжение
             aiState.isTyping = true;
             setAiBtnState(true);
             const typingEl = showAiTyping();
@@ -10540,7 +10305,6 @@ document.getElementById('ai-chat-history')?.addEventListener('click', (e) => {
     }
 });
 
-// Глобальный перехватчик кликов по сгенерированным ссылкам внутри чата
 document.getElementById('ai-chat-history')?.addEventListener('click', (e) => {
     const link = e.target.closest('a');
     if (link) {
@@ -10566,7 +10330,6 @@ function showAiTyping() {
     document.getElementById('ai-chat-history').appendChild(div);
     div.scrollIntoView({behavior: 'smooth'});
 
-    // Живой таймер (60 fps)
     const start = Date.now();
     const timeEl = div.querySelector('.ai-typing-time');
     let _raf;
@@ -10586,7 +10349,6 @@ function appendAiActions(actions) {
     const div = document.createElement('div');
     div.className = 'ai-msg ai ai-actions-box';
 
-    // Хелперы для получения имён по ID из текущего состояния
     const taskName = (id) => {
         for (const col of state.columns) {
             const t = col.tasks?.find(t => t.id === id);
@@ -10661,12 +10423,10 @@ function appendAiActions(actions) {
             });
             const data = await res.json();
 
-            // Различаем три исхода: всё ОК / часть упала / всё упало.
             const failed = Array.isArray(data.failed_actions) ? data.failed_actions : [];
             if (data.success && failed.length === 0) {
                 div.innerHTML = `<div style="color: var(--brand-pine); font-weight: 600;">${t('ai.actionsExecuted')}</div>`;
             } else if (data.actions_executed && failed.length > 0) {
-                // Частичный успех: что-то выполнилось, что-то нет.
                 const failList = failed.map(f => `<div class="ai-action-item">— ${escapeHtml(f.action)}: ${escapeHtml(f.reason || '')}</div>`).join('');
                 div.innerHTML = `<div style="color: var(--brand-pine); font-weight: 600;">${t('ai.actionsPartial')}</div>${failList}`;
             } else {
@@ -10681,9 +10441,8 @@ function appendAiActions(actions) {
             }
             if (data.clear_chat) {
                 aiState.chatHistory = [];
-                openDailyJournal(); // Перерисует чат с чистого листа
+                openDailyJournal();
             }
-            // Обновляем колокольчик, если ИИ ставил или удалял напоминания
             if (actions.some(act => act.action === 'set_reminders' || act.action === 'delete_reminder')) {
                 updateBellBadge();
             }
@@ -10704,7 +10463,6 @@ function appendAiActions(actions) {
         }
     };
     
-    // Оборачиваем в .ai-msg-row + кнопки снизу
     const row = document.createElement('div');
     row.className = 'ai-msg-row';
     row.appendChild(div);
@@ -10738,7 +10496,6 @@ function setAiBtnState(typing) {
 document.getElementById('ai-send-btn')?.addEventListener('click', async () => {
     const input = document.getElementById('ai-chat-input');
 
-    // Стоп: отменяем текущую генерацию
     if (aiState.isTyping) {
         if (aiAbortController) {
             aiAbortController.abort();
@@ -10792,7 +10549,6 @@ document.getElementById('ai-send-btn')?.addEventListener('click', async () => {
         }
     } catch (e) {
         if (e.name === 'AbortError') {
-            // Пользователь сам остановил — просто убираем индикатор
         } else {
             typingEl.remove();
             
@@ -10815,11 +10571,10 @@ document.getElementById('ai-send-btn')?.addEventListener('click', async () => {
     }
 });
 
-// Авто-ресайз поля ввода в ИИ-чате
 const aiChatInput = document.getElementById('ai-chat-input');
 if (aiChatInput) {
     aiChatInput.addEventListener('input', function() {
-        this.style.height = '22px'; // Сброс для пересчета
+        this.style.height = '22px';
         this.style.height = (this.scrollHeight) + 'px';
     });
 }
@@ -10956,7 +10711,6 @@ function openPriorityModal(taskId) {
     const modal = document.getElementById('priority-modal');
     modal.dataset.taskId = taskId;
 
-    // Ищем текущий приоритет и данные ползунков
     let currentPriority = null;
     let priorityData = null;
     for (const col of state.columns) {
@@ -10976,14 +10730,13 @@ function openPriorityModal(taskId) {
         }
     }
 
-    // Элементы управления
     const els = {
         c: { r: document.getElementById('prio-slider-c'), n: document.getElementById('prio-val-c') },
         d: { r: document.getElementById('prio-slider-d'), n: document.getElementById('prio-val-d') },
         a: { r: document.getElementById('prio-slider-a'), n: document.getElementById('prio-val-a') },
         b: { r: document.getElementById('prio-slider-b'), n: document.getElementById('prio-val-b') },
         e: { r: document.getElementById('prio-slider-e'), n: document.getElementById('prio-val-e') },
-        f: document.getElementById('prio-val-f'), // Скрытый инпут для отчётности F
+        f: document.getElementById('prio-val-f'),
         p: { r: document.getElementById('prio-slider-p'), n: document.getElementById('prio-val-p') },
         s: { r: document.getElementById('prio-slider-s'), n: document.getElementById('prio-val-s') },
         h: { r: document.getElementById('prio-slider-h'), n: document.getElementById('prio-val-h') },
@@ -11020,7 +10773,7 @@ function openPriorityModal(taskId) {
         const score = base_score * (1 - 0.75 * h);
 
         const finalScore = Math.min(100, Math.max(0, score));
-        return Math.round(finalScore * 10) / 10; // Округляем до 1 знака
+        return Math.round(finalScore * 10) / 10;
     };
 
     const updateFromSliders = () => {
@@ -11029,7 +10782,6 @@ function openPriorityModal(taskId) {
         }
     };
 
-    // Привязка событий для ползунков и полей ввода (C, D, A, B, E, P, S, H)
     ['c', 'd', 'a', 'b', 'e', 'p', 's', 'h'].forEach(k => {
         els[k].r.oninput = (ev) => {
             els[k].n.value = fmtPrio(ev.target.value);
@@ -11058,7 +10810,6 @@ function openPriorityModal(taskId) {
 
     const fmtPrio = (val) => Math.round(parseFloat(val) * 10) / 10;
 
-    // Если данные сохранены — восстанавливаем
     if (priorityData) {
         ['c', 'd', 'a', 'b', 'e', 'p', 's', 'h'].forEach(k => {
             const defVal = ['c', 'd', 'a', 'b', 'e'].includes(k) ? 5 : 0;
@@ -11076,7 +10827,6 @@ function openPriorityModal(taskId) {
         els.total.value = currentPriority !== null ? fmtPrio(currentPriority) : 0;
         btnClear.style.display = 'block';
     } else {
-        // Сброс на дефолты (5 для базовых, 0 для новых)
         ['c', 'd', 'a', 'b', 'e'].forEach(k => {
             els[k].r.value = 5.0;
             els[k].n.value = 5;
@@ -11101,7 +10851,6 @@ function openPriorityModal(taskId) {
         }
     }
 
-    // Привязка событий к segmented control (F)
     fBtns.forEach(btn => {
         btn.onclick = (e) => {
             e.stopPropagation();
@@ -11128,7 +10877,6 @@ function openPriorityModal(taskId) {
 
     const btnSet = document.getElementById('btn-set-priority');
     
-    // Пересоздаем кнопки чтобы убить старые слушатели
     const newBtnSet = btnSet.cloneNode(true);
     btnSet.replaceWith(newBtnSet);
     const newBtnClear = btnClear.cloneNode(true);
@@ -11174,7 +10922,7 @@ function openPriorityModal(taskId) {
                     break;
                 }
             }
-            if (updatedColId) await syncColumnDOM(updatedColId); // Триггер анимации перестроения
+            if (updatedColId) await syncColumnDOM(updatedColId);
             modal.classList.remove('show');
         } catch (err) {
             window.showToast(t('alerts.error'), 'Не удалось сохранить приоритет', true);
@@ -11210,7 +10958,7 @@ function openPriorityModal(taskId) {
                     break;
                 }
             }
-            if (updatedColId) await syncColumnDOM(updatedColId); // Триггер анимации
+            if (updatedColId) await syncColumnDOM(updatedColId);
             modal.classList.remove('show');
         } catch (err) {
             window.showToast(t('alerts.error'), 'Не удалось очистить приоритет', true);
@@ -11309,7 +11057,7 @@ function openDueDateModal(taskId, currentDueDate) {
                 }
             }
             
-            if (updatedColId) await syncColumnDOM(updatedColId); // Триггер анимации
+            if (updatedColId) await syncColumnDOM(updatedColId);
             
             loadTaskIntoModal(taskId, false);
             modal.classList.remove('show');
@@ -11439,11 +11187,9 @@ function initLocalSearchLogic() {
     const renderDiv = document.getElementById('task-desc-render');
     const scrollParent = document.querySelector('.task-detail-body');
 
-    // Режим чтения
     let matchRanges = [];
     let cachedTextNodes = null;
     
-    // Режим редактирования
     let cmMatches = [];
     let cmMarkers = [];
     let cmActiveMarker = null;
@@ -11518,7 +11264,6 @@ function initLocalSearchLogic() {
         const currentSearchId = ++searchId;
 
         if (isEditMode()) {
-            // Быстрый синхронный поиск внутри CodeMirror API
             cmEditor.operation(() => {
                 const lineCount = cmEditor.lineCount();
                 for (let line = 0; line < lineCount; line++) {
@@ -11544,7 +11289,6 @@ function initLocalSearchLogic() {
                 countEl.textContent = '0/0';
             }
         } else {
-            // Поиск во вьювере Markdown (DOM)
             if (!renderDiv.textContent.toLowerCase().includes(textLower)) {
                 countEl.textContent = '0/0';
                 return;
@@ -12109,7 +11853,6 @@ function runGraphLoop() {
                 if (n.x + r < viewLeft || n.x - r > viewRight || n.y + r < viewTop || n.y - r > viewBottom) continue;
 
                 let label = n.title || '';
-                // Очищаем от Markdown ссылок и форматирования для отрисовки на канвасе
                 label = label.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/[*_~`]/g, '').trim();
                 
                 if (label.length > 15) label = label.substring(0, 14) + '…';
@@ -12125,11 +11868,9 @@ function runGraphLoop() {
             const rect = canvas.getBoundingClientRect();
             const rScaled = G.graphNodeRadius(G.hoverNode) * G.scale;
             
-            // Вычисляем экранные координаты узла + отступ радиуса, чтобы тултип не перекрывал саму точку
             let tx = G.hoverNode.x * G.scale + G.offsetX + rect.left + rScaled + 12;
             let ty = G.hoverNode.y * G.scale + G.offsetY + rect.top + rScaled + 12;
             
-            // Защита от ухода тултипа за края экрана
             const tRect = tooltip.getBoundingClientRect();
             if (tx + tRect.width > window.innerWidth - 12) tx = window.innerWidth - tRect.width - 12;
             if (ty + tRect.height > window.innerHeight - 12) ty = window.innerHeight - tRect.height - 12;
@@ -12156,15 +11897,12 @@ document.getElementById('graph-trigger')?.addEventListener('click', (e) => {
     openGraphModal();
 });
 
-// ═══════════════════════════════════════════════
-//  СТАТИСТИКА (PRO)
-// ═══════════════════════════════════════════════
 let statsWeekOffset = 0;
 
 document.getElementById('statistics-trigger')?.addEventListener('click', (e) => {
     e.stopPropagation();
     closeAllDropdowns();
-    statsWeekOffset = 0; // При открытии всегда сбрасываем на текущую неделю
+    statsWeekOffset = 0;
     openStatisticsModal();
 });
 
@@ -12187,7 +11925,6 @@ async function openStatisticsModal() {
     
     modal.classList.add('show');
     
-    // Скрываем кнопку Вперед, если мы на текущей неделе (будущее еще не наступило)
     const nextBtn = document.getElementById('stats-next-btn');
     if (statsWeekOffset === 0) {
         nextBtn.style.visibility = 'hidden';
@@ -12195,7 +11932,6 @@ async function openStatisticsModal() {
         nextBtn.style.visibility = 'visible';
     }
     
-    // Анимация затухания старых данных
     if (content.style.display === 'flex') {
         content.style.opacity = '0.4';
         content.style.pointerEvents = 'none';
@@ -12210,7 +11946,6 @@ async function openStatisticsModal() {
         
         document.getElementById('stats-date-label').textContent = data.date_range_label;
         
-        // Значения верхнего ряда
         document.getElementById('stat-val-done').textContent = data.total_done;
         
         let h = Math.floor(data.total_time / 3600);
@@ -12219,12 +11954,10 @@ async function openStatisticsModal() {
         
         document.getElementById('stat-val-overdue').textContent = data.overdue_count;
         
-        // Функция для рендера бейджей трендов
         const applyTrend = (elId, pct) => {
             const el = document.getElementById(elId);
             if (!el) return;
             
-            // Полностью скрываем бейдж, если тренд нулевой
             if (pct === 0) {
                 el.style.display = 'none';
             } else {
@@ -12239,13 +11972,10 @@ async function openStatisticsModal() {
             }
         };
 
-        // Применяем тренды для Времени и Завершенных задач
         applyTrend('stat-trend-time', data.trend_time_pct);
         applyTrend('stat-trend-done', data.trend_done_pct);
 
-        // Инсайт
         const insightEl = document.getElementById('stats-insight');
-        // Зашиваем теги <b> прямо в массив, оставляя предлоги "в/во" снаружи
         const fullDayNamesRu = ['в <b>понедельник</b>', 'во <b>вторник</b>', 'в <b>среду</b>', 'в <b>четверг</b>', 'в <b>пятницу</b>', 'в <b>субботу</b>', 'в <b>воскресенье</b>'];
         const fullDayNamesEn = ['on <b>Monday</b>', 'on <b>Tuesday</b>', 'on <b>Wednesday</b>', 'on <b>Thursday</b>', 'on <b>Friday</b>', 'on <b>Saturday</b>', 'on <b>Sunday</b>'];
         const fullDayNames = currentLang === 'ru' ? fullDayNamesRu : fullDayNamesEn;
@@ -12254,7 +11984,6 @@ async function openStatisticsModal() {
             insightEl.innerHTML = `<span>💡 ${t('stats.insightEmpty')}</span>`;
         } else {
             const bestDayName = data.best_day !== null ? fullDayNames[data.best_day] : '';
-            // Оборачиваем всё сообщение в <span>, чтобы Flexbox не разрывал предложение на части из-за тега <b>
             if (data.trend_time_pct > 0) {
                 insightEl.innerHTML = `<span>✨ ${t('stats.insightPositive', data.trend_time_pct, bestDayName)}</span>`;
             } else if (data.trend_time_pct < 0) {
@@ -12264,7 +11993,6 @@ async function openStatisticsModal() {
             }
         }
         
-        // Вспомогательная функция для рендера списка задач (Топ недели или Топ дня)
         const topContainer = document.getElementById('stats-top-tasks');
         const topTitleEl = document.getElementById('stats-top-title-el');
         
@@ -12273,7 +12001,6 @@ async function openStatisticsModal() {
             topContainer.innerHTML = '';
             
             if (tasks.length === 0) {
-                // Раскладываем паддинги (20px сверху, 12px снизу) для идеальной симметрии в 32px
                 topContainer.innerHTML = `<div style="font-size: 13px; color: var(--text-secondary); opacity: 0.7; text-align: center; padding: 20px 16px 12px;">${emptyMsg}</div>`;
                 return;
             }
@@ -12296,13 +12023,11 @@ async function openStatisticsModal() {
                 `;
             });
             
-            // Анимация прогресс-баров для свежеотрисованного списка
             setTimeout(() => {
                 topContainer.querySelectorAll('.stats-top-progress-fill').forEach(fill => fill.style.width = fill.dataset.target);
             }, 50);
         };
 
-        // Рендер графика
         const chartContainer = document.getElementById('stats-activity-chart');
         chartContainer.innerHTML = '';
         
@@ -12312,14 +12037,12 @@ async function openStatisticsModal() {
         const daysShort = currentLang === 'ru' ? ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'] : ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
         
         data.chart_data.forEach((day, index) => {
-            // Если времени 0, высота строго 0%, иначе минимум 2% для красоты
             const pct = day.time_spent === 0 ? 0 : Math.max(2, Math.round((day.time_spent / maxTime) * 100)); 
             const timeFormatted = formatDetailedDuration(day.time_spent);
             const tooltipText = t('stats.tooltip', day.tasks_done, timeFormatted);
             const isBest = day.day_name === data.best_day;
             const dayNameStr = daysShort[day.day_name];
             
-            // Определяем, является ли этот день "сегодняшним"
             const dateObj = new Date(day.date);
             const todayObj = new Date();
             const isToday = dateObj.getFullYear() === todayObj.getFullYear() && 
@@ -12339,18 +12062,14 @@ async function openStatisticsModal() {
                 </div>
             `;
             
-            // Логика клика по столбику
             colDiv.onclick = () => {
                 const isAlreadySelected = colDiv.classList.contains('is-selected');
                 
-                // Сбрасываем выбор со всех
                 chartContainer.querySelectorAll('.stats-chart-col').forEach(c => c.classList.remove('is-selected'));
                 
                 if (isAlreadySelected) {
-                    // Возвращаемся к топу за неделю
                     renderTasksList(t('stats.topTasks'), data.top_tasks, t('stats.emptyTop'));
                 } else {
-                    // Показываем детали конкретного дня
                     colDiv.classList.add('is-selected');
                     renderTasksList(t('stats.dayTasks', dayNameStr), day.tasks, t('stats.emptyDay'));
                 }
@@ -12359,30 +12078,24 @@ async function openStatisticsModal() {
             chartContainer.appendChild(colDiv);
         });
         
-        // Изначально рендерим топ за всю неделю
         renderTasksList(t('stats.topTasks'), data.top_tasks, t('stats.emptyTop'));
         
-        // Сброс фильтра по дню при клике в любую пустую область модалки
         const modalBody = modal.querySelector('.modal-body');
         modalBody.onclick = (e) => {
-            // Игнорируем клики по самим столбикам графика и карточкам задач
             if (!e.target.closest('.stats-chart-col') && !e.target.closest('.stats-top-item')) {
                 const hasSelection = chartContainer.querySelector('.stats-chart-col.is-selected');
                 if (hasSelection) {
-                    // Снимаем выделение и возвращаем топ за неделю
                     chartContainer.querySelectorAll('.stats-chart-col').forEach(c => c.classList.remove('is-selected'));
                     renderTasksList(t('stats.topTasks'), data.top_tasks, t('stats.emptyTop'));
                 }
             }
         };
 
-        // Показываем контент
         loading.style.display = 'none';
         content.style.display = 'flex';
         content.style.opacity = '1';
         content.style.pointerEvents = 'auto';
         
-        // Анимация столбиков
         setTimeout(() => {
             const bars = chartContainer.querySelectorAll('.stats-chart-bar-fill');
             bars.forEach(bar => bar.style.height = bar.dataset.target);
@@ -12396,9 +12109,6 @@ async function openStatisticsModal() {
     }
 }
 
-// ═══════════════════════════════════════════════
-//  АВТОМАТИЗАЦИИ
-// ═══════════════════════════════════════════════
 
 document.getElementById('automations-trigger')?.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -12425,15 +12135,12 @@ function hideAutomationForm() {
     document.getElementById('automations-empty').style.display = (list && list.children.length > 0) ? 'none' : '';
 }
 
-// ⚡ Умная обёртка для превращения нативных <select> в красивые dropdown-меню
 function syncCustomSelect(selectEl) {
     if (!selectEl) return;
 
-    // Инициализация кастомного UI (выполняется один раз на элемент)
     if (!selectEl._customUI) {
         const wrapper = document.createElement('div');
         wrapper.className = 'custom-select';
-        // Прокидываем важные стили для сохранения верстки
         wrapper.style.flex = selectEl.style.flex || '1';
         wrapper.style.width = selectEl.style.width || '100%';
 
@@ -12461,7 +12168,7 @@ function syncCustomSelect(selectEl) {
         menu.style.marginTop = '4px';
         menu.style.maxHeight = '200px';
         menu.style.overflowY = 'auto';
-        menu.style.scrollbarWidth = 'none'; // Скрываем скролл в Firefox
+        menu.style.scrollbarWidth = 'none';
 
         trigger.onclick = (e) => {
             e.preventDefault();
@@ -12469,7 +12176,6 @@ function syncCustomSelect(selectEl) {
             const isShowing = menu.classList.contains('show');
             closeAllDropdowns();
             if (!isShowing) {
-                // Предварительный рендер для замера высоты
                 menu.style.visibility = 'hidden';
                 menu.style.display = 'block';
                 menu.classList.add('show');
@@ -12480,7 +12186,6 @@ function syncCustomSelect(selectEl) {
 
                 const rect = trigger.getBoundingClientRect();
                 
-                // Если не влезает вниз — открываем наверх
                 if (rect.bottom + menuHeight + 10 > window.innerHeight) {
                     menu.style.top = 'auto';
                     menu.style.bottom = '100%';
@@ -12495,7 +12200,7 @@ function syncCustomSelect(selectEl) {
                     menu.style.transformOrigin = 'top center';
                 }
                 
-                void menu.offsetWidth; // Принудительный reflow для анимации
+                void menu.offsetWidth;
                 menu.classList.add('show');
             }
         };
@@ -12503,7 +12208,6 @@ function syncCustomSelect(selectEl) {
         wrapper.appendChild(trigger);
         wrapper.appendChild(menu);
 
-        // Вставляем рядом с селектом и прячем оригинал
         selectEl.parentNode.insertBefore(wrapper, selectEl.nextSibling);
         selectEl.style.display = 'none';
 
@@ -12514,12 +12218,10 @@ function syncCustomSelect(selectEl) {
     menu.innerHTML = '';
     let activeText = '';
 
-    // Синхронизируем опции
     Array.from(selectEl.options).forEach(opt => {
         const item = document.createElement('div');
         item.className = 'menu-item';
 
-        // Проверка по value - самая надёжная (отлавливает JS изменения)
         if (opt.value === selectEl.value) {
             item.classList.add('selected');
             activeText = opt.textContent;
@@ -12529,8 +12231,8 @@ function syncCustomSelect(selectEl) {
         item.onclick = (e) => {
             e.stopPropagation();
             selectEl.value = opt.value;
-            selectEl.dispatchEvent(new Event('change')); // Запускаем логику (скрытие/показ секций)
-            syncCustomSelect(selectEl); // Перерисовываем для обновления текста триггера
+            selectEl.dispatchEvent(new Event('change'));
+            syncCustomSelect(selectEl);
             menu.classList.remove('show');
         };
         menu.appendChild(item);
@@ -12545,12 +12247,10 @@ function showAutomationForm(autoData = null) {
     document.getElementById('automations-list').style.display = 'none';
     document.getElementById('automations-empty').style.display = 'none';
 
-    // Снимаем overflow: hidden с карточек, чтобы наше меню не обрезалось
     document.querySelectorAll('#automation-form .settings-group-card').forEach(card => {
         card.style.overflow = 'visible';
     });
 
-    // Заполняем колонки
     const select = document.getElementById('auto-column');
     select.innerHTML = '';
     state.columns.forEach(col => {
@@ -12567,12 +12267,9 @@ function showAutomationForm(autoData = null) {
 
         const cfg = autoData.config || {};
 
-        // Общие поля
         const colSelect = document.getElementById('auto-column');
         colSelect.value = cfg.column_id || '';
         
-        // Если колонка была удалена, select.value останется пустым (или неверным).
-        // Добавляем плейсхолдер с предупреждением, чтобы не было "тихой ошибки".
         if (cfg.column_id && colSelect.value != cfg.column_id) {
             const opt = document.createElement('option');
             opt.value = cfg.column_id;
@@ -12582,20 +12279,16 @@ function showAutomationForm(autoData = null) {
             colSelect.value = cfg.column_id;
         }
 
-        // recurring_card: шаблоны
         document.getElementById('auto-title-template').value = cfg.title_template || '';
         document.getElementById('auto-desc-template').value = cfg.description_template || '';
 
-        // sort_column: параметры сортировки
         document.getElementById('auto-sort-by').value = cfg.sort_by || 'position';
         document.getElementById('auto-sort-order').value = cfg.sort_order || 'asc';
 
-        // clear_column: возраст и мгновенное удаление
         const isImmediate = cfg.max_age_minutes === 0;
         document.getElementById('auto-clear-immediate').checked = isImmediate;
         document.getElementById('auto-max-age').value = isImmediate ? 1440 : (cfg.max_age_minutes !== undefined ? cfg.max_age_minutes : 1440);
 
-        // Расписание
         const sched = cfg.schedule || {};
         document.getElementById('auto-schedule-type').value = sched.type || 'daily';
         const timeParts = (sched.time || '09:00').split(':');
@@ -12617,7 +12310,7 @@ function showAutomationForm(autoData = null) {
         document.getElementById('auto-schedule-type').value = 'daily';
         document.getElementById('auto-hour').value = '09';
         document.getElementById('auto-minute').value = '00';
-        _selectedWeekdays = [0, 1, 2, 3, 4]; // ПН–ПТ по умолчанию
+        _selectedWeekdays = [0, 1, 2, 3, 4];
         document.getElementById('auto-day-of-month').value = 1;
         document.getElementById('btn-save-automation').textContent = t('modals.btnCreate');
     }
@@ -12626,26 +12319,19 @@ function showAutomationForm(autoData = null) {
     updateScheduleUI();
     renderWeekdayButtons();
 
-    // 🔥 Превращаем все нативные селекты в кастомные
     ['auto-type', 'auto-column', 'auto-sort-by', 'auto-sort-order', 'auto-schedule-type'].forEach(id => {
         syncCustomSelect(document.getElementById(id));
     });
 }
 
-// ⚡ Переключение внешнего вида при смене типа автоматизации
 function updateAutomationTypeUI() {
     const type = document.getElementById('auto-type').value;
 
-    // recurring_card: шаблоны карточки + расписание
     const recurringSection = document.getElementById('auto-section-recurring-card');
-    // sort_column: параметры сортировки
     const sortSection = document.getElementById('auto-section-sort');
-    // clear_column: возраст карточек + расписание
     const clearSection = document.getElementById('auto-section-clear');
-    // Расписание (для recurring_card и clear_column)
     const scheduleSection = document.getElementById('auto-section-schedule');
 
-    // Скрываем все опциональные секции
     if (recurringSection) recurringSection.style.display = 'none';
     if (sortSection) sortSection.style.display = 'none';
     if (clearSection) clearSection.style.display = 'none';
@@ -12658,7 +12344,6 @@ function updateAutomationTypeUI() {
             break;
         case 'sort_column':
             if (sortSection) sortSection.style.display = 'flex';
-            // sort_column не имеет расписания — срабатывает по событию
             break;
         case 'clear_column':
             if (clearSection) clearSection.style.display = 'flex';
@@ -12674,7 +12359,6 @@ function updateAutomationTypeUI() {
     }
 }
 
-// Слушатели изменения UI
 document.getElementById('auto-clear-immediate')?.addEventListener('change', updateAutomationTypeUI);
 document.getElementById('auto-type')?.addEventListener('change', () => {
     updateAutomationTypeUI();
@@ -12699,7 +12383,6 @@ function renderWeekdayButtons() {
     });
 }
 
-// Делегирование кликов по кнопкам дней недели
 document.getElementById('auto-weekdays')?.addEventListener('click', (e) => {
     const btn = e.target.closest('.auto-wday-btn');
     if (!btn) return;
@@ -12742,7 +12425,6 @@ document.getElementById('btn-save-automation')?.addEventListener('click', async 
         return;
     }
 
-    // Строим конфиг в зависимости от типа
     let config = { column_id: columnId };
 
     switch (autoType) {
@@ -12833,7 +12515,7 @@ document.getElementById('btn-save-automation')?.addEventListener('click', async 
             hideAutomationForm();
             await renderAutomationsList();
             if (window.syncColumnDOM) {
-                await window.syncColumnDOM(columnId); // 🪄 Магия красивой анимации вместо жесткого refreshBoard
+                await window.syncColumnDOM(columnId);
             } else {
                 await refreshBoard();
             }
@@ -12994,7 +12676,6 @@ window.toggleAutomation = async (id, enabled, checkbox) => {
         });
     } catch (e) {
         console.error(e);
-        // Откатываем чекбокс при ошибке
         if (checkbox) checkbox.checked = !enabled;
         showToast(t('alerts.error'), t('modals.autoNetworkError'), true);
     }
@@ -13016,10 +12697,8 @@ window.runAutomationNow = async (id) => {
                 showToast(t('modals.autoRunNow'), 'Выполнено');
             }
             await renderAutomationsList();
-            // Даём всплывающему Toast-уведомлению время на отрисовку 
-            // перед тем, как заблокировать поток запросом и перерендером доски
             setTimeout(async () => {
-                await refreshBoard(); // СИНХРОНИЗАЦИЯ: заново стягиваем стейт доски с бэкенда
+                await refreshBoard();
             }, 50);
             } else {
                 showToast(t('alerts.error'), t('modals.autoRunError'), true);
@@ -13049,8 +12728,6 @@ window.deleteAutomation = async (id) => {
     if (!confirmed) return;
     try {
         await fetch(`${AUTO_API}/${id}`, { method: 'DELETE' });
-        // Уступаем главный поток на 15 мс (1 кадр), чтобы анимация закрытия модалки 
-        // успела начаться до тяжелого перерендера DOM
         setTimeout(async () => {
             await renderAutomationsList();
         }, 100);
@@ -13130,7 +12807,6 @@ function initCloudSync() {
             }
         }
 
-        // Получаем настройки и статус хранилища
         const [settingsData, vaultData] = await Promise.all([
             fetchSettings().catch(() => ({})),
             fetchVault().catch(() => ({ name: null, path: null }))
@@ -13138,12 +12814,9 @@ function initCloudSync() {
 
         window.appSettings = settingsData;
 
-        // 🔥 ЧИТАЕМ ПАРАМЕТР ИЗ URL
         const urlParams = new URLSearchParams(window.location.search);
         const isVaultMode = urlParams.get('mode') === 'vault';
 
-        // 🛑 ПРАВИЛЬНАЯ ЛОГИКА ЭКРАНА ХРАНИЛИЩ
-        // Если база не выбрана ИЛИ нас принудительно отправили в меню (кнопкой смены хранилища)
         if (!vaultData.path || isVaultMode) {
             document.getElementById('vault-screen').classList.remove('hidden', 'content-hidden');
             const lights = document.getElementById('mac-traffic-lights');
@@ -13160,14 +12833,12 @@ function initCloudSync() {
             } catch (e) {}
 
             renderVaultHistory();
-            return; // 🛑 СТОП! Дальше не идем, доску не грузим
+            return;
         }
 
         window.currentVaultPath = vaultData.path;
 
-        // ✅ ВСЁ ОТЛИЧНО, ГРУЗИМ ДОСКУ
         
-        // 🔥 ФИКС: Жестко скрываем "ширму" выбора хранилищ, чтобы она не перекрывала доску!
         const mainVaultScreen = document.getElementById('vault-screen');
         if (mainVaultScreen) {
             mainVaultScreen.classList.add('hidden', 'content-hidden');
@@ -13259,7 +12930,6 @@ document.addEventListener('pointerdown', (e) => {
         e.preventDefault();
         e.stopPropagation();
         
-        // Разделяем поведение: между карточками или между колонками
         if (plusBtn.closest('.card-inline-trigger')) {
             onAddCardInline(plusBtn);
         } else if (plusBtn.closest('.column-inline-trigger')) {
@@ -13268,13 +12938,11 @@ document.addEventListener('pointerdown', (e) => {
     }
 }, { capture: true });
 
-// Функция инлайн создания колонки
 async function onAddColumnInline(plusBtn) {
     const trigger = plusBtn.closest('.column-inline-trigger');
     const columnEl = trigger.closest('.column');
     const columnId = parseInt(columnEl.dataset.columnId);
 
-    // Рассчитываем точную математическую позицию (как у карточек)
     const colIndex = state.columns.findIndex(c => c.id === columnId);
     if (colIndex === -1) return;
 
@@ -13297,7 +12965,6 @@ async function onAddColumnInline(plusBtn) {
     const input = formCol.querySelector('.column-input');
     input.focus();
 
-    // Авто-ресайз textarea формы колонки
     const autoResize = () => {
         const computed = window.getComputedStyle(input);
         const borders = parseFloat(computed.borderTopWidth) + parseFloat(computed.borderBottomWidth);
@@ -13348,10 +13015,8 @@ async function onAddColumnInline(plusBtn) {
         formCol.classList.add('is-submitting');
 
         try {
-            // Передаем нашу вычисленную targetPosition в backend
             const newColumn = await createColumn(title, 'default', state.activeWorkspaceId, targetPosition);
 
-            // Вставляем новую колонку в локальный стейт, сохраняя сортировку
             state.columns.splice(colIndex + 1, 0, {
                 ...newColumn,
                 collapsed: false,
@@ -13660,10 +13325,8 @@ const Calendar = {
                              start.getMonth() === now.getMonth() && 
                              start.getDate() === now.getDate();
 
-        // Улучшенная очистка года для эстетики (убирает " г." или " г")
         const formatDate = (d) => d.toLocaleDateString(currentLang, {day: 'numeric', month: 'short'}).replace(/\s*г\.?/, '').trim();
 
-        // Вычисляем полную длительность для скобочек (с поддержкой локализации)
         const units = t('timeUnits');
         const sec = Math.max(0, ev.duration);
         const d = Math.floor(sec / 86400);
@@ -13679,14 +13342,12 @@ const Calendar = {
         const durationStr = `(${durParts.join(' ')})`;
 
         if (!isActive) {
-            // Если закончился (используем среднее тире + показываем итоговую длительность)
             if (isSameDay) {
                 return `${t1} – ${t2} ${durationStr}`;
             } else {
                 return `${formatDate(start)} ${t1} – ${formatDate(end)} ${t2} ${durationStr}`;
             }
         } else {
-            // Если НЕ закончился (в процессе) — скрываем потраченное время, так как процесс еще идет
             const suffix = isCompact ? ' – ...' : ' –';
             if (isStartToday) {
                 return `${t1}${suffix}`;
@@ -13732,7 +13393,7 @@ const Calendar = {
             ).sort((a,b) => a.dateObj - b.dateObj);
             
             let evHtml = dayEvents.map(ev => {
-                const timeText = this.formatTimeText(ev, true); // true означает компактный режим
+                const timeText = this.formatTimeText(ev, true);
                 const fullText = `${timeText} ${ev.title}`;
                 return `<div class="cal-event-chip ${ev.completed ? 'is-done' : ''}" data-id="${ev.id}" data-event-id="${ev.event_id}" data-ws="${ev.workspace_id}" data-col="${ev.column_id}" data-full-title="${escapeHtml(fullText)}">${timeText} ${escapeHtml(ev.title)}</div>`;
             }).join('');
@@ -13891,7 +13552,7 @@ const Calendar = {
                     const widthPercent = 100 / columnsCount;
                     const leftPercent = item.colIndex * widthPercent;
                     
-                    const timeText = this.formatTimeText(ev, false); // false означает подробный вид
+                    const timeText = this.formatTimeText(ev, false);
                     
                     const positionStyle = `top: ${topPos}; height: ${heightPos}; left: ${leftPercent}%; width: calc(${widthPercent}% - 2px);`;
                     
@@ -13957,17 +13618,15 @@ const Calendar = {
                 const eventId = el.dataset.eventId;
                 
                 if (eventId) {
-                    closeAllDropdowns(); // Закрываем другие меню
+                    closeAllDropdowns();
                     
                     const menu = document.getElementById('cal-context-menu');
                     menu.dataset.eventId = eventId;
                     
-                    // Показываем прозрачным, чтобы измерить ширину/высоту
                     menu.style.visibility = 'hidden';
                     menu.style.display = 'block';
                     menu.classList.add('show');
                     
-                    // Умное позиционирование (чтобы меню не уходило за экран)
                     let left = e.clientX;
                     let top = e.clientY;
                     const rect = menu.getBoundingClientRect();
@@ -13978,7 +13637,6 @@ const Calendar = {
                     menu.style.left = `${left}px`;
                     menu.style.top = `${top}px`;
                     
-                    // Делаем видимым
                     menu.style.visibility = '';
                 }
             });
@@ -13995,7 +13653,6 @@ async function openMoveTaskModal(taskId) {
     modal.dataset.taskId = taskId;
     const select = document.getElementById('move-column-select');
     
-    // Временно удаляем кастомную обертку (если была сгенерирована), чтобы обновить данные
     if (select._customUI) {
         select._customUI.wrapper.remove();
         select._customUI = null;
@@ -14007,16 +13664,14 @@ async function openMoveTaskModal(taskId) {
     
     try {
         let optionsHtml = '';
-        // Собираем колонки со ВСЕХ вкладок текущего хранилища
         for (const ws of state.workspaces) {
             const cols = await fetchColumns(ws.id);
             for (const col of cols) {
-                // Отображаем в формате "Вкладка → Колонка"
                 optionsHtml += `<option value="${col.id}">${escapeHtml(ws.name)} → ${escapeHtml(col.title)}</option>`;
             }
         }
         select.innerHTML = optionsHtml;
-        syncCustomSelect(select); // Оживляем наш нативный кастомный селект
+        syncCustomSelect(select);
     } catch (e) {
         console.error(e);
         window.showToast(t('alerts.error'), currentLang === 'ru' ? 'Не удалось загрузить колонки' : 'Failed to load columns', true);
@@ -14036,7 +13691,7 @@ async function openMoveTaskModal(taskId) {
         try {
             await moveTask(taskId, targetColId);
             modal.classList.remove('show');
-            await refreshBoard(); // Полная перерисовка стянет все изменения и корректно отобразит, если перенос был на другой экран
+            await refreshBoard();
             window.showToast(currentLang === 'ru' ? 'Успех' : 'Success', currentLang === 'ru' ? 'Карточка перемещена' : 'Card moved');
         } catch (e) {
             window.showToast(t('alerts.error'), currentLang === 'ru' ? 'Не удалось переместить' : 'Failed to move', true);
@@ -14110,18 +13765,14 @@ async function applyColumnSort(columnId, criteria, dir) {
             valB = new Date(b.updated_at).getTime();
         }
 
-        // Правило 1: Если оба пустые - сохраняем текущий пользовательский порядок
         if (isNullA && isNullB) return a.position - b.position;
         
-        // Правило 2: NULLS LAST (пустые значения ВСЕГДА в самом низу списка)
         if (isNullA) return 1;
         if (isNullB) return -1;
 
-        // Правило 3: Стандартная сортировка с учетом направления
         if (valA < valB) return dir === 'asc' ? -1 : 1;
         if (valA > valB) return dir === 'asc' ? 1 : -1;
         
-        // Правило 4: При равенстве значений сохраняем текущий пользовательский порядок
         return a.position - b.position;
     });
 
@@ -14131,7 +13782,7 @@ async function applyColumnSort(columnId, criteria, dir) {
     try {
         await saveTasksOrder(orderedIds);
         if (window.syncColumnDOM) {
-            await window.syncColumnDOM(columnId); // 🪄 Магия красивой анимации
+            await window.syncColumnDOM(columnId);
         } else {
             renderBoard();
         }
@@ -14219,8 +13870,6 @@ async function applyColumnSort(columnId, criteria, dir) {
     controls.querySelector('.close').onclick = () => window.appExit();
     controls.querySelector('.max')?.addEventListener('click', () => api()?.toggle_maximize_window?.());
 
-    // --- Завершение перетаскивания/ресайза ---
-    // Независимо от того, где курсор отпустили, останавливаем фоновый цикл опроса.
     const endInteraction = () => {
         try { window.pywebview?.api?.end_win_move?.(); } catch (err) {}
         try { window.pywebview?.api?.end_win_resize?.(); } catch (err) {}
@@ -14229,7 +13878,6 @@ async function applyColumnSort(columnId, criteria, dir) {
     window.addEventListener('blur', endInteraction);
     document.addEventListener('pointercancel', endInteraction);
 
-    // --- 1. НАТИВНЫЙ РЕСАЙЗ WINDOWS DWM ---
     const htMap = { l: 10, r: 11, t: 12, tl: 13, tr: 14, b: 15, bl: 16, br: 17 };
     if (!isVault) {
         ['t','b','l','r','tl','tr','bl','br'].forEach((cls) => {
@@ -14250,11 +13898,9 @@ async function applyColumnSort(columnId, criteria, dir) {
         });
     }
 
-    // --- 2. НАТИВНОЕ ПЕРЕТАСКИВАНИЕ WINDOWS (Aero Snap) ---
     document.addEventListener('pointerdown', (e) => {
         if (e.button !== 0) return;
 
-        // СТРОГИЙ БЕЛЫЙ СПИСОК (Whitelist). 
         const allowedDragZones = [
             'app-header',
             'header-left-controls',
@@ -14265,7 +13911,6 @@ async function applyColumnSort(columnId, criteria, dir) {
             'vault-hero'
         ];
 
-        // Окно тащится ТОЛЬКО если клик пришелся на сам контейнер, а не на элементы внутри него
         const isDirectClickOnBackground = allowedDragZones.some(cls => e.target.classList.contains(cls));
         if (!isDirectClickOnBackground) return;
 
