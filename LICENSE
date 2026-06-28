@@ -1,57 +1,92 @@
-Doe Source-Available License 1.0
-Copyright (c) 2026 chr1stvoskrese (the "Author")
+Лицензия Doe (Doe Source-Available License), версия 1.0
+© 2026 Правообладатель проекта Doe — владелец репозитория github.com/chr1stvoskrese (далее — «Лицензиар»).
 
-This is a proprietary, source-available license. The source code of Doe
-(the "Software") is made public for transparency and study only. It is NOT
-open source and NOT free software. All rights not expressly granted below are
-reserved by the Author.
+Doe Source-Available License v1.0 is a proprietary, source-available license.
+The binding text is the Russian version below; the governing law is the law of
+the Russian Federation.
 
-1. Grant of Limited Rights
-   Subject to full compliance with this license, the Author grants you a
-   personal, non-exclusive, non-transferable, revocable license to:
-   (a) view, read, and study the source code in this repository; and
-   (b) download and run the official, unmodified builds of the Software for
-       your own personal, non-commercial use.
+Настоящая лицензия является лицензионным договором присоединения (ст. 428
+Гражданского кодекса Российской Федерации) и публичной офертой (ст. 437–438 ГК
+РФ). Получение доступа к исходному коду, а равно загрузка, установка, запуск или
+иное использование Программы означают полное и безоговорочное принятие условий
+настоящей лицензии (акцепт). Если вы не согласны с условиями, вы не вправе
+использовать Программу.
 
-2. Restrictions
-   You may NOT, in whole or in part:
-   (a) copy, reproduce, or republish the source code or the Software, except
-       as strictly necessary to exercise the rights granted in Section 1;
-   (b) modify, adapt, translate, or create derivative works of the Software;
-   (c) fork, redistribute, sublicense, sell, rent, lease, or otherwise make
-       the Software or its source code available to any third party;
-   (d) use the Software or any part of its source code for commercial purposes;
-   (e) use the Software, its source code, its design, or its ideas to build,
-       offer, or assist any product that is similar to or competes with the
-       Software or any product or service of the Author; or
-   (f) remove or alter any copyright, license, or attribution notices.
+1. Определения
+   «Программа» — приложение Doe, включая его исходный код, ресурсы, элементы
+   дизайна и официальные сборки, размещённые в репозитории Лицензиара.
+   «Вы» — физическое или юридическое лицо, осуществляющее доступ к Программе или
+   её использование.
 
-3. Reservation of Rights
-   The Author retains all right, title, and interest in and to the Software,
-   including all intellectual property rights. The Author is not bound by this
-   license and may, at any time and without restriction: relicense the
-   Software, create closed-source or proprietary versions, and develop, sell,
-   or monetize additional features and services (for example, paid sync),
-   whether or not such features appear in this repository.
+2. Предмет
+   Исходный код Программы открыт для публичного просмотра исключительно в целях
+   прозрачности и изучения. Программа не является свободным программным
+   обеспечением и не распространяется на условиях лицензий открытого исходного
+   кода (open source). Все права, прямо не предоставленные настоящей лицензией,
+   сохраняются за Лицензиаром.
 
-4. No Contributions by Default
-   Unless separately agreed in writing with the Author, no one other than the
-   Author is permitted to contribute changes to the Software.
+3. Предоставляемые права
+   Лицензиар предоставляет Вам безвозмездную, неисключительную, отзывную,
+   непередаваемую лицензию без права сублицензирования на:
+   (а) просмотр и изучение исходного кода Программы в репозитории Лицензиара;
+   (б) загрузку и запуск официальных немодифицированных сборок Программы для
+       личного некоммерческого использования.
 
-5. Termination
-   Any breach of this license automatically and immediately terminates all
-   rights granted to you. Upon termination you must stop using the Software and
-   destroy all copies in your possession.
+4. Ограничения
+   Запрещается полностью или частично:
+   (а) копировать, воспроизводить или публиковать исходный код или Программу,
+       за исключением действий, строго необходимых для реализации прав по
+       пункту 3;
+   (б) изменять, перерабатывать, переводить, декомпилировать (кроме случаев,
+       прямо разрешённых императивными нормами закона) или создавать производные
+       произведения;
+   (в) форкать, распространять, передавать третьим лицам, сублицензировать,
+       продавать, сдавать в аренду или иным образом предоставлять Программу либо
+       её исходный код третьим лицам;
+   (г) использовать исходный код или Программу в коммерческих целях;
+   (д) использовать исходный код, Программу, её дизайн или идеи для создания,
+       предложения или поддержки продукта, аналогичного Программе или
+       конкурирующего с Программой либо с продуктами Лицензиара;
+   (е) удалять или изменять уведомления об авторских правах, лицензии или иные
+       уведомления о правах.
 
-6. No Warranty
-   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-   FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT.
+5. Права Лицензиара
+   Исключительное право на Программу в полном объёме принадлежит Лицензиару.
+   Лицензиар не связан условиями настоящей лицензии и вправе в любое время и без
+   ограничений изменять условия лицензирования, выпускать закрытые (проприетарные)
+   версии Программы, а также разрабатывать и реализовывать на возмездной основе
+   дополнительные функции и сервисы, в том числе не включённые в репозиторий.
 
-7. Limitation of Liability
-   IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER
-   LIABILITY ARISING FROM, OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR THE
-   USE OR OTHER DEALINGS IN THE SOFTWARE.
+6. Вклады
+   Внесение третьими лицами изменений в Программу не допускается без отдельного
+   письменного согласия Лицензиара. Любой материал, добровольно переданный
+   Лицензиару и принятый им, считается переданным с отчуждением исключительного
+   права в пользу Лицензиара в полном объёме, безвозмездно, если иное не
+   согласовано письменно.
 
-For any use not permitted above, including commercial licensing, contact the
-Author to obtain a separate written license.
+7. Срок и расторжение
+   Лицензия действует с момента акцепта. Любое нарушение её условий влечёт
+   автоматическое прекращение всех предоставленных прав без уведомления. После
+   прекращения Вы обязаны прекратить использование Программы и уничтожить все
+   имеющиеся у Вас копии.
+
+8. Отказ от гарантий
+   Программа предоставляется на условиях «как есть» (AS IS), без каких-либо
+   гарантий, явных или подразумеваемых, включая, помимо прочего, гарантии
+   пригодности для определённой цели и отсутствия нарушения прав третьих лиц.
+
+9. Ограничение ответственности
+   В максимальной степени, допускаемой применимым правом, Лицензиар не несёт
+   ответственности за любые убытки, упущенную выгоду или иной вред, возникшие в
+   связи с использованием или невозможностью использования Программы.
+
+10. Применимое право и разрешение споров
+    К настоящей лицензии и связанным с ней отношениям применяется право
+    Российской Федерации. Споры, не урегулированные путём переговоров, подлежат
+    разрешению в соответствии с законодательством Российской Федерации.
+
+11. Прочие условия
+    Признание отдельного положения недействительным не влечёт недействительности
+    остальных положений. Заголовки приведены исключительно для удобства. Для
+    любого использования, выходящего за рамки прямо разрешённого, требуется
+    отдельное письменное разрешение Лицензиара.
