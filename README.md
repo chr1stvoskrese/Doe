@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/logo.png" alt="Doe" width="120" />
+  <img src="doe.png" alt="Doe" width="120" />
 </p>
 
 <h1 align="center">Doe</h1>
@@ -10,19 +10,30 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows-lightgrey" alt="Platform">
-  <img src="https://img.shields.io/badge/version-1.0.0-blue" alt="Version">
+  <img src="https://img.shields.io/badge/version-v1-blue" alt="Version">
   <img src="https://img.shields.io/badge/license-PolyForm%20Shield-orange" alt="License">
-  <img src="https://img.shields.io/badge/frontend-vanilla%20JS-f7df1e?logo=javascript" alt="Vanilla JS">
-  <img src="https://img.shields.io/badge/backend-FastAPI-009688?logo=fastapi" alt="FastAPI">
-  <img src="https://img.shields.io/badge/database-SQLite-003b57?logo=sqlite" alt="SQLite">
+  <img src="https://img.shields.io/badge/python-3.12-3776ab?logo=python&logoColor=white" alt="Python 3.12">
+  <img src="https://img.shields.io/badge/frontend-vanilla%20JS-f7df1e?logo=javascript&logoColor=black" alt="Vanilla JS">
+  <img src="https://img.shields.io/badge/backend-FastAPI-009688?logo=fastapi&logoColor=white" alt="FastAPI">
+  <img src="https://img.shields.io/badge/database-SQLite-003b57?logo=sqlite&logoColor=white" alt="SQLite">
 </p>
 
 <br>
 
-> **Doe** — десктопное Kanban-приложение для тех, кто ценит эстетику, приватность и полный контроль над данными.  
+> **Doe** — десктопное Kanban-приложение для тех, кто ценит эстетику, приватность и полный контроль над данными.
 > Никаких облаков, подписок и регистраций. Только ты, твои задачи и локальная база данных.
 
 <br>
+
+<p align="center">
+  <a href="#-почему-doe">Почему Doe</a> ·
+  <a href="#-быстрый-старт">Быстрый старт</a> ·
+  <a href="#-архитектура">Архитектура</a> ·
+  <a href="#-возможности">Возможности</a> ·
+  <a href="#-горячие-клавиши">Горячие клавиши</a> ·
+  <a href="#-разработка">Разработка</a> ·
+  <a href="#-лицензия">Лицензия</a>
+</p>
 
 ---
 
@@ -32,34 +43,34 @@
 <tr>
   <td width="50%">
 
-### 🔒 100% Локально  
-Все данные хранятся в `.db.doe` файле на твоём компьютере. Хочешь — положи в iCloud и синхронизируй между Mac'ами. Хочешь — на флешку. Никто кроме тебя не имеет доступа.
+### 🔒 100% Локально
+Все данные хранятся в файле `.db.doe` на твоём компьютере. Хочешь — положи в iCloud и синхронизируй между Mac'ами. Хочешь — на флешку. Никто, кроме тебя, не имеет доступа.
 
-### 🎨 Эстетика во всём  
+### 🎨 Эстетика во всём
 Тёмная и светлая темы, кастомные шрифты, плавные анимации, продуманная типографика. Доска выглядит так же хорошо, как работает.
 
-### 🧠 Локальный AI  
-Встроенный AI-ассистент на базе Gemma — работает полностью оффлайн, с ускорением на Apple Silicon. Общается о задачах, ищет по доске, создаёт карточки, помнит факты.
+### 🧠 Локальный AI
+Встроенный AI-ассистент на базе **Gemma 4** — работает полностью оффлайн, с ускорением на Apple Silicon. Общается о задачах, ищет по доске, создаёт карточки, помнит факты между сессиями.
 
-### ⏱️ Встроенный тайм-трекер  
+### ⏱️ Встроенный тайм-трекер
 Запускай таймер на задаче — время пишется в базу. Календарь покажет раскладку по дням. Статистика подведёт итоги недели.
 
   </td>
   <td width="50%">
 
-### 📝 Markdown-редактор  
-Полноценный редактор с предпросмотром, сворачиваемыми заголовками, подсветкой синтаксиса (Prism.js), математикой (KaTeX) и drag-and-drop вложениями.
+### 📝 Markdown-редактор
+Полноценный редактор с живым предпросмотром, сворачиваемыми заголовками, подсветкой синтаксиса (Prism.js), математикой (KaTeX) и drag-and-drop вложениями.
 
-### 🔗 Связи между задачами  
+### 🔗 Связи между задачами
 Многие-ко-многим: родительские, дочерние, зависимые. Граф связей визуализируется через D3.js.
 
-### 🔁 Автоматизации  
+### 🔁 Автоматизации
 Повторяющиеся карточки по расписанию (ежедневно, еженедельно…), авто-сортировка колонок, авто-очистка старых задач.
 
-### 📊 Приоритеты  
-9-факторная модель оценки важности задачи: ценность, шанс успеха, фоновое бремя, боль процесса, затянутость, потребность в отчёте, проактивность, безмятежность, вред.
+### 📊 Приоритеты
+9-факторная модель оценки важности: ценность, шанс успеха, фоновое бремя, боль процесса, затянутость, потребность в отчёте, проактивность, безмятежность, вред.
 
-### 🌍 Русский и English  
+### 🌍 Русский и English
 Полная локализация интерфейса на двух языках. Переключение на лету.
 
   </td>
@@ -74,14 +85,6 @@
   <em>Скоро здесь будут скриншоты. А пока — запусти и увидишь сам.</em>
 </p>
 
-<!-- 
-<p align="center">
-  <img src="docs/screenshot-board.png" width="45%" alt="Доска" />
-  &nbsp;
-  <img src="docs/screenshot-task.png" width="45%" alt="Карточка задачи" />
-</p>
--->
-
 ---
 
 ## 🚀 Быстрый старт
@@ -90,8 +93,8 @@
 
 ```bash
 # 1. Клонируй
-git clone https://github.com/твой-юзернейм/doe.git
-cd doe
+git clone https://github.com/chr1stvoskrese/Doe.git
+cd Doe
 
 # 2. Создай виртуальное окружение
 python3 -m venv venv
@@ -115,8 +118,8 @@ bash build_mac.sh
 
 ```bat
 :: 1. Клонируй и перейди в папку
-git clone https://github.com/твой-юзернейм/doe.git
-cd doe
+git clone https://github.com/chr1stvoskrese/Doe.git
+cd Doe
 
 :: 2. Виртуальное окружение и зависимости
 python -m venv venv
@@ -130,57 +133,57 @@ python wrapper.py
 build_win.bat
 ```
 
-> **Примечание:** AI-ассистент (llama-cpp) работает только на macOS arm64 с Apple Silicon.  
-> На Windows и Intel Mac AI будет недоступен — всё остальное работает полностью.
+> **Примечание:** AI-ассистент (llama-cpp) работает только на macOS arm64 с Apple Silicon.
+> На Windows и Intel Mac AI недоступен — всё остальное работает полностью.
 
 ---
 
 ## 🧱 Архитектура
 
 ```
-┌────────────────────────────────────────┐
-│         Desktop Window (pywebview)      │
-│  ┌──────────────────────────────────┐  │
-│  │   index.html + app.js + styles   │  │
-│  │   Vanilla JS • Fetch • WebSocket │  │
-│  └──────────────┬───────────────────┘  │
-│                 │ localhost:8000        │
-└─────────────────┼──────────────────────┘
-                  │
-┌─────────────────┼──────────────────────┐
-│     FastAPI Server (uvicorn)            │
-│  ┌──────────────┴───────────────────┐  │
-│  │  /api/v1/columns                 │  │
-│  │  /api/v1/tasks    ← CRUD + move  │  │
-│  │  /api/v1/workspaces              │  │
-│  │  /api/v1/system   ← vault/settings│  │
-│  │  /api/v1/ai       ← local LLM    │  │
-│  │  /api/v1/automations             │  │
-│  └──────────────┬───────────────────┘  │
-│                 │                       │
-│  ┌──────────────┴───────────────────┐  │
-│  │  SQLAlchemy (async) + aiosqlite  │  │
-│  │  Alembic migrations              │  │
-│  └──────────────┬───────────────────┘  │
-└─────────────────┼──────────────────────┘
-                  │
-┌─────────────────┴──────────────────────┐
-│  doe.db.doe      doe/ (вложения)        │
-│  (папка-хранилище на диске)             │
-└────────────────────────────────────────┘
+┌─────────────────────────────────────────────┐
+│          Desktop Window (pywebview)          │
+│  ┌───────────────────────────────────────┐  │
+│  │     index.html · app.js · styles.css  │  │
+│  │     Vanilla JS · Fetch · WebSocket    │  │
+│  └────────────────────┬──────────────────┘  │
+│                       │ localhost:8000       │
+└───────────────────────┼──────────────────────┘
+                        │
+┌───────────────────────┼──────────────────────┐
+│          FastAPI Server (uvicorn)            │
+│  ┌────────────────────┴──────────────────┐  │
+│  │  /api/v1/columns                      │  │
+│  │  /api/v1/tasks        CRUD + move     │  │
+│  │  /api/v1/workspaces                   │  │
+│  │  /api/v1/system       vault/settings  │  │
+│  │  /api/v1/ai           local LLM       │  │
+│  │  /api/v1/automations                  │  │
+│  └────────────────────┬──────────────────┘  │
+│                       │                       │
+│  ┌────────────────────┴──────────────────┐  │
+│  │  SQLAlchemy 2.0 (async) + aiosqlite   │  │
+│  │  Alembic migrations                   │  │
+│  └────────────────────┬──────────────────┘  │
+└───────────────────────┼──────────────────────┘
+                        │
+┌───────────────────────┴──────────────────────┐
+│  doe.db.doe   +   doe/ (вложения)            │
+│  папка-хранилище на диске                    │
+└─────────────────────────────────────────────┘
 ```
 
 | Слой | Технология |
 |---|---|
-| **Рантайм** | Python 3.12 + FastAPI + Uvicorn |
-| **База данных** | SQLite (aiosqlite) + SQLAlchemy 2.0 (async) |
+| **Рантайм** | Python 3.12 · FastAPI 0.115 · Uvicorn |
+| **База данных** | SQLite (aiosqlite) · SQLAlchemy 2.0 (async) |
 | **Миграции** | Alembic |
-| **Десктоп** | pywebview (нативное WebView OS) |
-| **Сборка** | PyInstaller (.app / .exe) |
-| **AI** | llama-cpp-python + Gemma (Metal-ускорение) |
-| **Фронтенд** | Vanilla JS (14k строк), CSS (8.5k строк) |
-| **Редактор** | CodeMirror + Marked.js + Prism.js + KaTeX |
-| **Синхронизация** | WebSocket + watchdog |
+| **Десктоп** | pywebview (нативный WebView ОС) |
+| **Сборка** | PyInstaller (`.app` / `.exe`) |
+| **AI** | llama-cpp-python · Gemma 4 (Metal-ускорение) |
+| **Фронтенд** | Vanilla JS (~14k строк) · CSS (~8.4k строк) |
+| **Редактор** | CodeMirror · Marked.js · Prism.js · KaTeX |
+| **Синхронизация** | WebSocket · watchdog |
 
 ---
 
@@ -190,7 +193,7 @@ build_win.bat
 <summary><strong>📋 Kanban-доска</strong></summary>
 
 - Неограниченное количество рабочих пространств (табов) и колонок
-- Drag-and-drop карточек между колоннами и внутри них
+- Drag-and-drop карточек между колонками и внутри них
 - Три режима колонок: **Обычная**, **Трекер времени**, **Завершение**
 - Сворачивание колонок, настраиваемая ширина, горячие клавиши
 - JSON-экспорт/импорт всей доски или отдельных карточек
@@ -231,9 +234,17 @@ build_win.bat
 <details>
 <summary><strong>🤖 AI Ассистент</strong></summary>
 
-- Работает **полностью оффлайн** (локальная Gemma 4)
-- Apple Silicon с Metal-ускорением (macOS arm64)
-- Модели: 2.3B, 4.5B, 12B, 26B — скачиваются через HuggingFace
+- Работает **полностью оффлайн** — локальная **Gemma 4** (Google)
+- Apple Silicon с Metal-ускорением и flash-attention (macOS arm64)
+- Линейка моделей скачивается через HuggingFace:
+
+  | Модель | Параметры | Размер |
+  |---|---|---|
+  | Gemma 4 E2B | 2.3B | ~3.1 GB |
+  | Gemma 4 E4B | 4.5B | ~4.8 GB |
+  | Gemma 4 12B | 12B | ~6.5 GB |
+  | Gemma 4 26B (A4B MoE) | 26B | ~13.5 GB |
+
 - **Умеет:** искать по доске, создавать/менять/удалять задачи, двигать карточки, создавать колонки и пространства, менять тему и язык, включать расширения, приоритизировать задачи, ставить напоминания
 - **Память:** запоминает факты между сессиями (`~/.doe_app/memory/`)
 
@@ -244,7 +255,7 @@ build_win.bat
 
 - Тема: светлая / тёмная (CSS-переменные)
 - Язык: русский / English
-- Кастомные шрифты: системный пикер или `.ttf`/`.woff2` в хранилище
+- Кастомные шрифты: системный пикер или `.ttf` / `.woff2` в хранилище
 - Хранилище вложений: внутри vault или глобальная папка
 - Приоритеты: настройка порогов, цветов и эмодзи
 
@@ -252,16 +263,13 @@ build_win.bat
 
 ---
 
-## ⌨️ Горячие клавиши
+## ⌨ Горячие клавиши
 
 | Клавиши | Действие |
 |---|---|
-| `Cmd/Ctrl + K` | Глобальный поиск |
-| `Cmd/Ctrl + \` | Свернуть/развернуть вкладки |
-| `Cmd/Ctrl + N` | Новая задача |
-| `Esc` | Закрыть модальное окно |
-| `Cmd/Ctrl + S` | Сохранить (в редакторе) |
-| `Cmd/Ctrl + Shift + F` | Полноэкранный режим |
+| `Cmd/Ctrl + F` | Поиск — по доске, либо внутри открытой карточки |
+| `Cmd/Ctrl + \` | Свернуть / развернуть вкладки |
+| `Esc` | Закрыть модальное окно / отменить редактирование |
 
 ---
 
@@ -269,24 +277,26 @@ build_win.bat
 
 ```bash
 # Миграции Alembic
-cd doe
 alembic revision --autogenerate -m "описание"
 alembic upgrade head
 alembic downgrade -1
+```
 
+```
 # Структура проекта
 src/
-├── api/v1/          # FastAPI роутеры
+├── api/v1/          # FastAPI роутеры (columns, tasks, workspaces, system, ai, automations)
 ├── core/            # config, watcher (WebSocket)
 ├── db/              # database.py, models.py
 ├── services/        # бизнес-логика
 └── schemas/         # Pydantic DTO
 frontend/
-├── index.html       # точка входа (1612 строк)
-├── app.js           # вся логика (14k строк)
-└── styles.css       # стили (8.5k строк)
+├── index.html       # точка входа (~1.5k строк)
+├── app.js           # вся логика (~14k строк)
+└── styles.css       # стили (~8.4k строк)
 wrapper.py           # точка входа, менеджмент окна
-main.py              # FastAPI приложение
+main.py              # FastAPI-приложение
+notify_worker.py     # фоновый воркер уведомлений
 ```
 
 ---

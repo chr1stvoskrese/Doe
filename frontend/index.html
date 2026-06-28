@@ -8,7 +8,6 @@
     <link rel="stylesheet" href="static/prism.min.css">
     <link rel="stylesheet" href="/static/codemirror.min.css">
     <script src="/static/codemirror.min.js"></script>
-    <!-- KaTeX: Оптимизированный рендер математики -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
     <script src="/static/marked.min.js"></script>
@@ -40,7 +39,6 @@
 </div>
 
 <div class="vault-screen" id="vault-screen">
-    <!-- Кнопка настроек вынесена на уровень всего экрана (будет зафиксирована в углу независимо от ширины контейнера) -->
     <div class="vault-settings-wrapper settings-wrapper">
         <button class="icon-btn settings-trigger" aria-label="Настройки">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
@@ -58,14 +56,12 @@
     </div>
 
     <div class="vault-container">
-        <!-- Логотип и заголовок -->
         <div class="vault-hero">
             <img src="/doe.png" alt="Doe Logo" class="vault-logo-img">
             <h1 class="vault-title">Doe</h1>
             <p class="vault-subtitle" data-i18n="vault.subtitle">Aesthetic. Local-first. Kanban sanctuary.</p>
         </div>
 
-        <!-- Кнопки действий -->
         <div class="vault-actions" id="vault-actions-cards">
             <div class="vault-action-card" onclick="handleVaultAction('create')">
                 <div class="vault-action-icon">
@@ -84,7 +80,6 @@
             </div>
         </div>
 
-        <!-- Форма создания хранилища (скрыта по умолчанию) -->
         <div class="vault-create-form" id="vault-create-form" style="display: none;">
             
             <input type="text" id="new-vault-name" class="column-input vault-name-input" data-i18n="vault.namePlaceholder" placeholder="Название хранилища..." autocomplete="off" spellcheck="false" />
@@ -99,11 +94,9 @@
                 <span data-i18n="vault.recent">История хранилищ</span>
             </div>
             <div id="vault-history-list" class="subtasks-list vault-history-list">
-                <!-- Рендерится через JS -->
             </div>
         </div>
 
-        <!-- Подвал -->
         <div class="vault-footer">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
             <span data-i18n="vault.privacy">Все данные хранятся только на вашем устройстве.<br>Конфиденциальность. Без облака. Без компромиссов.</span>
@@ -111,7 +104,6 @@
     </div>
 </div>
 
-<!-- ШАПКА -->
 <header class="app-header">
     <div class="header-left-controls">
         
@@ -141,13 +133,11 @@
                     <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
                     <span data-i18n="menu.attachmentsSettings">Хранилище вложений</span>
                 </div>
-                <!-- НАСТРОЙКИ ПРИОРИТЕТНОСТИ -->
                 <div class="menu-divider" id="divider-priority"></div>
                 <div class="menu-item" data-action="priority-settings" id="menu-priority-settings">
                     <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
                     <span data-i18n="menu.prioritySettings">Приоритетность</span>
                 </div>
-                <!-- 🤖 ИИ-АССИСТЕНТ -->
                 <div class="menu-divider" id="divider-ai"></div>
                 <div class="menu-item" data-action="ai-settings" id="menu-ai-settings">
                     <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"></path></svg>
@@ -179,7 +169,6 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
         </button>
 
-        <!-- КНОПКА КОЛОКОЛЬЧИКА НАПОМИНАНИЙ -->
         <div class="settings-wrapper" id="reminders-bell-wrapper">
             <button class="icon-btn" id="reminders-bell-trigger" aria-label="Напоминания">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -191,32 +180,27 @@
             <div class="dropdown-menu reminders-dropdown" id="reminders-dropdown">
                 <div class="menu-label" data-i18n="menu.reminders">Активные напоминания</div>
                 <div class="reminders-list" id="reminders-list">
-                    <!-- Заполняется динамически через JS -->
                 </div>
             </div>
         </div>
 
-        <!-- КНОПКА ГРАФА СВЯЗЕЙ -->
         <button class="icon-btn" id="graph-trigger" aria-label="Граф связей">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M5 5v14h14V5"></path>
                 <path d="M5 19L19 5"></path>
-                <!-- Размер узлов строго определен количеством их связей (1, 2, 2 и 3 связи соответственно) -->
-                <circle cx="5" cy="5" r="1.5" fill="currentColor" stroke="none"></circle>  <!-- 1 связь -->
-                <circle cx="19" cy="19" r="2.5" fill="currentColor" stroke="none"></circle> <!-- 2 связи -->
-                <circle cx="19" cy="5" r="2.5" fill="currentColor" stroke="none"></circle>  <!-- 2 связи -->
-                <circle cx="5" cy="19" r="3.5" fill="currentColor" stroke="none"></circle>  <!-- 3 связи -->
+                <circle cx="5" cy="5" r="1.5" fill="currentColor" stroke="none"></circle>
+                <circle cx="19" cy="19" r="2.5" fill="currentColor" stroke="none"></circle>
+                <circle cx="19" cy="5" r="2.5" fill="currentColor" stroke="none"></circle>
+                <circle cx="5" cy="19" r="3.5" fill="currentColor" stroke="none"></circle>
             </svg>
         </button>
 
-        <!-- КНОПКА АВТОМАТИЗАЦИЙ -->
         <button class="icon-btn" id="automations-trigger" aria-label="Автоматизации">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
             </svg>
         </button>
 
-        <!-- КНОПКА КАЛЕНДАРЯ -->
         <button class="icon-btn" id="calendar-trigger" aria-label="Календарь">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
@@ -226,7 +210,6 @@
             </svg>
         </button>
 
-        <!-- КНОПКА СТАТИСТИКИ -->
         <button class="icon-btn" id="statistics-trigger" aria-label="Статистика">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <line x1="18" y1="20" x2="18" y2="10"></line>
@@ -235,46 +218,36 @@
             </svg>
         </button>
 
-        <!-- НОВЫЙ БЛОК ПОИСКА -->
         <div class="search-wrapper" id="global-search-wrapper">
             <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
             <input type="text" id="global-search-input" class="search-input" data-i18n="searchPlaceholder" placeholder="Поиск..." autocomplete="off" spellcheck="false">
             <div class="dropdown-menu search-dropdown" id="search-dropdown">
                 <div class="search-results-content" id="search-results-content">
-                    <!-- Заполняется JS -->
                 </div>
             </div>
         </div>
-        <!-- КОНЕЦ НОВОГО БЛОКА -->
 
     </div>
 
-    <!-- КОНТЕЙНЕР ДЛЯ ВКЛАДОК -->
     <div class="tabs-wrapper" id="tabs-wrapper">
         <div class="tabs-container" id="tabs-container">
-            <!-- Рендерится через JS -->
         </div>
-        <!-- Кастомный скроллбар -->
         <div class="tabs-scrollbar" id="tabs-scrollbar">
             <div class="tabs-scrollbar-thumb" id="tabs-thumb"></div>
         </div>
     </div>
 </header>
 
-<!-- 📋 КОНТЕЙНЕР ДОСКИ -->
 <main class="board-wrapper" id="board-wrapper">
     <div class="board-container">
         <div class="board" id="board">
-            <!-- Здесь будет рендериться доска через JS -->
         </div>
     </div>
-    <!-- Кастомный скроллбар доски (по аналогии с вкладками) -->
     <div class="board-scrollbar" id="board-scrollbar">
         <div class="board-scrollbar-thumb" id="board-thumb"></div>
     </div>
 </main>
 
-<!-- 🎨 МОДАЛКА ВЫБОРА ТЕМЫ -->
 <div class="modal-overlay" id="theme-modal">
     <div class="modal-card">
         <div class="modal-header">
@@ -296,7 +269,6 @@
     </div>
 </div>
 
-<!-- 🌍 МОДАЛКА ВЫБОРА ЯЗЫКА -->
 <div class="modal-overlay" id="lang-modal">
     <div class="modal-card">
         <div class="modal-header">
@@ -318,7 +290,6 @@
     </div>
 </div>
 
-<!-- ✨ МОДАЛКА О ПРИЛОЖЕНИИ -->
 <div class="modal-overlay" id="about-modal">
     <div class="modal-card">
         <div class="modal-header">
@@ -335,9 +306,8 @@
     </div>
 </div>
 
-<!-- 📁 МОДАЛКА НАСТРОЕК ВЛОЖЕНИЙ -->
 <div class="modal-overlay" id="att-settings-modal">
-    <div class="modal-card" style="width: 360px;"> <!-- Чуть шире для эстетики настроек -->
+    <div class="modal-card" style="width: 360px;">
         <div class="modal-header">
             <span class="modal-title" data-i18n="modals.attTitle">Хранилище вложений</span>
             <button class="modal-close" aria-label="Закрыть">
@@ -347,7 +317,6 @@
         <div class="modal-body" style="padding: 16px; gap: 12px;">
             
             <div class="settings-group-card">
-                <!-- Опция 1: Локально -->
                 <div class="setting-row" id="setting-item-local" onclick="resetAttFolder()">
                     <div class="setting-icon-box">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
@@ -361,14 +330,12 @@
                     </div>
                 </div>
 
-                <!-- Опция 2: Внешняя папка -->
                 <div class="setting-row" id="setting-item-external" onclick="chooseCustomAttFolder()">
                     <div class="setting-icon-box">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                     </div>
                     <div class="setting-text-box">
                         <div class="setting-title" data-i18n="modals.attExternalTitle">Внешняя папка</div>
-                        <!-- УБРАЛИ data-i18n, теперь текстом управляет только JS -->
                         <div class="setting-desc" id="att-path-display">Выбрать папку...</div>
                     </div>
                     <div class="setting-check">
@@ -396,20 +363,17 @@
         </div>
         <div class="modal-body" style="padding: 16px; gap: 16px;">
             
-            <!-- Поле ввода системного шрифта -->
             <div style="display: flex; flex-direction: column; gap: 6px;">
                 <label style="font-size: 12px; font-weight: 600; color: var(--text-secondary);" data-i18n="modals.fontInputLabel">Название системного шрифта</label>
                 <div style="position: relative;" id="ui-font-wrapper">
                     <input type="text" id="ui-font-input" class="setting-input" data-i18n="modals.fontSearchPlaceholder" placeholder="Поиск или ввод шрифта..." spellcheck="false" autocomplete="off">
                     <div class="dropdown-menu custom-select-menu" id="ui-font-dropdown" style="top: 40px; left: 0; width: 100%; max-height: 180px; overflow-y: auto; display: none;">
-                        <!-- Список генерируется через JS -->
                     </div>
                 </div>
             </div>
 
             <div class="menu-divider" style="margin: 0;"></div>
 
-            <!-- Загрузка кастомного файла -->
             <div style="display: flex; flex-direction: column; gap: 6px;">
                 <label style="font-size: 12px; font-weight: 600; color: var(--text-secondary);" data-i18n="modals.fontFileLabel">Шрифт хранилища (переносной)</label>
                 <div class="settings-group-card">
@@ -432,7 +396,6 @@
     </div>
 </div>
 
-<!-- 📦 МОДАЛКА ЭКСПОРТА КАРТОЧКИ -->
 <div class="modal-overlay" id="export-modal">
     <div class="modal-card confirm-card">
         <div class="confirm-body">
@@ -451,7 +414,6 @@
     </div>
 </div>
 
-<!-- 📦 МОДАЛКА ЭКСПОРТА ДАННЫХ В JSON -->
 <div class="modal-overlay" id="export-json-modal">
     <div class="modal-card confirm-card">
         <div class="confirm-body">
@@ -470,10 +432,8 @@
     </div>
 </div>
 
-<!-- 📝 МОДАЛКА ОТКРЫТИЯ КАРТОЧКИ -->
 <div class="modal-overlay" id="task-modal">
     <div class="modal-card task-detail-card">
-        <!-- Зоны для растягивания (Resizers) -->
         <div class="resizer r-top"></div>
         <div class="resizer r-bottom"></div>
         <div class="resizer r-left"></div>
@@ -483,7 +443,6 @@
         <div class="resizer r-bottom-left"></div>
         <div class="resizer r-bottom-right"></div>
 
-        <!-- ВИДЖЕТ ЛОКАЛЬНОГО ПОИСКА -->
         <div class="local-search-widget" id="local-search-widget">
             <input type="text" id="local-search-input" placeholder="Найти в карточке..." autocomplete="off" spellcheck="false">
             <span class="local-search-count" id="local-search-count">0/0</span>
@@ -500,7 +459,6 @@
                 <div id="task-dates-meta" class="task-modal-dates"></div>
             </div>
             <div class="modal-header-actions">
-                <!-- Обертка выезжающих инструментов -->
                 <div class="modal-tools-wrapper" id="modal-tools-wrapper">
                     <div class="modal-tools-menu">
                         <button class="modal-detach" aria-label="Отвязать карточку" style="display: none;">
@@ -538,13 +496,11 @@
                     </div>
                     <button class="modal-tools-trigger" aria-label="Инструменты">
                         <svg class="icon-tools" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <!-- Линейка (на заднем плане) -->
                             <path d="M13 7 8.7 2.7a2.41 2.41 0 0 0-3.4 0L2.7 5.3a2.41 2.41 0 0 0 0 3.4L7 13"></path>
                             <path d="m8 6 2-2"></path>
                             <path d="m18 16 2-2"></path>
                             <path d="m17 11 4.3 4.3c.94.94.94 2.46 0 3.4l-2.6 2.6c-.94.94-2.46.94-3.4 0L11 17"></path>
                             <path d="m15 5 4 4"></path>
-                            <!-- Карандаш (на переднем плане) -->
                             <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"></path>
                         </svg>
                         <svg class="icon-close-tools" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -565,7 +521,6 @@
         <div class="modal-body task-detail-body">
             
             <div class="task-header-meta">
-                <!-- Крошки слева -->
                 <div id="task-breadcrumbs" class="task-breadcrumbs"></div>
             </div>
 
@@ -580,7 +535,6 @@
                 <input type="text" id="modal-task-timer-input" class="modal-timer-input" data-i18n="taskModal.timerPlaceholder" placeholder="1h 30m" style="display: none;" autocomplete="off" spellcheck="false" />
             </div>
 
-            <!-- НОВАЯ СЕКЦИЯ ВЛОЖЕНИЙ -->
             <div class="attachments-section subtasks-section">
                 <div class="subtasks-header">
                     <span data-i18n="attachments">Вложения</span>
@@ -590,28 +544,23 @@
                     </button>
                 </div>
                 <div id="attachments-list" class="subtasks-list">
-                    <!-- Рендерится через JS -->
                 </div>
             </div>
 
-            <!-- НОВАЯ СЕКЦИЯ ПОДЗАДАЧ -->
             <div class="subtasks-section">
                 <div class="subtasks-header">
                     <span data-i18n="subtasks">Подзадачи</span>
                     <span class="subtasks-count" id="subtasks-count">0</span>
                 </div>
                 <div id="subtasks-list" class="subtasks-list">
-                    <!-- Рендерится через JS -->
                 </div>
                 <div id="subtask-form-container" class="subtask-add-wrapper">
-                    <!-- Сюда JS будет рендерить либо кнопку "+", либо форму -->
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- 🚨 МОДАЛКА ПОДТВЕРЖДЕНИЯ УДАЛЕНИЯ -->
 <div class="modal-overlay" id="confirm-modal">
     <div class="modal-card confirm-card">
         <div class="confirm-body">
@@ -625,7 +574,6 @@
     </div>
 </div>
 
-<!-- 🔗 МОДАЛКА УМНОЙ ОТВЯЗКИ -->
 <div class="modal-overlay" id="detach-modal">
     <div class="modal-card confirm-card">
         <div class="confirm-body">
@@ -640,7 +588,6 @@
     </div>
 </div>
 
-<!-- Глобальное контекстное меню для карточек -->
 <div id="global-card-menu" class="dropdown-menu card-context-menu">
     <div class="menu-item" data-action="open-card">
         <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
@@ -668,11 +615,9 @@
         </svg>
         <span data-i18n="menu.dueDate">Установить дедлайн</span>
     </div>
-    <!-- Очистить дедлайн перенесен строго на место кнопки Установить -->
     <div class="menu-item" data-action="clear-due-date" id="menu-clear-due-date" style="display: none;">
         <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 22c-4.42 0-8-3.58-8-8 0-3.1 1.76-5.8 4.36-7.14.33-.17.7-.06.88.24.41.69 1.05 1.34 1.7 1.15.65-.19.96-1.55 1.4-3.13C12.8 3.42 13.5 2 14.5 2c.28 0 .54.12.72.32 1.41 1.6 3.1 3.96 4.13 6.08C20.44 10.64 20 12.3 20 14c0 4.42-3.58 8-8 8z"></path>
-            <!-- Правильное зачеркивание -->
             <line x1="21" y1="3" x2="3" y2="21"></line>
         </svg>
         <span data-i18n="menu.clearDueDate">Очистить дедлайн</span>
@@ -696,7 +641,6 @@
     </div>
 </div>
 
-<!-- Глобальное контекстное меню для календаря -->
 <div id="cal-context-menu" class="dropdown-menu card-context-menu">
     <div class="menu-item danger" id="cal-menu-delete">
         <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
@@ -704,7 +648,6 @@
     </div>
 </div>
 
-<!-- ⏰ МОДАЛКА УВЕДОМЛЕНИЙ -->
 <div class="modal-overlay" id="notify-modal">
     <div class="modal-card">
         <div class="modal-header">
@@ -721,13 +664,11 @@
         </div>
         <div class="modal-body" style="padding: 16px;">
             
-            <!-- Apple-style Segmented Control -->
             <div class="segmented-control">
                 <div class="segmented-btn active" data-target="notify-relative" data-i18n="modals.notifyRelative">Через</div>
                 <div class="segmented-btn" data-target="notify-absolute" data-i18n="modals.notifyAbsolute">В точное время</div>
             </div>
 
-            <!-- Вкладка "Через время" -->
             <div id="notify-relative" class="notify-tab-content active">
                 <div class="notify-input-group">
                     <input type="number" id="notify-amount" class="notify-field" value="15" min="1" style="width: 80px; text-align: center;">
@@ -749,7 +690,6 @@
                 </div>
             </div>
 
-            <!-- Вкладка "Точная дата" -->
             <div id="notify-absolute" class="notify-tab-content">
                 <div class="notify-field datepicker-trigger" id="datepicker-trigger"></div>
             </div>
@@ -761,11 +701,9 @@
     </div>
 </div>
 
-<!-- ⏳ МОДАЛКА УСТАНОВКИ СРОКА (DUE DATE) -->
 <div class="modal-overlay" id="due-date-modal">
     <div class="modal-card">
         <div class="modal-header">
-            <!-- Добавлена обертка с иконкой, как в модалке уведомлений -->
             <div style="display: flex; align-items: center; gap: 8px;">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-secondary); flex-shrink: 0;">
                     <path d="M12 22c-4.42 0-8-3.58-8-8 0-3.1 1.76-5.8 4.36-7.14.33-.17.7-.06.88.24.41.69 1.05 1.34 1.7 1.15.65-.19.96-1.55 1.4-3.13C12.8 3.42 13.5 2 14.5 2c.28 0 .54.12.72.32 1.41 1.6 3.1 3.96 4.13 6.08C20.44 10.64 20 12.3 20 14c0 4.42-3.58 8-8 8z"></path>
@@ -776,9 +714,7 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
             </button>
         </div>
-        <!-- Убраны жесткие inline-паддинги -->
         <div class="modal-body">
-            <!-- Изменен класс с column-input на notify-field для применения пунктирного стиля -->
             <div class="notify-field datepicker-trigger" id="due-datepicker-trigger"></div>
             
             <div class="confirm-actions" style="padding: 0;">
@@ -789,7 +725,6 @@
     </div>
 </div>
 
-<!-- 📅 ГЛОБАЛЬНЫЙ КАСТОМНЫЙ КАЛЕНДАРЬ -->
 <div class="dropdown-menu datepicker-dropdown" id="datepicker-dropdown">
     <div class="datepicker-header">
         <div style="display: flex; gap: 2px;">
@@ -814,7 +749,6 @@
     </div>
 </div>
 
-<!-- 📊 МОДАЛКА СТАТИСТИКИ (PRO) -->
 <div class="modal-overlay" id="statistics-modal">
     <div class="modal-card" style="width: 520px;">
         <div class="modal-header" style="justify-content: center; position: relative;">
@@ -823,7 +757,6 @@
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"></polyline></svg>
                 </button>
                 <span class="modal-title" id="stats-date-label" style="min-width: 140px; text-align: center; font-variant-numeric: tabular-nums;">Загрузка...</span>
-                <!-- Кнопка скрыта по умолчанию (visibility: hidden сохраняет ширину, центрируя заголовок) -->
                 <button class="icon-btn" id="stats-next-btn" title="Следующая неделя" style="visibility: hidden;">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
                 </button>
@@ -833,19 +766,15 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
             </button>
         </div>
-        <!-- Обнуляем нижний padding у родителя (0 20px) и переносим его в дочерний элемент -->
         <div class="modal-body" style="padding: 20px 20px 0 20px; gap: 16px; max-height: 80vh; overflow-y: auto;">
             <div id="stats-loading" style="text-align: center; color: var(--text-secondary); font-size: 13px; padding: 40px;" data-i18n="loading">Загрузка данных...</div>
             
-            <!-- Строго 20px снизу — это решит проблему скролла и уберет лишний воздух в большом окне -->
             <div id="stats-content" class="stats-content" style="display: none; flex-direction: column; gap: 20px; padding-bottom: 20px;">
                 
-                <!-- Умный Инсайт -->
                 <div class="stats-insight-box" id="stats-insight">
                     ✨ Инсайт: Вы были на 20% продуктивнее, чем на прошлой неделе.
                 </div>
 
-                <!-- Карточки с метриками -->
                 <div class="stats-metrics-grid">
                     <div class="stats-metric-card">
                         <div class="stats-metric-header">
@@ -871,19 +800,15 @@
                     </div>
                 </div>
 
-                <!-- График активности -->
                 <div style="padding: 8px 0;">
                     <div class="setting-title" style="margin-bottom: 20px; text-align: center;" data-i18n="stats.activityChart">Активность по дням</div>
                     <div class="stats-chart" id="stats-activity-chart">
-                        <!-- Бары генерируются JS -->
                     </div>
                 </div>
 
-                <!-- Топ задач по времени -->
                 <div>
                     <div class="setting-title" id="stats-top-title-el" style="margin-bottom: 12px; margin-left: 4px;" data-i18n="stats.topTasks">Куда ушло время</div>
                     <div id="stats-top-tasks" style="display: flex; flex-direction: column; gap: 8px;">
-                        <!-- Элементы генерируются JS -->
                     </div>
                 </div>
             </div>
@@ -891,7 +816,6 @@
     </div>
 </div>
 
-<!-- 🕸️ МОДАЛКА ГРАФА СВЯЗЕЙ -->
 <div class="modal-overlay" id="graph-modal">
     <div class="modal-card graph-card">
         <div class="modal-header">
@@ -902,7 +826,6 @@
         </div>
         <div class="graph-body">
             <canvas id="graph-canvas"></canvas>
-            <!-- Плавающие контролы графа -->
             <div class="graph-controls">
                 <div class="graph-slider-wrapper">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 3H11a9 9 0 0 0 0 18h10v-6H11a3 3 0 0 1 0-6h10V3z"/><path d="M16 3v6"/><path d="M16 15v6"/></svg>
@@ -919,13 +842,11 @@
             <div id="graph-empty" class="graph-empty" style="display: none;"></div>
         </div>
     </div>
-    <!-- Тултип для подписей карточек (position: fixed escapes overlay) -->
     <div id="graph-tooltip" class="custom-tooltip"><div class="tooltip-inner"></div></div>
 </div>
 
-<!-- 📆 МОДАЛКА КАЛЕНДАРЯ -->
 <div class="modal-overlay" id="calendar-modal">
-    <div class="modal-card graph-card"> <!-- Переиспользуем размер графа -->
+    <div class="modal-card graph-card">
         <div class="modal-header calendar-header">
             <div class="cal-controls-left">
                 <button class="icon-btn" id="cal-prev"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
@@ -951,19 +872,16 @@
             </div>
         </div>
         <div class="cal-body" id="cal-body">
-            <!-- Сетка календаря генерируется через JS -->
         </div>
     </div>
 </div>
 
-<!-- 🧠 ПЛАВАЮЩАЯ КНОПКА ИИ-ПСИХОЛОГА -->
 <button id="ai-floating-btn" class="ai-floating-btn" data-i18n-title="ai.floatingBtnTitle" title="ИИ-ассистент">
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"></path>
     </svg>
 </button>
 
-<!-- 🍞 ЭСТЕТИЧНОЕ ВНУТРИПРОГРАММНОЕ УВЕДОМЛЕНИЕ (TOAST) -->
 <div id="app-toast" class="app-toast">
     <div class="app-toast-icon">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
@@ -974,7 +892,6 @@
     </div>
 </div>
 
-<!-- 🧩 МОДАЛКА РАСШИРЕНИЙ -->
 <div class="modal-overlay" id="extensions-modal">
     <div class="modal-card" style="width: 320px;">
         <div class="modal-header">
@@ -1096,7 +1013,6 @@
                     </label>
                 </div>
 
-                <!-- НАСТРОЙКИ AI ДЛЯ ПРИОРИТЕТОВ -->
                 <div class="setting-row" id="ai-settings-row" style="display: none; justify-content: center; background: transparent; border: none;">
                     <button class="confirm-btn cancel-btn" onclick="openAiSettingsModal()" style="font-size: 12px; padding: 6px 12px;" data-i18n="ai.setupBtn">✨ Настроить ИИ-ассистента</button>
                 </div>
@@ -1105,7 +1021,6 @@
         </div>
     </div>
 </div>
-<!-- 🚚 МОДАЛКА ПЕРЕМЕЩЕНИЯ КАРТОЧКИ -->
 <div class="modal-overlay" id="move-modal">
     <div class="modal-card" style="width: 320px;">
         <div class="modal-header">
@@ -1126,7 +1041,6 @@
     </div>
 </div>
 
-<!-- 🗂 МОДАЛКА СОРТИРОВКИ КОЛОНКИ -->
 <div class="modal-overlay" id="sort-modal">
     <div class="modal-card" style="width: 320px;">
         <div class="modal-header">
@@ -1165,7 +1079,6 @@
     </div>
 </div>
 
-<!-- ⭐️ МОДАЛКА ПРИОРИТЕТНОСТИ -->
 <div class="modal-overlay" id="priority-modal">
     <div class="modal-card" style="width: 480px;">
         <div class="modal-header">
@@ -1180,7 +1093,6 @@
         <div class="modal-body" style="padding: 20px; padding-bottom: 16px; gap: 16px; max-height: 80vh; overflow-y: auto;">
             <div class="priority-sliders-container">
                 
-                <!-- Группа 1: Двигатели делания (Мотивация и Сроки) -->
                 <div class="prio-section-title" data-i18n="modals.prioSec1">Двигатели делания</div>
                 
                 <div class="prio-slider-group">
@@ -1203,7 +1115,6 @@
                     <input type="range" class="prio-range" id="prio-slider-d" min="0" max="10" step="0.1" value="5">
                 </div>
 
-                <!-- Q1: Отчетность (Segmented Control) -->
                 <div class="prio-slider-group">
                     <div class="prio-label-row">
                         <div>
@@ -1218,7 +1129,6 @@
                     </div>
                 </div>
 
-                <!-- Q2: Заблаговременность -->
                 <div class="prio-slider-group" style="margin-top: 4px;">
                     <div class="prio-label-row">
                         <div>
@@ -1229,7 +1139,6 @@
                     <input type="range" class="prio-range" id="prio-slider-p" min="0" max="10" step="0.1" value="0">
                 </div>
 
-                <!-- Группа 2: Психоэмоциональный баланс -->
                 <div class="prio-section-title" data-i18n="modals.prioSec2" style="margin-top: 10px;">Психоэмоциональный баланс</div>
 
                 <div class="prio-slider-group">
@@ -1242,7 +1151,6 @@
                     <input type="range" class="prio-range" id="prio-slider-a" min="0" max="10" step="0.1" value="5">
                 </div>
 
-                <!-- Q3: Спокойствие "здесь и сейчас" -->
                 <div class="prio-slider-group">
                     <div class="prio-label-row">
                         <div>
@@ -1253,7 +1161,6 @@
                     <input type="range" class="prio-range" id="prio-slider-s" min="0" max="10" step="0.1" value="0">
                 </div>
 
-                <!-- Q4: Риск вреда -->
                 <div class="prio-slider-group">
                     <div class="prio-label-row">
                         <div>
@@ -1264,7 +1171,6 @@
                     <input type="range" class="prio-range" id="prio-slider-h" min="0" max="10" step="0.1" value="0">
                 </div>
 
-                <!-- Группа 3: Издержки процесса -->
                 <div class="prio-section-title" data-i18n="modals.prioSec3" style="margin-top: 10px;">Издержки процесса</div>
 
                 <div class="prio-slider-group">
@@ -1304,7 +1210,6 @@
     </div>
 </div>
 
-<!-- 🎨 МОДАЛКА НАСТРОЕК ПРИОРИТЕТНОСТИ -->
 <div class="modal-overlay" id="priority-settings-modal">
     <div class="modal-card" style="width: 400px;">
         <div class="modal-header">
@@ -1315,7 +1220,6 @@
         </div>
         <div class="modal-body" style="padding: 16px; gap: 16px;">
             
-            <!-- Карточка тумблера отображения -->
             <div class="settings-group-card">
                 <div class="setting-row" style="cursor: default;">
                     <div class="setting-text-box">
@@ -1329,9 +1233,7 @@
                 </div>
             </div>
 
-            <!-- Карточка настроек уровней -->
             <div class="settings-group-card">
-                <!-- Уровень НИЗКИЙ -->
                 <div class="setting-row" style="cursor: default; gap: 12px;">
                     <input type="color" id="cfg-prio-c-low" class="prio-color-picker">
                     <div class="setting-text-box">
@@ -1349,7 +1251,6 @@
                     </div>
                 </div>
 
-                <!-- Уровень СРЕДНИЙ -->
                 <div class="setting-row" style="cursor: default; gap: 12px;">
                     <input type="color" id="cfg-prio-c-mid" class="prio-color-picker">
                     <div class="setting-text-box">
@@ -1367,7 +1268,6 @@
                     </div>
                 </div>
 
-                <!-- Уровень ВЫСОКИЙ -->
                 <div class="setting-row" style="cursor: default; gap: 12px;">
                     <input type="color" id="cfg-prio-c-high" class="prio-color-picker">
                     <div class="setting-text-box">
@@ -1377,7 +1277,6 @@
                         </div>
                     </div>
                 </div>
-                <!-- Уровень НЕ УКАЗАН -->
                 <div class="setting-row" style="cursor: default; gap: 12px;">
                     <input type="color" id="cfg-prio-c-none" class="prio-color-picker">
                     <div class="setting-text-box">
@@ -1398,7 +1297,6 @@
     </div>
 </div>
 
-<!-- 🤖 МОДАЛКА НАСТРОЕК AI -->
 <div class="modal-overlay" id="ai-settings-modal">
     <div class="modal-card" style="width: 360px;">
         <div class="modal-header">
@@ -1411,7 +1309,6 @@
             <div class="setting-hint" data-i18n="ai.hintText">Локальная нейросеть анализирует ваше состояние каждое утро и умно расставляет приоритеты задач. Не требует интернета.</div>
             
             <div class="settings-group-card" id="ai-models-list">
-                <!-- Заполняется из JS -->
             </div>
 
             
@@ -1420,7 +1317,6 @@
     </div>
 </div>
 
-<!-- ⚡ МОДАЛКА АВТОМАТИЗАЦИЙ -->
 <div class="modal-overlay" id="automations-modal">
     <div class="modal-card" style="width: 420px;">
         <div class="modal-header">
@@ -1435,17 +1331,13 @@
             </button>
         </div>
         <div class="modal-body" style="padding: 12px 16px 16px; gap: 12px;">
-            <!-- Список автоматизаций -->
             <div id="automations-list" style="display: flex; flex-direction: column; gap: 4px;">
-                <!-- Заполняется JS -->
             </div>
             <div id="automations-empty" class="setting-hint" style="text-align: center; padding: 12px;" data-i18n="modals.autoEmpty">
                 Нет автоматизаций. Нажмите «+» чтобы создать.
             </div>
-            <!-- Форма создания (скрыта) -->
             <div id="automation-form" style="display: none; flex-direction: column; gap: 12px; margin-top: 4px;">
                 
-                <!-- ⚡ ТИП АВТОМАТИЗАЦИИ (самый первый элемент) -->
                 <div class="settings-group-card" style="padding: 12px; display: flex; flex-direction: column; gap: 4px;">
                     <label for="auto-type" style="font-size: 11px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px;" data-i18n="modals.autoType">Тип автоматизации</label>
                     <select id="auto-type" class="setting-input custom-select-arrow">
@@ -1455,14 +1347,12 @@
                     </select>
                 </div>
 
-                <!-- Группа: Основные данные (имя + колонка) -->
                 <div id="auto-section-basic" class="settings-group-card" style="padding: 12px; display: flex; flex-direction: column; gap: 8px;">
                     <input type="text" id="auto-name" class="setting-input" style="font-size: 14px; font-weight: 600; padding: 10px 12px;" data-i18n="modals.autoNamePlaceholder" placeholder="Название автоматизации..." autocomplete="off" spellcheck="false">
                     <label for="auto-column" style="font-size: 11px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;" data-i18n="modals.autoColumn">Колонка</label>
                     <select id="auto-column" class="setting-input custom-select-arrow"></select>
                 </div>
 
-                <!-- recurring_card: Контент карточки -->
                 <div id="auto-section-recurring-card" class="settings-group-card" style="padding: 12px; display: flex; flex-direction: column; gap: 8px;">
                     <input type="text" id="auto-title-template" class="setting-input" data-i18n="modals.autoTitlePlaceholder" placeholder="Шаблон заголовка, например: Обзор {date}" autocomplete="off" spellcheck="false">
                     <textarea id="auto-desc-template" class="setting-input" data-i18n="modals.autoDescPlaceholder" placeholder="Шаблон описания (опционально)..." rows="3" style="resize: none; min-height: 60px;" autocomplete="off" spellcheck="false"></textarea>
@@ -1471,7 +1361,6 @@
                     </div>
                 </div>
 
-                <!-- sort_column: Параметры сортировки -->
                 <div id="auto-section-sort" class="settings-group-card" style="padding: 12px; display: none; flex-direction: column; gap: 8px;">
                     <div style="display: flex; gap: 8px; align-items: center;">
                         <label for="auto-sort-by" style="font-size: 12px; font-weight: 500; color: var(--text-secondary); flex: 0 0 auto;" data-i18n="modals.autoSortBy">Сортировать по:</label>
@@ -1495,7 +1384,6 @@
                     </div>
                 </div>
 
-                <!-- clear_column: Параметры очистки -->
                 <div id="auto-section-clear" class="settings-group-card" style="padding: 12px; display: none; flex-direction: column; gap: 8px;">
                     <div style="display: flex; align-items: center; padding: 4px 0;">
                         <div class="setting-text-box">
@@ -1514,7 +1402,6 @@
                     </div>
                 </div>
 
-                <!-- Расписание (для recurring_card и clear_column) -->
                 <div id="auto-section-schedule" class="settings-group-card" style="padding: 12px; display: flex; flex-direction: column; gap: 12px;">
                     <div style="font-size: 11px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;" data-i18n="modals.autoSchedule">Расписание</div>
                     <div style="display: flex; gap: 8px; align-items: center;">
@@ -1533,7 +1420,6 @@
                         </div>
                     </div>
                     
-                    <!-- Дни недели в виде Segmented Control -->
                     <div id="auto-weekdays" class="auto-weekdays-group" style="display: none;">
                         <span class="auto-wday-btn" data-day="0" data-i18n="cal.dayMon" tabindex="0" role="button">ПН</span>
                         <span class="auto-wday-btn" data-day="1" data-i18n="cal.dayTue" tabindex="0" role="button">ВТ</span>
@@ -1555,49 +1441,39 @@
                     <button class="confirm-btn vault-submit-btn" style="color: white;" id="btn-save-automation" data-i18n="modals.btnSave">Сохранить</button>
                 </div>
             </div>
-            <!-- Кнопка добавления -->
             <button id="btn-add-automation" class="confirm-btn cancel-btn" onclick="showAutomationForm()" style="width: 100%; font-size: 13px; padding: 8px;" data-i18n="modals.autoAddBtn">+ Новая автоматизация</button>
         </div>
     </div>
 </div>
 
-<!-- ☕️ МОДАЛКА DAILY JOURNAL (ЧАТ С AI) -->
 <div class="modal-overlay" id="ai-journal-modal" style="backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);">
     <div class="modal-card ai-journal-card" style="position: relative;">
-        <!-- ДОБАВЛЕН КРЕСТИК ЗАКРЫТИЯ -->
         <button class="modal-close" aria-label="Закрыть" style="position: absolute; top: 16px; right: 16px; z-index: 10;">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
         </button>
         
         <div class="ai-journal-body">
             
-            <!-- Логотип ИИ -->
             <div class="ai-journal-logo-container">
                 <img src="/ai-logo.png" alt="AI Logo" class="ai-journal-logo">
             </div>
 
-            <!-- История чата -->
             <div id="ai-chat-history" class="ai-chat-history">
-                <!-- Сообщения генерируются через JS -->
             </div>
 
-            <!-- Поле ввода -->
             <div class="ai-journal-input-wrapper">
                 <textarea id="ai-chat-input" class="ai-chat-input" data-i18n="ai.chatPlaceholder" placeholder="Расскажите, что тревожит или вдохновляет сегодня..." rows="1" spellcheck="false"></textarea>
                 <button id="ai-send-btn" class="ai-send-btn" data-i18n-aria="ai.sendAria" aria-label="Отправить">
-                    <!-- Send icon -->
                     <svg class="ai-icon-send" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <line x1="22" y1="2" x2="11" y2="13"></line>
                         <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
                     </svg>
-                    <!-- Stop icon (hidden by default) -->
                     <svg class="ai-icon-stop" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
                         <rect x="4" y="4" width="16" height="16" rx="3"></rect>
                     </svg>
                 </button>
             </div>
             
-            <!-- БЛОК С КНОПКАМИ УДАЛЕН ОТСЮДА -->
             
         </div>
     </div>
@@ -1607,6 +1483,5 @@
 <script src="static/marked.min.js"></script>
 <script src="/static/app.js?v=priority"></script>
 
-<!-- 🔐 МОДАЛКА НАСТРОЙКИ ШИФРОВАНИЯ -->
 </body>
 </html>
