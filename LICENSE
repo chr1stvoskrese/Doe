@@ -1,123 +1,57 @@
-# PolyForm Shield License 1.0.0
+Doe Source-Available License 1.0
+Copyright (c) 2026 chr1stvoskrese (the "Author")
 
-<https://polyformproject.org/licenses/shield/1.0.0>
+This is a proprietary, source-available license. The source code of Doe
+(the "Software") is made public for transparency and study only. It is NOT
+open source and NOT free software. All rights not expressly granted below are
+reserved by the Author.
 
-## Acceptance
+1. Grant of Limited Rights
+   Subject to full compliance with this license, the Author grants you a
+   personal, non-exclusive, non-transferable, revocable license to:
+   (a) view, read, and study the source code in this repository; and
+   (b) download and run the official, unmodified builds of the Software for
+       your own personal, non-commercial use.
 
-In order to get any license under these terms, you must agree
-to them as both strict obligations and conditions to all
-your licenses.
+2. Restrictions
+   You may NOT, in whole or in part:
+   (a) copy, reproduce, or republish the source code or the Software, except
+       as strictly necessary to exercise the rights granted in Section 1;
+   (b) modify, adapt, translate, or create derivative works of the Software;
+   (c) fork, redistribute, sublicense, sell, rent, lease, or otherwise make
+       the Software or its source code available to any third party;
+   (d) use the Software or any part of its source code for commercial purposes;
+   (e) use the Software, its source code, its design, or its ideas to build,
+       offer, or assist any product that is similar to or competes with the
+       Software or any product or service of the Author; or
+   (f) remove or alter any copyright, license, or attribution notices.
 
-## Copyright License
+3. Reservation of Rights
+   The Author retains all right, title, and interest in and to the Software,
+   including all intellectual property rights. The Author is not bound by this
+   license and may, at any time and without restriction: relicense the
+   Software, create closed-source or proprietary versions, and develop, sell,
+   or monetize additional features and services (for example, paid sync),
+   whether or not such features appear in this repository.
 
-The licensor grants you a copyright license for the
-software to do everything you might do with the software
-that would otherwise infringe the licensor's copyright
-in it for any permitted purpose, other than distributing
-the software or making changes or new works based on the software.
+4. No Contributions by Default
+   Unless separately agreed in writing with the Author, no one other than the
+   Author is permitted to contribute changes to the Software.
 
-## Patent License
+5. Termination
+   Any breach of this license automatically and immediately terminates all
+   rights granted to you. Upon termination you must stop using the Software and
+   destroy all copies in your possession.
 
-The licensor grants you a patent license for the software
-that covers patent claims the licensor can license, or
-becomes able to license, that you would infringe by using
-the software.
+6. No Warranty
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT.
 
-## Noncompete
+7. Limitation of Liability
+   IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER
+   LIABILITY ARISING FROM, OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR THE
+   USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-Any purpose is a permitted purpose, except for providing
-any product that competes with the software or any product
-the licensor or any of its affiliates provides using the
-software.
-
-## Competition
-
-Goods and services compete even when they provide functionality
-through different kinds of interfaces or for different technical
-platforms.  Applications can compete with services, services with
-applications, and each kind with itself, even when they're not
-the same.  Applications compete with each other, so long as
-they provide the same functionality or similar functionality.
-Add-ons and extensions can compete with applications.  Services
-can compete with add-ons.  Software can compete with services.
-
-## Fair Use
-
-You may have "fair use" rights for the software under the
-law. These terms do not limit them.
-
-## No Other Rights
-
-These terms do not allow you to sublicense or transfer any of
-your licenses to anyone else, or prevent the licensor from
-granting licenses to anyone else.  These terms do not imply
-any other licenses.
-
-## Patent Defense
-
-If you make any written claim that the software infringes or
-contributes to infringement of any patent, your patent license
-for the software granted under these terms ends immediately. If
-your company makes such a claim, your patent license ends
-immediately for work on behalf of your company.
-
-## Violations
-
-The first time you are found in violation of these terms, all
-your license rights for the software terminate immediately.
-
-## No Liability
-
-***As far as the law allows, the software comes as is, without
-any warranty or condition, and the licensor will not be liable
-to you for any damages arising out of these terms or the use
-or nature of the software, under any kind of legal claim.***
-
-## Definitions
-
-The **licensor** is the individual or entity offering these
-terms, and the **software** is the software the licensor makes
-available under these terms.
-
-**You** refers to the individual or entity agreeing to these terms.
-
-**Your company** is any legal entity, sole proprietorship,
-or other kind of organization that you work for, plus all
-other organizations that have control over, are under the
-control of, or are under common control with that organization.
-**Control** means ownership of substantially all the assets of
-an entity, or the power to direct its management and policies
-by vote, contract, or otherwise.  Control can be direct or indirect.
-
-**Your licenses** are all the licenses granted to you for the
-software under these terms.
-
-**Use** means anything you do with the software requiring one
-of your licenses.
-
----
-
-## Что это значит (кратко на русском)
-
-✅ **Можно:**
-- Использовать Doe для личных задач
-- Изучать код, учиться на нём
-- Устанавливать себе и своим знакомым бесплатно
-- Делать форки для некоммерческого использования
-
-❌ **Нельзя:**
-- Продавать Doe или его производные
-- Встраивать в коммерческий продукт / SaaS
-- Распространять как свой продукт
-- Создавать конкурирующий продукт на основе кода
-
-💼 **Автор (ты):**
-- Не связан этой лицензией
-- Может делать проприетарные версии
-- Может продавать коммерческие лицензии
-- Может монетизировать функции (например, облачную синхронизацию)
-
----
-
-© Vladimir, 2024–2026. All rights reserved for commercial use.
-For commercial licensing inquiries, contact the author.
+For any use not permitted above, including commercial licensing, contact the
+Author to obtain a separate written license.
