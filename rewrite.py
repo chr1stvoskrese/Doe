@@ -7,30 +7,49 @@ import tempfile
 import json
 import shlex
 
-def run_git(args, check=True):
-    result = subprocess.run(['git'] + args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+def run_git(args, check=True, exit_on_error=True):
+    result = subprocess.run(
+        ['git'] + args, 
+        capture_output=True, 
+        text=True, 
+        encoding='utf-8', 
+        errors='replace'
+    )
     if check and result.returncode != 0:
-        print(f"Git error: {result.stderr.strip()}")
-        sys.exit(1)
+        if exit_on_error:
+            print(f"Git error: {result.stderr.strip()}")
+            sys.exit(1)
+        return None
     return result.stdout.strip()
 
 def check_repo():
-    if subprocess.run(['git', 'rev-parse', '--is-inside-work-tree'], capture_output=True).returncode != 0:
+    if run_git(['rev-parse', '--is-inside-work-tree'], exit_on_error=False) is None:
         print("Ошибка: Ты не в Git-репозитории.")
         sys.exit(1)
-    status = run_git(['status', '--porcelain'])
+        
+    git_dir = run_git(['rev-parse', '--git-dir'])
+    if os.path.exists(os.path.join(git_dir, 'rebase-merge')) or os.path.exists(os.path.join(git_dir, 'rebase-apply')):
+        print("Ошибка: В репозитории уже запущен процесс rebase или merge.")
+        print("Заверши его (git rebase --continue) или отмени (git rebase --abort).")
+        sys.exit(1)
+
+    # Игнорируем untracked файлы, блокируем только если есть добавленные или измененные tracked файлы
+    status = run_git(['status', '--porcelain', '--untracked-files=no'])
     if status:
         print("Ошибка: У тебя есть незакоммиченные изменения. Сделай commit или stash перед переписыванием истории.")
         sys.exit(1)
 
 def get_commits():
-    log_output = run_git(['log', '--format=%H%x09%h%x09%an%x09%ae%x09%ad%x09%s', '--date=iso'])
+    log_output = run_git(['log', '--format=%H%x09%h%x09%an%x09%ae%x09%ad%x09%s', '--date=iso'], exit_on_error=False)
+    if log_output is None:
+        return []
+        
     commits = []
     for line in log_output.split('\n'):
         if not line:
             continue
-        parts = line.split('\t')
-        if len(parts) >= 6:
+        parts = line.split('\t', 5)
+        if len(parts) == 6:
             commits.append({
                 'hash': parts[0],
                 'short_hash': parts[1],
@@ -49,6 +68,12 @@ def draw_menu(stdscr, commits):
     while True:
         stdscr.clear()
         height, width = stdscr.getmaxyx()
+        
+        if height < 3 or width < 20:
+            stdscr.addstr(0, 0, "Окно слишком мало!")
+            stdscr.refresh()
+            stdscr.getch()
+            return None
         
         title = " Выбор коммита (Стрелки - навигация, Enter - выбор, Q - отмена) "
         stdscr.addstr(0, 0, title[:width], curses.A_BOLD)
@@ -70,7 +95,9 @@ def draw_menu(stdscr, commits):
         stdscr.refresh()
         key = stdscr.getch()
         
-        if key == curses.KEY_UP and current_row > 0:
+        if key == curses.KEY_RESIZE:
+            continue
+        elif key == curses.KEY_UP and current_row > 0:
             current_row -= 1
             if current_row < top_row:
                 top_row -= 1
@@ -83,22 +110,33 @@ def draw_menu(stdscr, commits):
         elif key in [ord('q'), ord('Q')]:
             return None
 
+def get_editor():
+    try:
+        return subprocess.run(['git', 'var', 'GIT_EDITOR'], capture_output=True, text=True, check=True).stdout.strip()
+    except subprocess.CalledProcessError:
+        return os.environ.get('EDITOR', 'vi')
+
 def edit_message(current_msg):
-    editor = os.environ.get('EDITOR', 'nano')
-    with tempfile.NamedTemporaryFile(suffix=".tmp", mode='w+', delete=False) as tf:
-        tf.write(current_msg)
-        tf.flush()
-        subprocess.run([editor, tf.name])
-        tf.seek(0)
-        new_msg = tf.read().strip()
-    os.unlink(tf.name)
+    editor = get_editor()
+    fd, temp_path = tempfile.mkstemp(suffix=".tmp")
+    
+    # Записываем и сразу закрываем дескриптор, чтобы редактор мог безопасно открыть файл
+    with os.fdopen(fd, 'w', encoding='utf-8') as f:
+        f.write(current_msg)
+        
+    subprocess.run(f"{editor} {shlex.quote(temp_path)}", shell=True)
+    
+    with open(temp_path, 'r', encoding='utf-8') as f:
+        new_msg = f.read().strip()
+        
+    os.unlink(temp_path)
     return new_msg
 
-def sequence_editor(todo_file, config_file):
-    with open(config_file, 'r') as f:
+def sequence_editor(config_file, todo_file):
+    with open(config_file, 'r', encoding='utf-8') as f:
         config = json.load(f)
     
-    with open(todo_file, 'r') as f:
+    with open(todo_file, 'r', encoding='utf-8') as f:
         lines = f.readlines()
 
     target_hash = config['short_hash']
@@ -106,18 +144,21 @@ def sequence_editor(todo_file, config_file):
     
     for line in lines:
         new_lines.append(line)
-        if line.startswith('pick ') or line.startswith('edit '):
-            if target_hash in line:
+        parts = line.strip().split()
+        
+        if len(parts) >= 2 and parts[0] in ('pick', 'p', 'edit', 'e', 'reword', 'r'):
+            todo_hash = parts[1]
+            if todo_hash.startswith(target_hash) or target_hash.startswith(todo_hash):
                 script_path = os.path.abspath(__file__)
-                exec_cmd = f"exec {sys.executable} {shlex.quote(script_path)} --amend-commit {shlex.quote(config_file)}\n"
+                exec_cmd = f"exec {shlex.quote(sys.executable)} {shlex.quote(script_path)} --amend-commit {shlex.quote(config_file)}\n"
                 new_lines.append(exec_cmd)
 
-    with open(todo_file, 'w') as f:
+    with open(todo_file, 'w', encoding='utf-8') as f:
         f.writelines(new_lines)
     sys.exit(0)
 
 def amend_commit(config_file):
-    with open(config_file, 'r') as f:
+    with open(config_file, 'r', encoding='utf-8') as f:
         config = json.load(f)
     
     env = os.environ.copy()
@@ -140,81 +181,94 @@ def main():
         amend_commit(sys.argv[2])
         return
 
-    check_repo()
-    commits = get_commits()
-    if not commits:
-        print("Коммиты не найдены.")
-        sys.exit(1)
+    msg_file = None
+    config_file = None
 
-    target_commit = curses.wrapper(draw_menu, commits)
-    if not target_commit:
-        print("Отменено.")
-        sys.exit(0)
-
-    print(f"Редактирование коммита: {target_commit['short_hash']}")
-    print("Оставь поле пустым и нажми Enter, чтобы не менять значение.\n")
-
-    new_author = input(f"Новый автор ({target_commit['author']}): ").strip() or target_commit['author']
-    new_email = input(f"Новый email ({target_commit['email']}): ").strip() or target_commit['email']
-    new_date = input(f"Новая дата ({target_commit['date']}): ").strip() or target_commit['date']
-
-    full_msg = run_git(['log', '-1', '--format=%B', target_commit['hash']])
-    print("\nСейчас откроется текстовый редактор для изменения сообщения коммита. Нажми Enter.")
-    input()
-    new_msg = edit_message(full_msg)
-
-    if not new_msg:
-        print("Сообщение не может быть пустым. Отмена.")
-        sys.exit(1)
-
-    print("\n" + "="*60)
-    print("ВНИМАНИЕ: Скрипт переписывает историю Git.")
-    print("Хэши измененного коммита и всех коммитов после него изменятся.")
-    print("Если ты уже пушил эти коммиты на удаленный сервер,")
-    print("после отработки скрипта тебе придется сделать: git push --force")
-    print("="*60)
-
-    confirm = input("\nНачать переписывание истории? [y/N]: ").strip().lower()
-    if confirm not in ['y', 'yes', 'д', 'да']:
-        print("Отмена.")
-        sys.exit(0)
-
-    fd, msg_file = tempfile.mkstemp()
-    with os.fdopen(fd, 'w') as f:
-        f.write(new_msg)
-
-    config = {
-        'hash': target_commit['hash'],
-        'short_hash': target_commit['short_hash'],
-        'author': new_author,
-        'email': new_email,
-        'date': new_date,
-        'msg_file': msg_file
-    }
-
-    fd, config_file = tempfile.mkstemp(suffix='.json')
-    with os.fdopen(fd, 'w') as f:
-        json.dump(config, f)
-
-    parents = run_git(['log', '-1', '--format=%P', target_commit['hash']]).split()
-    rebase_target = parents[0] if parents else '--root'
-
-    env = os.environ.copy()
-    script_path = os.path.abspath(__file__)
-    env['GIT_SEQUENCE_EDITOR'] = f"{sys.executable} {shlex.quote(script_path)} --sequence-editor {shlex.quote(todo_file_placeholder='TODO_FILE')} {shlex.quote(config_file)}".replace("'TODO_FILE'", "$1")
-    
-    print("\nЗапуск rebase...")
-    rebase_cmd = ['git', 'rebase', '-i', rebase_target]
-    
     try:
-        subprocess.run(rebase_cmd, env=env, check=True)
-        print("\nУспешно. История изменена.")
-        print("Напоминание: используй 'git push --force', если коммиты уже были на удаленном сервере.")
-    except subprocess.CalledProcessError:
-        print("\nОшибка при выполнении rebase. Сделай 'git rebase --abort'.")
+        check_repo()
+        commits = get_commits()
+        if not commits:
+            print("История пуста. Коммиты не найдены.")
+            sys.exit(1)
+
+        target_commit = curses.wrapper(draw_menu, commits)
+        if not target_commit:
+            print("Отменено.")
+            sys.exit(0)
+
+        print(f"Редактирование коммита: {target_commit['short_hash']}")
+        print("Оставь поле пустым и нажми Enter, чтобы не менять значение.\n")
+
+        new_author = input(f"Новый автор ({target_commit['author']}): ").strip() or target_commit['author']
+        new_email = input(f"Новый email ({target_commit['email']}): ").strip() or target_commit['email']
+        new_date = input(f"Новая дата ({target_commit['date']}): ").strip() or target_commit['date']
+
+        full_msg = run_git(['log', '-1', '--format=%B', target_commit['hash']])
+        print("\nСейчас откроется текстовый редактор для изменения сообщения коммита. Нажми Enter.")
+        input()
+        new_msg = edit_message(full_msg)
+
+        if not new_msg:
+            print("Сообщение не может быть пустым. Отмена.")
+            sys.exit(1)
+
+        print("\n" + "="*60)
+        print("ВНИМАНИЕ: Скрипт переписывает историю Git.")
+        print("Хэши измененного коммита и всех коммитов после него изменятся.")
+        print("Если ты уже пушил эти коммиты на удаленный сервер,")
+        print("после отработки скрипта тебе придется сделать: git push --force")
+        print("="*60)
+
+        confirm = input("\nНачать переписывание истории? [y/N]: ").strip().lower()
+        if confirm not in ['y', 'yes', 'д', 'да']:
+            print("Отмена.")
+            sys.exit(0)
+
+        # Безопасно получаем дескриптор и путь, оборачивая в fdopen
+        fd_msg, msg_file = tempfile.mkstemp()
+        with os.fdopen(fd_msg, 'w', encoding='utf-8') as f:
+            f.write(new_msg)
+
+        config = {
+            'hash': target_commit['hash'],
+            'short_hash': target_commit['short_hash'],
+            'author': new_author,
+            'email': new_email,
+            'date': new_date,
+            'msg_file': msg_file
+        }
+
+        fd_conf, config_file = tempfile.mkstemp(suffix='.json')
+        with os.fdopen(fd_conf, 'w', encoding='utf-8') as f:
+            json.dump(config, f, ensure_ascii=False)
+
+        parents = run_git(['log', '-1', '--format=%P', target_commit['hash']]).split()
+        rebase_target = parents[0] if parents else '--root'
+
+        env = os.environ.copy()
+        script_path = os.path.abspath(__file__)
+        
+        env['GIT_SEQUENCE_EDITOR'] = f"{shlex.quote(sys.executable)} {shlex.quote(script_path)} --sequence-editor {shlex.quote(config_file)}"
+        
+        print("\nЗапуск rebase...")
+        rebase_cmd = ['git', 'rebase', '-i', rebase_target]
+        
+        try:
+            subprocess.run(rebase_cmd, env=env, check=True)
+            print("\nУспешно. История изменена.")
+            print("Напоминание: используй 'git push --force', если коммиты уже были на удаленном сервере.")
+        except subprocess.CalledProcessError:
+            print("\nОшибка при выполнении rebase. Выполни 'git rebase --abort' для отмены.")
+            
+    except KeyboardInterrupt:
+        print("\nОтмена пользователем.")
+        sys.exit(0)
     finally:
-        os.remove(msg_file)
-        os.remove(config_file)
+        # Гарантированно убираем за собой файлы, даже если вылет произошел в середине процесса
+        if msg_file and os.path.exists(msg_file):
+            os.remove(msg_file)
+        if config_file and os.path.exists(config_file):
+            os.remove(config_file)
 
 if __name__ == '__main__':
     main()
