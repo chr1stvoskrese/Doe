@@ -218,6 +218,15 @@
             </svg>
         </button>
 
+        <button class="icon-btn" id="memory-trigger" aria-label="Запоминание">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 5a3 3 0 0 0-5.997.142 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"></path>
+                <path d="M12 5a3 3 0 0 1 5.997.142 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"></path>
+                <path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"></path>
+            </svg>
+            <span class="bell-badge" id="memory-badge" style="display: none;"></span>
+        </button>
+
         <div class="search-wrapper" id="global-search-wrapper">
             <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
             <input type="text" id="global-search-input" class="search-input" data-i18n="searchPlaceholder" placeholder="Поиск..." autocomplete="off" spellcheck="false">
@@ -555,6 +564,15 @@
                 <div id="subtasks-list" class="subtasks-list">
                 </div>
                 <div id="subtask-form-container" class="subtask-add-wrapper">
+                </div>
+            </div>
+
+            <div class="subtasks-section memory-card-section" id="memory-card-section" style="display: none;">
+                <div class="subtasks-header">
+                    <span>🧠 <span data-i18n="modals.extMemory">Запоминание</span></span>
+                    <span class="subtasks-count" id="memory-items-count">0</span>
+                </div>
+                <div id="memory-items-list" class="subtasks-list memory-items-list">
                 </div>
             </div>
         </div>
@@ -1011,6 +1029,20 @@
                         <input type="checkbox" id="ext-toggle-statistics" onchange="toggleExtension('statistics', this.checked)">
                         <span class="toggle-slider"></span>
                     </label>
+                </div>
+
+                <div class="setting-row" style="cursor: default;">
+                    <div class="setting-text-box">
+                        <div class="setting-title" data-i18n="modals.extMemory">Запоминание</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="ext-toggle-memory" onchange="toggleExtension('memory', this.checked)">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div class="setting-row" id="memory-settings-row" style="display: none; justify-content: center; background: transparent; border: none;">
+                    <button class="confirm-btn cancel-btn" onclick="window.DoeMemory && DoeMemory.openSettings()" style="font-size: 12px; padding: 6px 12px;">🧠 Настройки запоминания</button>
                 </div>
 
                 <div class="setting-row" id="ai-settings-row" style="display: none; justify-content: center; background: transparent; border: none;">

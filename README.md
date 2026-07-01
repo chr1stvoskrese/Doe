@@ -107,12 +107,17 @@ pip install -r requirements.txt
 python wrapper.py
 ```
 
-### Сборка в .app
+### Сборка
+
+Единый кросс-платформенный сборщик с интерактивным меню (работает и на macOS, и на Windows):
 
 ```bash
-bash build_mac.sh
-# Готовое приложение: dist/Doe.app
+python build.py
 ```
+
+Скрипт сам определит систему и предложит цели: Apple Silicon (с ИИ), Intel (без ИИ, для старых маков) или обе сразу. Intel-окружение создаётся автоматически. Результат: `dist/Doe.app` (arm64) и/или `dist-intel/Doe.app` (Intel).
+
+Без меню (для CI): `python build.py --target arm64|intel|both|windows`.
 
 ### Windows
 
@@ -129,8 +134,8 @@ pip install -r requirements.txt
 :: 3. Запуск
 python wrapper.py
 
-:: 4. Сборка
-build_win.bat
+:: 4. Сборка (.exe)
+python build.py
 ```
 
 > **Примечание:** AI-ассистент (llama-cpp) работает только на macOS arm64 с Apple Silicon.

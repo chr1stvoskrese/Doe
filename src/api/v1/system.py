@@ -454,6 +454,7 @@ class SettingsUpdate(BaseModel):
     ui_font: Optional[str] = None
     extensions: Optional[dict] = None
     priority_settings: Optional[dict] = None
+    memory_settings: Optional[dict] = None
     tabs_hidden: Optional[bool] = None
     hb_index: Optional[int] = None
 
@@ -466,6 +467,7 @@ class SettingsResponse(BaseModel):
     ui_font: Optional[str] = ""
     extensions: Optional[dict] = None
     priority_settings: Optional[dict] = None
+    memory_settings: Optional[dict] = None
     tabs_hidden: Optional[bool] = False
     hb_index: Optional[int] = 999
 
@@ -578,6 +580,7 @@ async def update_settings_endpoint(settings: SettingsUpdate, db: AsyncSession = 
         ui_font=settings.ui_font,
         extensions=settings.extensions,
         priority_settings=settings.priority_settings,
+        memory_settings=settings.memory_settings,
         tabs_hidden=settings.tabs_hidden,
         hb_index=settings.hb_index
     )

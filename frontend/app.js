@@ -117,6 +117,7 @@ const translations = {
             autoOrdinal: (n) => `${n}-е`,
             btnSave: 'Сохранить', btnCreate: 'Создать',
             extAutomations: 'Автоматизации',
+            extMemory: 'Запоминание',
         },
         copyLink: 'Копировать ссылку',
         detachSubtask: 'Отвязать от чек-листа (сделать независимой)',
@@ -338,6 +339,7 @@ const translations = {
             autoOrdinal: (n) => { const v = n % 100; if (v >= 11 && v <= 13) return 'th'; return ['th','st','nd','rd'][n % 10] || 'th'; },
             btnSave: 'Save', btnCreate: 'Create',
             extAutomations: 'Automations',
+            extMemory: 'Memory',
         },
         columnModes: { default: 'Standard', track_time: 'Track time', completion: 'Completed' },
         defaultWorkspace: 'Main Board',
@@ -566,8 +568,9 @@ window.resetCustomFont = async () => {
 };
 
 window.applyExtensionsUI = (exts) => {
-    if (!exts) exts = { search: true, calendar: true, reminders: true, graph: true, tabs: true, deadlines: true, export: true, priority: true, ai: true, automations: true, statistics: true };
-    
+    if (!exts) exts = { search: true, calendar: true, reminders: true, graph: true, tabs: true, deadlines: true, export: true, priority: true, ai: true, automations: true, statistics: true, memory: true };
+    if (exts.memory === undefined) exts.memory = true;
+
     document.body.classList.toggle('ext-deadlines-hidden', !exts.deadlines);
     document.body.classList.toggle('ext-export-hidden', !exts.export);
     document.body.classList.toggle('ext-priority-hidden', !exts.priority);
@@ -591,6 +594,15 @@ window.applyExtensionsUI = (exts) => {
 
     const automationsBtn = document.getElementById('automations-trigger');
     if (automationsBtn) automationsBtn.style.display = exts.automations ? '' : 'none';
+
+    document.body.classList.toggle('ext-memory-hidden', !exts.memory);
+    const memoryBtn = document.getElementById('memory-trigger');
+    if (memoryBtn) memoryBtn.style.display = exts.memory ? '' : 'none';
+    const memorySettingsRow = document.getElementById('memory-settings-row');
+    if (memorySettingsRow) memorySettingsRow.style.display = exts.memory ? 'flex' : 'none';
+    const tMemory = document.getElementById('ext-toggle-memory');
+    if (tMemory) tMemory.checked = exts.memory;
+    if (window.DoeMemory) window.DoeMemory.setEnabled(exts.memory);
 
     const notifyMenuItem = document.querySelector('.menu-item[data-action="notify-card"]');
     if (notifyMenuItem) {
@@ -5875,6 +5887,7 @@ async function loadTaskIntoModal(taskId, pushToStack = true, highlightQuery = nu
 
         modal.dataset.taskId = task.id;
         modal.dataset.columnId = task.column_id;
+        if (window.DoeMemory) window.DoeMemory.onCardOpen(task);
         titleEl.innerHTML = renderInlineMarkdown(task.title);
         titleEl.dataset.rawTitle = task.title;
         
@@ -8114,11 +8127,12 @@ function initTaskModalDragAndResize() {
         const resizer = e.target.closest('.resizer');
         
         const isInteractive = e.target.closest(
-            'button, input, textarea, a, ' + 
-            '.markdown-body, .description-wrapper, ' + 
-            '.subtask-item, .attachment-item, ' +      
+            'button, input, textarea, a, ' +
+            '.markdown-body, .description-wrapper, ' +
+            '.subtask-item, .attachment-item, ' +
             '.breadcrumb-item, .modal-timer-pill, ' +
-            '.due-date-pill'
+            '.due-date-pill, ' +
+            '.memory-card-section, .toggle-switch'
         );
 
         const isScrollbarClick = (e.target.clientWidth > 0 && e.offsetX > e.target.clientWidth) || 
@@ -13923,4 +13937,548 @@ async function applyColumnSort(columnId, criteria, dir) {
         }
     }, true);
 
+})();
+
+/* ============================================================
+   DoeMemory — интервальное повторение (spaced repetition)
+   ============================================================ */
+(function () {
+    const L = (ru, en) => (typeof currentLang !== 'undefined' && currentLang === 'en' ? en : ru);
+    const BASE = (typeof API_BASE !== 'undefined') ? API_BASE : '/api/v1';
+    const toast = (t, m, e) => { if (window.showToast) window.showToast(t, m, e); };
+
+    const M = {
+        enabled: true,
+        settings: null,
+        poller: null,
+        queue: [],
+        qIndex: 0,
+        revealed: false,
+    };
+
+    async function api(path, opts) {
+        const res = await fetch(`${BASE}${path}`, opts);
+        if (!res.ok) {
+            let detail = res.statusText;
+            try { detail = (await res.json()).detail || detail; } catch (e) {}
+            throw new Error(detail);
+        }
+        if (res.status === 204) return null;
+        return res.json();
+    }
+    const jpost = (path, body) => api(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) });
+
+    function escapeHtml(s) {
+        return (s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    function fmtDue(iso) {
+        if (!iso) return '';
+        const due = new Date(iso.replace('Z', '')); // backend uses naive UTC + 'Z'
+        const now = new Date();
+        let diff = (due.getTime() - now.getTime()) / 1000; // sec
+        const past = diff < 0;
+        diff = Math.abs(diff);
+        let txt;
+        if (diff < 60) txt = L('меньше минуты', '< 1 min');
+        else if (diff < 3600) txt = `${Math.round(diff / 60)} ${L('мин', 'min')}`;
+        else if (diff < 86400) txt = `${Math.round(diff / 3600)} ${L('ч', 'h')}`;
+        else if (diff < 86400 * 30) txt = `${Math.round(diff / 86400)} ${L('дн', 'd')}`;
+        else if (diff < 86400 * 365) txt = `${Math.round(diff / 86400 / 30)} ${L('мес', 'mo')}`;
+        else txt = `${(diff / 86400 / 365).toFixed(1)} ${L('г', 'y')}`;
+        if (past) return L('пора', 'due');
+        return L('через ', 'in ') + txt;
+    }
+
+    // ---------- инъекция модалок ----------
+    function ensureModals() {
+        if (document.getElementById('memory-hub-modal')) return;
+        const wrap = document.createElement('div');
+        wrap.innerHTML = `
+        <div class="modal-overlay" id="memory-hub-modal">
+          <div class="modal-card" style="width:340px;">
+            <div class="modal-header">
+              <span class="modal-title">🧠 ${L('Запоминание', 'Memory')}</span>
+              <button class="modal-close" data-mem-close="memory-hub-modal" aria-label="Закрыть">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              </button>
+            </div>
+            <div class="modal-body" style="padding:16px; gap:14px;">
+              <div class="mem-hub-stats" id="mem-hub-stats"></div>
+              <button class="confirm-btn vault-submit-btn" id="mem-hub-start" style="color:#fff;">${L('Начать повторение', 'Start review')}</button>
+              <button class="confirm-btn cancel-btn" id="mem-hub-settings">${L('Настройки запоминания', 'Memory settings')}</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-overlay" id="memory-settings-modal">
+          <div class="modal-card" style="width:360px;">
+            <div class="modal-header">
+              <span class="modal-title">${L('Настройки запоминания', 'Memory settings')}</span>
+              <button class="modal-close" data-mem-close="memory-settings-modal" aria-label="Закрыть">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              </button>
+            </div>
+            <div class="modal-body" style="padding:16px; gap:14px;">
+              <div class="mem-field">
+                <label>${L('Шаги обучения (минуты, через запятую)', 'Learning steps (minutes, comma-separated)')}</label>
+                <input type="text" id="mem-set-steps" class="setting-input" placeholder="10, 60, 540">
+              </div>
+              <div class="mem-field-row">
+                <div class="mem-field"><label>${L('Старт. интервал (дни)', 'Graduating (days)')}</label><input type="number" min="0.1" step="0.1" id="mem-set-grad" class="setting-input"></div>
+                <div class="mem-field"><label>${L('«Легко» (дни)', 'Easy (days)')}</label><input type="number" min="0.1" step="0.1" id="mem-set-easy" class="setting-input"></div>
+              </div>
+              <div class="mem-toggle-row"><span>${L('Всплывать на доске', 'Surface on board')}</span>
+                <label class="toggle-switch"><input type="checkbox" id="mem-set-surface"><span class="toggle-slider"></span></label></div>
+              <div class="mem-toggle-row"><span>${L('Системные уведомления', 'System notifications')}</span>
+                <label class="toggle-switch"><input type="checkbox" id="mem-set-osnotif"><span class="toggle-slider"></span></label></div>
+              <div class="confirm-actions" style="padding:0;">
+                <button class="confirm-btn cancel-btn" data-mem-close="memory-settings-modal">${L('Отмена', 'Cancel')}</button>
+                <button class="confirm-btn vault-submit-btn" id="mem-set-save" style="color:#fff;">${L('Сохранить', 'Save')}</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-overlay" id="memory-review-modal">
+          <div class="modal-card mem-review-card" style="width:480px; max-width:92vw;">
+            <div class="modal-header">
+              <span class="modal-title" id="mem-review-progress">${L('Повторение', 'Review')}</span>
+              <button class="modal-close" data-mem-close="memory-review-modal" aria-label="Закрыть">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              </button>
+            </div>
+            <div class="modal-body" style="padding:18px; gap:14px;">
+              <div class="mem-review-title" id="mem-review-title"></div>
+              <div class="mem-review-prompt" id="mem-review-prompt">${L('Вспомни содержимое, затем покажи ответ.', 'Recall it, then reveal the answer.')}</div>
+              <div class="mem-review-answer" id="mem-review-answer" style="display:none;"></div>
+              <button class="confirm-btn vault-submit-btn" id="mem-review-reveal" style="color:#fff;">${L('Показать ответ', 'Show answer')}</button>
+              <div class="mem-grade-row" id="mem-grade-row" style="display:none;">
+                <button class="mem-grade-btn g-again" data-grade="1"><b>${L('Забыл', 'Again')}</b><small data-g="again"></small></button>
+                <button class="mem-grade-btn g-hard"  data-grade="2"><b>${L('Трудно', 'Hard')}</b><small data-g="hard"></small></button>
+                <button class="mem-grade-btn g-good"  data-grade="3"><b>${L('Хорошо', 'Good')}</b><small data-g="good"></small></button>
+                <button class="mem-grade-btn g-easy"  data-grade="4"><b>${L('Легко', 'Easy')}</b><small data-g="easy"></small></button>
+              </div>
+              <button class="mem-open-card" id="mem-review-open">${L('Открыть карточку', 'Open card')}</button>
+            </div>
+          </div>
+        </div>`;
+        document.body.appendChild(wrap);
+
+        // закрытия
+        wrap.querySelectorAll('[data-mem-close]').forEach(b =>
+            b.addEventListener('click', () => closeModal(b.getAttribute('data-mem-close'))));
+        wrap.querySelectorAll('.modal-overlay').forEach(ov =>
+            ov.addEventListener('click', e => { if (e.target === ov) closeModal(ov.id); }));
+
+        document.getElementById('mem-hub-start').addEventListener('click', () => { closeModal('memory-hub-modal'); startReview(); });
+        document.getElementById('mem-hub-settings').addEventListener('click', () => { closeModal('memory-hub-modal'); openSettings(); });
+        document.getElementById('mem-set-save').addEventListener('click', saveSettings);
+        document.getElementById('mem-review-reveal').addEventListener('click', reveal);
+        document.getElementById('mem-review-open').addEventListener('click', openCurrentCard);
+        document.querySelectorAll('.mem-grade-btn').forEach(b =>
+            b.addEventListener('click', () => gradeCurrent(parseInt(b.getAttribute('data-grade'), 10))));
+    }
+
+    const openModal = id => { ensureModals(); document.getElementById(id).classList.add('show'); };
+    const closeModal = id => { const el = document.getElementById(id); if (el) el.classList.remove('show'); };
+
+    // ---------- настройки ----------
+    async function loadSettings() {
+        try {
+            const s = await api('/system/settings?t=' + Date.now());
+            M.settings = s.memory_settings || {};
+        } catch (e) { M.settings = {}; }
+        return M.settings;
+    }
+
+    async function openSettings() {
+        ensureModals();
+        await loadSettings();
+        const s = M.settings || {};
+        document.getElementById('mem-set-steps').value = (s.learning_steps_min || [10, 60, 540]).join(', ');
+        document.getElementById('mem-set-grad').value = s.graduating_interval_days ?? 1;
+        document.getElementById('mem-set-easy').value = s.easy_interval_days ?? 4;
+        document.getElementById('mem-set-surface').checked = s.surface_on_board !== false;
+        document.getElementById('mem-set-osnotif').checked = s.os_notification !== false;
+        openModal('memory-settings-modal');
+    }
+
+    async function saveSettings() {
+        const steps = document.getElementById('mem-set-steps').value
+            .split(',').map(x => parseFloat(x.trim())).filter(x => !isNaN(x) && x > 0);
+        const payload = {
+            memory_settings: {
+                learning_steps_min: steps.length ? steps : [10, 60, 540],
+                graduating_interval_days: parseFloat(document.getElementById('mem-set-grad').value) || 1,
+                easy_interval_days: parseFloat(document.getElementById('mem-set-easy').value) || 4,
+                surface_on_board: document.getElementById('mem-set-surface').checked,
+                os_notification: document.getElementById('mem-set-osnotif').checked,
+            }
+        };
+        try {
+            await api('/system/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            M.settings = payload.memory_settings;
+            closeModal('memory-settings-modal');
+            toast(L('Сохранено', 'Saved'), L('Настройки запоминания обновлены', 'Memory settings updated'));
+        } catch (e) {
+            toast(L('Ошибка', 'Error'), e.message, true);
+        }
+    }
+
+    // ---------- секция в карточке ----------
+    async function onCardOpen(task) {
+        const section = document.getElementById('memory-card-section');
+        if (!section) return;
+        if (!M.enabled) { section.style.display = 'none'; return; }
+        section.style.display = '';
+        section.dataset.taskId = task.id;
+        await renderCardSection(task.id);
+    }
+
+    async function renderCardSection(taskId) {
+        const list = document.getElementById('memory-items-list');
+        const countEl = document.getElementById('memory-items-count');
+        if (!list) return;
+        let items = [];
+        try { items = (await api('/memory/cards/' + taskId)).items || []; } catch (e) {}
+        if (countEl) countEl.textContent = items.length;
+
+        const whole = items.find(i => !i.fragment_text);
+        const frags = items.filter(i => i.fragment_text);
+
+        let html = `
+          <div class="mem-row">
+            <span class="mem-row-label">${L('Запоминать всю карточку', 'Memorize whole card')}</span>
+            <label class="toggle-switch mem-whole-switch"><input type="checkbox" id="mem-whole-toggle" ${whole ? 'checked' : ''} tabindex="-1"><span class="toggle-slider"></span></label>
+          </div>`;
+        if (frags.length) {
+            html += '<div class="mem-frag-list">' + frags.map(f => `
+              <div class="mem-frag">
+                <span class="mem-frag-text">«${escapeHtml((f.fragment_text || '').slice(0, 120))}${(f.fragment_text || '').length > 120 ? '…' : ''}»</span>
+                <span class="mem-frag-meta">${f.state === 'learning' ? L('обучение', 'learning') : L('повтор', 'review')} · ${fmtDue(f.due_at)}</span>
+                <button class="mem-frag-del" data-id="${f.id}" title="${L('Удалить', 'Delete')}">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+              </div>`).join('') + '</div>';
+        }
+        html += `<div class="mem-hint">${L('Выдели текст в заголовке или описании — рядом появится кнопка «Запомнить».', 'Select text in the title or description — a “Memorize” button will appear.')}</div>`;
+        list.innerHTML = html;
+
+        // Переключаем явно через JS: нативный default-action чекбокса в модалке
+        // карточки гасится делегированными preventDefault-обработчиками.
+        const toggleLabel = list.querySelector('.mem-whole-switch');
+        if (toggleLabel) toggleLabel.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const wt = document.getElementById('mem-whole-toggle');
+            const desired = !whole;            // целевое состояние (не зависим от checkbox.checked)
+            if (wt) wt.checked = desired;       // мгновенный визуальный отклик
+            toggleWholeCard(taskId, desired, whole);
+        });
+        list.querySelectorAll('.mem-frag-del').forEach(b =>
+            b.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); deleteItem(parseInt(b.getAttribute('data-id'), 10), taskId); }));
+    }
+
+    async function toggleWholeCard(taskId, on, wholeItem) {
+        try {
+            if (on && !wholeItem) await jpost('/memory/cards/' + taskId, { fragment_text: null });
+            else if (!on && wholeItem) await api('/memory/items/' + wholeItem.id, { method: 'DELETE' });
+            await renderCardSection(taskId);
+            pollDue();
+        } catch (e) { toast(L('Ошибка', 'Error'), e.message, true); }
+    }
+
+    async function addFragment(text) {
+        const section = document.getElementById('memory-card-section');
+        const taskId = section && section.dataset.taskId;
+        if (!taskId || !text) return;
+        try {
+            await jpost('/memory/cards/' + taskId, { fragment_text: text });
+            await renderCardSection(parseInt(taskId, 10));
+            pollDue();
+            toast(L('Добавлено', 'Added'), L('Фрагмент поставлен на запоминание.', 'Fragment scheduled for memory.'));
+        } catch (e) { toast(L('Ошибка', 'Error'), e.message, true); }
+    }
+
+    // --- всплывающая кнопка «Запомнить» у выделения текста ---
+    function ensureSelBtn() {
+        if (M.selBtn) return M.selBtn;
+        const b = document.createElement('button');
+        b.className = 'mem-select-btn';
+        b.type = 'button';
+        b.innerHTML = `<span class="mem-select-ic">🧠</span><span>${L('Запомнить', 'Memorize')}</span>`;
+        b.style.display = 'none';
+        b.addEventListener('mousedown', (e) => { e.preventDefault(); e.stopPropagation(); });
+        b.addEventListener('click', (e) => {
+            e.preventDefault(); e.stopPropagation();
+            const text = M.pendingSel;
+            hideSelBtn();
+            try { window.getSelection().removeAllRanges(); } catch (e2) {}
+            if (text) addFragment(text);
+        });
+        document.body.appendChild(b);
+        M.selBtn = b;
+        return b;
+    }
+
+    function hideSelBtn() {
+        if (M.selBtn) M.selBtn.style.display = 'none';
+        M.pendingSel = null;
+    }
+
+    function showSelBtn(rect, text) {
+        const b = ensureSelBtn();
+        M.pendingSel = text;
+        b.style.display = 'inline-flex';
+        const bw = b.offsetWidth || 120, bh = b.offsetHeight || 32;
+        let left = rect.left + rect.width / 2 - bw / 2;
+        let top = rect.top - bh - 8;
+        if (top < 8) top = rect.bottom + 8;
+        left = Math.max(8, Math.min(left, window.innerWidth - bw - 8));
+        b.style.left = Math.round(left) + 'px';
+        b.style.top = Math.round(top) + 'px';
+    }
+
+    function selectionWithinCard() {
+        if (!M.enabled) return null;
+        const modal = document.getElementById('task-modal');
+        if (!modal || !modal.classList.contains('show')) return null;
+        const section = document.getElementById('memory-card-section');
+        if (!section || section.style.display === 'none' || !section.dataset.taskId) return null;
+
+        const sel = window.getSelection && window.getSelection();
+        if (!sel || sel.isCollapsed || !sel.rangeCount) return null;
+        const range = sel.getRangeAt(0);
+        const node = range.commonAncestorContainer;
+        const host = (node.nodeType === 3 ? node.parentElement : node);
+        if (!host || !host.closest || !host.closest('#task-desc-render, #task-modal-title')) return null;
+        const text = sel.toString().trim();
+        if (text.length < 1 || text.length > 1000) return null;
+        const rect = range.getBoundingClientRect();
+        if (!rect || (rect.width === 0 && rect.height === 0)) return null;
+        return { text, rect };
+    }
+
+    function onSelectionChange() {
+        const r = selectionWithinCard();
+        if (r) showSelBtn(r.rect, r.text);
+        else hideSelBtn();
+    }
+
+    async function deleteItem(itemId, taskId) {
+        try { await api('/memory/items/' + itemId, { method: 'DELETE' }); await renderCardSection(taskId); pollDue(); }
+        catch (e) { toast(L('Ошибка', 'Error'), e.message, true); }
+    }
+
+    // ---------- повторение ----------
+    async function startReview() {
+        let due = [];
+        try { due = (await api('/memory/due?limit=100')).items || []; } catch (e) {}
+        if (!due.length) { toast(L('Нечего повторять', 'Nothing to review'), L('Сейчас нет карточек к повторению.', 'No cards are due right now.')); return; }
+        M.queue = due; M.qIndex = 0;
+        openModal('memory-review-modal');
+        showCurrent();
+    }
+
+    // --- рендер Markdown (как в самой карточке) ---
+    function mdInline(t) {
+        try { return (typeof renderInlineMarkdown === 'function') ? renderInlineMarkdown(t || '') : escapeHtml(t || ''); }
+        catch (e) { return escapeHtml(t || ''); }
+    }
+    function mdBlock(t) {
+        try { return (typeof parseMarkdownWithMath === 'function') ? parseMarkdownWithMath(t || '') : escapeHtml(t || '').replace(/\n/g, '<br>'); }
+        catch (e) { return escapeHtml(t || '').replace(/\n/g, '<br>'); }
+    }
+    function enhance(el) { try { if (el && typeof enhanceCodeBlocks === 'function') enhanceCodeBlocks(el); } catch (e) {} }
+
+    // cloze через текстовые токены: переживают и Markdown-рендер, и экранирование HTML
+    const TOK = { blank: 'ZZMEMBLANKZZ', start: 'ZZMEMSTARTZZ', end: 'ZZMEMENDZZ' };
+    function injectToken(raw, frag, reveal) {
+        const idx = (raw || '').indexOf(frag);
+        if (idx === -1) return { raw, hit: false };
+        const mid = reveal ? (TOK.start + frag + TOK.end) : TOK.blank;
+        return { raw: raw.slice(0, idx) + mid + raw.slice(idx + frag.length), hit: true };
+    }
+    function postCloze(html) {
+        return html
+            .split(TOK.blank).join('<span class="mem-cloze">' + '·'.repeat(6) + '</span>')
+            .split(TOK.start).join('<mark class="mem-hl">')
+            .split(TOK.end).join('</mark>');
+    }
+
+    // Собирает HTML карточки (заголовок + описание). fragment!=null → cloze/reveal.
+    function renderCard(title, desc, fragment, reveal) {
+        let t = title || '', d = desc || '';
+        if (fragment) {
+            const it = injectToken(t, fragment, reveal);
+            if (it.hit) t = it.raw;
+            else { const id = injectToken(d, fragment, reveal); if (id.hit) d = id.raw; }
+        }
+        let html = '';
+        if (t && t.trim()) html += `<div class="mem-card-title">${postCloze(mdInline(t))}</div>`;
+        if (d && d.trim()) html += `<div class="mem-card-desc markdown-body">${postCloze(mdBlock(d))}</div>`;
+        if (!html) html = `<div class="mem-card-desc"><i>${L('(пустая карточка)', '(empty card)')}</i></div>`;
+        return html;
+    }
+
+    async function showCurrent() {
+        M.revealed = false;
+        const item = M.queue[M.qIndex];
+        if (!item) { finishReview(); return; }
+        document.getElementById('mem-review-progress').textContent =
+            `${L('Повторение', 'Review')} • ${M.qIndex + 1}/${M.queue.length}`;
+
+        const cueEl = document.getElementById('mem-review-title');
+        const promptEl = document.getElementById('mem-review-prompt');
+        const ansEl = document.getElementById('mem-review-answer');
+        const revealBtn = document.getElementById('mem-review-reveal');
+        const gradeRow = document.getElementById('mem-grade-row');
+        const title = item.task_title || '';
+        const desc = item.task_description || '';
+        const hasDesc = !!(desc && desc.trim());
+        let hasAnswer = true;
+
+        if (item.fragment_text) {
+            // фрагмент = cloze: прячем выделенный кусок (в заголовке или описании)
+            cueEl.innerHTML = renderCard(title, desc, item.fragment_text, false);
+            promptEl.textContent = L('Вспомни скрытый фрагмент, затем покажи ответ.', 'Recall the hidden part, then reveal.');
+            ansEl.innerHTML = renderCard(title, desc, item.fragment_text, true);
+        } else if (hasDesc) {
+            // вся карточка = флэш-карта: заголовок (лицо) → описание (ответ)
+            cueEl.innerHTML = `<div class="mem-card-title">${mdInline(title) || '<i>' + L('(без названия)', '(untitled)') + '</i>'}</div>`;
+            promptEl.textContent = L('Вспомни, что внутри, затем покажи ответ.', 'Recall the contents, then reveal.');
+            ansEl.innerHTML = `<div class="mem-card-desc markdown-body">${mdBlock(desc)}</div>`;
+        } else {
+            // нет описания → узнавание: показываем заголовок и сразу оценку
+            cueEl.innerHTML = `<div class="mem-card-title">${mdInline(title) || '<i>' + L('(без названия)', '(untitled)') + '</i>'}</div>`;
+            promptEl.textContent = L('Помнишь эту карточку?', 'Do you remember this card?');
+            ansEl.innerHTML = '';
+            hasAnswer = false;
+        }
+        enhance(cueEl); enhance(ansEl);
+
+        ansEl.style.display = 'none';
+        promptEl.style.display = '';
+        revealBtn.style.display = hasAnswer ? '' : 'none';
+        gradeRow.style.display = hasAnswer ? 'none' : 'grid';
+        loadPreview(item.id);
+    }
+
+    async function loadPreview(itemId) {
+        try {
+            const pv = await api('/memory/items/' + itemId + '/preview');
+            ['again', 'hard', 'good', 'easy'].forEach(k => {
+                const el = document.querySelector(`.mem-grade-btn small[data-g="${k}"]`);
+                if (el) el.textContent = fmtDue(pv[k]);
+            });
+        } catch (e) {}
+    }
+
+    function reveal() {
+        M.revealed = true;
+        document.getElementById('mem-review-answer').style.display = '';
+        document.getElementById('mem-review-prompt').style.display = 'none';
+        document.getElementById('mem-review-reveal').style.display = 'none';
+        document.getElementById('mem-grade-row').style.display = 'grid';
+    }
+
+    async function gradeCurrent(grade) {
+        const item = M.queue[M.qIndex];
+        if (!item) return;
+        try { await jpost('/memory/items/' + item.id + '/grade', { grade }); }
+        catch (e) { toast(L('Ошибка', 'Error'), e.message, true); }
+        M.qIndex++;
+        if (M.qIndex >= M.queue.length) finishReview();
+        else showCurrent();
+        pollDue();
+    }
+
+    function finishReview() {
+        closeModal('memory-review-modal');
+        toast(L('Готово', 'Done'), L('Сессия повторения завершена 🎉', 'Review session finished 🎉'));
+        pollDue();
+    }
+
+    function openCurrentCard() {
+        const item = M.queue[M.qIndex];
+        if (item && typeof loadTaskIntoModal === 'function') {
+            closeModal('memory-review-modal');
+            loadTaskIntoModal(item.task_id);
+        }
+    }
+
+    // ---------- поллер / бейдж / хаб ----------
+    async function pollDue() {
+        if (!M.enabled) { setBadge(0); return; }
+        try {
+            const r = await api('/memory/due?limit=100');
+            const n = r.count || 0;
+            // тост на «нарастающем фронте»: было 0 — стало больше нуля
+            if (n > 0 && (M._lastDue || 0) === 0 && !document.getElementById('memory-review-modal')?.classList.contains('show')) {
+                toast('🧠 ' + L('Запоминание', 'Memory'),
+                      n === 1 ? L('1 карточка ждёт повторения', '1 card is due')
+                              : `${n} ${L('карточек ждут повторения', 'cards are due')}`);
+            }
+            M._lastDue = n;
+            setBadge(n);
+        } catch (e) {}
+    }
+
+    function setBadge(n) {
+        const badge = document.getElementById('memory-badge');
+        if (!badge) return;
+        if (n > 0) { badge.textContent = n > 99 ? '99+' : n; badge.style.display = 'flex'; }
+        else { badge.style.display = 'none'; }
+    }
+
+    async function openHub() {
+        ensureModals();
+        let stats = { due: 0, total: 0, learning: 0, review: 0 };
+        try { stats = await api('/memory/stats'); } catch (e) {}
+        document.getElementById('mem-hub-stats').innerHTML = `
+          <div class="mem-stat"><b>${stats.due}</b><span>${L('к повторению', 'due')}</span></div>
+          <div class="mem-stat"><b>${stats.learning}</b><span>${L('учится', 'learning')}</span></div>
+          <div class="mem-stat"><b>${stats.review}</b><span>${L('на повторе', 'review')}</span></div>
+          <div class="mem-stat"><b>${stats.total}</b><span>${L('всего', 'total')}</span></div>`;
+        const startBtn = document.getElementById('mem-hub-start');
+        startBtn.disabled = !stats.due;
+        startBtn.style.opacity = stats.due ? '1' : '0.5';
+        openModal('memory-hub-modal');
+    }
+
+    function setEnabled(v) {
+        M.enabled = !!v;
+        if (M.enabled) { startPoller(); pollDue(); }
+        else { stopPoller(); setBadge(0); const s = document.getElementById('memory-card-section'); if (s) s.style.display = 'none'; }
+    }
+
+    function startPoller() { stopPoller(); M.poller = setInterval(pollDue, 60000); }
+    function stopPoller() { if (M.poller) { clearInterval(M.poller); M.poller = null; } }
+
+    function scheduleOffline() {
+        // Планируем системные уведомления только при открытии/закрытии приложения,
+        // НЕ во время работы — чтобы не плодить процессы (мелькание в Dock).
+        try { fetch(`${BASE}/memory/schedule-offline`, { method: 'POST', keepalive: true }); } catch (e) {}
+    }
+
+    function init() {
+        ensureModals();
+        const btn = document.getElementById('memory-trigger');
+        if (btn) btn.addEventListener('click', openHub);
+        // фрагмент добавляется выделением текста — ловим выделение в заголовке/описании
+        document.addEventListener('selectionchange', onSelectionChange);
+        document.addEventListener('scroll', hideSelBtn, true);
+        loadSettings();
+        startPoller();
+        pollDue();
+        scheduleOffline();
+        window.addEventListener('pagehide', scheduleOffline);
+        window.addEventListener('beforeunload', scheduleOffline);
+    }
+
+    window.DoeMemory = { init, setEnabled, openSettings, openHub, onCardOpen, pollDue, renderCardSection };
+
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+    else init();
 })();

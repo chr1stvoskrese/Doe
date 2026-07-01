@@ -6,7 +6,7 @@ import json
 import urllib.request
 import sqlite3
 import threading
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 # === КРИТИЧЕСКИЙ ФИКС ДЛЯ MACOS + PYINSTALLER + LLAMA.CPP ===
@@ -58,7 +58,7 @@ if len(sys.argv) >= 8 and sys.argv[1] == "--worker":
     reminder_id = sys.argv[7]
 
     due_time = datetime.fromisoformat(due_time_iso.replace("Z", ""))
-    while datetime.utcnow() < due_time:
+    while datetime.now(timezone.utc).replace(tzinfo=None) < due_time:
         time.sleep(1)
 
     config_file = Path.home() / ".doe_config.json"
@@ -2172,7 +2172,51 @@ if __name__ == '__main__':
 
     signal.signal(signal.SIGINT, sigint_handler)
     signal.signal(signal.SIGTERM, sigint_handler)
-    
+
+    # --- macOS/Unix: надёжный перехват Ctrl+C ---
+    # На macOS главный поток уходит в нативный цикл Cocoa внутри webview.start(),
+    # из-за чего питоновский SIGINT-обработчик откладывается до ближайшего UI-события,
+    # и приложение «зависает» при Ctrl+C.
+    # Решение — self-pipe через signal.set_wakeup_fd: низкоуровневый C-обработчик
+    # CPython асинхронно (прямо в момент доставки сигнала, прерывая нативный код
+    # Cocoa) записывает номер сигнала в pipe. Отдельный поток читает байт из pipe
+    # и сразу делает os._exit(0). Это не зависит ни от состояния главного потока,
+    # ни от того, кто и когда успеет выполнить питоновский обработчик.
+    if sys.platform != 'win32':
+        try:
+            _sig_r, _sig_w = os.pipe()
+            os.set_blocking(_sig_w, False)
+            signal.set_wakeup_fd(_sig_w)
+
+            # Должен быть установлен НЕ-дефолтный обработчик, иначе C-уровневый
+            # хендлер CPython не запишет номер сигнала в wakeup-fd.
+            def _noop_signal(signum, frame):
+                pass
+            signal.signal(signal.SIGINT, _noop_signal)
+            signal.signal(signal.SIGTERM, _noop_signal)
+
+            def _signal_reader():
+                try:
+                    os.read(_sig_r, 1)
+                except Exception:
+                    return
+                # Жёсткий выход, как и в force_quit: os._exit обходит C++/atexit
+                # деструкторы (ggml_metal_device_free) → исключаем SIGBUS.
+                print("\n[System] 🛑 Завершение работы по CTRL+C...")
+                try:
+                    sys.stdout.flush(); sys.stderr.flush()
+                except Exception:
+                    pass
+                os._exit(0)
+
+            threading.Thread(
+                target=_signal_reader, daemon=True, name="sigint-reader"
+            ).start()
+        except Exception as _sig_e:
+            # Если механизм недоступен — остаёмся на штатном signal.signal-обработчике.
+            print(f"[System] Signal watcher unavailable, fallback to default handler: {_sig_e}")
+
+
     # Обёртка: используется ПОСЛЕ webview.start(), т.к. pywebview перетирает хендлеры.
     def _wrapped_sigint(signum, frame):
         # Выходим максимально жёстко. Не пытаемся чистить LLM, 
@@ -2283,18 +2327,35 @@ if __name__ == '__main__':
                 # И ещё раз через 3 секунды — на случай отложенной инициализации делегата
                 threading.Timer(3.0, _reregister_safely).start()
             
-            # Ставим наш хендлер через 0.5с ПОСЛЕ старта webview —
-            # к этому моменту pywebview уже точно прописал свой SIGINT-хендлер.
-            import threading as _thr
-            def _install_safe_sigint():
+            # КЛЮЧЕВОЙ ФИКС ЗАВИСАНИЯ НА CTRL+C (macOS):
+            # pywebview внутри webview.start() зовёт PyObjCTools.AppHelper.installMachInterrupt(),
+            # который ставит Mach-обработчик SIGINT = AppHelper.machInterrupt. Тот на Ctrl+C
+            # вызывает NSApp().terminate_(), запускающий штатное завершение Cocoa через exit():
+            # выгружаются C++/Metal-деструкторы LLM (ggml_metal_device_free) → SIGBUS/зависание.
+            # Этот Mach-обработчик перебивает ЛЮБОЙ питоновский signal.signal/set_wakeup_fd.
+            #
+            # installMachInterrupt() берёт функцию machInterrupt из глобалей модуля AppHelper
+            # В МОМЕНТ ВЫЗОВА. Поэтому подменяем её ДО webview.start() — pywebview сам
+            # корректно (на главном потоке, через свой Mach-порт) зарегистрирует нашу версию,
+            # которая делает мгновенный os._exit(0) в обход NSApp.terminate_().
+            if sys.platform == 'darwin':
                 try:
-                    import signal as _sig2
-                    _sig2.signal(_sig2.SIGINT, _wrapped_sigint)
-                    _sig2.signal(_sig2.SIGTERM, _wrapped_sigint)
-                except Exception:
-                    pass
-            _thr.Timer(0.1, _install_safe_sigint).start()
-            
+                    from PyObjCTools import AppHelper as _AppHelper
+
+                    def _fast_mach_quit(signum):
+                        try:
+                            sys.stdout.write("\n[System] 🛑 Завершение работы по CTRL+C...\n")
+                            sys.stdout.flush()
+                        except Exception:
+                            pass
+                        # os._exit обходит atexit/C++ __cxa_finalize → нет ggml_metal_device_free → нет SIGBUS.
+                        os._exit(0)
+
+                    _AppHelper.machInterrupt = _fast_mach_quit
+                    print("[System] macOS: Mach SIGINT handler patched for instant quit.")
+                except Exception as _mach_e:
+                    print(f"[System] macOS: failed to patch Mach interrupt: {_mach_e}")
+
             webview.start(debug=False)
         except KeyboardInterrupt:
             pass

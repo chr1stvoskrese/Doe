@@ -8439,3 +8439,152 @@ body.tabs-hidden .hb-separator ~ .board-tab::after {
 }
 .pwd-eye-btn:hover { color: var(--text-primary); }
 [data-theme="dark"] .pwd-eye-btn:hover { color: #E6E8E5; }
+
+/* ============================================================
+   DoeMemory — интервальное повторение
+   ============================================================ */
+#memory-trigger { position: relative; }
+.ext-memory-hidden #memory-card-section { display: none !important; }
+
+#memory-badge {
+    top: 4px;
+    right: 4px;
+    width: auto;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    border-radius: 9px;
+    background-color: var(--timer-text);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-variant-numeric: tabular-nums;
+}
+
+.memory-card-section .mem-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 10px; border-radius: 10px; background: rgba(0,0,0,0.03);
+}
+[data-theme="dark"] .memory-card-section .mem-row { background: rgba(255,255,255,0.05); }
+.mem-row-label { font-size: 13px; font-weight: 500; color: var(--text-primary); }
+.mem-frag-list { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.mem-frag {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 10px; border-radius: 10px;
+    background: var(--surface-card); border: 1px solid var(--border-light);
+}
+.mem-frag-text {
+    flex: 1; min-width: 0; font-size: 12.5px; color: var(--text-primary);
+    line-height: 1.4; overflow: hidden; text-overflow: ellipsis;
+    display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
+}
+.mem-frag-meta { font-size: 11px; color: var(--text-secondary); white-space: nowrap; flex-shrink: 0; }
+.mem-frag-del {
+    flex-shrink: 0; width: 22px; height: 22px; border: none; cursor: pointer;
+    border-radius: 6px; background: transparent; color: var(--text-secondary);
+    display: flex; align-items: center; justify-content: center; transition: all .15s ease;
+}
+.mem-frag-del:hover { background: rgba(211,84,70,0.12); color: #D35446; }
+.mem-hint { font-size: 11.5px; color: var(--text-secondary); line-height: 1.4; margin-top: 8px; opacity: .85; }
+
+.mem-field { display: flex; flex-direction: column; gap: 6px; flex: 1; }
+.mem-field label { font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+.mem-field-row { display: flex; gap: 12px; }
+.mem-toggle-row {
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 13px; color: var(--text-primary); padding: 2px 0;
+}
+
+.mem-hub-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.mem-stat {
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    padding: 10px 4px; border-radius: 10px; background: rgba(0,0,0,0.03);
+}
+[data-theme="dark"] .mem-stat { background: rgba(255,255,255,0.05); }
+.mem-stat b { font-size: 20px; font-weight: 700; color: var(--brand-pine); font-variant-numeric: tabular-nums; }
+.mem-stat span { font-size: 10.5px; color: var(--text-secondary); text-align: center; }
+
+.mem-review-title { font-size: 17px; font-weight: 600; color: var(--text-primary); line-height: 1.4; }
+.mem-review-prompt { font-size: 13px; color: var(--text-secondary); }
+.mem-review-answer {
+    max-height: 40vh; overflow-y: auto; padding: 12px 14px;
+    border-radius: 12px; background: rgba(0,0,0,0.03); border: 1px solid var(--border-light);
+}
+[data-theme="dark"] .mem-review-answer { background: rgba(255,255,255,0.04); }
+.mem-answer-body { font-size: 14px; line-height: 1.55; color: var(--text-primary); white-space: pre-wrap; word-break: break-word; }
+.mem-hl { background-color: #FCE8A6; color: #2A3029; border-radius: 3px; padding: 0 2px; }
+[data-theme="dark"] .mem-hl { background-color: #6b5e2a; color: #fff; }
+
+.mem-grade-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.mem-grade-btn {
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    padding: 10px 6px; border-radius: 10px; cursor: pointer;
+    border: 1px solid var(--border-light); background: var(--surface-card);
+    color: var(--text-primary); transition: transform .1s ease, background .15s ease, border-color .15s ease;
+}
+.mem-grade-btn b { font-size: 13px; font-weight: 600; }
+.mem-grade-btn small { font-size: 10.5px; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.mem-grade-btn:hover { transform: translateY(-1px); }
+.mem-grade-btn:active { transform: translateY(0); }
+.mem-grade-btn.g-again:hover { border-color: #D35446; background: rgba(211,84,70,0.08); }
+.mem-grade-btn.g-hard:hover  { border-color: #B3863A; background: rgba(179,134,58,0.08); }
+.mem-grade-btn.g-good:hover  { border-color: var(--brand-pine); background: var(--brand-pale); }
+.mem-grade-btn.g-easy:hover  { border-color: #89A085; background: rgba(137,160,133,0.10); }
+
+.mem-open-card {
+    align-self: center; background: transparent; border: none; cursor: pointer;
+    font-size: 12px; color: var(--text-secondary); text-decoration: underline; padding: 2px 6px;
+}
+.mem-open-card:hover { color: var(--text-primary); }
+
+/* реплика повторения: контейнер-обёртка не навязывает жирность детям */
+.mem-review-title { font-size: 14px; font-weight: 400; line-height: 1.5; }
+.mem-cue { font-size: 15px; font-weight: 600; color: var(--text-secondary); }
+.mem-card-title { font-size: 16px; font-weight: 600; line-height: 1.45; color: var(--text-primary); }
+.mem-card-title :is(p, h1, h2, h3, h4) { margin: 0; font-size: inherit; }
+.mem-card-desc { margin-top: 10px; font-size: 14px; line-height: 1.6; color: var(--text-primary); word-break: break-word; }
+.mem-card-desc > :first-child { margin-top: 0; }
+.mem-card-desc > :last-child { margin-bottom: 0; }
+.mem-review-title .mem-card-title + .mem-card-desc { margin-top: 10px; }
+
+.mem-cloze {
+    display: inline-block; min-width: 2.4em; text-align: center;
+    background: var(--brand-pale); color: var(--brand-pine);
+    border-radius: 5px; padding: 0 7px; letter-spacing: 1px;
+    font-weight: 700; user-select: none; vertical-align: baseline;
+}
+[data-theme="dark"] .mem-cloze { background: rgba(137,160,133,0.18); }
+
+/* всплывающая кнопка «Запомнить» у выделения текста */
+.mem-select-btn {
+    position: fixed;
+    z-index: 2147483646;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 12px;
+    background: var(--brand-pine);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-family: var(--font-main);
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.18), 0 2px 6px rgba(0,0,0,0.12);
+    white-space: nowrap;
+    user-select: none;
+    -webkit-user-select: none;
+    animation: mem-select-pop 0.14s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.mem-select-btn:hover { filter: brightness(1.08); }
+.mem-select-btn:active { transform: scale(0.96); }
+.mem-select-ic { font-size: 14px; line-height: 1; }
+@keyframes mem-select-pop {
+    from { opacity: 0; transform: translateY(4px) scale(0.96); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
