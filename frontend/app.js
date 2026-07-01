@@ -69,9 +69,11 @@ const translations = {
             fontSelectCustom: 'Выбрать .ttf / .otf ...',
             dueDateTitle: 'Установить дедлайн', dueDateSet: 'Установить дедлайн', dueDateClear: 'Очистить',
             themeTitle: 'Тема оформления', light: 'Светлая', dark: 'Тёмная', 
-            langTitle: 'Выберите язык', aboutTitle: 'О приложении', 
+            langTitle: 'Выберите язык', aboutTitle: 'О приложении',
             aboutDesc: 'Aesthetic. Local-first. Kanban sanctuary.',
-            attTitle: 'Хранилище вложений', 
+            licensesTitle: 'Лицензии и благодарности',
+            licensesNote: 'Полные тексты лицензий — в файле THIRD_PARTY_LICENSES.md рядом с приложением.',
+            attTitle: 'Хранилище вложений',
             attLocalTitle: 'Внутри хранилища',
             attLocalDesc: 'Файлы переносятся вместе с доской (По умолчанию)',
             attExternalTitle: 'Внешняя папка',
@@ -291,9 +293,11 @@ const translations = {
             fontSelectCustom: 'Select .ttf / .otf ...',
             dueDateTitle: 'Due date', dueDateSet: 'Set deadline', dueDateClear: 'Clear',
             themeTitle: 'Theme', light: 'Light', dark: 'Dark', 
-            langTitle: 'Select language', aboutTitle: 'About', 
+            langTitle: 'Select language', aboutTitle: 'About',
             aboutDesc: 'Aesthetic. Local-first. Kanban sanctuary.',
-            attTitle: 'Attachments Storage', 
+            licensesTitle: 'Licenses & acknowledgements',
+            licensesNote: 'Full license texts are in the THIRD_PARTY_LICENSES.md file next to the app.',
+            attTitle: 'Attachments Storage',
             attLocalTitle: 'Inside vault',
             attLocalDesc: 'Files move together with the board (Default)',
             attExternalTitle: 'External folder',
@@ -598,8 +602,6 @@ window.applyExtensionsUI = (exts) => {
     document.body.classList.toggle('ext-memory-hidden', !exts.memory);
     const memoryBtn = document.getElementById('memory-trigger');
     if (memoryBtn) memoryBtn.style.display = exts.memory ? '' : 'none';
-    const memorySettingsRow = document.getElementById('memory-settings-row');
-    if (memorySettingsRow) memorySettingsRow.style.display = exts.memory ? 'flex' : 'none';
     const tMemory = document.getElementById('ext-toggle-memory');
     if (tMemory) tMemory.checked = exts.memory;
     if (window.DoeMemory) window.DoeMemory.setEnabled(exts.memory);
@@ -13974,14 +13976,14 @@ async function applyColumnSort(columnId, criteria, dir) {
 
     function fmtDue(iso) {
         if (!iso) return '';
-        const due = new Date(iso.replace('Z', '')); // backend uses naive UTC + 'Z'
+        const due = new Date(iso); // backend uses naive UTC + 'Z'
         const now = new Date();
         let diff = (due.getTime() - now.getTime()) / 1000; // sec
         const past = diff < 0;
         diff = Math.abs(diff);
         let txt;
-        if (diff < 60) txt = L('меньше минуты', '< 1 min');
-        else if (diff < 3600) txt = `${Math.round(diff / 60)} ${L('мин', 'min')}`;
+        if (diff < 60) txt = L('< 1 мин', '< 1 min');
+        else if (diff < 3570) txt = `${Math.round(diff / 60)} ${L('мин', 'min')}`;
         else if (diff < 86400) txt = `${Math.round(diff / 3600)} ${L('ч', 'h')}`;
         else if (diff < 86400 * 30) txt = `${Math.round(diff / 86400)} ${L('дн', 'd')}`;
         else if (diff < 86400 * 365) txt = `${Math.round(diff / 86400 / 30)} ${L('мес', 'mo')}`;
@@ -14012,30 +14014,61 @@ async function applyColumnSort(columnId, criteria, dir) {
         </div>
 
         <div class="modal-overlay" id="memory-settings-modal">
-          <div class="modal-card" style="width:360px;">
+          <div class="modal-card" style="width:400px;">
             <div class="modal-header">
-              <span class="modal-title">${L('Настройки запоминания', 'Memory settings')}</span>
+              <span class="modal-title">${L('Настройки запоминания', 'Memory Settings')}</span>
               <button class="modal-close" data-mem-close="memory-settings-modal" aria-label="Закрыть">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
               </button>
             </div>
-            <div class="modal-body" style="padding:16px; gap:14px;">
-              <div class="mem-field">
-                <label>${L('Шаги обучения (минуты, через запятую)', 'Learning steps (minutes, comma-separated)')}</label>
-                <input type="text" id="mem-set-steps" class="setting-input" placeholder="10, 60, 540">
+            <div class="modal-body" style="padding:16px; gap:16px;">
+              
+              <div class="settings-group-card">
+                <div class="setting-row" style="cursor: default; flex-direction: column; align-items: flex-start; gap: 10px;">
+                    <div class="setting-text-box" style="width: 100%;">
+                        <div class="setting-title">${L('Интервалы изучения', 'Learning steps')}</div>
+                        <div class="setting-desc">${L('Шаги в минутах до закрепления факта (например: 1, 10, 60)', 'Steps in minutes before fact graduates (e.g. 1, 10, 60)')}</div>
+                    </div>
+                    <input type="text" id="mem-set-steps" class="setting-input" placeholder="10, 60, 540">
+                </div>
+                <div class="setting-row" style="cursor: default; gap: 12px;">
+                    <div class="setting-text-box">
+                        <div class="setting-title">${L('Интервал выпуска', 'Graduating interval')}</div>
+                        <div class="setting-desc">${L('Через сколько дней показать закреплённую карточку', 'Days until first review after learning')}</div>
+                    </div>
+                    <input type="number" min="0.1" step="0.1" id="mem-set-grad" class="setting-input compact-input" style="width: 60px;">
+                </div>
+                <div class="setting-row" style="cursor: default; gap: 12px;">
+                    <div class="setting-text-box">
+                        <div class="setting-title">${L('Бонус за «Легко»', 'Easy bonus')}</div>
+                        <div class="setting-desc">${L('На сколько дней отложить при лёгком ответе', 'Days to skip if answered easily')}</div>
+                    </div>
+                    <input type="number" min="0.1" step="0.1" id="mem-set-easy" class="setting-input compact-input" style="width: 60px;">
+                </div>
               </div>
-              <div class="mem-field-row">
-                <div class="mem-field"><label>${L('Старт. интервал (дни)', 'Graduating (days)')}</label><input type="number" min="0.1" step="0.1" id="mem-set-grad" class="setting-input"></div>
-                <div class="mem-field"><label>${L('«Легко» (дни)', 'Easy (days)')}</label><input type="number" min="0.1" step="0.1" id="mem-set-easy" class="setting-input"></div>
+
+              <div class="settings-group-card">
+                <div class="setting-row" style="cursor: default;">
+                    <div class="setting-text-box">
+                        <div class="setting-title">${L('Всплывать на доске', 'Surface on board')}</div>
+                        <div class="setting-desc">${L('Предлагать повторение прямо в интерфейсе', 'Suggest reviews directly in the UI')}</div>
+                    </div>
+                    <label class="toggle-switch"><input type="checkbox" id="mem-set-surface"><span class="toggle-slider"></span></label>
+                </div>
+                <div class="setting-row" style="cursor: default;">
+                    <div class="setting-text-box">
+                        <div class="setting-title">${L('Системные уведомления', 'System notifications')}</div>
+                        <div class="setting-desc">${L('Присылать пуши от ОС, когда пришло время', 'Send OS push notifications when due')}</div>
+                    </div>
+                    <label class="toggle-switch"><input type="checkbox" id="mem-set-osnotif"><span class="toggle-slider"></span></label>
+                </div>
               </div>
-              <div class="mem-toggle-row"><span>${L('Всплывать на доске', 'Surface on board')}</span>
-                <label class="toggle-switch"><input type="checkbox" id="mem-set-surface"><span class="toggle-slider"></span></label></div>
-              <div class="mem-toggle-row"><span>${L('Системные уведомления', 'System notifications')}</span>
-                <label class="toggle-switch"><input type="checkbox" id="mem-set-osnotif"><span class="toggle-slider"></span></label></div>
-              <div class="confirm-actions" style="padding:0;">
+
+              <div class="confirm-actions" style="padding: 0; margin-top: 4px;">
                 <button class="confirm-btn cancel-btn" data-mem-close="memory-settings-modal">${L('Отмена', 'Cancel')}</button>
                 <button class="confirm-btn vault-submit-btn" id="mem-set-save" style="color:#fff;">${L('Сохранить', 'Save')}</button>
               </div>
+
             </div>
           </div>
         </div>
@@ -14404,7 +14437,16 @@ async function applyColumnSort(columnId, criteria, dir) {
         const item = M.queue[M.qIndex];
         if (item && typeof loadTaskIntoModal === 'function') {
             closeModal('memory-review-modal');
-            loadTaskIntoModal(item.task_id);
+            
+            // Загружаем данные
+            loadTaskIntoModal(item.task_id, true);
+            // Показываем окно
+            document.getElementById('task-modal').classList.add('show');
+            
+            // Опционально: фокусируем доску на этой карточке на фоне
+            if (window.navigateToEntityGlobal && item.workspace_id && item.column_id) {
+                window.navigateToEntityGlobal(item.workspace_id, item.column_id, item.task_id, null, true, false);
+            }
         }
     }
 
