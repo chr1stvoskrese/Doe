@@ -26,6 +26,7 @@ ADD_DATA = [
     ("favicon.ico", "."), ("doe.png", "."), ("ai-logo.png", "."),
     ("doe_source.zip", "."), ("frontend", "frontend"), ("src", "src"),
     ("alembic.ini", "."), ("alembic", "alembic"),
+    ("THIRD_PARTY_LICENSES.md", "."),
 ]
 HIDDEN_BASE = [
     "src.api.v1.columns", "src.api.v1.tasks", "src.api.v1.system", "src.api.v1.workspaces",
