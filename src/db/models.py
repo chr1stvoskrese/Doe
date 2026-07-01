@@ -92,6 +92,9 @@ class TaskModel(Base):
     
     timer_sessions = relationship("TimerSessionModel", back_populates="task", cascade="all, delete-orphan")
 
+    # Элементы запоминания (spaced repetition): вся карточка или выделенные фрагменты
+    memory_items = relationship("MemoryItemModel", back_populates="task", cascade="all, delete-orphan")
+
     @property
     def first_start(self):
         if 'timer_sessions' in instance_state(self).dict and self.timer_sessions:
@@ -139,4 +142,37 @@ class AutomationModel(Base):
     next_run_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class MemoryItemModel(Base):
+    """Элемент интервального повторения (spaced repetition).
+
+    Привязан к карточке. fragment_text == None означает «вся карточка»,
+    иначе хранится выделенный кусок текста описания, который подсвечивается
+    при повторении. SRS-состояние ведётся по гибриду learning-steps + SM-2.
+    """
+    __tablename__ = "memory_items"
+
+    id = Column(Integer, primary_key=True, index=True)
+    task_id = Column(Integer, ForeignKey("tasks.id", ondelete="CASCADE"), nullable=False, index=True)
+    fragment_text = Column(String, nullable=True)   # None = вся карточка
+
+    enabled = Column(Boolean, default=True)
+
+    # SRS-состояние
+    state = Column(String, default="learning")      # 'learning' | 'review'
+    step_index = Column(Integer, default=0)         # шаг внутри learning
+    ease_factor = Column(Float, default=2.5)        # SM-2 EF
+    interval_days = Column(Float, default=0.0)      # текущий интервал (в днях)
+    repetitions = Column(Integer, default=0)        # успешных повторений подряд
+    lapses = Column(Integer, default=0)             # сколько раз забывал
+
+    due_at = Column(DateTime, nullable=True, index=True)   # когда снова показать
+    last_reviewed_at = Column(DateTime, nullable=True)
+    last_grade = Column(Integer, nullable=True)            # 1..4
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    task = relationship("TaskModel", back_populates="memory_items")
 

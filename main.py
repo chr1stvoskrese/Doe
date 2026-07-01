@@ -96,6 +96,7 @@ async def get_ai_logo():
 
 from src.api.v1 import ai
 from src.api.v1 import automations
+from src.api.v1 import memory
 
 app.include_router(columns.router, prefix="/api/v1")
 app.include_router(tasks.router, prefix="/api/v1")
@@ -103,6 +104,7 @@ app.include_router(system.router, prefix="/api/v1")
 app.include_router(workspaces.router, prefix="/api/v1")
 app.include_router(ai.router, prefix="/api/v1") # <--- ПОДКЛЮЧЕНИЕ
 app.include_router(automations.router, prefix="/api/v1")
+app.include_router(memory.router, prefix="/api/v1")
 
 if getattr(sys, 'frozen', False):
     base_dir = Path(sys._MEIPASS)

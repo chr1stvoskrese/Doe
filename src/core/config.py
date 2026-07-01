@@ -106,7 +106,17 @@ def get_ui_settings() -> dict:
     data = _load_config()
     vault_path = get_active_vault()
     active_workspaces = data.get("active_workspaces", {})
-    default_extensions = {"search": True, "calendar": True, "reminders": True, "graph": True, "tabs": True, "deadlines": True, "export": True, "priority": True, "ai": True, "automations": True, "statistics": True}
+    default_extensions = {"search": True, "calendar": True, "reminders": True, "graph": True, "tabs": True, "deadlines": True, "export": True, "priority": True, "ai": True, "automations": True, "statistics": True, "memory": True}
+
+    # Дефолтные настройки запоминания (spaced repetition)
+    default_memory = {
+        "learning_steps_min": [10, 60, 540],
+        "graduating_interval_days": 1.0,
+        "easy_interval_days": 4.0,
+        "starting_ease": 2.5,
+        "surface_on_board": True,
+        "os_notification": True,
+    }
 
     # Дефолтные настройки приоритетности
     default_priority = {
@@ -128,6 +138,7 @@ def get_ui_settings() -> dict:
         "ui_font": data.get("ui_font", ""),
         "extensions": data.get("extensions", default_extensions),
         "priority_settings": data.get("priority_settings", default_priority),
+        "memory_settings": {**default_memory, **data.get("memory_settings", {})},
         "tabs_hidden": state.get("tabs_hidden", False),
         "hb_index": state.get("hb_index", 999)
     }
@@ -139,8 +150,9 @@ def set_ui_settings(
     global_attachments_path: str = None, 
     reset_attachments: bool = False, 
     ui_font: str = None, 
-    extensions: dict = None, 
+    extensions: dict = None,
     priority_settings: dict = None,
+    memory_settings: dict = None,
     tabs_hidden: bool = None,
     hb_index: int = None
 ) -> None:
@@ -148,10 +160,14 @@ def set_ui_settings(
     if theme is not None: data["theme"] = theme
     if language is not None: data["language"] = language
     if ui_font is not None: data["ui_font"] = ui_font
-    if extensions is not None: 
-        current_exts = data.get("extensions", {"search": True, "calendar": True, "reminders": True, "graph": True, "tabs": True, "deadlines": True, "export": True, "priority": True, "ai": True, "automations": True, "statistics": True})
+    if extensions is not None:
+        current_exts = data.get("extensions", {"search": True, "calendar": True, "reminders": True, "graph": True, "tabs": True, "deadlines": True, "export": True, "priority": True, "ai": True, "automations": True, "statistics": True, "memory": True})
         current_exts.update(extensions)
         data["extensions"] = current_exts
+    if memory_settings is not None:
+        current_mem = data.get("memory_settings", {})
+        current_mem.update(memory_settings)
+        data["memory_settings"] = current_mem
     if priority_settings is not None:
         current_prio = data.get("priority_settings", {
             "show_always": False,
@@ -364,7 +380,7 @@ def spawn_notification_worker(task_id: int, task_title: str, message: str, due_t
     # его bootloader (windowed + argv-emulation) регистрируется в Dock сразу при
     # старте процесса, ДО исполнения Python-кода. Поэтому в собранном приложении
     # используем специально собранный "тихий" консольный notify_worker,
-    # который build_mac.sh кладёт рядом с главным бинарником.
+    # который build.py кладёт рядом с главным бинарником.
     silent_worker = None
     if sys.platform == 'darwin' and getattr(sys, 'frozen', False):
         candidate = os.path.join(os.path.dirname(sys.executable), 'notify_worker')
@@ -451,4 +467,105 @@ def restore_all_reminders() -> None:
         updated_reminders.append(r)
         
     data["active_reminders"] = updated_reminders
+    _save_config(data)
+
+
+# ============================================================
+#  Уведомления интервального повторения (memory / spaced repetition)
+#  Отдельный реестр (не смешиваем с обычными напоминаниями колокольчика).
+# ============================================================
+def _pid_alive(pid) -> bool:
+    if not pid:
+        return False
+    import sys
+    import os as _os
+    try:
+        if sys.platform != 'win32':
+            _os.kill(pid, 0)
+            return True
+        else:
+            import ctypes
+            PROCESS_QUERY_INFORMATION = 0x0400
+            handle = ctypes.windll.kernel32.OpenProcess(PROCESS_QUERY_INFORMATION, False, pid)
+            if handle:
+                ctypes.windll.kernel32.CloseHandle(handle)
+                return True
+    except Exception:
+        return False
+    return False
+
+
+def get_memory_notifications() -> dict:
+    return _load_config().get("memory_notifications", {})
+
+
+def cancel_memory_notification(item_id) -> None:
+    import os as _os
+    import signal as _signal
+    data = _load_config()
+    store = data.get("memory_notifications", {})
+    info = store.pop(str(item_id), None)
+    if info and info.get("pid"):
+        try:
+            _os.kill(info["pid"], _signal.SIGTERM)
+        except Exception:
+            pass
+    data["memory_notifications"] = store
+    _save_config(data)
+
+
+def upsert_memory_notification(item_id, task_id, task_title, message,
+                               due_time_iso, vault_path) -> None:
+    """Планирует (или перепланирует) системное уведомление о повторении карточки.
+
+    Идемпотентно: если на это же время уже есть живой воркер — ничего не делает.
+    Просроченное due стреляет почти сразу (через 5 секунд)."""
+    import os as _os
+    import signal as _signal
+    import datetime as _dt
+
+    data = _load_config()
+    store = data.get("memory_notifications", {})
+    key = str(item_id)
+    existing = store.get(key)
+
+    if existing and existing.get("due_time") == due_time_iso and _pid_alive(existing.get("pid")):
+        return
+
+    if existing and existing.get("pid"):
+        try:
+            _os.kill(existing["pid"], _signal.SIGTERM)
+        except Exception:
+            pass
+
+    fire_iso = due_time_iso
+    try:
+        due_dt = _dt.datetime.fromisoformat(due_time_iso.replace("Z", ""))
+        if due_dt <= _dt.datetime.utcnow():
+            fire_iso = (_dt.datetime.utcnow() + _dt.timedelta(seconds=5)).isoformat() + "Z"
+    except Exception:
+        pass
+
+    reminder_id = (existing or {}).get("reminder_id") or f"mem-{item_id}"
+    try:
+        pid = spawn_notification_worker(
+            task_id=task_id,
+            task_title=task_title,
+            message=message,
+            due_time_iso=fire_iso,
+            vault_path=vault_path,
+            reminder_id=reminder_id,
+        )
+    except Exception as e:
+        print(f"[Memory] failed to schedule notification for item {item_id}: {e}")
+        return
+
+    store[key] = {
+        "pid": pid,
+        "due_time": due_time_iso,
+        "reminder_id": reminder_id,
+        "task_id": task_id,
+        "vault_path": vault_path,
+    }
+    data["memory_notifications"] = store
     _save_config(data)
