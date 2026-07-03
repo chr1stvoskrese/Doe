@@ -3550,13 +3550,23 @@ body.is-dragging-modal * {
 .markdown-body h4,
 .markdown-body h5,
 .markdown-body h6 {
-    margin-top: 18px !important;
-    margin-bottom: 12px !important;
+    margin-top: 20px !important;
+    margin-bottom: 10px !important;
     margin-block-start: 0 !important;
     margin-block-end: 0 !important;
     font-weight: 600;
     color: var(--text-primary);
     letter-spacing: -0.02em;
+    line-height: 1.3;
+}
+
+/* Крупные заголовки дышат сильнее */
+.markdown-body h1 { margin-top: 28px !important; font-weight: 700; }
+.markdown-body h2 { margin-top: 26px !important; }
+.markdown-body h6 {
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-secondary);
 }
 
 .markdown-body .foldable-heading.is-folded {
@@ -3609,13 +3619,13 @@ body.is-dragging-modal * {
     margin-top: 0 !important;
 }
 
-.markdown-body h1 { font-size: 24px; }
-.markdown-body h2 { font-size: 20px; }
+.markdown-body h1 { font-size: 25px; }
+.markdown-body h2 { font-size: 21px; }
 .markdown-body h3 { font-size: 18px; }
 .markdown-body h4 { font-size: 16px; }
 .markdown-body h5 { font-size: 14px; }
-.markdown-body h6 { font-size: 13px; }
-.markdown-body p { margin-bottom: 16px; }
+.markdown-body h6 { font-size: 12px; }
+.markdown-body p { margin-bottom: 14px; }
 .markdown-body p:last-child { margin-bottom: 0; }
 .markdown-body a { color: var(--brand-pine); text-decoration: none; }
 .markdown-body a:hover { text-decoration: underline; }
@@ -3631,17 +3641,46 @@ body.is-dragging-modal * {
 .breadcrumb-item a:hover,
 .reminder-task-title a:hover,
 .tooltip-inner a:hover { text-decoration: underline; }
-.markdown-body ul, .markdown-body ol { margin-bottom: 16px; padding-left: 24px; }
-.markdown-body li { margin-bottom: 6px; }
+.markdown-body ul, .markdown-body ol { margin-bottom: 14px; padding-left: 26px; }
+.markdown-body li { margin-bottom: 4px; }
+.markdown-body li::marker { color: var(--brand-pine); }
+.markdown-body li > ul, .markdown-body li > ol { margin-top: 4px; margin-bottom: 4px; }
 .markdown-body blockquote {
     border-left: 3px solid var(--brand-pine);
-    padding-left: 16px;
     color: var(--text-secondary);
-    margin-bottom: 16px;
+    margin: 14px 0;
     background: var(--brand-pale);
     padding: 12px 16px;
     border-radius: 0 8px 8px 0;
 }
+.markdown-body blockquote p { margin-bottom: 8px; }
+.markdown-body blockquote p:last-child { margin-bottom: 0; }
+
+/* Таблицы: раньше рендерились без какого-либо оформления */
+.markdown-body table {
+    border-collapse: collapse;
+    margin: 14px 0;
+    display: block;
+    overflow-x: auto;
+    max-width: 100%;
+    font-size: 14px;
+}
+.markdown-body th, .markdown-body td {
+    border: 1px solid var(--border-light);
+    padding: 7px 12px;
+    text-align: left;
+}
+.markdown-body th {
+    background: var(--brand-pale);
+    font-weight: 600;
+}
+.markdown-body tr:nth-child(even) td {
+    background: rgba(0, 0, 0, 0.015);
+}
+[data-theme="dark"] .markdown-body tr:nth-child(even) td {
+    background: rgba(255, 255, 255, 0.02);
+}
+.markdown-body del { color: var(--text-secondary); }
 .markdown-body code {
     font-family: var(--font-mono);
     background: rgba(0, 0, 0, 0.05);
@@ -3982,7 +4021,8 @@ body.is-dragging-modal * {
 }
 
 .markdown-body {
-    line-height: 1.2;
+    /* 1.2 было слишком тесно для длинных заметок — комфортная читаемость */
+    line-height: 1.55;
     user-select: text !important;
     white-space: normal;
 }
@@ -6292,9 +6332,20 @@ body.ext-priority-hidden .card-footer:has(> .priority-pill:only-child) {
     overflow-x: auto !important;
     overflow-y: hidden !important;
     contain: layout paint;
-    margin: 16px 0 !important;
-    padding: 4px 0;
+    margin: 18px 0 !important;
+    padding: 6px 2px;
     -webkit-overflow-scrolling: touch;
+}
+
+/* Блочные формулы — чуть крупнее текста, инлайн — в масштабе строки */
+.markdown-body .katex-display .katex { font-size: 1.15em; }
+.markdown-body .katex { font-size: 1.06em; }
+
+/* Инлайн-формулы могут ПЕРЕНОСИТЬСЯ по строкам (штатный механизм KaTeX:
+   при white-space: normal перенос допускается на верхнем уровне формулы) */
+.markdown-body p .katex,
+.markdown-body li .katex {
+    white-space: normal;
 }
 
 .katex {
@@ -9026,6 +9077,10 @@ body.tabs-hidden .hb-separator ~ .board-tab::after {
     color: #D35446 !important;
 }
 
+#security-hint {
+    margin-top: 16px;
+}
+
 .security-warning-hint {
     color: #B3863A !important;
     margin-top: 8px;
@@ -9101,7 +9156,9 @@ body.tabs-hidden .hb-separator ~ .board-tab::after {
     font-variant-numeric: tabular-nums;
 }
 
-/* --- 🔐 Оверлей шифрования при выходе --- */
+/* --- 🔐 Оверлей шифрования / открытия / загрузки хранилища ---
+   Полупрозрачный фон + блюр: доска и карточки позади лишь угадываются,
+   а исчезновение оверлея даёт мягкий проявляющийся переход к контенту. */
 .vault-lock-overlay {
     position: fixed;
     inset: 0;
@@ -9109,10 +9166,16 @@ body.tabs-hidden .hb-separator ~ .board-tab::after {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--bg-canvas);
+    background: rgba(244, 243, 239, 0.62);
+    -webkit-backdrop-filter: blur(20px) saturate(1.05);
+    backdrop-filter: blur(20px) saturate(1.05);
     opacity: 0;
     pointer-events: none;
-    transition: opacity 0.2s ease;
+    transition: opacity 0.35s ease;
+}
+
+[data-theme="dark"] .vault-lock-overlay {
+    background: rgba(22, 24, 21, 0.62);
 }
 
 .vault-lock-overlay.show {
@@ -9128,6 +9191,14 @@ body.tabs-hidden .hb-separator ~ .board-tab::after {
     width: 300px;
     text-align: center;
     transform: translateY(-4vh);
+    opacity: 1;
+    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+}
+
+/* Мягкий уход: контент оверлея чуть уплывает вверх и растворяется */
+.vault-lock-overlay:not(.show) .vault-lock-overlay-content {
+    transform: translateY(-5.5vh) scale(0.97);
+    opacity: 0;
 }
 
 .vault-overlay-lock {
@@ -9244,4 +9315,261 @@ body:has(.modal-overlay.show) .card-inline-trigger {
 
 .doe-switch.on .doe-switch-knob {
     left: 16px;
+}
+
+/* ============================================================
+   Код-блоки: тулбар (перенос строк, нумерация, копирование)
+   ============================================================ */
+.code-tools {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    gap: 5px;
+    opacity: 0;
+    transition: opacity 0.18s ease;
+    z-index: 10;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.markdown-body pre:hover .code-tools,
+.code-tools:focus-within {
+    opacity: 1;
+}
+
+/* Кнопка тулбара: собственный класс без наследия .code-copy-btn —
+   никакого absolute-позиционирования и transition: all */
+.code-tool {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border-radius: 7px;
+    background: var(--surface-card);
+    border: 1px solid var(--border-light);
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.code-tool:hover {
+    background: var(--brand-pale);
+    color: var(--brand-pine);
+    border-color: rgba(74, 90, 72, 0.25);
+}
+
+.code-tool svg {
+    width: 14px;
+    height: 14px;
+    pointer-events: none; /* клик всегда попадает в кнопку, не в svg */
+    display: block;
+}
+
+.code-tool.active {
+    color: var(--brand-pine);
+    background: var(--brand-pale);
+    border-color: rgba(74, 90, 72, 0.3);
+}
+
+[data-theme="dark"] .code-tool.active {
+    border-color: rgba(137, 160, 133, 0.4);
+}
+
+.code-tool.disabled {
+    opacity: 0.35;
+    pointer-events: none;
+}
+
+.code-tool.copied {
+    color: var(--success-done);
+    border-color: var(--success-done);
+}
+
+/* Перенос строк в коде */
+.markdown-body pre.is-wrapped {
+    overflow-x: hidden !important;
+}
+
+.markdown-body pre.is-wrapped code {
+    white-space: pre-wrap !important;
+    word-break: break-word !important;
+    overflow-wrap: anywhere !important;
+}
+
+/* Нумерация строк: мягкие цифры без плашек и фонов */
+.markdown-body pre.is-numbered {
+    display: flex;
+    align-items: flex-start;
+}
+
+.code-gutter {
+    display: none;
+}
+
+.markdown-body pre.is-numbered .code-gutter {
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    padding-right: 14px;
+    text-align: right;
+    user-select: none;
+    -webkit-user-select: none;
+    color: var(--text-secondary);
+    opacity: 0.45;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.markdown-body pre.is-numbered code {
+    flex: 1;
+    min-width: 0;
+}
+
+/* ============================================================
+   🖼 Ряд изображений: соседние ![]() рендерятся в одну строку
+   и адаптируются под ширину модалки
+   ============================================================ */
+.markdown-body p.image-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: flex-start;
+    line-height: 0;
+}
+
+.markdown-body p.image-row .image-resizer-wrapper {
+    margin: 0;
+    flex: 1 1 180px;
+    min-width: 120px;
+    max-width: 100%;
+}
+
+.markdown-body p.image-row .image-resizer-wrapper.has-custom-size {
+    flex: 0 1 auto;
+    max-width: 100%;
+}
+
+.markdown-body p.image-row .image-resizer-wrapper img {
+    width: 100%;
+    height: auto;
+}
+
+/* Курсор подсказывает, что изображение кликабельно */
+.image-resizer-wrapper {
+    cursor: zoom-in;
+}
+
+/* ============================================================
+   🔍 Лайтбокс изображений
+   ============================================================ */
+.image-lightbox {
+    position: fixed;
+    inset: 0;
+    /* Выше модалов (.modal-overlay: 9999999) — лайтбокс открывается ИЗ модалки карточки */
+    z-index: 10000001;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(12, 14, 11, 0.78);
+    -webkit-backdrop-filter: blur(24px);
+    backdrop-filter: blur(24px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+    cursor: zoom-out;
+}
+
+.image-lightbox.show {
+    opacity: 1;
+    pointer-events: all;
+}
+
+.image-lightbox img {
+    max-width: 92vw;
+    max-height: 92vh;
+    border-radius: 12px;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
+    transform: scale(0.96);
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.image-lightbox.show img {
+    transform: scale(1);
+}
+
+/* ============================================================
+   📎 Чип загрузки вложения
+   ============================================================ */
+.upload-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 12px;
+    border-radius: 10px;
+    background: var(--brand-pale);
+    border: 1px dashed rgba(74, 90, 72, 0.35);
+    color: var(--text-secondary);
+    font-size: 13px;
+    line-height: 1.3;
+    margin: 2px 0;
+    max-width: 100%;
+}
+
+[data-theme="dark"] .upload-chip {
+    border-color: rgba(137, 160, 133, 0.4);
+}
+
+.upload-chip-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.upload-chip-spinner {
+    width: 12px;
+    height: 12px;
+    border: 2px solid rgba(74, 90, 72, 0.25);
+    border-top-color: var(--brand-pine);
+    border-radius: 50%;
+    animation: vu-spin 0.8s linear infinite;
+    flex-shrink: 0;
+}
+
+/* ============================================================
+   Код и формулы в заголовках карточек / крошках / уведомлениях
+   ============================================================ */
+.card-title code,
+.subtask-title code,
+#task-modal-title code,
+.breadcrumb-item code,
+.reminder-task-title code,
+.app-toast-message code {
+    font-family: var(--font-mono);
+    font-size: 0.85em;
+    padding: 1px 5px;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="dark"] .card-title code,
+[data-theme="dark"] .subtask-title code,
+[data-theme="dark"] #task-modal-title code,
+[data-theme="dark"] .breadcrumb-item code,
+[data-theme="dark"] .reminder-task-title code,
+[data-theme="dark"] .app-toast-message code {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.card-title .katex,
+.subtask-title .katex,
+#task-modal-title .katex,
+.breadcrumb-item .katex,
+.reminder-task-title .katex {
+    font-size: 1em;
+    white-space: normal;
 }

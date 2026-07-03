@@ -24,6 +24,13 @@ from src.core import vault_crypto
 _engine = None
 _session_factory = None
 
+# Состояние фоновой инициализации при старте приложения:
+# 'starting' → 'ready' | 'no_vault' | 'error'
+# Позволяет серверу начать отвечать МГНОВЕННО (окно приложения появляется
+# сразу с прогресс-баром), пока миграции/инициализация большого хранилища
+# идут в фоне. Фронтенд ждёт готовности через /system/startup-status.
+startup_state = {"state": "starting"}
+
 # Определение базовой директории (с учетом сборки PyInstaller)
 if getattr(sys, 'frozen', False):
     BASE_DIR = Path(sys._MEIPASS)
@@ -306,6 +313,7 @@ async def switch_vault(new_vault_path: str):
     Path(new_vault_path).mkdir(parents=True, exist_ok=True)
     await init_database(new_vault_path)
     set_active_vault(new_vault_path)
+    startup_state["state"] = "ready"
 
     # Планировщик автоматизаций — строго ПОСЛЕ полной инициализации БД
     # (запуск идемпотентен; нужен для случая, когда lifespan стартовал без БД —
