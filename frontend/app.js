@@ -145,6 +145,49 @@ const translations = {
             recent: 'История хранилищ',
             recentEmpty: 'Ранее открытые хранилища появятся здесь'
         },
+        security: {
+            menuTitle: 'Защита паролем',
+            modalTitle: 'Защита паролем',
+            statusOn: 'Пароль установлен',
+            statusOff: 'Пароль не установлен',
+            statusOnDesc: 'Файлы хранилища шифруются при выходе',
+            statusOffDesc: 'Любая программа может прочитать файлы хранилища',
+            setBtn: 'Установить пароль',
+            changeBtn: 'Сменить пароль',
+            removeBtn: 'Убрать пароль',
+            unlockTitle: 'Хранилище защищено',
+            unlockDesc: (name) => `Введите пароль, чтобы открыть «${name}»`,
+            unlockBtn: 'Открыть',
+            unlocking: 'Расшифровка...',
+            passwordPlaceholder: 'Пароль',
+            oldPasswordPlaceholder: 'Текущий пароль',
+            newPasswordPlaceholder: 'Новый пароль',
+            confirmPlaceholder: 'Повторите пароль',
+            wrongPassword: 'Неверный пароль',
+            mismatch: 'Пароли не совпадают',
+            tooShort: 'Минимум 4 символа',
+            saveBtn: 'Сохранить',
+            cancelBtn: 'Отмена',
+            setSuccess: 'Пароль установлен',
+            changeSuccess: 'Пароль изменён',
+            removeSuccess: 'Защита снята',
+            hint: 'Пароль нигде не хранится — восстановить его невозможно. Если вы его забудете, данные будут утеряны.',
+            globalAttWarning: 'Внимание: вложения во внешней глобальной папке не шифруются.',
+            howItWorks: 'При выходе из хранилища все файлы внутри его папки шифруются (AES-256). Пароль запрашивается при каждом входе.',
+            lockError: 'Не удалось расшифровать хранилище',
+            protectedTooltip: 'Хранилище защищено паролем',
+            encrypting: 'Шифрование хранилища...',
+            encryptingHint: 'Файлы шифруются вашим паролем. Это может занять некоторое время.',
+            filesCount: (done, total) => `${done} / ${total} файлов`,
+            touchidRow: 'Разблокировка по Touch ID',
+            touchidDesc: 'Ключ шифрования хранится в Keychain под защитой Secure Enclave. Пароль по-прежнему нигде не хранится.',
+            touchidBtn: 'Войти по Touch ID',
+            touchidFailed: 'Touch ID не подтверждён',
+            touchidStale: 'Пароль был изменён — войдите по паролю, Touch ID обновится',
+            touchidOn: 'Touch ID включён',
+            touchidOff: 'Touch ID выключен',
+            leftoverLocked: 'В хранилище остались зашифрованные файлы. Выйдите и войдите по паролю, чтобы расшифровать их, затем повторите.'
+        },
         card: { timeSpent: 'Времени потрачено:', unknownTime: 'неизвестно' },
         taskModal: {
             descPlaceholder: 'Кликните, чтобы добавить описание...',
@@ -170,7 +213,7 @@ const translations = {
         graph: { title: 'Граф связей', empty: 'Карточек пока нет.\nСоздайте карточки на доске.', arrows: 'Стрелки' },
         calendar: { today: 'Сегодня', month: 'Месяц', week: 'Неделя', day: 'День', loading: 'Загрузка данных...', error: 'Ошибка загрузки' },
         cal: { dayMon: 'ПН', dayTue: 'ВТ', dayWed: 'СР', dayThu: 'ЧТ', dayFri: 'ПТ', daySat: 'СБ', daySun: 'ВС' },
-        alerts: { loadError: 'Не удалось загрузить доску', error: 'Ошибка' },
+        alerts: { loadError: 'Не удалось загрузить доску', error: 'Ошибка', linkNotFound: 'Файл или папка не найдены' },
         ai: {
             hardwareRam: 'Оперативная память',
             hardwareTier: 'Уровень',
@@ -366,6 +409,49 @@ const translations = {
             recent: 'Recent Vaults',
             recentEmpty: 'Previously opened vaults will appear here'
         },
+        security: {
+            menuTitle: 'Password Protection',
+            modalTitle: 'Password Protection',
+            statusOn: 'Password is set',
+            statusOff: 'No password set',
+            statusOnDesc: 'Vault files are encrypted on exit',
+            statusOffDesc: 'Any program can read your vault files',
+            setBtn: 'Set Password',
+            changeBtn: 'Change Password',
+            removeBtn: 'Remove Password',
+            unlockTitle: 'Vault is protected',
+            unlockDesc: (name) => `Enter the password to open “${name}”`,
+            unlockBtn: 'Unlock',
+            unlocking: 'Decrypting...',
+            passwordPlaceholder: 'Password',
+            oldPasswordPlaceholder: 'Current password',
+            newPasswordPlaceholder: 'New password',
+            confirmPlaceholder: 'Repeat password',
+            wrongPassword: 'Wrong password',
+            mismatch: 'Passwords do not match',
+            tooShort: 'At least 4 characters',
+            saveBtn: 'Save',
+            cancelBtn: 'Cancel',
+            setSuccess: 'Password set',
+            changeSuccess: 'Password changed',
+            removeSuccess: 'Protection removed',
+            hint: 'The password is never stored anywhere — it cannot be recovered. If you forget it, your data will be lost.',
+            globalAttWarning: 'Note: attachments in an external global folder are not encrypted.',
+            howItWorks: 'When you leave the vault, every file inside its folder is encrypted (AES-256). The password is required on every entry.',
+            lockError: 'Failed to decrypt the vault',
+            protectedTooltip: 'Vault is password-protected',
+            encrypting: 'Encrypting vault...',
+            encryptingHint: 'Your files are being encrypted with your password. This may take a while.',
+            filesCount: (done, total) => `${done} / ${total} files`,
+            touchidRow: 'Unlock with Touch ID',
+            touchidDesc: 'The encryption key is stored in the Keychain, protected by the Secure Enclave. Your password is still never stored.',
+            touchidBtn: 'Use Touch ID',
+            touchidFailed: 'Touch ID was not confirmed',
+            touchidStale: 'The password was changed — sign in with the password, Touch ID will refresh',
+            touchidOn: 'Touch ID enabled',
+            touchidOff: 'Touch ID disabled',
+            leftoverLocked: 'Some files in the vault are still encrypted. Leave and re-enter with your password to decrypt them, then try again.'
+        },
         card: { timeSpent: 'Time spent:', unknownTime: 'unknown' },
         taskModal: {
             descPlaceholder: 'Click to add description...',
@@ -391,7 +477,7 @@ const translations = {
         graph: { title: 'Connections Graph', empty: 'No cards yet.\nCreate cards on the board.', arrows: 'Arrows' },
         calendar: { today: 'Today', month: 'Month', week: 'Week', day: 'Day', loading: 'Loading data...', error: 'Load error' },
         cal: { dayMon: 'Mon', dayTue: 'Tue', dayWed: 'Wed', dayThu: 'Thu', dayFri: 'Fri', daySat: 'Sat', daySun: 'Sun' },
-        alerts: { loadError: 'Failed to load board', error: 'Error' },
+        alerts: { loadError: 'Failed to load board', error: 'Error', linkNotFound: 'File or folder not found' },
         ai: {
             hardwareRam: 'RAM',
             hardwareTier: 'Tier',
@@ -465,6 +551,15 @@ const translations = {
 };
 
 window.appExit = async () => {
+    // 🔐 Перед закрытием шифруем защищённое хранилище с видимым прогрессом,
+    // чтобы окно не выглядело зависшим. Нативная страховка в wrapper.py
+    // после этого мгновенно завершится no-op'ом (ключ сессии уже сброшен).
+    try {
+        if (window.lockVaultWithProgress) await window.lockVaultWithProgress();
+    } catch (e) {
+        console.error('Lock before exit failed:', e);
+    }
+
     if (window.pywebview && window.pywebview.api && window.pywebview.api.force_close) {
         window.pywebview.api.force_close();
     } else {
@@ -783,6 +878,14 @@ function initMarkdownWorker() {
                 }
 
                 return \`<span class="image-resizer-wrapper \${customClass}" style="\${style}" data-md="\${safeMatch}"><img src="/\${url}" alt="\${alt}" draggable="false"><span class="image-resize-handle" title="Потяните для изменения размера"></span></span>\`;
+            });
+
+            // Ссылка с пустым текстом [](путь) — CommonMark рендерит её невидимой.
+            // Подставляем сам путь как текст, чтобы ссылка была видима и кликабельна.
+            // Для путей с пробелами поддерживается синтаксис [](<путь с пробелами>).
+            processed = processed.replace(/(^|[^!])\\[\\]\\(([^)]+)\\)/g, (m, pre, url) => {
+                const label = url.replace(/^</, '').replace(/>$/, '');
+                return pre + '[' + label + '](' + url + ')';
             });
 
             codeBlocks.forEach((code, i) => {
@@ -1303,6 +1406,24 @@ async function updateSettings(data) {
 
 const _escapeDiv = document.createElement('div');
 function escapeHtml(text) { _escapeDiv.textContent = text; return _escapeDiv.innerHTML; }
+
+// Эмодзи (включая составные через ZWJ, вариационный селектор и флаги)
+// для контр-поворота в свёрнутых колонках
+const _emojiUprightRe = new RegExp(
+    '(\\p{Extended_Pictographic}(?:\\uFE0F|\\u200D\\p{Extended_Pictographic}\\uFE0F?)*|[\\u{1F1E6}-\\u{1F1FF}]{2})',
+    'gu'
+);
+
+// Заголовок колонки: эмодзи оборачиваются в span. В свёрнутой колонке текст
+// повёрнут на 180° (writing-mode + rotate), из-за чего эмодзи оказывались
+// вверх ногами — CSS контр-поворачивает их обратно (.emoji-upright).
+function columnTitleHtml(title) {
+    return escapeHtml(title || '').replace(_emojiUprightRe, '<span class="emoji-upright">$1</span>');
+}
+
+function setColumnTitleText(el, title) {
+    if (el) el.innerHTML = columnTitleHtml(title);
+}
 function renderInlineMarkdown(text) {
     if (!text) return '';
 
@@ -1894,7 +2015,7 @@ function createColumnElement(column) {
 
     colDiv.innerHTML = `
         <div class="column-header">
-            <span class="column-title" data-full-title="${escapeHtml(column.title)}">${escapeHtml(column.title)}</span>
+            <span class="column-title" data-full-title="${escapeHtml(column.title)}">${columnTitleHtml(column.title)}</span>
             <div class="column-actions">
                 <div class="${pillClass}">
                     <span class="card-count">${column.tasks.length}</span>
@@ -3315,7 +3436,7 @@ function startColumnRename(columnEl, column) {
     const restore = (title) => {
         const span = document.createElement('span');
         span.className = 'column-title';
-        span.textContent = title;
+        setColumnTitleText(span, title);
         span.dataset.fullTitle = title;
         if (input.parentNode) input.replaceWith(span);
         columnEl.setAttribute('draggable', 'true');
@@ -3335,7 +3456,7 @@ function startColumnRename(columnEl, column) {
                 column.title = newTitle;
             } catch (_) {
                 const span = columnEl.querySelector('.column-title');
-                if (span) span.textContent = column.title;
+                if (span) setColumnTitleText(span, column.title);
             }
         }
         requestAnimationFrame(() => {
@@ -3804,10 +3925,10 @@ function adjustCollapsedColumnWidths() {
 
         if (isClamped) {
             const visibleChars = maxChars - 1;
-            titleEl.textContent = fullTitle.substring(0, visibleChars) + '…';
+            setColumnTitleText(titleEl, fullTitle.substring(0, visibleChars) + '…');
             titleEl.dataset.clamped = 'true';
         } else {
-            titleEl.textContent = fullTitle;
+            setColumnTitleText(titleEl, fullTitle);
             titleEl.dataset.clamped = 'false';
         }
 
@@ -4774,7 +4895,10 @@ document.addEventListener('click', async (e) => {
                 fetch(`${API_BASE}/system/open-file`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({path: decodeURIComponent(cleanHref)}) });
             } else if (href) {
                 e.preventDefault();
-                fetch(`${API_BASE}/system/open-link`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({url: href}) });
+                fetch(`${API_BASE}/system/open-link`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({url: href}) })
+                    .then(r => r.json())
+                    .then(d => { if (d && d.success === false) window.showToast(t('alerts.error'), t('alerts.linkNotFound'), true); })
+                    .catch(() => {});
             }
             return;
         }
@@ -5474,6 +5598,10 @@ document.addEventListener('click', async (e) => {
             }).catch(console.error);
             closeAllDropdowns();
         }
+        else if (action === 'security-settings') {
+            window.openSecuritySettings();
+            closeAllDropdowns();
+        }
         else if (action === 'extensions-settings') {
             fetchSettings().then(data => {
                 window.applyExtensionsUI(data.extensions);
@@ -5580,9 +5708,9 @@ document.addEventListener('click', async (e) => {
             confirmBtn.replaceWith(newConfirmBtn);
             
             newConfirmBtn.onclick = async () => {
-                const includeCode = document.getElementById('export-json-include-code').checked;
+                const includeAtt = document.getElementById('export-json-include-att').checked;
                 jsonModal.classList.remove('show');
-                
+
                 if (window.pywebview && window.pywebview.api && window.pywebview.api.choose_directory) {
                     setTimeout(() => {
                         window.pywebview.api.choose_directory().then(async dir => {
@@ -5590,9 +5718,16 @@ document.addEventListener('click', async (e) => {
                                 try {
                                     const res = await fetch(`${API_BASE}/system/export-json`, {
                                         method: 'POST', headers: {'Content-Type': 'application/json'},
-                                        body: JSON.stringify({ path: dir, include_codebase: includeCode })
+                                        body: JSON.stringify({ path: dir, include_attachments: includeAtt })
                                     });
-                                    if (res.ok) window.showToast(currentLang === 'ru' ? 'Успех' : 'Success', currentLang === 'ru' ? 'Бэкап сохранен в выбранную папку' : 'Backup saved to selected folder');
+                                    if (res.ok) {
+                                        const data = await res.json().catch(() => ({}));
+                                        const attCount = data.exported_attachments || 0;
+                                        const attSuffix = attCount > 0
+                                            ? (currentLang === 'ru' ? ` (+${attCount} влож.)` : ` (+${attCount} attachments)`)
+                                            : '';
+                                        window.showToast(currentLang === 'ru' ? 'Успех' : 'Success', (currentLang === 'ru' ? 'Бэкап сохранен в выбранную папку' : 'Backup saved to selected folder') + attSuffix);
+                                    }
                                     else window.showToast(t('alerts.error'), currentLang === 'ru' ? 'Не удалось экспортировать данные' : 'Failed to export data', true);
                                 } catch(e) { window.showToast(t('alerts.error'), 'Network Error', true); }
                             }
@@ -5620,8 +5755,12 @@ document.addEventListener('click', async (e) => {
                                 });
                                 if (res.ok) {
                                     const data = await res.json();
-                                    window.showToast(currentLang === 'ru' ? 'Импорт' : 'Import', currentLang === 'ru' ? 'Данные успешно импортированы' : 'Data imported successfully');
-                                    
+                                    const attCount = data.imported_attachments || 0;
+                                    const attSuffix = attCount > 0
+                                        ? (currentLang === 'ru' ? ` (+${attCount} влож.)` : ` (+${attCount} attachments)`)
+                                        : '';
+                                    window.showToast(currentLang === 'ru' ? 'Импорт' : 'Import', (currentLang === 'ru' ? 'Данные успешно импортированы' : 'Data imported successfully') + attSuffix);
+
                                     if (data.new_workspace_id) {
                                         state.activeWorkspaceId = data.new_workspace_id;
                                         await updateSettings({ active_workspace_id: data.new_workspace_id });
@@ -7949,10 +8088,13 @@ function initTaskDescriptionLogic() {
                     .catch(err => console.error("Не удалось найти карточку", err));
                 return;
             }
-            fetch(`${API_BASE}/system/open-link`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({url: href}) });
+            fetch(`${API_BASE}/system/open-link`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({url: href}) })
+                .then(r => r.json())
+                .then(d => { if (d && d.success === false) window.showToast(t('alerts.error'), t('alerts.linkNotFound'), true); })
+                .catch(() => {});
             return;
         }
-        
+
         if (!cmEditor.getValue().trim()) {
             switchToEditMode();
         }
@@ -8720,15 +8862,569 @@ async function showVaultScreen() {
     if (window.aiState) window.aiState.isTyping = false;
     if (typeof setAiBtnState === 'function') setAiBtnState(false);
 
-    const lights = document.getElementById('mac-traffic-lights');
-    if (lights) lights.classList.add('vault-mode');
+    // 🔐 Выход на экран выбора хранилищ = выход из хранилища:
+    // закрываем БД и шифруем файлы (если установлен пароль), сбрасываем ключ сессии.
+    // С красивым оверлеем прогресса, чтобы приложение не выглядело зависшим.
+    await window.lockVaultWithProgress();
 
+    // ⚠️ Класс vault-mode здесь НЕ добавляем: окно доски видно ещё всё время
+    // шифрования и ~0.4с до подмены окном селектора — зелёная кнопка пропадала
+    // бы раньше времени. Селектор открывается свежей страницей (?mode=vault),
+    // которая сама скрывает зелёную кнопку при инициализации.
     if (window.pywebview && window.pywebview.api && window.pywebview.api.open_vault_window) {
         window.pywebview.api.open_vault_window();
     } else {
         window.location.href = "/app?mode=vault";
     }
 }
+
+// ============================================================
+//  🔐 Прогресс шифрования / расшифровки
+// ============================================================
+// Поллинг эндпоинта прогресса. Возвращает функцию остановки.
+function startVaultProgressPolling(op, fillEl, labelEl) {
+    // Единое поведение для шифрования и расшифровки: полоса всегда начинается
+    // с 0% и плавно заполняется. Никакого "бегающего" indeterminate-режима —
+    // короткую паузу до начала обработки файлов (закрытие БД и т.п.)
+    // полоса просто стоит пустой, активность показывает анимация замка.
+    if (fillEl) fillEl.style.width = '0%';
+    if (labelEl) labelEl.textContent = '';
+
+    const timer = setInterval(async () => {
+        try {
+            const r = await fetch(`${API_BASE}/system/vault/security/progress?t=${Date.now()}`);
+            if (!r.ok) return;
+            const p = await r.json();
+            if (p.active && p.op === op && p.total > 0) {
+                const pct = Math.min(100, Math.round((p.done / p.total) * 100));
+                if (fillEl) fillEl.style.width = pct + '%';
+                if (labelEl) labelEl.textContent = t('security.filesCount', p.done, p.total);
+            }
+        } catch (e) { /* сервер занят/недоступен — просто пропускаем тик */ }
+    }, 150);
+
+    return () => {
+        clearInterval(timer);
+        if (fillEl) {
+            fillEl.classList.remove('indeterminate');
+            fillEl.style.width = '100%';
+        }
+    };
+}
+
+// Шифрование активного хранилища с полноэкранным оверлеем прогресса.
+// Используется при выходе на экран выбора хранилищ и при закрытии приложения.
+window.lockVaultWithProgress = async () => {
+    // Быстрая проверка: защищено ли хранилище и есть ли что шифровать
+    let needLock = false;
+    try {
+        const r = await fetch(`${API_BASE}/system/vault/security/status?t=${Date.now()}`);
+        if (r.ok) {
+            const s = await r.json();
+            needLock = s.protected === true && s.unlocked === true;
+        }
+    } catch (e) { /* сервер недоступен — шифровать нечем, выходим */ }
+
+    const overlay = document.getElementById('vault-lock-overlay');
+    let stopPolling = null;
+
+    if (needLock && overlay) {
+        document.getElementById('vault-lock-overlay-title').textContent = t('security.encrypting');
+        document.getElementById('vault-lock-overlay-hint').textContent = t('security.encryptingHint');
+        overlay.classList.add('show');
+        stopPolling = startVaultProgressPolling(
+            'lock',
+            document.getElementById('vault-lock-overlay-fill'),
+            document.getElementById('vault-lock-overlay-label')
+        );
+    }
+
+    try {
+        await fetch(`${API_BASE}/system/vault/lock`, { method: 'POST' });
+    } catch (e) {
+        console.error('Vault lock failed:', e);
+    }
+
+    if (stopPolling) stopPolling();
+    if (needLock && overlay) {
+        // Даем полосе визуально дойти до 100% перед скрытием
+        await new Promise(res => setTimeout(res, 250));
+        overlay.classList.remove('show');
+    }
+};
+
+// ============================================================
+//  🔐 Ввод пароля защищённого хранилища
+// ============================================================
+let _vaultUnlockResolve = null;
+
+function _vaultUnlockSetError(msg) {
+    const errEl = document.getElementById('vault-unlock-error');
+    const input = document.getElementById('vault-unlock-input');
+    const lockIcon = document.getElementById('vault-unlock-lock-icon');
+    if (msg) {
+        errEl.textContent = msg;
+        errEl.classList.add('visible');
+        input.classList.remove('is-error');
+        void input.offsetWidth;
+        input.classList.add('is-error');
+        lockIcon.classList.remove('is-denied');
+        void lockIcon.offsetWidth;
+        lockIcon.classList.add('is-denied');
+        setTimeout(() => lockIcon.classList.remove('is-denied'), 450);
+    } else {
+        errEl.textContent = '';
+        errEl.classList.remove('visible');
+        input.classList.remove('is-error');
+    }
+}
+
+function _vaultUnlockSetLoading(loading) {
+    const btn = document.getElementById('vault-unlock-submit');
+    const label = btn.querySelector('.vu-btn-label');
+    btn.classList.toggle('is-loading', loading);
+    label.textContent = loading ? t('security.unlocking') : t('security.unlockBtn');
+    document.getElementById('vault-unlock-input').disabled = loading;
+}
+
+function _closeVaultUnlockModal(result) {
+    const modal = document.getElementById('vault-unlock-modal');
+    modal.classList.remove('show');
+    _vaultUnlockSetLoading(false);
+    _vaultUnlockSetError(null);
+    document.getElementById('vault-unlock-lock-icon').classList.remove('is-open');
+    const input = document.getElementById('vault-unlock-input');
+    input.value = '';
+    input.disabled = false;
+    if (_vaultUnlockResolve) {
+        const r = _vaultUnlockResolve;
+        _vaultUnlockResolve = null;
+        r(result);
+    }
+}
+
+// Открывает красивый модал ввода пароля. Возвращает Promise<boolean>:
+// true — пароль верный и файлы расшифрованы, false — отмена.
+window.requestVaultUnlock = (path, name) => {
+    return new Promise((resolve) => {
+        // Если модал уже открыт — отменяем предыдущий запрос
+        if (_vaultUnlockResolve) _closeVaultUnlockModal(false);
+        _vaultUnlockResolve = resolve;
+
+        const modal = document.getElementById('vault-unlock-modal');
+        const input = document.getElementById('vault-unlock-input');
+        const desc = document.getElementById('vault-unlock-desc');
+
+        modal.dataset.vaultPath = path;
+        desc.textContent = t('security.unlockDesc', name || path.split(/[/\\]/).pop());
+        input.placeholder = t('security.passwordPlaceholder');
+        input.type = 'password';
+        _syncEyeIcon(document.getElementById('vault-unlock-eye'), false);
+        _vaultUnlockSetError(null);
+        _vaultUnlockSetLoading(false);
+        document.getElementById('vault-unlock-lock-icon').classList.remove('is-open');
+
+        // 🫆 Touch ID: показываем кнопку, если включён для этого хранилища
+        const tidBtn = document.getElementById('vault-touchid-btn');
+        if (tidBtn) {
+            tidBtn.style.display = 'none';
+            tidBtn.classList.remove('is-busy');
+            fetch(`${API_BASE}/system/vault/security/status?path=${encodeURIComponent(path)}&t=${Date.now()}`)
+                .then(r => r.ok ? r.json() : null)
+                .then(s => {
+                    if (s && s.touchid_enabled === true && modal.classList.contains('show')) {
+                        tidBtn.style.display = '';
+                    }
+                })
+                .catch(() => {});
+        }
+
+        modal.classList.add('show');
+        setTimeout(() => input.focus(), 60);
+    });
+};
+
+async function _submitVaultUnlockBiometric() {
+    const modal = document.getElementById('vault-unlock-modal');
+    const tidBtn = document.getElementById('vault-touchid-btn');
+    _vaultUnlockSetError(null);
+    tidBtn.classList.add('is-busy');
+    _vaultUnlockSetLoading(true);
+
+    // Прогресс расшифровки — как при входе по паролю
+    const progressBox = document.getElementById('vault-unlock-progress');
+    const progressFill = document.getElementById('vault-unlock-progress-fill');
+    const progressLabel = document.getElementById('vault-unlock-progress-label');
+    let stopPolling = null;
+    const progressDelay = setTimeout(() => {
+        progressBox.classList.add('visible');
+        stopPolling = startVaultProgressPolling('unlock', progressFill, progressLabel);
+    }, 350);
+
+    const cleanup = () => {
+        clearTimeout(progressDelay);
+        if (stopPolling) { stopPolling(); stopPolling = null; }
+        progressBox.classList.remove('visible');
+        progressFill.style.width = '0%';
+        progressLabel.textContent = '';
+        tidBtn.classList.remove('is-busy');
+    };
+
+    try {
+        const res = await fetch(`${API_BASE}/system/vault/unlock-biometric`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: modal.dataset.vaultPath })
+        });
+
+        if (res.ok) {
+            clearTimeout(progressDelay);
+            if (stopPolling) { stopPolling(); stopPolling = null; }
+            document.getElementById('vault-unlock-lock-icon').classList.add('is-open');
+            setTimeout(() => {
+                progressBox.classList.remove('visible');
+                progressFill.style.width = '0%';
+                progressLabel.textContent = '';
+                tidBtn.classList.remove('is-busy');
+                _closeVaultUnlockModal(true);
+            }, 420);
+            return;
+        }
+
+        cleanup();
+        _vaultUnlockSetLoading(false);
+        const err = await res.json().catch(() => ({}));
+        const detail = err && err.detail;
+
+        if (detail === 'KEY_STALE') {
+            _vaultUnlockSetError(t('security.touchidStale'));
+        } else if (detail === 'CANCELED') {
+            // Пользователь просто закрыл системный диалог — тихо возвращаемся
+            _vaultUnlockSetError(null);
+        } else if (detail === 'USE_PASSWORD') {
+            // Пользователь выбрал «Ввести пароль» — плавно приглашаем в поле:
+            // мягкая пульсация-подсветка + фокус, никакой ошибки
+            _vaultUnlockSetError(null);
+            const input = document.getElementById('vault-unlock-input');
+            input.classList.remove('is-attention');
+            void input.offsetWidth;
+            input.classList.add('is-attention');
+            setTimeout(() => input.classList.remove('is-attention'), 1400);
+            input.focus();
+        } else if (res.status === 403) {
+            // Отпечаток действительно не подтверждён
+            _vaultUnlockSetError(t('security.touchidFailed'));
+        } else {
+            _vaultUnlockSetError(t('security.lockError'));
+        }
+    } catch (e) {
+        console.error('Biometric unlock error:', e);
+        cleanup();
+        _vaultUnlockSetLoading(false);
+        _vaultUnlockSetError(t('security.lockError'));
+    }
+}
+
+async function _submitVaultUnlock() {
+    const modal = document.getElementById('vault-unlock-modal');
+    const input = document.getElementById('vault-unlock-input');
+    const password = input.value;
+
+    if (!password) {
+        _vaultUnlockSetError(null);
+        input.classList.remove('is-error');
+        void input.offsetWidth;
+        input.classList.add('is-error');
+        input.focus();
+        return;
+    }
+
+    _vaultUnlockSetLoading(true);
+    _vaultUnlockSetError(null);
+
+    // 🔐 Прогресс расшифровки: полоса появляется, как только началась работа с файлами
+    // (проверка пароля по хэшу занимает доли секунды, расшифровка может быть долгой)
+    const progressBox = document.getElementById('vault-unlock-progress');
+    const progressFill = document.getElementById('vault-unlock-progress-fill');
+    const progressLabel = document.getElementById('vault-unlock-progress-label');
+    let stopPolling = null;
+    const progressDelay = setTimeout(() => {
+        progressBox.classList.add('visible');
+        stopPolling = startVaultProgressPolling('unlock', progressFill, progressLabel);
+    }, 350); // короткие операции не мигают полосой
+
+    const hideProgress = () => {
+        clearTimeout(progressDelay);
+        if (stopPolling) { stopPolling(); stopPolling = null; }
+        progressBox.classList.remove('visible');
+        progressFill.style.width = '0%';
+        progressLabel.textContent = '';
+    };
+
+    try {
+        const res = await fetch(`${API_BASE}/system/vault/unlock`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: modal.dataset.vaultPath, password })
+        });
+
+        if (res.ok) {
+            clearTimeout(progressDelay);
+            if (stopPolling) { stopPolling(); stopPolling = null; } // полоса доедет до 100%
+            // Красивая анимация открытия замка перед закрытием модала
+            document.getElementById('vault-unlock-lock-icon').classList.add('is-open');
+            setTimeout(() => {
+                progressBox.classList.remove('visible');
+                progressFill.style.width = '0%';
+                progressLabel.textContent = '';
+                _closeVaultUnlockModal(true);
+            }, 420);
+            return;
+        }
+
+        hideProgress();
+        _vaultUnlockSetLoading(false);
+        if (res.status === 403) {
+            _vaultUnlockSetError(t('security.wrongPassword'));
+        } else {
+            _vaultUnlockSetError(t('security.lockError'));
+        }
+        input.select();
+        input.focus();
+    } catch (e) {
+        console.error('Unlock error:', e);
+        hideProgress();
+        _vaultUnlockSetLoading(false);
+        _vaultUnlockSetError(t('security.lockError'));
+    }
+}
+
+function _syncEyeIcon(btn, visible) {
+    if (!btn) return;
+    // Иконка отражает ТЕКУЩЕЕ состояние: открытый глаз = пароль видим,
+    // перечёркнутый = скрыт (а не действие, которое произойдёт по клику)
+    btn.querySelector('.eye-open').style.display = visible ? '' : 'none';
+    btn.querySelector('.eye-closed').style.display = visible ? 'none' : '';
+}
+
+(function initVaultUnlockModal() {
+    const modal = document.getElementById('vault-unlock-modal');
+    if (!modal) return;
+    const input = document.getElementById('vault-unlock-input');
+    const eyeBtn = document.getElementById('vault-unlock-eye');
+
+    document.getElementById('vault-unlock-submit').addEventListener('click', _submitVaultUnlock);
+    document.getElementById('vault-unlock-cancel').addEventListener('click', () => _closeVaultUnlockModal(false));
+    document.getElementById('vault-touchid-btn')?.addEventListener('click', _submitVaultUnlockBiometric);
+
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); _submitVaultUnlock(); }
+        if (e.key === 'Escape') { e.preventDefault(); _closeVaultUnlockModal(false); }
+    });
+    input.addEventListener('input', () => _vaultUnlockSetError(null));
+
+    eyeBtn.addEventListener('click', () => {
+        const visible = input.type === 'password';
+        input.type = visible ? 'text' : 'password';
+        _syncEyeIcon(eyeBtn, visible);
+        input.focus();
+    });
+
+    // Закрытие по клику на подложку — как отмена
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) _closeVaultUnlockModal(false);
+    });
+})();
+
+// ============================================================
+//  🔐 Настройки «Защита паролем» (активное хранилище)
+// ============================================================
+let _securityFormMode = null; // 'set' | 'change' | 'remove'
+
+function _secFormError(msg, targetInput) {
+    const errEl = document.getElementById('security-form-error');
+    if (msg) {
+        errEl.textContent = msg;
+        errEl.classList.add('visible');
+        if (targetInput) {
+            targetInput.classList.remove('is-error');
+            void targetInput.offsetWidth;
+            targetInput.classList.add('is-error');
+            targetInput.focus();
+        }
+    } else {
+        errEl.textContent = '';
+        errEl.classList.remove('visible');
+        ['security-old-input', 'security-new-input', 'security-confirm-input'].forEach(id => {
+            document.getElementById(id)?.classList.remove('is-error');
+        });
+    }
+}
+
+async function _renderSecurityStatus() {
+    let status = { protected: false, global_attachments: false };
+    try {
+        const res = await fetch(`${API_BASE}/system/vault/security/status?t=${Date.now()}`);
+        if (res.ok) status = await res.json();
+    } catch (e) { console.error(e); }
+
+    const isOn = status.protected === true;
+    document.getElementById('sec-icon-locked').style.display = isOn ? '' : 'none';
+    document.getElementById('sec-icon-unlocked').style.display = isOn ? 'none' : '';
+    document.getElementById('security-status-icon').classList.toggle('is-on', isOn);
+    document.getElementById('security-status-title').textContent = isOn ? t('security.statusOn') : t('security.statusOff');
+    document.getElementById('security-status-desc').textContent = isOn ? t('security.statusOnDesc') : t('security.statusOffDesc');
+
+    document.getElementById('security-set-btn').style.display = isOn ? 'none' : '';
+    document.getElementById('security-change-btn').style.display = isOn ? '' : 'none';
+    document.getElementById('security-remove-btn').style.display = isOn ? '' : 'none';
+    document.getElementById('security-global-att-warning').style.display = (isOn && status.global_attachments) ? '' : 'none';
+
+    // 🫆 Touch ID: карточка видна только на macOS с настроенной биометрией и при установленном пароле
+    const tidCard = document.getElementById('security-touchid-card');
+    if (tidCard) {
+        tidCard.style.display = (isOn && status.touchid_available === true) ? '' : 'none';
+        document.getElementById('security-touchid-switch')?.classList.toggle('on', status.touchid_enabled === true);
+    }
+    return status;
+}
+
+function _showSecurityForm(mode) {
+    _securityFormMode = mode;
+    document.getElementById('security-status-view').style.display = 'none';
+    document.getElementById('security-form-view').style.display = '';
+
+    const oldField = document.getElementById('security-old-field');
+    const newField = document.getElementById('security-new-field');
+    const confirmField = document.getElementById('security-confirm-field');
+    const forgetHint = document.getElementById('security-forget-hint');
+
+    oldField.style.display = (mode === 'set') ? 'none' : '';
+    newField.style.display = (mode === 'remove') ? 'none' : '';
+    confirmField.style.display = (mode === 'remove') ? 'none' : '';
+    forgetHint.style.display = (mode === 'remove') ? 'none' : '';
+
+    const oldInput = document.getElementById('security-old-input');
+    const newInput = document.getElementById('security-new-input');
+    const confirmInput = document.getElementById('security-confirm-input');
+    oldInput.value = ''; newInput.value = ''; confirmInput.value = '';
+    oldInput.placeholder = t('security.oldPasswordPlaceholder');
+    newInput.placeholder = t('security.newPasswordPlaceholder');
+    confirmInput.placeholder = t('security.confirmPlaceholder');
+    _secFormError(null);
+
+    setTimeout(() => (mode === 'set' ? newInput : oldInput).focus(), 60);
+}
+
+function _showSecurityStatusView() {
+    _securityFormMode = null;
+    document.getElementById('security-form-view').style.display = 'none';
+    document.getElementById('security-status-view').style.display = '';
+    _renderSecurityStatus();
+}
+
+async function _saveSecurityForm() {
+    const oldInput = document.getElementById('security-old-input');
+    const newInput = document.getElementById('security-new-input');
+    const confirmInput = document.getElementById('security-confirm-input');
+    const mode = _securityFormMode;
+
+    if (mode === 'remove') {
+        if (!oldInput.value) { _secFormError(t('security.wrongPassword'), oldInput); return; }
+        try {
+            const res = await fetch(`${API_BASE}/system/vault/security/remove`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password: oldInput.value })
+            });
+            if (res.ok) {
+                window.showToast(t('security.modalTitle'), t('security.removeSuccess'));
+                _showSecurityStatusView();
+            } else if (res.status === 403) {
+                _secFormError(t('security.wrongPassword'), oldInput);
+            } else if (res.status === 409) {
+                _secFormError(t('security.leftoverLocked'), null);
+            } else {
+                _secFormError(t('security.lockError'), oldInput);
+            }
+        } catch (e) { console.error(e); _secFormError(t('security.lockError'), oldInput); }
+        return;
+    }
+
+    // set / change
+    if (newInput.value.length < 4) { _secFormError(t('security.tooShort'), newInput); return; }
+    if (newInput.value !== confirmInput.value) { _secFormError(t('security.mismatch'), confirmInput); return; }
+    if (mode === 'change' && !oldInput.value) { _secFormError(t('security.wrongPassword'), oldInput); return; }
+
+    try {
+        const res = await fetch(`${API_BASE}/system/vault/security/set`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                password: newInput.value,
+                old_password: mode === 'change' ? oldInput.value : null
+            })
+        });
+        if (res.ok) {
+            window.showToast(t('security.modalTitle'), mode === 'change' ? t('security.changeSuccess') : t('security.setSuccess'));
+            _showSecurityStatusView();
+        } else if (res.status === 403) {
+            _secFormError(t('security.wrongPassword'), oldInput);
+        } else if (res.status === 409) {
+            _secFormError(t('security.leftoverLocked'), null);
+        } else {
+            _secFormError(t('security.lockError'), newInput);
+        }
+    } catch (e) { console.error(e); _secFormError(t('security.lockError'), newInput); }
+}
+
+window.openSecuritySettings = async () => {
+    _showSecurityStatusView();
+    await _renderSecurityStatus();
+    document.getElementById('security-settings-modal').classList.add('show');
+};
+
+(function initSecuritySettingsModal() {
+    const modal = document.getElementById('security-settings-modal');
+    if (!modal) return;
+
+    document.getElementById('security-set-btn').addEventListener('click', () => _showSecurityForm('set'));
+    document.getElementById('security-change-btn').addEventListener('click', () => _showSecurityForm('change'));
+    document.getElementById('security-remove-btn').addEventListener('click', () => _showSecurityForm('remove'));
+
+    // 🫆 Переключатель Touch ID
+    document.getElementById('security-touchid-row')?.addEventListener('click', async () => {
+        const sw = document.getElementById('security-touchid-switch');
+        const enable = !sw.classList.contains('on');
+        try {
+            const res = await fetch(`${API_BASE}/system/vault/security/touchid`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ enabled: enable })
+            });
+            if (res.ok) {
+                sw.classList.toggle('on', enable);
+                window.showToast(t('security.modalTitle'), enable ? t('security.touchidOn') : t('security.touchidOff'));
+            } else {
+                window.showToast(t('alerts.error'), t('security.touchidFailed'), true);
+            }
+        } catch (e) {
+            console.error(e);
+            window.showToast(t('alerts.error'), t('security.touchidFailed'), true);
+        }
+    });
+    document.getElementById('security-form-cancel').addEventListener('click', _showSecurityStatusView);
+    document.getElementById('security-form-save').addEventListener('click', _saveSecurityForm);
+
+    ['security-old-input', 'security-new-input', 'security-confirm-input'].forEach(id => {
+        const el = document.getElementById(id);
+        el.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') { e.preventDefault(); _saveSecurityForm(); }
+            if (e.key === 'Escape') { e.preventDefault(); _showSecurityStatusView(); }
+        });
+        el.addEventListener('input', () => _secFormError(null));
+    });
+})();
 
 async function fetchVaultHistory() {
     try {
@@ -8787,13 +9483,20 @@ async function renderVaultHistory() {
         }
 
         const missingTooltip = currentLang === 'ru' ? 'Хранилище не найдено. Нажмите, чтобы перепривязать' : 'Vault not found. Click to relink';
+        const isProtected = item.protected === true;
+        const lockBadge = isProtected
+            ? `<span class="vault-protected-badge" title="${t('security.protectedTooltip')}"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></span>`
+            : '';
 
         div.innerHTML = `
             <div class="subtask-checkbox ${isMissing ? 'missing' : ''}" style="border:none; color: var(--brand-pine); opacity: 0.8; cursor: inherit;" ${isMissing ? `title="${missingTooltip}"` : ''}>
                 ${isMissing ? missingIcon : folderIcon}
             </div>
             <div class="vault-history-info">
-                <div class="vault-history-name ${isMissing ? 'missing-text' : ''}" data-full-title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</div>
+                <div class="vault-history-name-row">
+                    <div class="vault-history-name ${isMissing ? 'missing-text' : ''}" data-full-title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</div>
+                    ${lockBadge}
+                </div>
                 <div class="vault-history-meta">
                     <div class="vault-history-path ${isMissing ? 'missing-text' : ''}" title="${escapeHtml(item.path)}">${escapeHtml(item.path)}</div>
                     <!-- Теперь блок даты есть в DOM всегда, поэтому он без проблем копируется в Drag&Drop клон -->
@@ -8859,18 +9562,39 @@ async function renderVaultHistory() {
             }
 
             try {
+                // 🔐 Защищённое хранилище: сначала красивый запрос пароля
+                if (isProtected) {
+                    const unlocked = await window.requestVaultUnlock(item.path, item.name);
+                    if (!unlocked) return;
+                }
+
                 div.style.opacity = '0.5';
                 div.style.pointerEvents = 'none';
 
-                const res = await fetch(`${API_BASE}/system/vault/switch`, {
+                let res = await fetch(`${API_BASE}/system/vault/switch`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ new_path: item.path })
                 });
-                
+
+                // 🔐 Страховка: бэкенд сообщил, что нужен пароль (например, флаг protected устарел)
+                if (res.status === 423) {
+                    div.style.opacity = '1';
+                    div.style.pointerEvents = 'auto';
+                    const unlocked = await window.requestVaultUnlock(item.path, item.name);
+                    if (!unlocked) return;
+                    div.style.opacity = '0.5';
+                    div.style.pointerEvents = 'none';
+                    res = await fetch(`${API_BASE}/system/vault/switch`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ new_path: item.path })
+                    });
+                }
+
                 if (res.ok) {
                     const result = await res.json();
-                
+
                 updateVaultName(result.name);
                 const settings = await fetchSettings().catch(() => ({}));
                 state.activeWorkspaceId = settings.active_workspace_id || null;
@@ -8881,7 +9605,7 @@ async function renderVaultHistory() {
                 div.classList.add('is-error');
                     setTimeout(() => {
                         div.classList.remove('is-error');
-                        renderVaultHistory(); 
+                        renderVaultHistory();
                     }, 400);
                 }
             } catch (err) {
@@ -8946,13 +9670,14 @@ async function renderVaultHistory() {
 }
 
 async function transitionToApp() {
-    const lights = document.getElementById('mac-traffic-lights');
-    if (lights) lights.classList.remove('vault-mode');
-
+    // ⚠️ Класс vault-mode здесь НЕ снимаем: окно селектора живёт ещё ~0.4с,
+    // пока pywebview создаёт окно доски, и зелёная кнопка fullscreen успевала
+    // мелькнуть на экране выбора хранилищ. Доска всегда открывается свежей
+    // страницей (новое окно или навигация), где светофор полный по умолчанию.
     if (window.pywebview && window.pywebview.api && window.pywebview.api.open_main_window) {
         window.pywebview.api.open_main_window();
     } else {
-        window.location.href = "/app"; 
+        window.location.href = "/app";
     }
 }
 
@@ -8994,11 +9719,23 @@ window.handleVaultAction = async (actionType) => {
             const selectedPath = await window.pywebview.api.choose_directory();
             if (!selectedPath) return;
 
-            const res = await fetch(`${API_BASE}/system/vault/switch`, { 
+            let res = await fetch(`${API_BASE}/system/vault/switch`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ new_path: selectedPath })
             });
+
+            // 🔐 Хранилище защищено паролем — запрашиваем его и пробуем снова
+            if (res.status === 423) {
+                const vaultName = selectedPath.split(/[/\\]/).pop();
+                const unlocked = await window.requestVaultUnlock(selectedPath, vaultName);
+                if (!unlocked) return;
+                res = await fetch(`${API_BASE}/system/vault/switch`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ new_path: selectedPath })
+                });
+            }
 
             if (res.ok) {
                 const result = await res.json();
@@ -9006,7 +9743,7 @@ window.handleVaultAction = async (actionType) => {
                 updateVaultName(result.name);
                 const settings = await fetchSettings().catch(() => ({}));
                 state.activeWorkspaceId = settings.active_workspace_id || null;
-                
+
                 await transitionToApp();
             } else if (res.status === 400) {
                 const cards = document.querySelectorAll('.vault-action-card');
@@ -11164,6 +11901,14 @@ function parseMarkdownWithMath(text) {
         return `<span class="image-resizer-wrapper ${customClass}" style="${style}" data-md="${safeMatch}"><img src="/${url}" alt="${alt}" draggable="false"><span class="image-resize-handle" title="Потяните для изменения размера"></span></span>`;
     });
 
+    // Ссылка с пустым текстом [](путь) — CommonMark рендерит её невидимой.
+    // Подставляем сам путь как текст, чтобы ссылка была видима и кликабельна.
+    // Для путей с пробелами поддерживается синтаксис [](<путь с пробелами>).
+    processed = processed.replace(/(^|[^!])\[\]\(([^)]+)\)/g, (m, pre, url) => {
+        const label = url.replace(/^</, '').replace(/>$/, '');
+        return pre + '[' + label + '](' + url + ')';
+    });
+
     codeBlocks.forEach((code, i) => {
         processed = processed.replace(`DOECODEPLACEHOLDER${i}END`, () => code);
     });
@@ -12854,7 +13599,15 @@ function initCloudSync() {
 
         window.currentVaultPath = vaultData.path;
 
-        
+        // 🎨 Применяем тему и язык из сохранённых настроек ДО отрисовки доски.
+        // Раньше ветка доски этого не делала (в отличие от экрана выбора),
+        // поэтому тема/язык, выставленные на экране выбора хранилищ,
+        // не подхватывались: currentLang оставался дефолтным 'ru'.
+        try {
+            if (settingsData.theme) applyTheme(settingsData.theme, false);
+            if (settingsData.language) applyLanguage(settingsData.language, false);
+        } catch (e) {}
+
         const mainVaultScreen = document.getElementById('vault-screen');
         if (mainVaultScreen) {
             mainVaultScreen.classList.add('hidden', 'content-hidden');
@@ -13843,6 +14596,13 @@ async function applyColumnSort(columnId, criteria, dir) {
     };
     document.addEventListener('mouseup', stop);
     window.addEventListener('blur', stop);
+
+    // Двойной клик по шапке = нативный zoom (как у любого окна macOS)
+    document.addEventListener('dblclick', (e) => {
+        if (!e.target.closest('.app-header')) return;
+        if (e.target.closest(NO_DRAG)) return;
+        try { window.pywebview?.api?.zoom_window?.(); } catch (err) {}
+    });
 })();
 
 (function setupWindowsChrome() {
@@ -13914,21 +14674,21 @@ async function applyColumnSort(columnId, criteria, dir) {
         });
     }
 
+    const allowedDragZones = [
+        'app-header',
+        'header-left-controls',
+        'tabs-wrapper',
+        'tabs-container',
+        'vault-screen',
+        'vault-container',
+        'vault-hero'
+    ];
+    const isDragZone = (el) => allowedDragZones.some(cls => el.classList && el.classList.contains(cls));
+
     document.addEventListener('pointerdown', (e) => {
         if (e.button !== 0) return;
 
-        const allowedDragZones = [
-            'app-header',
-            'header-left-controls',
-            'tabs-wrapper',
-            'tabs-container',
-            'vault-screen',
-            'vault-container',
-            'vault-hero'
-        ];
-
-        const isDirectClickOnBackground = allowedDragZones.some(cls => e.target.classList.contains(cls));
-        if (!isDirectClickOnBackground) return;
+        if (!isDragZone(e.target)) return;
 
         e.preventDefault();
 
@@ -13937,6 +14697,13 @@ async function applyColumnSort(columnId, criteria, dir) {
         if (window.pywebview && window.pywebview.api && window.pywebview.api.start_window_drag) {
             window.pywebview.api.start_window_drag();
         }
+    }, true);
+
+    // Двойной клик по шапке = развернуть/восстановить (как у любого окна Windows)
+    document.addEventListener('dblclick', (e) => {
+        if (isVault) return; // окно выбора хранилищ не разворачивается
+        if (!isDragZone(e.target)) return;
+        api()?.toggle_maximize_window?.();
     }, true);
 
 })();

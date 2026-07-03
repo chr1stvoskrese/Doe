@@ -22,27 +22,47 @@ async def lifespan(app: FastAPI):
     from src.core.config import get_active_vault
     
     vault_path = get_active_vault()
-    
+
+    # 🔐 init_dev_database возвращает None, если хранилище защищено паролем
+    # (ждём разблокировки), невалидно или отсутствует. В этом случае сервер
+    # стартует БЕЗ базы — пользователь увидит экран выбора хранилищ.
+    initialized = None
     if vault_path and Path(vault_path).exists():
-        await init_dev_database()
+        initialized = await init_dev_database()
+
+    if initialized is not None:
         print(f"✅ База данных инициализирована в: {vault_path}")
 
         # Запускаем планировщик автоматизаций
         from src.db.database import get_session_factory
         from src.services.automation_service import start_scheduler
         start_scheduler(get_session_factory())
-        
+
         yield
         
         from src.services.automation_service import stop_scheduler
         stop_scheduler()
         vault_observer.stop() # <-- ГЛУШИМ WATCHER
         await close_database()
+        # 🔐 Штатное завершение: шифруем защищённое хранилище (ключ сессии ещё в памяти)
+        try:
+            from src.db.database import lock_vault_files
+            await lock_vault_files(get_active_vault())
+        except Exception as e:
+            print(f"[Security] Lock on shutdown failed: {e}")
         print("🛑 Сервер останавливается...")
     else:
-        print("⚠️ Хранилище не выбрано или удалено. Ждем действий пользователя.")
+        print("⚠️ Хранилище не выбрано, защищено паролем или удалено. Ждем действий пользователя.")
         yield
+        from src.services.automation_service import stop_scheduler
+        stop_scheduler()  # мог быть запущен позже, при разблокировке хранилища
+        vault_observer.stop()
         await close_database()
+        try:
+            from src.db.database import lock_vault_files
+            await lock_vault_files(get_active_vault())
+        except Exception as e:
+            print(f"[Security] Lock on shutdown failed: {e}")
 
 app = FastAPI(title="Doe API", version="0.1.0", lifespan=lifespan)
 
