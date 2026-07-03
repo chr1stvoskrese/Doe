@@ -651,7 +651,9 @@ body, button, input, textarea, select,
     cursor: grabbing !important;
 }
 
-.column.collapsed:hover {
+/* :not(:has(...)) — ховер на линии создания колонки (она живёт в правом
+   отступе колонки) не должен подсвечивать саму колонку */
+.column.collapsed:hover:not(:has(.column-inline-trigger:hover)) {
     border-color: rgba(0, 0, 0, 0.14);
 }
 
@@ -2124,7 +2126,7 @@ select.column-input:focus-visible {
     border: 1px solid var(--border-light);
 }
 
-[data-theme="dark"] .column.collapsed:hover {
+[data-theme="dark"] .column.collapsed:hover:not(:has(.column-inline-trigger:hover)) {
     border-color: rgba(255, 255, 255, 0.14);
 }
 
@@ -8424,11 +8426,24 @@ body.ext-statistics-hidden #statistics-trigger {
     transform: scale(1);
 }
 
+/* У свёрнутых колонок триггер НЕ скрываем — линия создания колонки
+   должна работать и между свёрнутыми колонками */
 .column:last-child .column-inline-trigger,
 .column:has(+ .new-column-btn) .column-inline-trigger,
-.column:has(+ .column-entering) .column-inline-trigger,
-.column.collapsed .column-inline-trigger {
+.column:has(+ .column-entering) .column-inline-trigger {
     display: none !important;
+}
+
+/* Эмодзи в заголовке свёрнутой колонки: заголовок повёрнут на 180°
+   (writing-mode: vertical-rl + rotate), контр-поворачиваем эмодзи обратно */
+.column.collapsed .column-title .emoji-upright {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    /* Оптическая компенсация глифа: translateX сдвигает смайлик физически влево */
+    transform: rotate(180deg) translateX(-1.5px);
+    line-height: 1;
+    letter-spacing: normal;
 }
 
 body[class*="is-dragging-"] .column-inline-trigger {
@@ -8695,4 +8710,538 @@ body.tabs-hidden .hb-separator ~ .board-tab::after {
 /* Оставляем отступ только в режиме Cloze (когда описание идет строго ПОСЛЕ заголовка) */
 #mem-review-answer .mem-card-title + .mem-card-desc {
     margin-top: 12px; 
+}
+
+/* ============================================================
+   🔐 Защита хранилища паролем
+   ============================================================ */
+
+/* --- Значок замка у защищённого хранилища в истории --- */
+.vault-protected-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 6px;
+    color: var(--brand-pine);
+    opacity: 0.75;
+    flex-shrink: 0;
+    transform: translateY(1px);
+}
+
+.vault-history-name-row {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+}
+
+/* --- Модал ввода пароля --- */
+.vault-unlock-card {
+    overflow: hidden;
+}
+
+.vault-unlock-body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 28px 24px 22px;
+    text-align: center;
+}
+
+.vault-unlock-lock-wrap {
+    margin-bottom: 14px;
+}
+
+.vault-unlock-lock {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--brand-pine);
+    background: var(--brand-pale);
+    box-shadow: inset 0 0 0 1px var(--border-light);
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Анимация "открытия" замка при успехе: кроссфейд закрытой дужки в открытую
+   (родная форма иконки lock-open) + мягкий упругий "pop" всего бейджа.
+   Никаких поворотов path'а — прежний rotate выглядел криво. */
+.vu-shackle,
+.vu-shackle-open {
+    transition: opacity 0.22s ease;
+}
+
+.vu-shackle-open {
+    opacity: 0;
+}
+
+.vault-unlock-lock.is-open {
+    background: rgba(137, 160, 133, 0.18);
+    color: var(--success-done);
+    animation: vault-lock-pop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.vault-unlock-lock.is-open .vu-shackle {
+    opacity: 0;
+}
+
+.vault-unlock-lock.is-open .vu-shackle-open {
+    opacity: 1;
+}
+
+@keyframes vault-lock-pop {
+    0%   { transform: scale(1); }
+    40%  { transform: scale(1.12); }
+    100% { transform: scale(1); }
+}
+
+/* Мягкое "приглашение" в поле пароля (после «Use Password…» в диалоге Touch ID) */
+.vault-password-input.is-attention {
+    animation: vault-input-attention 0.65s ease 2;
+}
+
+@keyframes vault-input-attention {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(74, 90, 72, 0); border-color: var(--border-light); }
+    45%      { box-shadow: 0 0 0 4px var(--brand-pale); border-color: var(--brand-pine); }
+}
+
+.vault-unlock-lock.is-denied {
+    animation: column-shake 0.4s ease;
+    background: rgba(211, 84, 70, 0.12);
+    color: #D35446;
+}
+
+.vault-unlock-title {
+    font-size: 16px;
+    font-weight: 650;
+    color: var(--text-primary);
+    margin: 0 0 4px;
+    letter-spacing: -0.01em;
+}
+
+.vault-unlock-desc {
+    font-size: 12.5px;
+    color: var(--text-secondary);
+    margin: 0 0 18px;
+    line-height: 1.45;
+    max-width: 250px;
+    overflow-wrap: anywhere;
+}
+
+/* --- Поле пароля --- */
+.vault-unlock-field {
+    position: relative;
+    width: 100%;
+}
+
+.vault-password-input {
+    width: 100%;
+    padding: 10px 38px 10px 12px;
+    font-family: var(--font-main);
+    font-size: 13.5px;
+    color: var(--text-primary);
+    background: var(--bg-canvas);
+    border: 1px solid var(--border-light);
+    border-radius: 10px;
+    outline: none;
+    box-sizing: border-box;
+    letter-spacing: 0.06em;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.vault-password-input::placeholder {
+    color: var(--text-secondary);
+    opacity: 0.55;
+    letter-spacing: normal;
+}
+
+.vault-password-input:focus {
+    border-color: var(--brand-pine);
+    box-shadow: 0 0 0 3px var(--brand-pale);
+}
+
+.vault-password-input.is-error {
+    border-color: rgba(211, 84, 70, 0.65);
+    box-shadow: 0 0 0 3px rgba(211, 84, 70, 0.10);
+    animation: column-shake 0.4s ease;
+}
+
+.vault-eye-btn {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.15s ease, background 0.15s ease;
+}
+
+.vault-eye-btn:hover {
+    opacity: 1;
+    background: var(--brand-pale);
+}
+
+/* --- Сообщение об ошибке --- */
+.vault-unlock-error {
+    width: 100%;
+    min-height: 18px;
+    margin-top: 7px;
+    font-size: 12px;
+    font-weight: 550;
+    color: #D35446;
+    text-align: center;
+    opacity: 0;
+    transform: translateY(-2px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.vault-unlock-error.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* --- Кнопки --- */
+.vault-unlock-buttons {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+    margin-top: 12px;
+}
+
+.vault-unlock-buttons .confirm-btn {
+    flex: 1;
+    justify-content: center;
+}
+
+.vault-unlock-submit {
+    position: relative;
+    color: #fff !important;
+}
+
+/* Спиннер на кнопке во время расшифровки */
+.vu-btn-spinner {
+    display: none;
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255, 255, 255, 0.35);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: vu-spin 0.7s linear infinite;
+    margin-left: 8px;
+    vertical-align: -2px;
+}
+
+.vault-unlock-submit.is-loading {
+    pointer-events: none;
+    opacity: 0.85;
+}
+
+.vault-unlock-submit.is-loading .vu-btn-spinner {
+    display: inline-block;
+}
+
+@keyframes vu-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* --- Настройки: секция защиты --- */
+.security-status-row {
+    cursor: default;
+}
+
+/* Круглый бейдж статуса — аккуратный, в стиле замка на экране ввода пароля */
+.setting-icon-box.security-status-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--brand-pale);
+    color: var(--text-secondary);
+    box-shadow: inset 0 0 0 1px var(--border-light);
+    transition: color 0.3s ease, background 0.3s ease, box-shadow 0.3s ease;
+}
+
+.setting-icon-box.security-status-icon svg {
+    width: 19px;
+    height: 19px;
+    flex-shrink: 0;
+}
+
+.security-status-icon.is-on {
+    color: var(--success-done);
+    background: rgba(137, 160, 133, 0.15);
+    box-shadow: inset 0 0 0 1px rgba(137, 160, 133, 0.30);
+}
+
+[data-theme="dark"] .security-status-icon.is-on {
+    background: rgba(137, 160, 133, 0.16);
+    box-shadow: inset 0 0 0 1px rgba(137, 160, 133, 0.35);
+}
+
+.security-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.security-actions .confirm-btn {
+    width: 100%;
+    justify-content: center;
+}
+
+.security-main-btn {
+    color: #fff !important;
+}
+
+.security-secondary-btn {
+    background: var(--brand-pale);
+    color: var(--brand-pine);
+    border: 1px solid var(--border-light);
+}
+
+.security-secondary-btn:hover {
+    background: rgba(74, 90, 72, 0.15);
+}
+
+[data-theme="dark"] .security-secondary-btn {
+    background: rgba(137, 160, 133, 0.12);
+    color: var(--brand-pine);
+}
+
+[data-theme="dark"] .security-secondary-btn:hover {
+    background: rgba(137, 160, 133, 0.2);
+}
+
+.security-remove-btn {
+    color: #D35446 !important;
+}
+
+.security-warning-hint {
+    color: #B3863A !important;
+    margin-top: 8px;
+}
+
+.security-form-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+#security-form-view .vault-unlock-buttons {
+    margin-top: 10px;
+}
+
+#security-form-view .setting-hint {
+    margin-top: 10px;
+}
+
+.vault-history-name-row .vault-history-name {
+    min-width: 0;
+}
+
+/* --- 🔐 Прогресс шифрования / расшифровки --- */
+.vault-progress {
+    width: 100%;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    margin-top: 4px;
+}
+
+.vault-progress.visible {
+    display: flex;
+}
+
+.vault-progress-track {
+    width: 100%;
+    max-width: 260px;
+    height: 6px;
+    border-radius: 999px;
+    background: var(--brand-pale);
+    box-shadow: inset 0 0 0 1px var(--border-light);
+    overflow: hidden;
+}
+
+.vault-progress-fill {
+    height: 100%;
+    width: 0%;
+    border-radius: 999px;
+    background: var(--brand-pine);
+    transition: width 0.18s linear;
+}
+
+/* Неопределённое состояние (пока total ещё не известен) */
+.vault-progress-fill.indeterminate {
+    width: 35% !important;
+    animation: vault-progress-slide 1.1s ease-in-out infinite;
+}
+
+@keyframes vault-progress-slide {
+    0%   { transform: translateX(-110%); }
+    100% { transform: translateX(320%); }
+}
+
+.vault-progress-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-secondary);
+    min-height: 14px;
+    letter-spacing: 0.02em;
+    font-variant-numeric: tabular-nums;
+}
+
+/* --- 🔐 Оверлей шифрования при выходе --- */
+.vault-lock-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-canvas);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+}
+
+.vault-lock-overlay.show {
+    opacity: 1;
+    pointer-events: all;
+}
+
+.vault-lock-overlay-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    width: 300px;
+    text-align: center;
+    transform: translateY(-4vh);
+}
+
+.vault-overlay-lock {
+    animation: vault-lock-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes vault-lock-pulse {
+    0%, 100% { box-shadow: inset 0 0 0 1px var(--border-light), 0 0 0 0 var(--brand-pale); }
+    50%      { box-shadow: inset 0 0 0 1px var(--border-light), 0 0 0 12px rgba(74, 90, 72, 0.0); }
+}
+
+.vault-lock-overlay-title {
+    font-size: 15px;
+    font-weight: 650;
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
+}
+
+.vault-lock-overlay-hint {
+    font-size: 12px;
+    color: var(--text-secondary);
+    opacity: 0.7;
+    line-height: 1.45;
+    max-width: 260px;
+}
+
+/* ============================================================
+   Фикс: триггеры создания колонок/карточек не должны появляться,
+   пока открыт любой дропдаун (напр. уведомления) или модал.
+   У дропдаунов и триггеров одинаковый z-index (100), поэтому
+   линия создания могла отрисовываться ПОВЕРХ открытого меню,
+   а ховер в промежутке между колонками срабатывал сквозь него.
+   ============================================================ */
+body:has(.dropdown-menu.show) .column-inline-trigger,
+body:has(.modal-overlay.show) .column-inline-trigger,
+body:has(.dropdown-menu.show) .card-inline-trigger,
+body:has(.modal-overlay.show) .card-inline-trigger {
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+/* --- 🫆 Touch ID --- */
+.vault-touchid-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    margin-top: 2px;
+    padding: 9px 12px;
+    font-family: var(--font-main);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--brand-pine);
+    background: var(--brand-pale);
+    border: 1px solid var(--border-light);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.vault-touchid-btn:hover {
+    background: rgba(74, 90, 72, 0.15);
+}
+
+.vault-touchid-btn:active {
+    transform: scale(0.98);
+}
+
+[data-theme="dark"] .vault-touchid-btn {
+    background: rgba(137, 160, 133, 0.12);
+}
+
+[data-theme="dark"] .vault-touchid-btn:hover {
+    background: rgba(137, 160, 133, 0.2);
+}
+
+.vault-touchid-btn.is-busy {
+    pointer-events: none;
+    opacity: 0.6;
+}
+
+/* Переключатель в стиле приложения */
+.doe-switch {
+    width: 36px;
+    height: 22px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.12);
+    position: relative;
+    flex-shrink: 0;
+    margin-left: 10px;
+    transition: background 0.2s ease;
+}
+
+[data-theme="dark"] .doe-switch {
+    background: rgba(255, 255, 255, 0.14);
+}
+
+.doe-switch .doe-switch-knob {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+    transition: left 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.doe-switch.on {
+    background: var(--brand-pine);
+}
+
+.doe-switch.on .doe-switch-knob {
+    left: 16px;
 }

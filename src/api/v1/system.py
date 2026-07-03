@@ -29,7 +29,22 @@ from src.db.database import switch_vault
 from src.core.config import get_active_vault, get_ui_settings, set_ui_settings, get_attachments_dir
 from src.core.watcher import vault_observer
 
+from src.core import vault_crypto
+from src.db.database import lock_active_vault, is_database_open
+
 router = APIRouter(prefix="/system", tags=["system"])
+
+def _is_vault_db_file(name: str) -> bool:
+    """
+    Признак того, что папка — хранилище Doe: обычный файл БД или зашифрованный
+    контейнер (.doelock). Имена контейнеров случайные (не содержат '.db.doe'),
+    поэтому достаточно самого расширения .doelock.
+    """
+    return (
+        name.endswith(".db.doe")
+        or name.endswith(".db")
+        or name.endswith(vault_crypto.ENC_SUFFIX)
+    )
 
 # --- Вспомогательные функции для JSON DTO ---
 def _fmt_dt(dt) -> Optional[str]:
@@ -171,8 +186,15 @@ class VaultResponse(BaseModel):
 @router.get("/vault", response_model=VaultResponse)
 async def get_vault():
     path = get_active_vault()
-    
+
     if not path or not Path(path).exists():
+        return VaultResponse(
+            name=None, path=None, canceled=False, already_active=False
+        )
+
+    # 🔐 Защищённое хранилище без введённого пароля не считается "открытым":
+    # фронтенд обязан показать экран выбора и запросить пароль.
+    if vault_crypto.is_protected(path) and vault_crypto.get_session_key(path) is None:
         return VaultResponse(
             name=None, path=None, canceled=False, already_active=False
         )
@@ -180,7 +202,7 @@ async def get_vault():
     # 🛑 СТРОГАЯ ПРОВЕРКА: Является ли папка реальным хранилищем Doe?
     has_db = any(
         f for f in Path(path).iterdir()
-        if f.is_file() and (f.name.endswith(".db.doe") or f.name.endswith(".db")) and "backup" not in f.name and not f.name.startswith("._")
+        if f.is_file() and _is_vault_db_file(f.name) and "backup" not in f.name and not f.name.startswith("._")
     )
     if not has_db:
         return VaultResponse(
@@ -207,24 +229,36 @@ async def switch_vault_endpoint(req: SwitchVaultRequest):
 
     has_db = any(
         f for f in vault_dir.iterdir()
-        if f.is_file() and (f.name.endswith(".db.doe") or f.name.endswith(".db")) and "backup" not in f.name and not f.name.startswith("._")
+        if f.is_file() and _is_vault_db_file(f.name) and "backup" not in f.name and not f.name.startswith("._")
     )
     if not has_db:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="INVALID_VAULT")
     # -------------------------------------
 
+    # 🔐 Защищённое хранилище открывается только после ввода пароля (/vault/unlock)
+    if vault_crypto.is_protected(new_path) and vault_crypto.get_session_key(new_path) is None:
+        raise HTTPException(status_code=status.HTTP_423_LOCKED, detail="VAULT_LOCKED")
+
     from src.core.config import get_active_vault, set_active_vault
     import os
     current_vault = get_active_vault()
-    
+
     # 🐛 ФИКС: Безопасная проверка на None при холодном старте
     if current_vault is None:
         already_active = False
     else:
         already_active = (os.path.normpath(new_path) == os.path.normpath(current_vault))
 
+    # 🔐 После лока (выход на экран выбора) БД закрыта, даже если путь совпадает —
+    # требуется полная реинициализация.
+    if already_active and not is_database_open():
+        already_active = False
+
     if not already_active:
-        await switch_vault(new_path)
+        try:
+            await switch_vault(new_path)
+        except PermissionError:
+            raise HTTPException(status_code=status.HTTP_423_LOCKED, detail="VAULT_LOCKED")
     else:
         # Просто обновляем "last_opened" в конфиге
         set_active_vault(new_path)
@@ -445,6 +479,263 @@ async def create_vault_endpoint(req: CreateVaultRequest):
     name = Path(new_path).resolve().name
     return VaultResponse(name=name, path=new_path, canceled=False)
 
+
+# ============================================================
+#  🔐 Защита хранилища паролем
+# ============================================================
+class VaultUnlockRequest(BaseModel):
+    path: str
+    password: str
+
+class VaultPasswordSetRequest(BaseModel):
+    password: str
+    old_password: Optional[str] = None
+
+class VaultPasswordRemoveRequest(BaseModel):
+    password: str
+
+
+@router.get("/vault/security/status")
+async def vault_security_status(path: Optional[str] = None):
+    """Статус защиты: для активного хранилища или по явному пути."""
+    from src.core import biometric
+    target = path or get_active_vault()
+    if not target or not Path(target).exists():
+        return {"protected": False, "unlocked": False, "path": target}
+    protected = vault_crypto.is_protected(target)
+    touchid_available = biometric.is_available()
+    return {
+        "protected": protected,
+        "unlocked": protected and vault_crypto.get_session_key(target) is not None,
+        "path": target,
+        "global_attachments": bool(get_ui_settings().get("global_attachments_path")),
+        "touchid_available": touchid_available,
+        "touchid_enabled": protected and touchid_available and vault_crypto.is_touchid_enabled(target),
+    }
+
+
+@router.get("/vault/security/progress")
+async def vault_security_progress():
+    """
+    Текущий прогресс шифрования/расшифровки для progress bar'ов.
+    Операции выполняются в отдельном потоке, поэтому этот эндпоинт
+    отвечает мгновенно даже во время длительного lock/unlock.
+    """
+    return vault_crypto.get_progress()
+
+
+@router.post("/vault/unlock")
+async def unlock_vault_endpoint(req: VaultUnlockRequest):
+    """
+    Вход в защищённое хранилище: сравнение ХЭША пароля, расшифровка файлов,
+    сохранение ключа сессии (только в памяти). Сам пароль никуда не пишется.
+    """
+    vault_dir = Path(req.path)
+    if not vault_dir.exists() or not vault_dir.is_dir():
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="INVALID_VAULT")
+    if not vault_crypto.is_protected(req.path):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="NOT_PROTECTED")
+
+    if not vault_crypto.verify_password(req.path, req.password):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="WRONG_PASSWORD")
+
+    key = vault_crypto.derive_encryption_key(req.path, req.password)
+    if key is None:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="KEY_DERIVATION_FAILED")
+
+    result = {"decrypted": 0, "errors": []}
+    if vault_crypto.has_locked_files(req.path):
+        result = await anyio.to_thread.run_sync(vault_crypto.unlock_vault, req.path, key)
+        # Если не расшифровался НИ ОДИН файл при их наличии — что-то не так, ключ не сохраняем
+        if result["decrypted"] == 0 and result["errors"]:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="DECRYPT_FAILED")
+        # Файл БД обязан восстановиться — иначе открывать хранилище нельзя.
+        # (Имена контейнеров случайные, поэтому проверяем результат, а не имя.)
+        has_db_now = any(
+            f.is_file() and f.name.endswith(".db.doe") and "backup" not in f.name and not f.name.startswith("._")
+            for f in vault_dir.iterdir()
+        )
+        if not has_db_now:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="DECRYPT_FAILED")
+
+    vault_crypto.set_session_key(req.path, key)
+    return {"success": True, **result}
+
+
+class VaultPathRequest(BaseModel):
+    path: str
+
+@router.post("/vault/unlock-biometric")
+async def unlock_vault_biometric_endpoint(req: VaultPathRequest):
+    """
+    Вход по Touch ID (macOS): ключ шифрования достаётся из Keychain,
+    macOS сам показывает системный диалог сканирования отпечатка.
+    Пароль в этом процессе не участвует и по-прежнему нигде не хранится.
+    """
+    from src.core import biometric
+
+    target = req.path
+    if not target:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="NO_PATH")
+    vault_dir = Path(target)
+    if not vault_dir.exists() or not vault_dir.is_dir():
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="INVALID_VAULT")
+    if not vault_crypto.is_protected(target) or not vault_crypto.is_touchid_enabled(target):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="TOUCHID_NOT_ENABLED")
+    if not biometric.is_available():
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="BIOMETRIC_UNAVAILABLE")
+
+    lang = get_ui_settings().get("language", "ru")
+    prompt = ("разблокировать хранилище «%s»" if lang == "ru" else "unlock vault “%s”") % vault_dir.name
+
+    # Блокирующий системный диалог Touch ID — уводим в поток
+    key, code = await anyio.to_thread.run_sync(biometric.get_vault_key, target, prompt)
+    if key is None:
+        # Разные исходы — разная реакция фронтенда:
+        # USE_PASSWORD — пользователь выбрал ввод пароля (не ошибка),
+        # CANCELED — отменил (не ошибка), BIOMETRIC_FAILED — отпечаток не подтверждён.
+        detail = {"fallback": "USE_PASSWORD", "cancel": "CANCELED"}.get(code, "BIOMETRIC_FAILED")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=detail)
+
+    # Ключ мог устареть (пароль сменили без обновления Keychain) — сверяем key_check
+    if not vault_crypto.verify_key(target, key):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="KEY_STALE")
+
+    result = {"decrypted": 0, "errors": []}
+    if vault_crypto.has_locked_files(target):
+        result = await anyio.to_thread.run_sync(vault_crypto.unlock_vault, target, key)
+        if result["decrypted"] == 0 and result["errors"]:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="DECRYPT_FAILED")
+        has_db_now = any(
+            f.is_file() and f.name.endswith(".db.doe") and "backup" not in f.name and not f.name.startswith("._")
+            for f in vault_dir.iterdir()
+        )
+        if not has_db_now:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="DECRYPT_FAILED")
+
+    vault_crypto.set_session_key(target, key)
+    return {"success": True, **result}
+
+
+class TouchIdToggleRequest(BaseModel):
+    enabled: bool
+
+@router.post("/vault/security/touchid")
+async def toggle_touchid_endpoint(req: TouchIdToggleRequest):
+    """
+    Включение/выключение Touch ID для АКТИВНОГО (открытого) хранилища.
+    При включении текущий ключ сессии сохраняется в Keychain под защитой
+    биометрии (Secure Enclave, политика BiometryCurrentSet).
+    """
+    from src.core import biometric
+
+    vault_path = get_active_vault()
+    if not vault_path or not Path(vault_path).exists():
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="NO_ACTIVE_VAULT")
+    if not vault_crypto.is_protected(vault_path):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="NOT_PROTECTED")
+
+    if req.enabled:
+        if not biometric.is_available():
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="BIOMETRIC_UNAVAILABLE")
+        key = vault_crypto.get_session_key(vault_path)
+        if key is None:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="VAULT_LOCKED")
+        ok = await anyio.to_thread.run_sync(biometric.store_vault_key, vault_path, key)
+        if not ok:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="KEYCHAIN_FAILED")
+        vault_crypto.set_touchid_enabled(vault_path, True, key)
+    else:
+        await anyio.to_thread.run_sync(biometric.delete_vault_key, vault_path)
+        vault_crypto.set_touchid_enabled(vault_path, False)
+
+    return {"success": True, "touchid_enabled": req.enabled}
+
+
+@router.post("/vault/lock")
+async def lock_vault_endpoint():
+    """
+    Выход из активного хранилища: закрытие БД, шифрование всех файлов,
+    сброс ключа сессии. Вызывается при выходе на экран выбора хранилищ
+    и при штатном закрытии приложения.
+    """
+    result = await lock_active_vault()
+    return {"success": True, **result}
+
+
+@router.post("/vault/security/set")
+async def set_vault_password_endpoint(req: VaultPasswordSetRequest):
+    """Установка или смена пароля активного хранилища."""
+    vault_path = get_active_vault()
+    if not vault_path or not Path(vault_path).exists():
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="NO_ACTIVE_VAULT")
+
+    if len(req.password or "") < 4:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="PASSWORD_TOO_SHORT")
+
+    # 🛡 ЗАЩИТА ОТ ПОТЕРИ ДАННЫХ: если в хранилище остались нерасшифрованные
+    # контейнеры (например, после сбоя), смена пароля перезапишет kdf_salt —
+    # и старый ключ станет НЕВЫВОДИМЫМ, эти файлы будут потеряны навсегда.
+    # Сначала нужно расшифровать всё (обычный вход по паролю).
+    if vault_crypto.is_protected(vault_path) and vault_crypto.has_locked_files(vault_path):
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="LEFTOVER_LOCKED_FILES")
+
+    # Смена пароля: сначала сравниваем хэш старого
+    if vault_crypto.is_protected(vault_path):
+        if not req.old_password or not vault_crypto.verify_password(vault_path, req.old_password):
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="WRONG_PASSWORD")
+
+    new_key = await anyio.to_thread.run_sync(vault_crypto.set_password, vault_path, req.password)
+
+    # Если для хранилища включён Touch ID — кладём в Keychain СВЕЖИЙ ключ,
+    # иначе после смены пароля отпечаток перестал бы подходить (key_check).
+    if vault_crypto.is_touchid_enabled(vault_path):
+        from src.core import biometric
+        if biometric.is_available():
+            ok = await anyio.to_thread.run_sync(biometric.store_vault_key, vault_path, new_key)
+            if not ok:
+                vault_crypto.set_touchid_enabled(vault_path, False)
+        else:
+            vault_crypto.set_touchid_enabled(vault_path, False)
+
+    return {"success": True, "protected": True}
+
+
+@router.post("/vault/security/remove")
+async def remove_vault_password_endpoint(req: VaultPasswordRemoveRequest):
+    """Снятие защиты с активного хранилища (требует текущий пароль)."""
+    vault_path = get_active_vault()
+    if not vault_path or not Path(vault_path).exists():
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="NO_ACTIVE_VAULT")
+    if not vault_crypto.is_protected(vault_path):
+        return {"success": True, "protected": False}
+
+    if not vault_crypto.verify_password(vault_path, req.password):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="WRONG_PASSWORD")
+
+    # На всякий случай: если где-то остались зашифрованные файлы — расшифровываем
+    if vault_crypto.has_locked_files(vault_path):
+        key = vault_crypto.derive_encryption_key(vault_path, req.password)
+        if key:
+            await anyio.to_thread.run_sync(vault_crypto.unlock_vault, vault_path, key)
+
+    # 🛡 ЗАЩИТА ОТ ПОТЕРИ ДАННЫХ: метафайл содержит kdf_salt — единственный
+    # способ вывести ключ из пароля. Если какие-то контейнеры так и не
+    # расшифровались, удалять метафайл НЕЛЬЗЯ — они станут нечитаемыми навсегда.
+    if vault_crypto.has_locked_files(vault_path):
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="LEFTOVER_LOCKED_FILES")
+
+    # Подчищаем ключ из Keychain (если Touch ID был включён)
+    try:
+        from src.core import biometric
+        await anyio.to_thread.run_sync(biometric.delete_vault_key, vault_path)
+    except Exception:
+        pass
+
+    vault_crypto.remove_protection(vault_path)
+    return {"success": True, "protected": False}
+
+
 class SettingsUpdate(BaseModel):
     theme: Optional[str] = None
     language: Optional[str] = None
@@ -564,7 +855,12 @@ from urllib.parse import unquote
 import re
 
 @router.put("/settings", response_model=SettingsResponse)
-async def update_settings_endpoint(settings: SettingsUpdate, db: AsyncSession = Depends(get_session)):
+async def update_settings_endpoint(settings: SettingsUpdate):
+    # ⚠️ БЕЗ Depends(get_session)! Настройки (тема, язык и т.д.) хранятся в
+    # конфиг-файле и должны сохраняться и с ЭКРАНА ВЫБОРА ХРАНИЛИЩ, когда БД
+    # закрыта (например, защищённое хранилище заблокировано). Раньше зависимость
+    # роняла запрос — тема/язык, выбранные на селекторе, молча не сохранялись.
+    # БД нужна только миграции вложений — берём сессию лениво ниже.
     # 1. Запоминаем СТАРУЮ папку вложений и её тип
     old_att_dir = get_attachments_dir()
     old_settings = get_ui_settings()
@@ -596,8 +892,15 @@ async def update_settings_endpoint(settings: SettingsUpdate, db: AsyncSession = 
         allowed_files = None
         if was_global and settings.reset_attachments:
             allowed_files = set()
-            result = await db.execute(select(TaskModel.description).where(TaskModel.description.isnot(None)))
-            descriptions = result.scalars().all()
+            # Ленивая сессия: смена папки вложений возможна только при открытом
+            # хранилище, но страхуемся на случай закрытой БД.
+            try:
+                from src.db.database import get_session_factory
+                async with get_session_factory()() as db:
+                    result = await db.execute(select(TaskModel.description).where(TaskModel.description.isnot(None)))
+                    descriptions = result.scalars().all()
+            except RuntimeError:
+                descriptions = []
             pattern = re.compile(r'\]\((doe/[^\)]+)\)')
             for desc in descriptions:
                 matches = pattern.findall(desc)
@@ -762,23 +1065,44 @@ async def open_link_endpoint(req: OpenLinkReq):
             clean_path = os.path.expanduser(clean_path)
         # ----------------------------------------------
 
-        # Превращаем в абсолютный путь (на случай, если пользователь ввел относительный не от ~)
-        final_path = Path(clean_path).absolute()
+        p = Path(clean_path)
+
+        if p.is_absolute():
+            final_path = p
+        else:
+            # ОТНОСИТЕЛЬНЫЙ путь: раньше он резолвился от рабочей папки процесса
+            # (папки приложения) и почти никогда не находил файл. Логичные базы
+            # для пользователя: папка хранилища → папка вложений → CWD (фолбэк).
+            candidates = []
+            active_vault = get_active_vault()
+            if active_vault:
+                candidates.append(Path(active_vault) / clean_path)
+            try:
+                candidates.append(get_attachments_dir() / clean_path)
+            except Exception:
+                pass
+            candidates.append(p.absolute())
+
+            final_path = next((c for c in candidates if c.exists()), None)
+            if final_path is None:
+                print(f"[System] Relative path not found in vault/attachments/cwd: {clean_path}")
+                return {"success": False, "error": "File not found"}
+            final_path = final_path.resolve()
 
         print(f"[System] Attempting to open path: {final_path}")
+
+        # Единая проверка существования (раньше macOS молча "открывал" несуществующий путь)
+        if not final_path.exists():
+            print(f"[System] Path does not exist: {final_path}")
+            return {"success": False, "error": "File not found"}
 
         if sys.platform == 'darwin':
             # macOS: команда open идеально справляется и с файлами, и с папками
             subprocess.call(['open', str(final_path)])
         elif sys.platform == 'win32':
             # Windows: os.startfile — это аналог двойного клика в проводнике
-            if final_path.exists():
-                os.startfile(str(final_path))
-            else:
-                # Если файла нет, не вызываем исключение, а просто логируем
-                print(f"[System] Path does not exist: {final_path}")
-                return {"success": False, "error": "File not found"}
-        
+            os.startfile(str(final_path))
+
         return {"success": True}
         
     except Exception as e:
@@ -1036,17 +1360,18 @@ async def get_vault_history_endpoint():
                 
             vault_dir = Path(p)
             exists = False
-            # Проверяем, что папка жива и в ней есть рабочая база
+            # Проверяем, что папка жива и в ней есть рабочая база (в т.ч. зашифрованная)
             if vault_dir.exists() and vault_dir.is_dir():
-                if any(f for f in vault_dir.iterdir() if f.is_file() and (f.name.endswith(".db.doe") or f.name.endswith(".db")) and "backup" not in f.name and not f.name.startswith("._")):
+                if any(f for f in vault_dir.iterdir() if f.is_file() and _is_vault_db_file(f.name) and "backup" not in f.name and not f.name.startswith("._")):
                     exists = True
 
             name = vault_dir.name
             result.append({
-                "name": name, 
-                "path": p, 
-                "last_opened": last_opened, 
-                "exists": exists
+                "name": name,
+                "path": p,
+                "last_opened": last_opened,
+                "exists": exists,
+                "protected": exists and vault_crypto.is_protected(p)
             })
         except Exception:
             pass
@@ -1064,9 +1389,9 @@ async def relink_vault_history_endpoint(req: RelinkHistoryReq):
     # 1. Проверяем валидность новой папки
     if not vault_dir.exists() or not vault_dir.is_dir():
         raise HTTPException(status_code=400, detail="INVALID_VAULT")
-    if not any(f for f in vault_dir.iterdir() if f.is_file() and (f.name.endswith(".db.doe") or f.name.endswith(".db")) and "backup" not in f.name and not f.name.startswith("._")):
+    if not any(f for f in vault_dir.iterdir() if f.is_file() and _is_vault_db_file(f.name) and "backup" not in f.name and not f.name.startswith("._")):
         raise HTTPException(status_code=400, detail="INVALID_VAULT")
-        
+
     from src.core.config import _load_config, _save_config
     data = _load_config()
     history = data.get("vault_history", [])
@@ -1752,7 +2077,7 @@ async def get_available_fonts():
 
 class ExportJsonReq(BaseModel):
     path: str
-    include_codebase: bool = False
+    include_attachments: bool = True
 
 @router.post("/export-json")
 async def export_json_endpoint(req: ExportJsonReq, db: AsyncSession = Depends(get_session)):
@@ -1815,64 +2140,47 @@ async def export_json_endpoint(req: ExportJsonReq, db: AsyncSession = Depends(ge
     }
     
     export_file = target_dir / f"doe_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-    
+
+    # 📎 Собираем имена вложений, на которые ссылаются карточки:
+    # ссылки ](doe/...) в описаниях + записи attachments_order.
+    attachment_names = set()
+    if req.include_attachments:
+        pattern = re.compile(r'\]\((doe/[^\)]+)\)')
+        for t in tasks:
+            if t.description:
+                for m in pattern.findall(t.description):
+                    attachment_names.add(unquote(m).replace("doe/", "", 1))
+            for entry in _ensure_list(t.attachments_order):
+                if isinstance(entry, str) and entry.startswith("doe/"):
+                    attachment_names.add(unquote(entry).replace("doe/", "", 1))
+
     # Выполняем синхронную запись файла в отдельном системном потоке, сохраняя отзывчивость UI
     def _save_file():
         with open(export_file, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
-            
-        if req.include_codebase:
-            codebase_folder_name = f"Doe_Source_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-            codebase_export_dir = target_dir / codebase_folder_name
-            
-            if getattr(sys, 'frozen', False):
-                # В релизной сборке извлекаем подготовленный чистый zip-архив
-                zip_path = Path(sys._MEIPASS) / "doe_source.zip"
-                if zip_path.exists():
-                    import zipfile
-                    try:
-                        with zipfile.ZipFile(zip_path, 'r') as zf:
-                            zf.extractall(codebase_export_dir)
-                        print(f"[Export] Codebase extracted to {codebase_folder_name}")
-                    except Exception as e:
-                        print(f"[Export] Failed to extract codebase archive: {e}")
-                else:
-                    print("[Export] doe_source.zip not found in bundled app.")
-            else:
-                # В режиме разработки копируем файлы как обычно
-                src_root = Path(__file__).resolve().parents[3]
-                
-                def _copy_recursive(src_path: Path, dst_path: Path):
-                    ignore_names = {
-                        'venv', '.git', '__pycache__', 'node_modules', 
-                        '.idea', '.vscode', 'build', 'dist', '__MACOSX',
-                        'board_dev.db', 'board_dev.db.doe', 'Doe.app'
-                    }
-                    ignore_exts = {
-                        '.db', '.sqlite', '.sqlite3', '.pyc', '.DS_Store', 
-                        '.zip', '.tar', '.gz'
-                    }
-                    
-                    dst_path.mkdir(parents=True, exist_ok=True)
-                    for item in src_path.iterdir():
-                        if item.name in ignore_names or item.suffix in ignore_exts or item.name == 'doe_source.zip':
-                            continue
-                        if item.is_dir():
-                            _copy_recursive(item, dst_path / item.name)
-                        elif item.is_file():
-                            try:
-                                shutil.copy2(item, dst_path / item.name)
-                            except Exception as e:
-                                print(f"[Export Codebase] Error copying file {item.name}: {e}")
 
+        # 📎 Вложения кладём в папку <имя_бэкапа>_attachments рядом с JSON —
+        # импорт находит её автоматически по имени файла бэкапа.
+        exported_att = 0
+        if req.include_attachments and attachment_names:
+            att_dir = get_attachments_dir()
+            att_export_dir = target_dir / f"{export_file.stem}_attachments"
+            for name in sorted(attachment_names):
+                src = att_dir / name
+                if not src.exists() or not src.is_file():
+                    continue
                 try:
-                    _copy_recursive(src_root, codebase_export_dir)
-                    print(f"[Export] Codebase copied to {codebase_folder_name}")
+                    att_export_dir.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(src, att_export_dir / name)
+                    exported_att += 1
                 except Exception as e:
-                    print(f"[Export] Failed to copy codebase: {e}")
-            
-    await anyio.to_thread.run_sync(_save_file)
-    return {"success": True, "file": str(export_file)}
+                    print(f"[Export] Failed to copy attachment {name}: {e}")
+            if exported_att:
+                print(f"[Export] 📎 {exported_att} attachment(s) exported to {att_export_dir.name}")
+        return exported_att
+
+    exported_attachments = await anyio.to_thread.run_sync(_save_file)
+    return {"success": True, "file": str(export_file), "exported_attachments": exported_attachments}
 
 class ImportJsonReq(BaseModel):
     path: str
@@ -2092,5 +2400,40 @@ async def import_json_endpoint(req: ImportJsonReq, db: AsyncSession = Depends(ge
             vault_observer.start(get_active_vault())
         except Exception as obs_err:
             print(f"[System] Watchdog restart bypassed: {obs_err}")
-        
-    return {"success": True, "new_workspace_id": first_new_ws_id}
+
+    # 📎 Импорт вложений: ищем рядом с JSON папку <имя_бэкапа>_attachments
+    # (создаётся нашим экспортом) или папку doe. Существующие файлы не
+    # перезаписываем — ссылки в описаниях указывают на имена файлов.
+    imported_attachments = 0
+    try:
+        candidates = [
+            file_path.parent / f"{file_path.stem}_attachments",
+            file_path.parent / "doe",
+        ]
+        att_src = next((c for c in candidates if c.exists() and c.is_dir()), None)
+        if att_src:
+            att_dst = get_attachments_dir()
+
+            def _copy_attachments():
+                n = 0
+                att_dst.mkdir(parents=True, exist_ok=True)
+                for item in att_src.iterdir():
+                    if not item.is_file() or item.name.startswith("._") or item.name == ".DS_Store":
+                        continue
+                    target = att_dst / item.name
+                    if target.exists():
+                        continue
+                    try:
+                        shutil.copy2(item, target)
+                        n += 1
+                    except Exception as e:
+                        print(f"[Import] Failed to copy attachment {item.name}: {e}")
+                return n
+
+            imported_attachments = await anyio.to_thread.run_sync(_copy_attachments)
+            if imported_attachments:
+                print(f"[Import] 📎 {imported_attachments} attachment(s) imported from {att_src.name}")
+    except Exception as e:
+        print(f"[Import] Attachments import skipped: {e}")
+
+    return {"success": True, "new_workspace_id": first_new_ws_id, "imported_attachments": imported_attachments}

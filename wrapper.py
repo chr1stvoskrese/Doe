@@ -562,6 +562,11 @@ if sys.platform == 'darwin':
             try:
                 def _should_terminate(self, sender):
                     try:
+                        # 🔐 Пока сервер ещё жив — шифруем защищённое хранилище
+                        _lock_vault_before_exit()
+                    except Exception:
+                        pass
+                    try:
                         st = globals().get('server_thread')
                         if st is not None:
                             st.stop()
@@ -578,34 +583,42 @@ if sys.platform == 'darwin':
                     _os._exit(0)
                     return 1  # NSTerminateNow (unreachable)
 
-                sel_terminate = objc.selector(
-                    _should_terminate,
-                    selector=b'applicationShouldTerminate:',
-                    signature=b'q@:@'  # NSApplicationTerminateReply (NSInteger)
-                )
+                # Возвращаемый тип NSApplicationTerminateReply в разных версиях
+                # macOS/PyObjC кодируется по-разному: I (unsigned int), q (NSInteger),
+                # Q (NSUInteger). Рантайм отвергает несовпадающую сигнатуру
+                # ("I@:@ != q@:@"), поэтому перебираем совместимые варианты.
+                def _apply_terminate_override(cls, label, applied):
+                    for sig in (b'I@:@', b'q@:@', b'Q@:@'):
+                        sel = objc.selector(
+                            _should_terminate,
+                            selector=b'applicationShouldTerminate:',
+                            signature=sig
+                        )
+                        try:
+                            objc.classAddMethods(cls, [sel])
+                            applied.append(f"{label}[{sig.decode()}]")
+                            return True
+                        except Exception:
+                            pass
+                        try:
+                            setattr(cls, 'applicationShouldTerminate_', sel)
+                            applied.append(f"{label}(setattr[{sig.decode()}])")
+                            return True
+                        except Exception:
+                            continue
+                    print(f"[System] ⚠️ Could not override applicationShouldTerminate on {label}")
+                    return False
 
                 applied_term = []
                 for delegate_name in ['AppDelegate', 'ApplicationDelegate', 'BrowserDelegate']:
                     if hasattr(webview.platforms.cocoa, delegate_name):
-                        cls = getattr(webview.platforms.cocoa, delegate_name)
-                        try:
-                            objc.classAddMethods(cls, [sel_terminate])
-                            applied_term.append(delegate_name)
-                        except Exception:
-                            setattr(cls, 'applicationShouldTerminate_', sel_terminate)
-                            applied_term.append(f"{delegate_name}(setattr)")
+                        _apply_terminate_override(getattr(webview.platforms.cocoa, delegate_name), delegate_name, applied_term)
 
                 if hasattr(webview.platforms.cocoa, 'BrowserView'):
                     bv = webview.platforms.cocoa.BrowserView
                     for nested_name in ['AppDelegate', 'ApplicationDelegate']:
                         if hasattr(bv, nested_name):
-                            cls = getattr(bv, nested_name)
-                            try:
-                                objc.classAddMethods(cls, [sel_terminate])
-                                applied_term.append(f"BrowserView.{nested_name}")
-                            except Exception:
-                                setattr(cls, 'applicationShouldTerminate_', sel_terminate)
-                                applied_term.append(f"BrowserView.{nested_name}(setattr)")
+                            _apply_terminate_override(getattr(bv, nested_name), f"BrowserView.{nested_name}", applied_term)
 
                 print(f"[System] applicationShouldTerminate: → Metal cleanup + os._exit registered on: {applied_term}")
             except Exception as e:
@@ -1052,14 +1065,30 @@ def bind_geometry_enforcement(win, target_rect):
         return
     x, y, w, h = (int(v) for v in target_rect)
 
+    # Одноразовость: enforcement нужен только против DPI-«распухания» при
+    # СОЗДАНИИ окна. Событие 'loaded' стреляет и при смене хранилища
+    # (load_url) — без этого флага окно возвращалось бы к геометрии
+    # предыдущего хранилища.
+    _state = {'done': False}
+
     def _matches(cur):
         return cur and all(abs(a - b) <= 2 for a, b in zip(cur, (x, y, w, h)))
 
     def _enforce(*args):
         import threading
+        if _state['done']:
+            return
+        _state['done'] = True
         def _loop(attempt=0):
             try:
                 import ctypes
+                # 🪟 НЕ ВОЮЕМ С ПОЛЬЗОВАТЕЛЕМ: если зажата левая кнопка мыши,
+                # вероятно идёт перетаскивание или ресайз окна. SetWindowPos в
+                # этот момент "дёргает" окно по экрану. Пропускаем попытку.
+                if ctypes.windll.user32.GetAsyncKeyState(0x01) & 0x8000:
+                    if attempt < 14:
+                        threading.Timer(0.2, _loop, args=(attempt + 1,)).start()
+                    return
                 hwnd = _win32_hwnd_for(win)
                 if hwnd:
                     cur = _win32_get_rect(hwnd)
@@ -1247,6 +1276,7 @@ def bind_resize_event(win):
             try:
                 win.evaluate_js('if(window.appExit) { window.appExit(); } else { window.pywebview.api.force_close(); }')
             except Exception:
+                _lock_vault_before_exit() # 🔐 шифруем защищённое хранилище
                 import os
                 os._exit(0)
             return False
@@ -1254,6 +1284,53 @@ def bind_resize_event(win):
         win.events.closing += _on_closing
     except Exception:
         pass
+
+
+# ============================================================
+#  🔐 Шифрование защищённого хранилища перед выходом из процесса
+# ============================================================
+_vault_exit_lock_done = False
+
+def _lock_vault_before_exit():
+    """
+    Штатное завершение приложения: закрываем БД и шифруем защищённое хранилище.
+
+    Делаем это через HTTP-эндпоинт /vault/lock — он выполняется в event loop'е
+    uvicorn и корректно закрывает SQLite (WAL checkpoint) перед шифрованием.
+    Вызов идемпотентен (страхуемся флагом) и безопасен: если пароль не установлен
+    или ключа сессии нет — эндпоинт мгновенно отвечает no-op.
+
+    При аварийном завершении (kill -9, краш) этот код не выполняется —
+    шифрование не происходит (осознанное поведение: данные не теряются,
+    а пароль при следующем входе всё равно будет запрошен).
+    """
+    global _vault_exit_lock_done
+    if _vault_exit_lock_done:
+        return
+    _vault_exit_lock_done = True
+    try:
+        from src.core.config import get_active_vault
+        from src.core import vault_crypto
+        vault = get_active_vault()
+        if not vault or not vault_crypto.is_protected(vault):
+            return
+        if vault_crypto.get_session_key(vault) is None:
+            return
+
+        print("[Security] 🔒 Locking protected vault before exit...")
+        import urllib.request
+        req = urllib.request.Request(
+            f"http://127.0.0.1:{PORT}/api/v1/system/vault/lock",
+            data=b"{}",
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=180) as resp:
+            print(f"[Security] ✅ Vault locked on exit (HTTP {resp.status})")
+    except Exception as e:
+        # Не блокируем выход: в худшем случае файлы останутся расшифрованными,
+        # но пароль при следующем входе будет запрошен в любом случае.
+        print(f"[Security] ⚠️ Lock on exit failed: {e}")
 
 
 # --- ЗАМЕНИТЕ КЛАСС WindowAPI в wrapper.py на этот ---
@@ -1271,6 +1348,7 @@ class WindowAPI:
         # Запускаем "убийцу" в отдельном потоке с микро-задержкой.
         def _kill_process():
             time.sleep(0.05) # Ждём 50мс, пока return True долетит до браузера
+            _lock_vault_before_exit() # 🔐 шифруем защищённое хранилище
             try:
                 sys.stdout.flush()
                 sys.stderr.flush()
@@ -1317,6 +1395,7 @@ class WindowAPI:
             # Также используем отложенное закрытие, чтобы избежать дедлока UI потока
             def _kill_process():
                 time.sleep(0.05)
+                _lock_vault_before_exit() # 🔐 шифруем защищённое хранилище
                 try:
                     sys.stdout.flush()
                     sys.stderr.flush()
@@ -1371,14 +1450,27 @@ class WindowAPI:
         if sys.platform != 'win32' or not webview.windows:
             return None
         win = webview.windows[-1]
+        hwnd = None
         try:
             from webview.platforms.winforms import BrowserView
             bv = BrowserView.instances.get(win.uid)
             if bv is not None:
-                return int(bv.Handle.ToInt64())
+                hwnd = int(bv.Handle.ToInt64())
         except Exception:
             pass
-        return _win32_hwnd_for(win)
+        if not hwnd:
+            hwnd = _win32_hwnd_for(win)
+        # Страховка: поднимаемся до top-level окна (GA_ROOT = 2). Нативные
+        # WM_NCLBUTTONDOWN (drag/resize/Aero Snap) работают только с ним.
+        if hwnd:
+            try:
+                import ctypes
+                root = ctypes.windll.user32.GetAncestor(hwnd, 2)
+                if root:
+                    hwnd = root
+            except Exception:
+                pass
+        return hwnd
 
     def start_window_drag(self):
         """Бесшовное нативное перетаскивание заголовочной рамки."""
@@ -1632,6 +1724,27 @@ class WindowAPI:
                 win = app.keyWindow() or app.mainWindow()
                 if win is None:
                     return
+
+                # 🍏 НАТИВНОЕ перетаскивание: performWindowDragWithEvent_ отдаёт
+                # жест системе, поэтому работают все штатные механики macOS —
+                # визуальные "прилипания" к краям/углам, подсказки Window Tiling
+                # (macOS 15+), корректные Spaces. Требуется живое мышиное событие
+                # текущего жеста — успеваем его поймать, т.к. JS шлёт вызов
+                # прямо из mousedown.
+                ev = app.currentEvent()
+                try:
+                    ev_type = int(ev.type()) if ev is not None else -1
+                except Exception:
+                    ev_type = -1
+                # 1 = NSEventTypeLeftMouseDown, 6 = NSEventTypeLeftMouseDragged
+                if ev is not None and ev_type in (1, 6) and hasattr(win, 'performWindowDragWithEvent_'):
+                    self._drag_native = True
+                    self._drag_win = None  # ручной цикл не нужен
+                    win.performWindowDragWithEvent_(ev)
+                    return
+
+                # Фолбэк: ручное перетаскивание (если событие не поймали)
+                self._drag_native = False
                 frame = win.frame()
                 mouse = AppKit.NSEvent.mouseLocation()  # экранные коорд., origin снизу-слева
                 self._drag_win = win
@@ -1670,6 +1783,27 @@ class WindowAPI:
     def end_window_drag(self):
         """Конец перетаскивания."""
         self._drag_win = None
+        self._drag_native = False
+        return True
+
+    def zoom_window(self):
+        """macOS: нативный zoom окна (двойной клик по заголовку, как у любого окна)."""
+        import sys
+        if sys.platform != 'darwin':
+            return False
+        from PyObjCTools import AppHelper
+
+        def _zoom():
+            try:
+                import AppKit
+                app = AppKit.NSApplication.sharedApplication()
+                win = app.keyWindow() or app.mainWindow()
+                if win is not None and (win.styleMask() & 8):  # NSWindowStyleMaskResizable
+                    win.performZoom_(None)
+            except Exception as e:
+                print(f"[Zoom] error: {e}")
+
+        AppHelper.callAfter(_zoom)
         return True
 
     def toggle_fullscreen(self):
@@ -1851,7 +1985,13 @@ class WindowAPI:
             import ctypes
             from ctypes import wintypes
             try:
-                hwnd = ctypes.windll.user32.FindWindowW(None, window.title)
+                # 🪟 ФИКС: раньше HWND искался по заголовку окна (FindWindowW),
+                # а тип окна определялся по 'Select Vault' в title. При смене
+                # хранилища окно перенавигируется и title меняется асинхронно —
+                # гонка приводила к тому, что главное окно оставалось без
+                # WS_THICKFRAME (нет нативного ресайза и Aero Snap).
+                # Теперь: HWND берём напрямую из WinForms, тип окна — по URL.
+                hwnd = self._win_hwnd() or ctypes.windll.user32.FindWindowW(None, window.title)
                 if hwnd:
                     icon_path = os.path.join(bundle_dir, "favicon.ico")
                     if os.path.exists(icon_path):
@@ -1859,8 +1999,13 @@ class WindowAPI:
                         ctypes.windll.user32.SendMessageW(hwnd, 0x0080, 0, hicon)
                         ctypes.windll.user32.SendMessageW(hwnd, 0x0080, 1, hicon)
 
-                    # Разделяем логику: окно выбора хранилищ не должно менять размеры
-                    is_resizable = "Select Vault" not in window.title
+                    # Разделяем логику: окно выбора хранилищ не должно менять размеры.
+                    # Определяем по URL (надёжно), title — фолбэк на случай ошибки.
+                    try:
+                        _cur_url = window.get_current_url() or ''
+                        is_resizable = 'mode=vault' not in _cur_url
+                    except Exception:
+                        is_resizable = "Select Vault" not in window.title
 
                     if is_resizable:
                         # 🌟 СТИЛИ ДЛЯ ГЛАВНОГО ОКНА (Разрешен ресайз + Aero Snap + Фикс полосы) 🌟
@@ -2270,6 +2415,19 @@ if __name__ == '__main__':
         active_vault = config_data.get("active_vault")
         is_configured = bool(active_vault and os.path.exists(active_vault))
 
+        # 🔐 Защищённое хранилище при старте всегда заблокировано (ключ сессии
+        # живёт только в памяти процесса), поэтому пользователь увидит экран
+        # выбора хранилищ. Открываем компактное НЕресайзабельное окно селектора,
+        # а не большое окно доски.
+        if is_configured:
+            try:
+                from src.core import vault_crypto
+                if vault_crypto.is_protected(active_vault):
+                    is_configured = False
+                    print("[System] 🔐 Active vault is protected — starting with Vault Selector window.")
+            except Exception as _vc_e:
+                print(f"[System] Vault protection check failed (non-fatal): {_vc_e}")
+
         # Задаем параметры в зависимости от того, первый ли это запуск
         if is_configured:
             t_w, t_h, t_x, t_y = get_safe_geometry()
@@ -2348,6 +2506,7 @@ if __name__ == '__main__':
                             sys.stdout.flush()
                         except Exception:
                             pass
+                        _lock_vault_before_exit() # 🔐 шифруем защищённое хранилище
                         # os._exit обходит atexit/C++ __cxa_finalize → нет ggml_metal_device_free → нет SIGBUS.
                         os._exit(0)
 
@@ -2370,6 +2529,7 @@ if __name__ == '__main__':
             except Exception:
                 pass
             print("[System] Window closed. Shutting down.")
+            _lock_vault_before_exit() # 🔐 шифруем защищённое хранилище (идемпотентно)
             if server_thread:
                 server_thread.stop()
                 server_thread.join(timeout=0.2)

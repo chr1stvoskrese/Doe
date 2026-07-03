@@ -19,6 +19,7 @@ from src.core.config import (
 )
 import shutil
 from src.core.watcher import vault_observer # <-- ИМПОРТ НАШЕГО WATCHER'A
+from src.core import vault_crypto
 
 _engine = None
 _session_factory = None
@@ -168,9 +169,16 @@ async def init_database(vault_path: str):
         dbapi_conn.create_function("LOWER_RU", 1, lower_ru, deterministic=True)
     
     _session_factory = async_sessionmaker(_engine, class_=AsyncSession, expire_on_commit=False)
-    
+
     # Запускаем системного "слушателя" папки для iCloud Sync
     vault_observer.start(vault_path)
+
+    # ⚠️ ВАЖНО: планировщик автоматизаций здесь НЕ запускаем. Его первый тик
+    # выполняется в отдельном потоке со своим event loop и, стартуя параллельно
+    # с первыми запросами инициализации, устраивает гонку за создание первого
+    # соединения пула SQLAlchemy → дедлок всего lifespan (сервер не отвечает).
+    # Запуск делается ПОСЛЕ полной инициализации: в lifespan (main.py)
+    # и в switch_vault (вход в хранилище, в т.ч. после ввода пароля).
     
     # ВНИМАНИЕ: Base.metadata.create_all УБРАНО! Теперь всем рулит Alembic.
     
@@ -203,7 +211,11 @@ async def init_database(vault_path: str):
 
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
     if _session_factory is None:
-        raise RuntimeError("База данных не инициализирована.")
+        # 🔐 Штатная ситуация: хранилище заблокировано/закрыто (экран выбора),
+        # а фоновые опросы фронтенда ещё идут. Отвечаем чистым 503 вместо
+        # RuntimeError с трейсбеком в логах.
+        from fastapi import HTTPException
+        raise HTTPException(status_code=503, detail="DB_NOT_INITIALIZED")
     async with _session_factory() as session:
         yield session
 
@@ -211,6 +223,9 @@ def get_session_factory():
     if _session_factory is None:
         raise RuntimeError("База данных не инициализирована.")
     return _session_factory
+
+def is_database_open() -> bool:
+    return _session_factory is not None
 
 async def close_database():
     global _engine, _session_factory
@@ -240,12 +255,21 @@ async def init_dev_database():
         return None
         
     dev_vault = Path(vault_path)
-    
-    # 🛡 СТРОГАЯ ЗАЩИТА: Если папки нет ИЛИ в ней нет файлов БД (.db.doe)
+
+    # 🔐 ЗАЩИТА ПАРОЛЕМ: защищённое хранилище НИКОГДА не открывается автоматически.
+    # Пароль требуется при каждом входе (даже если после аварийного завершения
+    # файлы остались расшифрованными). Ключ сессии живёт только в памяти,
+    # поэтому при старте приложения он всегда пуст — уходим на экран выбора.
+    if dev_vault.exists() and vault_crypto.is_protected(str(dev_vault)):
+        if vault_crypto.get_session_key(str(dev_vault)) is None:
+            print(f"[Database] 🔐 Vault is password-protected, waiting for unlock: {dev_vault}")
+            return None
+
+    # 🛡 СТРОГАЯ ЗАЩИТА: Если папки нет ИЛИ в ней нет файлов БД (.db.doe / .db.doe.doelock)
     # мы сбрасываем хранилище и возвращаем на экран выбора, чтобы не наплодить фантомов.
     has_db = False
     if dev_vault.exists() and dev_vault.is_dir():
-        has_db = any(f for f in dev_vault.iterdir() if f.is_file() and f.name.endswith(".db.doe") and "backup" not in f.name and not f.name.startswith("._"))
+        has_db = any(f for f in dev_vault.iterdir() if f.is_file() and (f.name.endswith(".db.doe") or f.name.endswith(vault_crypto.ENC_SUFFIX)) and "backup" not in f.name and not f.name.startswith("._"))
         
     if not has_db:
         config_data = _load_config()
@@ -262,9 +286,69 @@ async def init_dev_database():
 
 async def switch_vault(new_vault_path: str):
     global _engine
+
+    # 🔐 Целевое защищённое хранилище нельзя открыть без ключа сессии
+    # (ключ появляется только после успешного ввода пароля в /vault/unlock).
+    if vault_crypto.is_protected(new_vault_path) and vault_crypto.get_session_key(new_vault_path) is None:
+        raise PermissionError("VAULT_LOCKED")
+
+    old_vault = get_active_vault()
+
     if _engine:
         await close_database()
-    
+
+    # 🔒 Уходим из защищённого хранилища — шифруем его содержимое и забываем ключ
+    import os as _os
+    is_same = old_vault and _os.path.normpath(old_vault) == _os.path.normpath(new_vault_path)
+    if old_vault and not is_same:
+        await lock_vault_files(old_vault)
+
     Path(new_vault_path).mkdir(parents=True, exist_ok=True)
     await init_database(new_vault_path)
     set_active_vault(new_vault_path)
+
+    # Планировщик автоматизаций — строго ПОСЛЕ полной инициализации БД
+    # (запуск идемпотентен; нужен для случая, когда lifespan стартовал без БД —
+    # например, защищённое хранилище открыли по паролю уже после старта).
+    try:
+        from src.services.automation_service import start_scheduler
+        start_scheduler(get_session_factory())
+    except Exception as e:
+        print(f"[Automation] Scheduler start failed (non-fatal): {e}")
+
+
+async def lock_vault_files(vault_path: str) -> dict:
+    """
+    Шифрует содержимое хранилища, если оно защищено паролем и ключ сессии ещё в памяти.
+    БД к этому моменту должна быть закрыта. Ключ после шифрования сбрасывается.
+    """
+    if not vault_path:
+        return {"locked": False}
+    key = vault_crypto.get_session_key(vault_path)
+    if key is None or not vault_crypto.is_protected(vault_path):
+        return {"locked": False}
+    result = await asyncio.to_thread(vault_crypto.lock_vault, vault_path, key)
+    vault_crypto.clear_session_key(vault_path)
+    return {"locked": True, **result}
+
+
+async def lock_active_vault() -> dict:
+    """
+    Полный «выход» из активного хранилища: остановка watcher'а, закрытие БД,
+    шифрование файлов (если установлен пароль), сброс ключа сессии.
+    Используется при выходе на экран выбора хранилищ и при закрытии приложения.
+    """
+    vault_path = get_active_vault()
+    if not vault_path:
+        return {"locked": False}
+
+    protected = vault_crypto.is_protected(vault_path)
+    if protected:
+        try:
+            vault_observer.stop()
+        except Exception:
+            pass
+        if _engine:
+            await close_database()
+        return await lock_vault_files(vault_path)
+    return {"locked": False}
