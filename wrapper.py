@@ -561,27 +561,52 @@ if sys.platform == 'darwin':
             # C++-деструкторы (поэтому ggml_metal_device_free не зовётся вообще).
             try:
                 def _should_terminate(self, sender):
-                    try:
-                        # 🔐 Пока сервер ещё жив — шифруем защищённое хранилище
-                        _lock_vault_before_exit()
-                    except Exception:
-                        pass
-                    try:
-                        st = globals().get('server_thread')
-                        if st is not None:
-                            st.stop()
-                            st.join(timeout=0.5)
-                    except Exception:
-                        pass
-                    import time as _time
-                    _time.sleep(0.15)
-                    try:
-                        sys.stdout.flush(); sys.stderr.flush()
-                    except Exception:
-                        pass
-                    import os as _os
-                    _os._exit(0)
-                    return 1  # NSTerminateNow (unreachable)
+                    # 🔐 Cmd+Q / Quit из меню: выход делегируем ФРОНТЕНДУ —
+                    # window.appExit() покажет оверлей шифрования с прогресс-баром
+                    # (вместо молчаливого замирания окна) и сам завершит процесс
+                    # через force_close. Возвращаем NSTerminateCancel, чтобы AppKit
+                    # не убил приложение до окончания шифрования.
+                    # ВАЖНО: evaluate_js нельзя звать с главного потока AppKit
+                    # (дедлок ожидания результата) — уводим в фоновый поток.
+                    import threading as _threading
+
+                    def _delegate_exit_to_js():
+                        try:
+                            import webview as _wv
+                            for w in list(_wv.windows):
+                                try:
+                                    res = w.evaluate_js('window.appExit ? (window.appExit(), true) : false')
+                                    if res:
+                                        print("[System] 🔐 Quit delegated to JS (progress overlay)")
+                                        return
+                                except Exception:
+                                    continue
+                        except Exception:
+                            pass
+                        # Фолбэк: JS недоступен (окно мертво) — старый путь:
+                        # блокирующее шифрование и жёсткий выход.
+                        try:
+                            _lock_vault_before_exit()
+                        except Exception:
+                            pass
+                        try:
+                            st = globals().get('server_thread')
+                            if st is not None:
+                                st.stop()
+                                st.join(timeout=0.5)
+                        except Exception:
+                            pass
+                        import time as _time
+                        _time.sleep(0.15)
+                        try:
+                            sys.stdout.flush(); sys.stderr.flush()
+                        except Exception:
+                            pass
+                        import os as _os
+                        _os._exit(0)
+
+                    _threading.Thread(target=_delegate_exit_to_js, daemon=True).start()
+                    return 0  # NSTerminateCancel — завершимся сами после шифрования
 
                 # Возвращаемый тип NSApplicationTerminateReply в разных версиях
                 # macOS/PyObjC кодируется по-разному: I (unsigned int), q (NSInteger),

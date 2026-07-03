@@ -495,6 +495,18 @@ class VaultPasswordRemoveRequest(BaseModel):
     password: str
 
 
+@router.get("/startup-status")
+async def startup_status_endpoint():
+    """
+    Состояние фоновой инициализации хранилища при старте приложения:
+    'starting' — миграции/открытие БД ещё идут (фронтенд показывает прогресс),
+    'ready' — можно загружать доску, 'no_vault' — экран выбора хранилищ,
+    'error' — инициализация не удалась (фронтенд уйдёт на экран выбора).
+    """
+    from src.db.database import startup_state
+    return {"state": startup_state["state"]}
+
+
 @router.get("/vault/security/status")
 async def vault_security_status(path: Optional[str] = None):
     """Статус защиты: для активного хранилища или по явному пути."""

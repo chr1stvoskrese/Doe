@@ -186,7 +186,16 @@ const translations = {
             touchidStale: 'Пароль был изменён — войдите по паролю, Touch ID обновится',
             touchidOn: 'Touch ID включён',
             touchidOff: 'Touch ID выключен',
-            leftoverLocked: 'В хранилище остались зашифрованные файлы. Выйдите и войдите по паролю, чтобы расшифровать их, затем повторите.'
+            leftoverLocked: 'В хранилище остались зашифрованные файлы. Выйдите и войдите по паролю, чтобы расшифровать их, затем повторите.',
+            opening: 'Открытие хранилища...',
+            openingHint: 'Подготовка базы данных',
+            loadingBoard: 'Загрузка хранилища...',
+            loadStageSettings: 'Настройки',
+            loadStageWorkspaces: 'Рабочие пространства',
+            loadStageCards: 'Заметки и карточки',
+            loadStageRender: 'Отрисовка доски',
+            stalledHint: 'ожидание доступа к файлам…',
+            openingLongHint: 'Это может занять время — файлы могут ещё синхронизироваться или загружаться'
         },
         card: { timeSpent: 'Времени потрачено:', unknownTime: 'неизвестно' },
         taskModal: {
@@ -196,7 +205,7 @@ const translations = {
             timerPlaceholder: '1ч 30м',
             created: 'Создано',
             updated: 'Изменено',
-            uploading: (name) => `[⏳ Сохраняем ${name} in Vault...]`,
+            uploading: (name) => `[⏳ Сохраняем ${name}…]`,
             uploadError: (name) => `[❌ Ошибка сохранения: ${name}]`,
             uploadNetworkError: (name) => `[❌ Ошибка сети: ${name}]`
         },
@@ -450,7 +459,16 @@ const translations = {
             touchidStale: 'The password was changed — sign in with the password, Touch ID will refresh',
             touchidOn: 'Touch ID enabled',
             touchidOff: 'Touch ID disabled',
-            leftoverLocked: 'Some files in the vault are still encrypted. Leave and re-enter with your password to decrypt them, then try again.'
+            leftoverLocked: 'Some files in the vault are still encrypted. Leave and re-enter with your password to decrypt them, then try again.',
+            opening: 'Opening vault...',
+            openingHint: 'Preparing the database',
+            loadingBoard: 'Loading vault...',
+            loadStageSettings: 'Settings',
+            loadStageWorkspaces: 'Workspaces',
+            loadStageCards: 'Notes & cards',
+            loadStageRender: 'Rendering board',
+            stalledHint: 'waiting for file access…',
+            openingLongHint: 'This may take a while — your files may still be syncing or loading'
         },
         card: { timeSpent: 'Time spent:', unknownTime: 'unknown' },
         taskModal: {
@@ -460,7 +478,7 @@ const translations = {
             timerPlaceholder: '1h 30m',
             created: 'Created',
             updated: 'Updated',
-            uploading: (name) => `[⏳ Saving ${name} to Vault...]`,
+            uploading: (name) => `[⏳ Saving ${name}…]`,
             uploadError: (name) => `[❌ Error saving: ${name}]`,
             uploadNetworkError: (name) => `[❌ Network error: ${name}]`
         },
@@ -767,7 +785,9 @@ window.showToast = (title, message, isError = false) => {
     const iconEl = document.querySelector('.app-toast-icon');
 
     titleEl.textContent = title;
-    msgEl.textContent = message;
+    // Инлайн-рендер Markdown: в сообщениях бывают названия карточек
+    // с **жирным**, `кодом` и т.п. — сырой синтаксис не должен вылезать
+    msgEl.innerHTML = renderInlineMarkdown(message);
 
     if (isError) {
         iconEl.style.color = '#D35446';
@@ -1451,12 +1471,36 @@ function renderInlineMarkdown(text) {
     }
 
     let html = escapeHtml(raw);
+
+    // ⚗️ Инлайн-LaTeX ($...$) в заголовках/крошках: рендерим через KaTeX,
+    // формулы прячем в плейсхолдеры, чтобы * _ ` внутри них не пострадали
+    const mathChunks = [];
+    if (window.katex) {
+        html = html.replace(/\$([^$\n]+?)\$/g, (m, expr) => {
+            try {
+                const rendered = katex.renderToString(unescapeHtml(expr), {
+                    throwOnError: false, output: 'html', strict: false
+                });
+                mathChunks.push(rendered);
+                return `M${mathChunks.length - 1}`;
+            } catch (e) { return m; }
+        });
+    }
+
     html = html.replace(/\n/g, '<br>');
     html = html.replace(/&lt;u&gt;/g, '<u>').replace(/&lt;\/u&gt;/g, '</u>');
     html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
     html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
     html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
     html = html.replace(/~~([^~]+)~~/g, '<del>$1</del>');
+    // 🖼 Изображения в заголовках НЕ рендерим — превращаем в обычную ссылку
+    // (клик работает так же, как в описании: файл откроется нативно)
+    html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (m, alt, url) => {
+        const label = alt || decodeURIComponent(url.split('/').pop() || url);
+        return `[${label}](${url})`;
+    });
+    // Ссылка с пустым текстом — подставляем адрес как текст
+    html = html.replace(/\[\]\(([^)]+)\)/g, (m, url) => `[${url}](${url})`);
     html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
 
     for (const dl of doeLinks) {
@@ -1464,6 +1508,10 @@ function renderInlineMarkdown(text) {
         const innerHtml = renderInlineMarkdown(innerClean);
         html = html.replace(dl.placeholder, `<a href="doe://task/${dl.taskId}" target="_blank" rel="noopener">${innerHtml}</a>`);
     }
+
+    mathChunks.forEach((r, i) => {
+        html = html.replace(`M${i}`, () => r);
+    });
 
     return html;
 }
@@ -6313,18 +6361,25 @@ async function renderGraphBreadcrumbs(taskId) {
                 const rawTitle = node.title || "";
                 const firstLine = rawTitle.includes('\n') ? rawTitle.split('\n')[0] : rawTitle;
                 const isMultiLine = rawTitle.includes('\n');
-                let displayTitle = firstLine;
+
+                // Обрезка не должна резать Markdown посреди синтаксиса
+                // (**жир… → сырые звёздочки). Если заголовок влезает целиком —
+                // рендерим Markdown; если нужен срез — режем ЧИСТЫЙ текст.
+                let titleHtml;
                 if (firstLine.length > 15) {
-                    displayTitle = firstLine.substring(0, 14) + '…';
+                    const plain = stripMarkdownToPlain(firstLine);
+                    titleHtml = escapeHtml(plain.substring(0, 14)) + '…';
                 } else if (isMultiLine) {
-                    displayTitle = firstLine + '…';
+                    titleHtml = renderInlineMarkdown(firstLine) + '…';
+                } else {
+                    titleHtml = renderInlineMarkdown(firstLine);
                 }
 
                 html += `<div class="breadcrumb-node">`;
-                
-                html += `<span class="breadcrumb-item ${isLast ? 'active' : ''}" 
-                               data-id="${node.id}" 
-                               data-full-title="${escapeHtml(rawTitle)}">${renderInlineMarkdown(displayTitle)}</span>`;
+
+                html += `<span class="breadcrumb-item ${isLast ? 'active' : ''}"
+                               data-id="${node.id}"
+                               data-full-title="${escapeHtml(rawTitle)}">${titleHtml}</span>`;
                 
                 if (!isLast) {
                     html += '<span class="breadcrumb-separator"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg></span>';
@@ -7026,31 +7081,223 @@ function initHeadingFolding(container, foldedHeadings = []) {
     });
 }
 
+// ============================================================
+//  Настройки отображения код-блоков (глобальные, персистентные)
+// ============================================================
+const codePrefs = {
+    get wrap()  { return localStorage.getItem('doe-code-wrap') === '1'; },
+    set wrap(v) { localStorage.setItem('doe-code-wrap', v ? '1' : '0'); },
+    get nums()  { return localStorage.getItem('doe-code-nums') === '1'; },
+    set nums(v) { localStorage.setItem('doe-code-nums', v ? '1' : '0'); },
+};
+
+// ============================================================
+//  🖼 Соседние изображения (![]() на подряд идущих строках) — в один ряд
+// ============================================================
+function enhanceImageRows(container) {
+    container.querySelectorAll('p').forEach(p => {
+        // Убираем <br> между соседними изображениями (marked ставит их
+        // за каждый одиночный перенос строки)
+        p.querySelectorAll('br').forEach(br => {
+            const prev = br.previousElementSibling;
+            const next = br.nextElementSibling;
+            const isImg = el => el && el.classList && el.classList.contains('image-resizer-wrapper');
+            const isEmptyText = nd => !nd || nd === prev || nd === next || (nd.nodeType === 3 && !nd.textContent.trim());
+            if (isImg(prev) && isImg(next) && isEmptyText(br.previousSibling) && isEmptyText(br.nextSibling)) {
+                br.remove();
+            }
+        });
+
+        const imgs = Array.from(p.children).filter(c => c.classList && c.classList.contains('image-resizer-wrapper'));
+        if (imgs.length >= 2) {
+            // Ряд делаем только если в абзаце нет ничего, кроме изображений
+            const onlyImages = Array.from(p.childNodes).every(n =>
+                (n.nodeType === 1 && n.classList.contains('image-resizer-wrapper')) ||
+                (n.nodeType === 3 && !n.textContent.trim())
+            );
+            p.classList.toggle('image-row', onlyImages);
+        }
+    });
+}
+
+// ============================================================
+//  📎 Плейсхолдер загрузки вложения "[⏳ ...]" → аккуратный чип со спиннером
+// ============================================================
+function enhanceUploadChips(container) {
+    const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
+    const targets = [];
+    while (walker.nextNode()) {
+        const n = walker.currentNode;
+        if (n.textContent.includes('[⏳') && !n.parentElement.closest('pre, code, .upload-chip')) {
+            targets.push(n);
+        }
+    }
+    targets.forEach(n => {
+        const html = escapeHtml(n.textContent).replace(
+            /\[⏳\s*([^\]]*)\]/g,
+            '<span class="upload-chip"><span class="upload-chip-spinner"></span><span class="upload-chip-name">$1</span></span>'
+        );
+        if (html !== escapeHtml(n.textContent)) {
+            const span = document.createElement('span');
+            span.innerHTML = html;
+            n.replaceWith(span);
+        }
+    });
+}
+
+// ============================================================
+//  🔍 Лайтбокс: клик по изображению — плавное раскрытие на весь экран
+// ============================================================
+(function initImageLightbox() {
+    const lb = document.createElement('div');
+    lb.className = 'image-lightbox';
+    lb.id = 'image-lightbox';
+    lb.innerHTML = '<img alt="" draggable="false">';
+    document.body.appendChild(lb);
+    const lbImg = lb.querySelector('img');
+
+    const close = () => {
+        lb.classList.remove('show');
+        setTimeout(() => { if (!lb.classList.contains('show')) lbImg.src = ''; }, 260);
+    };
+
+    lb.addEventListener('click', close);
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && lb.classList.contains('show')) {
+            e.preventDefault();
+            e.stopPropagation();
+            close();
+        }
+    }, true);
+
+    // capture-фаза: перехватываем раньше, чем сработает переход в режим правки
+    document.addEventListener('click', (e) => {
+        const wrap = e.target.closest('.image-resizer-wrapper');
+        if (!wrap) return;
+        if (e.target.closest('.image-resize-handle')) return;
+        if (wrap.classList.contains('is-resizing') || wrap.dataset.justResized) return;
+        const src = wrap.querySelector('img')?.src;
+        if (!src) return;
+        e.preventDefault();
+        e.stopPropagation();
+        lbImg.src = src;
+        lb.classList.add('show');
+    }, true);
+})();
+
+function _buildCodeGutter(pre) {
+    const code = pre.querySelector('code');
+    if (!code) return;
+    let g = pre.querySelector('.code-gutter');
+    if (!g) {
+        g = document.createElement('div');
+        g.className = 'code-gutter';
+        pre.insertBefore(g, code);
+    }
+    const lines = code.textContent.replace(/\n$/, '').split('\n').length;
+    if (parseInt(g.dataset.lines || '0') !== lines) {
+        g.dataset.lines = lines;
+        let html = '';
+        for (let i = 1; i <= lines; i++) html += `<span>${i}</span>`;
+        g.innerHTML = html;
+    }
+}
+
+function _applyCodePrefs(pre) {
+    pre.classList.toggle('is-wrapped', codePrefs.wrap);
+    pre.classList.toggle('is-numbered', codePrefs.nums && !codePrefs.wrap);
+    if (codePrefs.nums && !codePrefs.wrap) _buildCodeGutter(pre);
+    const wrapBtn = pre.querySelector('.code-wrap-btn');
+    const numsBtn = pre.querySelector('.code-nums-btn');
+    if (wrapBtn) wrapBtn.classList.toggle('active', codePrefs.wrap);
+    if (numsBtn) {
+        numsBtn.classList.toggle('active', codePrefs.nums && !codePrefs.wrap);
+        // При переносе строк нумерация физических строк потеряла бы смысл
+        numsBtn.classList.toggle('disabled', codePrefs.wrap);
+    }
+}
+
+function _refreshAllCodeBlocks() {
+    document.querySelectorAll('.markdown-body pre').forEach(_applyCodePrefs);
+}
+
 function enhanceCodeBlocks(container) {
     const codeBlocks = Array.from(container.querySelectorAll('pre code'));
-    
+
     codeBlocks.forEach(block => {
         if (!block.className || block.className === "") {
             block.classList.add('language-python');
         }
     });
 
+    const L = (ru, en) => (currentLang === 'ru' ? ru : en);
+    const copyIcon = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`;
+
     container.querySelectorAll('pre').forEach(pre => {
-        if (pre.querySelector('.code-copy-btn')) return;
-        const btn = document.createElement('button');
-        btn.className = 'code-copy-btn';
-        btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`;
-        btn.onclick = async (e) => {
-            e.stopPropagation();
-            const code = pre.querySelector('code').innerText;
-            await navigator.clipboard.writeText(code);
-            btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
-            setTimeout(() => {
-                btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`;
-            }, 2000);
-        };
-        pre.appendChild(btn);
+        if (!pre.querySelector('.code-tools')) {
+            const tools = document.createElement('div');
+            tools.className = 'code-tools';
+
+            // 🛡 Полная изоляция тулбара от обработчиков описания:
+            // двойной клик по кнопке НЕ должен переключать описание в режим
+            // редактирования (из-за этого «пропадал код»), а mousedown —
+            // запускать выделение/드래ги.
+            ['click', 'dblclick', 'mousedown', 'mouseup', 'pointerdown'].forEach(ev => {
+                tools.addEventListener(ev, (e) => e.stopPropagation());
+            });
+
+            const mkBtn = (extraClass, title, svg) => {
+                const b = document.createElement('button');
+                b.type = 'button';
+                b.className = `code-tool ${extraClass}`;
+                b.title = title;
+                b.innerHTML = svg;
+                return b;
+            };
+
+            // Перенос строк
+            const wrapBtn = mkBtn('code-wrap-btn', L('Перенос строк', 'Wrap lines'),
+                `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M3 12h13a3 3 0 1 1 0 6h-4"/><polyline points="14 16 12 18 14 20"/><path d="M3 18h6"/></svg>`);
+            wrapBtn.addEventListener('click', () => {
+                codePrefs.wrap = !codePrefs.wrap;
+                _refreshAllCodeBlocks();
+            });
+
+            // Нумерация строк
+            const numsBtn = mkBtn('code-nums-btn', L('Номера строк', 'Line numbers'),
+                `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="10" y1="6" x2="21" y2="6"/><line x1="10" y1="12" x2="21" y2="12"/><line x1="10" y1="18" x2="21" y2="18"/><path d="M4 6h1v4"/><path d="M4 10h2"/><path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"/></svg>`);
+            numsBtn.addEventListener('click', () => {
+                codePrefs.nums = !codePrefs.nums;
+                _refreshAllCodeBlocks();
+            });
+
+            // Копировать
+            const copyBtn = mkBtn('code-copy-tool', L('Скопировать', 'Copy'), copyIcon);
+            copyBtn.addEventListener('click', async () => {
+                try {
+                    const codeEl = pre.querySelector('code');
+                    if (!codeEl) return;
+                    await navigator.clipboard.writeText(codeEl.innerText);
+                    copyBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+                    copyBtn.classList.add('copied');
+                    setTimeout(() => {
+                        copyBtn.innerHTML = copyIcon;
+                        copyBtn.classList.remove('copied');
+                    }, 1600);
+                } catch (e) { /* clipboard недоступен — молча */ }
+            });
+
+            tools.appendChild(wrapBtn);
+            tools.appendChild(numsBtn);
+            tools.appendChild(copyBtn);
+            pre.appendChild(tools);
+        }
+        _applyCodePrefs(pre);
     });
+
+    // 🖼 Соседние изображения — в один ряд, плейсхолдеры загрузки — в чипы
+    enhanceImageRows(container);
+    enhanceUploadChips(container);
 
     if (!window.Prism || codeBlocks.length === 0) return;
 
@@ -8011,6 +8258,9 @@ function initTaskDescriptionLogic() {
                 document.removeEventListener('mouseup', onMouseUp);
                 document.body.style.userSelect = '';
                 wrapper.classList.remove('is-resizing');
+                // Клик, прилетающий сразу после ресайза, не должен открывать лайтбокс
+                wrapper.dataset.justResized = '1';
+                setTimeout(() => { delete wrapper.dataset.justResized; }, 300);
                 
                 const finalWidth = Math.round(wrapper.offsetWidth);
                 const finalHeight = Math.round(wrapper.offsetHeight);
@@ -8890,15 +9140,31 @@ function startVaultProgressPolling(op, fillEl, labelEl) {
     if (fillEl) fillEl.style.width = '0%';
     if (labelEl) labelEl.textContent = '';
 
+    // Детект «замирания»: если счётчик не двигается >5с (например, система
+    // докачивает выгруженный файл) — объясняем это пользователю.
+    let lastDone = -1;
+    let lastChangeAt = Date.now();
+    let lastTotal = 0; // запоминаем, чтобы при завершении доснять счётчик до N/N
+
     const timer = setInterval(async () => {
         try {
             const r = await fetch(`${API_BASE}/system/vault/security/progress?t=${Date.now()}`);
             if (!r.ok) return;
             const p = await r.json();
             if (p.active && p.op === op && p.total > 0) {
+                lastTotal = p.total;
                 const pct = Math.min(100, Math.round((p.done / p.total) * 100));
                 if (fillEl) fillEl.style.width = pct + '%';
-                if (labelEl) labelEl.textContent = t('security.filesCount', p.done, p.total);
+
+                if (p.done !== lastDone) {
+                    lastDone = p.done;
+                    lastChangeAt = Date.now();
+                }
+                const stalled = (Date.now() - lastChangeAt) > 5000;
+                if (labelEl) {
+                    labelEl.textContent = t('security.filesCount', p.done, p.total)
+                        + (stalled ? ' · ' + t('security.stalledHint') : '');
+                }
             }
         } catch (e) { /* сервер занят/недоступен — просто пропускаем тик */ }
     }, 150);
@@ -8908,6 +9174,11 @@ function startVaultProgressPolling(op, fillEl, labelEl) {
         if (fillEl) {
             fillEl.classList.remove('indeterminate');
             fillEl.style.width = '100%';
+        }
+        // Операция завершена целиком — счётчик не должен застревать на
+        // последнем «пойманном» поллингом значении (напр., 13/29)
+        if (labelEl && lastTotal > 0) {
+            labelEl.textContent = t('security.filesCount', lastTotal, lastTotal);
         }
     };
 }
@@ -8929,6 +9200,7 @@ window.lockVaultWithProgress = async () => {
     let stopPolling = null;
 
     if (needLock && overlay) {
+        _setVaultOverlayIcon('lock');
         document.getElementById('vault-lock-overlay-title').textContent = t('security.encrypting');
         document.getElementById('vault-lock-overlay-hint').textContent = t('security.encryptingHint');
         overlay.classList.add('show');
@@ -8951,6 +9223,83 @@ window.lockVaultWithProgress = async () => {
         await new Promise(res => setTimeout(res, 250));
         overlay.classList.remove('show');
     }
+};
+
+// ============================================================
+//  Оверлей «Открытие / Загрузка хранилища»
+//  Тот же визуальный язык, что у оверлея шифрования: замок, заголовок,
+//  полоса прогресса. Последовательность этапов для зашифрованного хранилища:
+//  1) расшифровка (модал пароля, N/M файлов) → 2) «Открытие хранилища...»
+//  (инициализация БД, неопределённый прогресс) → 3) «Загрузка хранилища...»
+//  (окно доски, ступенчатый прогресс). Для обычного — этапы 2 и 3.
+// ============================================================
+// Иконка оверлея: замок — только для шифрования/расшифровки,
+// открытая папка — для открытия/загрузки хранилища
+function _setVaultOverlayIcon(mode) {
+    const overlay = document.getElementById('vault-lock-overlay');
+    if (!overlay) return;
+    const lockIcon = overlay.querySelector('.vlo-icon-lock');
+    const folderIcon = overlay.querySelector('.vlo-icon-folder');
+    if (lockIcon) lockIcon.style.display = (mode === 'lock') ? '' : 'none';
+    if (folderIcon) folderIcon.style.display = (mode === 'lock') ? 'none' : '';
+}
+
+let _openingHintTimer = null;
+
+window.showVaultOpeningOverlay = () => {
+    const overlay = document.getElementById('vault-lock-overlay');
+    if (!overlay) return;
+    _setVaultOverlayIcon('folder');
+    document.getElementById('vault-lock-overlay-title').textContent = t('security.opening');
+    document.getElementById('vault-lock-overlay-hint').textContent = t('security.openingHint');
+    const fill = document.getElementById('vault-lock-overlay-fill');
+    const label = document.getElementById('vault-lock-overlay-label');
+    label.textContent = '';
+    fill.style.width = '35%';
+    fill.classList.add('indeterminate'); // длительность миграций БД неизвестна
+
+    // Если открытие затянулось (>8с) — вероятно, macOS докачивает файлы
+    // хранилища из iCloud. Поясняем, что это не зависание.
+    clearTimeout(_openingHintTimer);
+    _openingHintTimer = setTimeout(() => {
+        if (overlay.classList.contains('show')) {
+            document.getElementById('vault-lock-overlay-hint').textContent = t('security.openingLongHint');
+        }
+    }, 8000);
+
+    overlay.classList.add('show');
+};
+
+window.hideVaultOverlay = () => {
+    const overlay = document.getElementById('vault-lock-overlay');
+    if (!overlay) return;
+    clearTimeout(_openingHintTimer);
+    overlay.classList.remove('show');
+    const fill = document.getElementById('vault-lock-overlay-fill');
+    fill.classList.remove('indeterminate');
+    fill.style.width = '0%';
+    document.getElementById('vault-lock-overlay-label').textContent = '';
+};
+
+// Ступенчатый прогресс загрузки доски (окно хранилища)
+window.showVaultLoadingOverlay = () => {
+    const overlay = document.getElementById('vault-lock-overlay');
+    if (!overlay) return () => {};
+    _setVaultOverlayIcon('folder');
+    document.getElementById('vault-lock-overlay-title').textContent = t('security.loadingBoard');
+    document.getElementById('vault-lock-overlay-hint').textContent = '';
+    const fill = document.getElementById('vault-lock-overlay-fill');
+    const label = document.getElementById('vault-lock-overlay-label');
+    fill.classList.remove('indeterminate');
+    fill.style.width = '10%';
+    label.textContent = t('security.loadStageSettings');
+    overlay.classList.add('show');
+
+    // Возвращаем функцию установки этапа: setStage(pct, i18nKey)
+    return (pct, stageKey) => {
+        fill.style.width = pct + '%';
+        label.textContent = stageKey ? t(stageKey) : '';
+    };
 };
 
 // ============================================================
@@ -9571,6 +9920,9 @@ async function renderVaultHistory() {
                 div.style.opacity = '0.5';
                 div.style.pointerEvents = 'none';
 
+                // Этап «Открытие хранилища...» — на время инициализации/миграций БД
+                window.showVaultOpeningOverlay();
+
                 let res = await fetch(`${API_BASE}/system/vault/switch`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -9579,12 +9931,14 @@ async function renderVaultHistory() {
 
                 // 🔐 Страховка: бэкенд сообщил, что нужен пароль (например, флаг protected устарел)
                 if (res.status === 423) {
+                    window.hideVaultOverlay();
                     div.style.opacity = '1';
                     div.style.pointerEvents = 'auto';
                     const unlocked = await window.requestVaultUnlock(item.path, item.name);
                     if (!unlocked) return;
                     div.style.opacity = '0.5';
                     div.style.pointerEvents = 'none';
+                    window.showVaultOpeningOverlay();
                     res = await fetch(`${API_BASE}/system/vault/switch`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -9598,8 +9952,11 @@ async function renderVaultHistory() {
                 updateVaultName(result.name);
                 const settings = await fetchSettings().catch(() => ({}));
                 state.activeWorkspaceId = settings.active_workspace_id || null;
+                // Оверлей НЕ прячем: окно селектора сейчас заменится окном доски,
+                // которое продолжит ту же картину этапом «Загрузка хранилища...»
                 await transitionToApp();
             } else if (res.status === 400) {
+                window.hideVaultOverlay();
                 div.style.opacity = '1';
                 div.style.pointerEvents = 'auto';
                 div.classList.add('is-error');
@@ -9610,6 +9967,7 @@ async function renderVaultHistory() {
                 }
             } catch (err) {
                 console.error(err);
+                window.hideVaultOverlay();
                 div.style.opacity = '1';
                 div.style.pointerEvents = 'auto';
             }
@@ -9719,6 +10077,7 @@ window.handleVaultAction = async (actionType) => {
             const selectedPath = await window.pywebview.api.choose_directory();
             if (!selectedPath) return;
 
+            window.showVaultOpeningOverlay();
             let res = await fetch(`${API_BASE}/system/vault/switch`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -9727,9 +10086,11 @@ window.handleVaultAction = async (actionType) => {
 
             // 🔐 Хранилище защищено паролем — запрашиваем его и пробуем снова
             if (res.status === 423) {
+                window.hideVaultOverlay();
                 const vaultName = selectedPath.split(/[/\\]/).pop();
                 const unlocked = await window.requestVaultUnlock(selectedPath, vaultName);
                 if (!unlocked) return;
+                window.showVaultOpeningOverlay();
                 res = await fetch(`${API_BASE}/system/vault/switch`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -9744,8 +10105,10 @@ window.handleVaultAction = async (actionType) => {
                 const settings = await fetchSettings().catch(() => ({}));
                 state.activeWorkspaceId = settings.active_workspace_id || null;
 
+                // Оверлей остаётся до подмены окна — этап продолжит окно доски
                 await transitionToApp();
             } else if (res.status === 400) {
+                window.hideVaultOverlay();
                 const cards = document.querySelectorAll('.vault-action-card');
                 const openCard = cards[1];
                 if (openCard) {
@@ -9817,6 +10180,7 @@ window.confirmVaultCreate = async () => {
     if (!parentPath) return; 
 
     try {
+        window.showVaultOpeningOverlay();
         const res = await fetch(`${API_BASE}/system/vault/create`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -9827,14 +10191,15 @@ window.confirmVaultCreate = async () => {
         const result = await res.json();
 
         updateVaultName(result.name);
-        state.activeWorkspaceId = null; 
-        
+        state.activeWorkspaceId = null;
+
         await transitionToApp();
-        
-        setTimeout(window.cancelVaultCreate, 500); 
+
+        setTimeout(window.cancelVaultCreate, 500);
 
     } catch (err) {
         console.error(err);
+        window.hideVaultOverlay();
         window.showToast(t('alerts.error'), 'Не удалось создать хранилище', true);
     }
 };
@@ -13568,6 +13933,27 @@ function initCloudSync() {
             }
         }
 
+        const urlParams = new URLSearchParams(window.location.search);
+        const isVaultMode = urlParams.get('mode') === 'vault';
+
+        // ⚡️ Холодный старт: сервер отвечает мгновенно, а инициализация БД
+        // (миграции большого хранилища) идёт в фоне. Окно уже видно —
+        // показываем оверлей «Открытие хранилища...» и ждём готовности.
+        try {
+            const stRes = await fetch(`${API_BASE}/system/startup-status`).catch(() => null);
+            let st = stRes && stRes.ok ? await stRes.json() : { state: 'ready' };
+            if (st.state === 'starting') {
+                if (!isVaultMode) window.showVaultOpeningOverlay();
+                while (st.state === 'starting') {
+                    await new Promise(r => setTimeout(r, 150));
+                    const r2 = await fetch(`${API_BASE}/system/startup-status`).catch(() => null);
+                    st = r2 && r2.ok ? await r2.json() : { state: 'ready' };
+                }
+                // Оверлей не прячем: ветка доски продолжит его этапами загрузки,
+                // ветка экрана выбора скроет его сама.
+            }
+        } catch (e) { /* сервер старой версии без эндпоинта — работаем как раньше */ }
+
         const [settingsData, vaultData] = await Promise.all([
             fetchSettings().catch(() => ({})),
             fetchVault().catch(() => ({ name: null, path: null }))
@@ -13575,10 +13961,8 @@ function initCloudSync() {
 
         window.appSettings = settingsData;
 
-        const urlParams = new URLSearchParams(window.location.search);
-        const isVaultMode = urlParams.get('mode') === 'vault';
-
         if (!vaultData.path || isVaultMode) {
+            window.hideVaultOverlay(); // на экране выбора оверлей открытия не нужен
             document.getElementById('vault-screen').classList.remove('hidden', 'content-hidden');
             const lights = document.getElementById('mac-traffic-lights');
             if (lights) lights.classList.add('vault-mode');
@@ -13608,12 +13992,21 @@ function initCloudSync() {
             if (settingsData.language) applyLanguage(settingsData.language, false);
         } catch (e) {}
 
+        // 📊 Этап «Загрузка хранилища...»: окно доски показывается сразу,
+        // но при большом количестве заметок доска долго оставалась пустой.
+        // Оверлей со ступенчатым прогрессом закрывает эту паузу и визуально
+        // продолжает этапы расшифровки/открытия с экрана выбора.
+        const setLoadStage = window.showVaultLoadingOverlay();
+        setLoadStage(25, 'security.loadStageSettings');
+
         const mainVaultScreen = document.getElementById('vault-screen');
         if (mainVaultScreen) {
             mainVaultScreen.classList.add('hidden', 'content-hidden');
         }
 
+        setLoadStage(35, 'security.loadStageWorkspaces');
         const workspacesData = await fetchWorkspaces().catch(() => []);
+        setLoadStage(55, 'security.loadStageCards');
 
         const isTabsHidden = settingsData.tabs_hidden === true;
         if (isTabsHidden) document.body.classList.add('tabs-hidden');
@@ -13641,15 +14034,21 @@ function initCloudSync() {
 
         if (state.activeWorkspaceId) {
             const columnsData = await fetchColumns(state.activeWorkspaceId);
+            setLoadStage(85, 'security.loadStageRender');
             state.columns = columnsData.map(col => ({ ...col, collapsed: col.collapsed || false }));
-            
+
             renderBoard();
             adjustCollapsedColumnWidths();
             clampExpandedTitles();
             triggerGarbageCollector();
         } else {
-            renderBoard(); 
+            setLoadStage(85, 'security.loadStageRender');
+            renderBoard();
         }
+
+        // Доска отрисована — доводим полосу и плавно убираем оверлей
+        setLoadStage(100, null);
+        setTimeout(() => window.hideVaultOverlay(), 180);
 
         initTimerCulling();
         setInterval(updateTimers, 250);
@@ -13687,8 +14086,9 @@ function initCloudSync() {
 
     } catch (e) {
         console.error("Fatal initialization error:", e);
+        try { window.hideVaultOverlay(); } catch (_) {}
         document.body.classList.remove('preload');
-        setTimeout(triggerReveal, 50); 
+        setTimeout(triggerReveal, 50);
     }
 })();
 
@@ -14164,7 +14564,7 @@ const Calendar = {
             let evHtml = dayEvents.map(ev => {
                 const timeText = this.formatTimeText(ev, true);
                 const fullText = `${timeText} ${ev.title}`;
-                return `<div class="cal-event-chip ${ev.completed ? 'is-done' : ''}" data-id="${ev.id}" data-event-id="${ev.event_id}" data-ws="${ev.workspace_id}" data-col="${ev.column_id}" data-full-title="${escapeHtml(fullText)}">${timeText} ${escapeHtml(ev.title)}</div>`;
+                return `<div class="cal-event-chip ${ev.completed ? 'is-done' : ''}" data-id="${ev.id}" data-event-id="${ev.event_id}" data-ws="${ev.workspace_id}" data-col="${ev.column_id}" data-full-title="${escapeHtml(fullText)}">${timeText} ${escapeHtml(stripMarkdownToPlain(ev.title))}</div>`;
             }).join('');
 
             return `<div class="cal-day-cell ${isOther ? 'other-month' : ''} ${isToday ? 'is-today' : ''}">
