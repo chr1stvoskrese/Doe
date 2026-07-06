@@ -1811,6 +1811,46 @@ class WindowAPI:
         self._drag_native = False
         return True
 
+    def set_traffic_lights(self, visible):
+        """macOS: показать/скрыть «светофор» (кнопки закрытия/сворачивания/зума).
+        Используется полноэкранными режимами приложения (например, Space —
+        бесконечный холст), чтобы не отвлекать кнопками окна. На других ОС —
+        no-op."""
+        import sys
+        if sys.platform != 'darwin':
+            return True
+        try:
+            from PyObjCTools import AppHelper
+        except Exception:
+            return False
+
+        def _apply():
+            try:
+                import AppKit
+                app = AppKit.NSApplication.sharedApplication()
+                win = app.keyWindow() or app.mainWindow()
+                if win is None:
+                    for w in (app.windows() or []):
+                        if w.isVisible():
+                            win = w
+                            break
+                if win is None:
+                    return
+                hidden = not bool(visible)
+                # 0 = close, 1 = miniaturize, 2 = zoom
+                for idx in (0, 1, 2):
+                    try:
+                        btn = win.standardWindowButton_(idx)
+                        if btn is not None:
+                            btn.setHidden_(hidden)
+                    except Exception:
+                        pass
+            except Exception as e:
+                print(f"[TrafficLights] error: {e}")
+
+        AppHelper.callAfter(_apply)
+        return True
+
     def zoom_window(self):
         """macOS: нативный zoom окна (двойной клик по заголовку, как у любого окна)."""
         import sys

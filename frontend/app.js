@@ -120,6 +120,7 @@ const translations = {
             btnSave: 'Сохранить', btnCreate: 'Создать',
             extAutomations: 'Автоматизации',
             extMemory: 'Запоминание',
+            extSpace: 'Пространство',
         },
         copyLink: 'Копировать ссылку',
         detachSubtask: 'Отвязать от чек-листа (сделать независимой)',
@@ -396,6 +397,7 @@ const translations = {
             btnSave: 'Save', btnCreate: 'Create',
             extAutomations: 'Automations',
             extMemory: 'Memory',
+            extSpace: 'Space',
         },
         columnModes: { default: 'Standard', track_time: 'Track time', completion: 'Completed' },
         defaultWorkspace: 'Main Board',
@@ -684,9 +686,20 @@ window.resetCustomFont = async () => {
     } catch(e) { console.error(e); }
 };
 
-window.applyExtensionsUI = (exts) => {
-    if (!exts) exts = { search: true, calendar: true, reminders: true, graph: true, tabs: true, deadlines: true, export: true, priority: true, ai: true, automations: true, statistics: true, memory: true };
+window.applyExtensionsUI = (exts, available) => {
+    if (!exts) exts = { search: true, calendar: true, reminders: true, graph: true, tabs: true, deadlines: true, export: true, priority: true, ai: true, automations: true, statistics: true, memory: true, space: true };
     if (exts.memory === undefined) exts.memory = true;
+    if (exts.space === undefined) exts.space = true;
+
+    // Allowlist расширений, запечённый в сборку (build.py -> feature_flags.json).
+    // Массив = доступны только эти расширения; null/undefined = доступны все.
+    const ALL_EXT_KEYS = ['search','calendar','reminders','graph','tabs','deadlines','export','priority','ai','automations','statistics','memory','space'];
+    if (Array.isArray(available)) window.__extAvailable = available;
+    const avail = Array.isArray(window.__extAvailable) ? window.__extAvailable : null;
+    if (avail) {
+        // Невыбранные при сборке расширения — принудительно OFF.
+        ALL_EXT_KEYS.forEach(k => { if (!avail.includes(k)) exts[k] = false; });
+    }
 
     document.body.classList.toggle('ext-deadlines-hidden', !exts.deadlines);
     document.body.classList.toggle('ext-export-hidden', !exts.export);
@@ -718,6 +731,13 @@ window.applyExtensionsUI = (exts) => {
     const tMemory = document.getElementById('ext-toggle-memory');
     if (tMemory) tMemory.checked = exts.memory;
     if (window.DoeMemory) window.DoeMemory.setEnabled(exts.memory);
+
+    const spaceBtn = document.getElementById('space-trigger');
+    if (spaceBtn) spaceBtn.style.display = exts.space ? '' : 'none';
+    const tSpace = document.getElementById('ext-toggle-space');
+    if (tSpace) tSpace.checked = exts.space;
+    // Если Space выключили при открытом холсте — закрываем его
+    if (!exts.space && window.DoeSpace) window.DoeSpace.close();
 
     const notifyMenuItem = document.querySelector('.menu-item[data-action="notify-card"]');
     if (notifyMenuItem) {
@@ -752,10 +772,21 @@ window.applyExtensionsUI = (exts) => {
     if (tAi) tAi.checked = exts.ai;
     if (tAutomations) tAutomations.checked = exts.automations;
     if (tStatistics) tStatistics.checked = exts.statistics;
+
+    // Полностью скрываем строки настроек недоступных расширений: их нельзя включить.
+    ALL_EXT_KEYS.forEach(k => {
+        const toggle = document.getElementById('ext-toggle-' + k);
+        const row = toggle ? toggle.closest('.setting-row') : null;
+        if (row) row.style.display = (avail && !avail.includes(k)) ? 'none' : '';
+    });
 };
 
 window.toggleExtension = async (key, value) => {
     try {
+        // Недоступное в сборке расширение включить нельзя.
+        const avail = Array.isArray(window.__extAvailable) ? window.__extAvailable : null;
+        if (avail && !avail.includes(key)) return;
+
         const payload = { extensions: {} };
         payload.extensions[key] = value;
         
@@ -767,7 +798,7 @@ window.toggleExtension = async (key, value) => {
 
         if (res.ok) {
             const updatedSettings = await res.json();
-            window.applyExtensionsUI(updatedSettings.extensions);
+            window.applyExtensionsUI(updatedSettings.extensions, updatedSettings.available_extensions);
         }
     } catch (e) {
         console.error("Ошибка переключения расширения:", e);
@@ -957,6 +988,45 @@ function initMarkdownWorker() {
     };
 }
 
+// Статичные векторы из Пространства: вставленный ![](doe/space-vec-*.svg) получает
+// прозрачную кнопку возврата (квадрат+стрелка) в правом верхнем углу при наведении.
+function enhanceSpaceVectors(container) {
+    if (!container || !container.querySelectorAll) return;
+    const imgs = container.querySelectorAll('img[src*="space-vec-"]');
+    imgs.forEach(img => {
+        const wrap = img.closest('.image-resizer-wrapper') || img.parentElement;
+        if (!wrap || wrap.querySelector('.space-vec-btn')) return;
+        wrap.classList.add('space-vec');
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'space-vec-btn';
+        btn.title = (typeof t === 'function' ? t('space.openInSpace') : 'Открыть в Пространстве');
+        btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"></path><path d="M10 14L21 3"></path><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"></path></svg>';
+        const src = img.getAttribute('src');
+        btn.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); openVectorInSpace(src); });
+        wrap.appendChild(btn);
+    });
+}
+
+async function openVectorInSpace(src) {
+    let spaceId = null, bbox = null;
+    try {
+        const res = await fetch(src);
+        const txt = await res.text();
+        const doc = new DOMParser().parseFromString(txt, 'image/svg+xml');
+        const svg = doc.querySelector('svg');
+        if (svg) {
+            spaceId = svg.getAttribute('data-space-id') || null;
+            const vb = (svg.getAttribute('viewBox') || '').split(/[\s,]+/).map(Number).filter(n => !isNaN(n));
+            if (vb.length === 4) bbox = { minX: vb[0], minY: vb[1], w: vb[2], h: vb[3] };
+        }
+    } catch (e) {}
+    try {
+        if (window.DoeSpace && typeof window.DoeSpace.openToVector === 'function') window.DoeSpace.openToVector(spaceId, bbox);
+        else if (window.DoeSpace) window.DoeSpace.open();
+    } catch (e) {}
+}
+
 function renderMarkdownProgressively(text, container, options) {
     window.isRenderingMarkdown = true;
     
@@ -979,6 +1049,7 @@ function renderMarkdownProgressively(text, container, options) {
         container.innerHTML = parseMarkdownWithMath(text);
         if (onFirstScreen) onFirstScreen();
         enhanceCodeBlocks(container);
+        enhanceSpaceVectors(container);
         window.isRenderingMarkdown = false;
         if (onComplete) onComplete();
         return;
@@ -1017,10 +1088,11 @@ function renderMarkdownProgressively(text, container, options) {
             }
             if (onComplete) onComplete();
             enhanceCodeBlocks(container);
+            enhanceSpaceVectors(container);
             window.isRenderingMarkdown = false;
         });
     };
-    
+
     markdownWorker.postMessage({ id: currentId, text: text });
 }
 
@@ -1743,6 +1815,8 @@ function renderBoard() {
         adjustCollapsedColumnWidths();
         clampExpandedTitles();
         if (window.updateBoardScrollbar) window.updateBoardScrollbar();
+        // 🌌 Space: живые встраивания отражают актуальное состояние доски
+        if (window.DoeSpace && window.DoeSpace.refreshEmbeds) window.DoeSpace.refreshEmbeds();
     });
 }
 
@@ -2157,7 +2231,10 @@ async function refreshBoard(scrollToActive = false, newTabId = null) {
             : await fetchColumns(state.activeWorkspaceId);
         state.columns = columns.map(col => ({ ...col, collapsed: col.collapsed || false }));
         renderBoard();
-        
+
+        // Держим встроенные в Space карточки/колонки/вкладки в актуальном состоянии
+        try { if (window.__spaceRefreshEmbeds) window.__spaceRefreshEmbeds(); } catch (e) {}
+
         const calModal = document.getElementById('calendar-modal');
         if (calModal && calModal.classList.contains('show') && Calendar.syncData) {
             Calendar.syncData();
@@ -4036,6 +4113,10 @@ document.addEventListener('dragstart', (e) => {
 document.addEventListener('pointerdown', (e) => {
     if (e.button !== 0) return;
 
+    // Пространство (холст) имеет собственную обработку перетаскивания. Не даём драг-системе доски
+    // вмешиваться ни во вкладки Пространства (класс .board-tab), ни во встроенные карточки/колонки.
+    if (e.target.closest('.space-view')) return;
+
     if (e.target.closest('button, input, textarea, .menu-btn, .card-menu-btn, .tab-close-btn, .column.is-renaming, .board-tab.is-renaming, .card.is-renaming, .card-entering, .column-entering, .description-wrapper, .column-resize-handle')) return;
     const vaultHistory = e.target.closest('.vault-history-item');
     const subtask = e.target.closest('.subtask-item');
@@ -5652,7 +5733,7 @@ document.addEventListener('click', async (e) => {
         }
         else if (action === 'extensions-settings') {
             fetchSettings().then(data => {
-                window.applyExtensionsUI(data.extensions);
+                window.applyExtensionsUI(data.extensions, data.available_extensions);
                 document.getElementById('extensions-modal').classList.add('show');
             }).catch(console.error);
             closeAllDropdowns();
@@ -10278,7 +10359,8 @@ function initGlobalSearch() {
     function renderSearchResults(data, query) {
         content.innerHTML = '';
         const isTagSearch = data.search_mode === 'tags';
-        const hasResults = data.workspaces.length || data.columns.length || data.tasks.length;
+        const attachments = Array.isArray(data.attachments) ? data.attachments : [];
+        const hasResults = data.workspaces.length || data.columns.length || data.tasks.length || attachments.length;
 
         const highlightString = (text, q) => {
             if (!text) return "";
@@ -10350,6 +10432,28 @@ function initGlobalSearch() {
             
             createItem(highlightString(t.title, query), `${taskIcon} Карточка &middot; ${t.workspace_name} / ${t.column_title}`, desc, () => window.navigateToEntityGlobal(t.workspace_id, t.column_id, t.id, isTagSearch ? null : query));
         });
+
+        // Вложения — показываем всегда (все вложения хранилища), отдельной секцией.
+        if (attachments.length && !isTagSearch) {
+            const attIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>`;
+            const isRu = (typeof currentLang !== 'undefined' ? currentLang : 'ru') === 'ru';
+            const secLabel = isRu ? 'Вложения' : 'Attachments';
+            const fromLabel = isRu ? 'из карточки' : 'from card';
+
+            const header = document.createElement('div');
+            header.className = 'search-section-header';
+            header.textContent = `${secLabel} (${attachments.length})`;
+            content.appendChild(header);
+
+            attachments.forEach(att => {
+                const fname = att.name || att.label || att.path || '';
+                const cardName = stripMarkdownToPlain ? stripMarkdownToPlain(att.task_title || '') : (att.task_title || '');
+                const meta = `${attIcon} ${fromLabel}: ${escapeHtml(cardName)} &middot; ${escapeHtml(att.workspace_name || '')} / ${escapeHtml(att.column_title || '')}`;
+                // Markdown-представление вложения (как оно записано в описании).
+                const mdHtml = `<code class="search-att-md">${escapeHtml(att.markdown || '')}</code>`;
+                createItem(highlightString(fname, query), meta, mdHtml, () => window.navigateToEntityGlobal(att.workspace_id, att.column_id, att.task_id, null));
+            });
+        }
 
         dropdown.classList.add('show');
     }
@@ -10821,6 +10925,9 @@ let aiState = {
 };
 
 async function checkAiStatus() {
+    // ЗАЩИТА: Если ИИ выключен в настройках или вырезан при сборке — не опрашиваем бэкенд
+    if (window.appSettings && window.appSettings.extensions && window.appSettings.extensions.ai === false) return;
+
     try {
         const res = await fetch(`${API_BASE}/ai/status`);
         if (res.ok) {
@@ -11566,7 +11673,7 @@ function appendAiActions(actions) {
             }
             if (data.settings_changed) {
                 fetchSettings().then(d => {
-                    window.applyExtensionsUI(d.extensions);
+                    window.applyExtensionsUI(d.extensions, d.available_extensions);
                     if (d.theme) {
                         if (document.startViewTransition) {
                             document.startViewTransition(() => applyTheme(d.theme, false));
@@ -13973,7 +14080,7 @@ function initCloudSync() {
             try {
                 if (settingsData.theme) applyTheme(settingsData.theme, false);
                 if (settingsData.language) applyLanguage(settingsData.language, false);
-                window.applyExtensionsUI(settingsData.extensions);
+                window.applyExtensionsUI(settingsData.extensions, settingsData.available_extensions);
                 updateAppFont(settingsData.ui_font, settingsData.custom_font);
             } catch (e) {}
 
@@ -14012,7 +14119,7 @@ function initCloudSync() {
         if (isTabsHidden) document.body.classList.add('tabs-hidden');
         else document.body.classList.remove('tabs-hidden');
 
-        window.applyExtensionsUI(settingsData.extensions);
+        window.applyExtensionsUI(settingsData.extensions, settingsData.available_extensions);
         
         if (settingsData.priority_settings) applyPriorityStyles(settingsData.priority_settings);
         else applyPriorityStyles(window.prioritySettings);
@@ -14250,7 +14357,17 @@ async function onAddColumnInline(plusBtn) {
 async function fetchActiveReminders() {
     try {
         const res = await fetch(`${API_BASE}/system/reminders?t=${Date.now()}`);
-        if (res.ok) return await res.json();
+        if (res.ok) {
+            const reminders = await res.json();
+            // Двойная защита: сервер уже фильтрует по активному хранилищу,
+            // но на всякий случай отсекаем чужие напоминания и на клиенте,
+            // чтобы в колокольчике/бейдже не всплывали записи из других хранилищ.
+            const currentVault = window.currentVaultPath;
+            if (currentVault && Array.isArray(reminders)) {
+                return reminders.filter(r => !r.vault_path || r.vault_path === currentVault);
+            }
+            return reminders;
+        }
     } catch (e) {
         console.error("Failed to fetch reminders:", e);
     }
@@ -14271,6 +14388,9 @@ async function cancelReminder(reminderId, event) {
 }
 
 async function updateBellBadge() {
+    // ЗАЩИТА: Не опрашиваем базу, если напоминания вырезаны
+    if (window.appSettings && window.appSettings.extensions && window.appSettings.extensions.reminders === false) return;
+
     const badge = document.getElementById('bell-badge');
     if (!badge) return;
     const reminders = await fetchActiveReminders();
@@ -15117,7 +15237,7 @@ async function applyColumnSort(columnId, criteria, dir) {
     const toast = (t, m, e) => { if (window.showToast) window.showToast(t, m, e); };
 
     const M = {
-        enabled: true,
+        enabled: false, // <-- ПО УМОЛЧАНИЮ ВЫКЛЮЧЕНО
         settings: null,
         poller: null,
         queue: [],
@@ -15658,8 +15778,17 @@ async function applyColumnSort(columnId, criteria, dir) {
 
     function setEnabled(v) {
         M.enabled = !!v;
-        if (M.enabled) { startPoller(); pollDue(); }
-        else { stopPoller(); setBadge(0); const s = document.getElementById('memory-card-section'); if (s) s.style.display = 'none'; }
+        if (M.enabled) { 
+            startPoller(); 
+            pollDue(); 
+            scheduleOffline();
+        } else { 
+            stopPoller(); 
+            setBadge(0); 
+            hideSelBtn(); // <-- Скрываем кнопку, если она зависла
+            const s = document.getElementById('memory-card-section'); 
+            if (s) s.style.display = 'none'; 
+        }
     }
 
     function startPoller() { stopPoller(); M.poller = setInterval(pollDue, 60000); }
@@ -15675,15 +15804,17 @@ async function applyColumnSort(columnId, criteria, dir) {
         ensureModals();
         const btn = document.getElementById('memory-trigger');
         if (btn) btn.addEventListener('click', openHub);
-        // фрагмент добавляется выделением текста — ловим выделение в заголовке/описании
+        
+        // Фрагмент добавляется выделением текста
         document.addEventListener('selectionchange', onSelectionChange);
         document.addEventListener('scroll', hideSelBtn, true);
         loadSettings();
-        startPoller();
-        pollDue();
-        scheduleOffline();
-        window.addEventListener('pagehide', scheduleOffline);
-        window.addEventListener('beforeunload', scheduleOffline);
+        
+        // ВЫРЕЗАНЫ БЕЗУСЛОВНЫЕ startPoller(), pollDue() и scheduleOffline()
+        // Теперь их запускает только setEnabled(true), когда придут настройки с сервера!
+        
+        window.addEventListener('pagehide', () => { if (M.enabled) scheduleOffline(); });
+        window.addEventListener('beforeunload', () => { if (M.enabled) scheduleOffline(); });
     }
 
     window.DoeMemory = { init, setEnabled, openSettings, openHub, onCardOpen, pollDue, renderCardSection };

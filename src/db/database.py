@@ -316,11 +316,12 @@ async def switch_vault(new_vault_path: str):
     startup_state["state"] = "ready"
 
     # Планировщик автоматизаций — строго ПОСЛЕ полной инициализации БД
-    # (запуск идемпотентен; нужен для случая, когда lifespan стартовал без БД —
-    # например, защищённое хранилище открыли по паролю уже после старта).
     try:
-        from src.services.automation_service import start_scheduler
-        start_scheduler(get_session_factory())
+        from src.core.config import get_ui_settings
+        exts = get_ui_settings().get("extensions", {})
+        if exts.get("automations", True):
+            from src.services.automation_service import start_scheduler
+            start_scheduler(get_session_factory())
     except Exception as e:
         print(f"[Automation] Scheduler start failed (non-fatal): {e}")
 

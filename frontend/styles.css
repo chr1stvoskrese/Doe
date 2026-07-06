@@ -300,12 +300,37 @@ body {
     overflow: hidden;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    isolation: isolate;
-    -webkit-user-select: none;
-    user-select: none;
-}
+	    isolation: isolate;
+	    -webkit-user-select: none;
+	    user-select: none;
+	}
 
-body, button, input, textarea, select,
+	/* ============================================================
+	   Эстетичная зернистость окна (Film Grain Overlay)
+	   ============================================================ */
+	body::after {
+	    content: "";
+	    position: fixed;
+	    top: 0;
+	    left: 0;
+	    width: 100vw;
+	    height: 100vh;
+	    pointer-events: none; /* Абсолютно прозрачно для кликов */
+	    z-index: 2147483647;  /* Поверх ВСЕГО, включая модалки и всплывашки */
+	    
+	    /* Генерация шума через встроенный SVG (не требует загрузки внешних картинок) */
+	    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+	    
+	    opacity: 0.025; /* Очень тонкий, едва уловимый шум для светлой темы */
+	}
+
+	/* В тёмной теме шум обычно нужно делать чуть контрастнее */
+	[data-theme="dark"] body::after {
+	    opacity: 0.04;
+	    mix-blend-mode: overlay; /* Позволяет шуму лучше ложиться на темные фоны */
+	}
+	
+	body, button, input, textarea, select,
 .btn-add-card, .btn-add-subtask, .new-column-btn, .workspace-btn, .menu-item,
 .column-title, .card-title, .subtask-title, .tab-name, .confirm-btn, .modal-title,
 .vault-title, .vault-subtitle, .vault-action-card h3, .vault-action-card p,
@@ -500,6 +525,18 @@ body, button, input, textarea, select,
     -webkit-line-clamp: 3;
     line-clamp: 3;
     overflow: hidden;
+}
+
+/* Заголовок секции в результатах поиска (например «Вложения») */
+.search-section-header {
+    font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+    color: var(--text-secondary); padding: 10px 12px 4px;
+}
+/* Markdown-вид вложения в результатах поиска */
+.search-att-md {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 11.5px; color: var(--text-secondary);
+    word-break: break-all; white-space: normal;
 }
 
 .search-result-item mark,
@@ -7237,6 +7274,11 @@ span.local-search-highlight.active {
     display: flex !important;
 }
 
+/* 🔥 Жёстко скрываем светофор там, где он не нужен (в Space) */
+.mac-traffic-lights.force-hide {
+    display: none !important;
+}
+
 .traffic-btn {
     width: 14px;
     height: 14px;
@@ -9573,3 +9615,266 @@ body:has(.modal-overlay.show) .card-inline-trigger {
     font-size: 1em;
     white-space: normal;
 }
+
+/* ============================================================
+   🌌 Space — бесконечный векторный холст (Performance & Polish Edition)
+   ============================================================ */
+.space-view {
+    position: fixed; inset: 0; background: var(--bg-canvas); z-index: 500000;
+    opacity: 0; visibility: hidden; transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.2s;
+}
+.space-view.show { opacity: 1; visibility: visible; }
+
+.space-viewport {
+    position: absolute; inset: 0; overflow: hidden; touch-action: none;
+    cursor: grab;
+}
+.space-viewport:active { cursor: grabbing; }
+.space-viewport[data-tool="pen"], .space-viewport[data-tool="connector"], .space-viewport[data-tool="shape"] { cursor: crosshair; }
+.space-viewport[data-tool="fill"] { cursor: copy; }
+.space-viewport[data-tool="text"] { cursor: text; }
+.space-viewport[data-tool="eraser"] { cursor: cell; }
+.space-viewport.drop-hover { box-shadow: inset 0 0 0 3px var(--brand-pine); }
+
+.space-world {
+    position: absolute; top: 0; left: 0; width: 0; height: 0; transform-origin: 0 0;
+}
+
+/* Сетка-точки живёт ВНУТРИ world и едет тем же transform, что и контент,
+   поэтому не рассинхронизируется и не дёргается при зуме. Размер/позицию задаёт JS
+   (updateGrid): ровно на вьюпорт + запас, со снапом к шагу сетки — маленький слой
+   вместо гигантского, без GPU-глитчей при сильном зуме. */
+.space-grid {
+    position: absolute; left: 0; top: 0; width: 100px; height: 100px;
+    pointer-events: none;
+    background-image: radial-gradient(var(--border-light) 1.5px, transparent 1.5px);
+    background-size: 26px 26px;
+    background-position: 0 0;
+}
+
+.space-svg {
+    position: absolute; top: 0; left: 0; width: 1px; height: 1px; overflow: visible;
+    pointer-events: none; shape-rendering: geometricPrecision;
+}
+.space-stroke, .space-conn { pointer-events: stroke; cursor: pointer; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+/* Без filter: drop-shadow — он растеризует вектор и «мылит» его при зуме.
+   Выделение штриха и так показывает рамка; коннектор — утолщением линии. */
+/* butt-конец: линия обрывается ровно, без круглого «нашлёпка» перед стрелкой */
+.space-conn { stroke-width: 2; stroke-linecap: butt; }
+.space-conn.selected { stroke-width: 3.5; }
+.space-conn-temp { opacity: 0.6; stroke-dasharray: 6 5; }
+/* Фигуры: заливка/контур задаются инлайном из JS. visiblePainted — кликаем по контуру всегда, по заливке когда она есть. */
+.space-shape { pointer-events: visiblePainted; cursor: move; stroke-linejoin: round; stroke-linecap: round; }
+#space-arrow path { fill: var(--text-secondary); }
+
+/* Элегантная рамка выделения (как в проф. инструментах) */
+/* Слой выделения/ресайза — поверх карточек, чтобы рамка и угловая ручка были видны целиком
+   (сам слой прозрачен для кликов, ловит события только ручка ресайза). */
+.space-ui-layer { position: absolute; top: 0; left: 0; width: 0; height: 0; pointer-events: none; z-index: 60; }
+.space-sel-box {
+    position: absolute; border: solid var(--brand-pine); border-radius: 4px; pointer-events: none;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.3); /* Контраст на темном фоне */
+}
+.space-ui-resize {
+    position: absolute; border-radius: 50%; background: var(--surface-card); border: solid var(--brand-pine);
+    box-sizing: border-box; pointer-events: auto; cursor: nwse-resize;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: transform 0.1s;
+}
+.space-ui-resize:hover { transform: scale(1.2); }
+
+/* Рамка выделения перетаскиванием (marquee), как на рабочем столе Windows */
+.space-marquee {
+    position: absolute; display: none; pointer-events: none; box-sizing: border-box;
+    background: var(--brand-pale);
+    border: solid var(--brand-pine);
+    border-radius: 2px;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.25);
+}
+
+.space-item { position: absolute; box-sizing: border-box; user-select: none; }
+/* На hover НЕ используем filter/opacity — они растеризуют элемент и «мылят» текст при зуме.
+   outline остаётся чётким на любом масштабе и не перебивает box-shadow карточек. */
+.space-item:hover { outline: 2px solid var(--brand-pale); outline-offset: 1px; }
+
+/* Встроенный контент (карточки/колонки) НЕ должен создавать собственные GPU-слои:
+   внутри масштабируемого холста это даёт мыло при наведении и композиторные «шлейфы»
+   при зуме. Гасим will-change и hover-«подскок» карточки. */
+.space-item, .space-item * { will-change: auto !important; backface-visibility: visible !important; }
+.space-item .card:hover,
+.space-item .card:not(.card-entering):hover:not(:has(.card-inline-trigger:hover)),
+.space-item .card.is-completed:hover:not(:has(.card-inline-trigger:hover)) { transform: none !important; }
+
+/* Текст */
+.space-item-text { min-height: 24px; padding: 8px 10px; color: var(--text-primary); cursor: grab; border-radius: 8px; }
+.space-item-text.selected { background: var(--pill-bg); }
+.space-item-text .space-text-body { line-height: 1.5; word-break: break-word; white-space: normal; cursor: inherit; }
+.space-item-text.editing { cursor: text; background: transparent; }
+.space-text-input {
+    width: 100%; box-sizing: border-box; min-height: 24px; border: none; outline: none; resize: none;
+    background: transparent; color: var(--text-primary); font: inherit; font-size: 15px; line-height: 1.5;
+    padding: 0; margin: 0; caret-color: var(--brand-pine); overflow: hidden;
+}
+.space-text-input::placeholder { color: var(--text-secondary); opacity: 0.5; }
+
+/* Изображения */
+.space-item-image { box-shadow: var(--shadow-card); border-radius: 8px; overflow: hidden; background: var(--surface-card); cursor: grab; }
+.space-item-image img { display: block; width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+.space-image-resize-handle {
+    position: absolute; right: 0; bottom: 0; width: 24px; height: 24px; cursor: nwse-resize;
+    background-color: var(--brand-pine); border-top-left-radius: 8px; border-bottom-right-radius: 8px;
+    opacity: 0; transition: opacity 0.2s; z-index: 10; display: flex; align-items: center; justify-content: center; pointer-events: auto;
+}
+.space-image-resize-handle::after { content: ''; width: 8px; height: 8px; border-right: 2px solid white; border-bottom: 2px solid white; margin-top: -2px; margin-left: -2px; }
+.space-item-image:hover .space-image-resize-handle, .space-item-image.selected .space-image-resize-handle { opacity: 1; }
+
+/* Встраивания */
+.space-item-card, .space-item-column, .space-item-tab { background: transparent; border-radius: 0; box-shadow: none; padding: 0; }
+.space-embed-holder { transform-origin: 0 0; }
+.space-embed-cardlist { width: 320px; pointer-events: none; } /* Отключаем pointer-events внутри для удобного Drag */
+.space-item-column .column.collapsed, .space-item-tab .column.collapsed { width: auto; }
+.space-embed-loading, .space-embed-missing { padding: 20px; text-align: center; color: var(--text-secondary); font-size: 13px; min-width: 120px; }
+.space-embed-missing {
+    display: flex; flex-direction: column; gap: 4px; align-items: center; justify-content: center;
+    max-width: 240px; border: 1px dashed var(--border-light); border-radius: 8px; background: var(--surface-card);
+}
+.space-embed-missing-title { color: var(--text-primary); font-weight: 500; word-break: break-word; }
+.space-embed-missing-note { font-size: 11px; opacity: 0.6; text-transform: lowercase; }
+
+/* Панели инструментов поверх всего */
+.space-topbar, .space-toolbar, .space-zoombar {
+    position: absolute; z-index: 999999; display: flex; align-items: center;
+    background: var(--surface-card); border: 1px solid var(--border-light);
+    box-shadow: var(--shadow-menu); border-radius: 14px;
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+}
+/* Ниже светофора, который остаётся на привычном месте вверху слева */
+.space-topbar { top: 54px; left: 16px; gap: 10px; padding: 8px 10px 8px 14px; }
+.space-title { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: var(--text-primary); }
+.space-title svg { color: var(--brand-pine); }
+.space-toolbar { bottom: 24px; left: 50%; transform: translateX(-50%); gap: 4px; padding: 7px; }
+.space-zoombar { bottom: 24px; right: 24px; gap: 4px; padding: 7px; }
+
+.space-tool, .space-icon-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 36px; height: 36px; border: none; background: transparent; color: var(--text-secondary);
+    border-radius: 9px; cursor: pointer; transition: background 0.15s, color 0.15s, transform 0.1s; position: relative;
+}
+.space-tool:hover, .space-icon-btn:hover { background: var(--bg-board); color: var(--text-primary); }
+.space-tool:active, .space-icon-btn:active { transform: scale(0.95); }
+.space-tool.active { background: var(--brand-pine); color: #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.15); }
+[data-theme="dark"] .space-tool.active { background: var(--brand-pine); }
+.space-tool-sep { width: 1px; height: 24px; background: var(--border-light); margin: 0 4px; }
+.space-zoom-label { min-width: 46px; text-align: center; font-size: 12px; font-variant-numeric: tabular-nums; color: var(--text-secondary); user-select: none; }
+
+/* Палитра и поповеры */
+.space-color-trigger { overflow: visible; }
+.space-color-swatch { width: 20px; height: 20px; border-radius: 6px; box-shadow: 0 0 0 1px var(--border-light), inset 0 0 0 2px rgba(255,255,255,0.35); }
+.space-pen-size { width: 74px; cursor: pointer; accent-color: var(--brand-pine); margin: 0 4px; }
+
+.space-color-pop, .space-attach-pop {
+    position: absolute; bottom: calc(100% + 10px); left: 50%; transform: translateX(-50%) translateY(10px);
+    background: var(--surface-card); border: 1px solid var(--border-light); box-shadow: var(--shadow-menu);
+    border-radius: 14px; padding: 12px; opacity: 0; visibility: hidden; pointer-events: none;
+    transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.2s;
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+}
+.space-color-pop.show, .space-attach-pop.show { opacity: 1; visibility: visible; pointer-events: auto; transform: translateX(-50%) translateY(0); }
+.space-sv { width: 200px; height: 130px; border-radius: 8px; cursor: crosshair; display: block; touch-action: none; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1); }
+.space-hue { width: 200px; height: 14px; border-radius: 7px; cursor: pointer; display: block; margin-top: 10px; touch-action: none; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1); }
+.space-color-row { display: flex; align-items: center; gap: 6px; margin-top: 12px; }
+.space-color-hash { color: var(--text-secondary); font-size: 13px; font-weight: 500;}
+.space-color-hex { flex: 1; min-width: 0; box-sizing: border-box; padding: 8px 10px; border: 1px solid var(--border-light); border-radius: 8px; background: var(--bg-canvas); color: var(--text-primary); font-size: 13px; font-variant-numeric: tabular-nums; outline: none; transition: border 0.15s; }
+.space-color-hex:focus { border-color: var(--brand-pine); }
+.space-swatches { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; margin-top: 12px; }
+.space-swatch { width: 100%; padding-bottom: 100%; border-radius: 6px; cursor: pointer; box-shadow: 0 0 0 1px rgba(0,0,0,0.1); transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1); }
+.space-swatch:hover { transform: scale(1.15); box-shadow: 0 2px 6px rgba(0,0,0,0.2); z-index: 2; }
+
+/* Переключатель Контур/Заливка в палитре */
+.space-color-targets { display: flex; align-items: center; gap: 6px; margin-bottom: 12px; }
+.space-ct-btn { flex: 1; padding: 6px 8px; border: 1px solid var(--border-light); background: var(--bg-canvas); color: var(--text-secondary); border-radius: 8px; font-size: 12px; cursor: pointer; transition: background 0.15s, color 0.15s, border-color 0.15s; }
+.space-ct-btn.active { background: var(--brand-pine); color: #fff; border-color: var(--brand-pine); }
+.space-ct-none { flex: 0 0 auto; width: 30px; height: 30px; border: 1px solid var(--border-light); background: var(--bg-canvas); color: var(--text-secondary); border-radius: 8px; font-size: 12px; cursor: pointer; transition: background 0.15s, color 0.15s; }
+.space-ct-none:hover { background: var(--bg-board); color: var(--text-primary); }
+
+/* Поповер выбора фигуры */
+.space-shape-pop {
+    position: absolute; bottom: calc(100% + 10px); left: 50%; transform: translateX(-50%) translateY(10px);
+    display: grid; grid-template-columns: repeat(4, 34px); gap: 4px; background: var(--surface-card); border: 1px solid var(--border-light);
+    box-shadow: var(--shadow-menu); border-radius: 12px; padding: 6px;
+    opacity: 0; visibility: hidden; pointer-events: none;
+    transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.2s;
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+}
+.space-shape-pop.show { opacity: 1; visibility: visible; pointer-events: auto; transform: translateX(-50%) translateY(0); }
+.space-shape-opt { width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; border: none; background: transparent; color: var(--text-secondary); border-radius: 8px; cursor: pointer; transition: background 0.15s, color 0.15s; }
+.space-shape-opt:hover { background: var(--bg-board); color: var(--text-primary); }
+.space-shape-opt.active { background: var(--brand-pine); color: #fff; }
+
+/* Прикрепление */
+.space-attach-pop { width: 340px; max-width: 80vw; }
+#space-attach-input { width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid var(--border-light); border-radius: 8px; background: var(--bg-canvas); color: var(--text-primary); font-size: 13px; outline: none; transition: border 0.15s; }
+#space-attach-input:focus { border-color: var(--brand-pine); }
+.space-attach-results { max-height: 280px; overflow-y: auto; margin-top: 8px; }
+.space-attach-sec { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); padding: 10px 8px 4px; }
+.space-attach-row { padding: 8px 10px; border-radius: 8px; font-size: 13px; color: var(--text-primary); cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: background 0.15s; }
+.space-attach-row:hover { background: var(--bg-board); }
+.space-attach-empty { padding: 16px 10px; text-align: center; font-size: 13px; color: var(--text-secondary); }
+
+/* Вкладки Пространств — внешний вид и механики как у вкладок доски */
+.space-tabs {
+    position: absolute; z-index: 999999; top: 14px; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 2px; max-width: 66vw; overflow-x: auto;
+    background: var(--bg-board); border: 1px solid var(--border-light);
+    box-shadow: var(--shadow-menu); border-radius: 14px; padding: 6px 8px;
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    scrollbar-width: none;
+}
+.space-tabs::-webkit-scrollbar { display: none; }
+.space-view:not(.show) .space-tabs { display: none; }
+/* В Space вкладки переключаются кликом (без нативного drag вкладок) */
+.space-tabs .board-tab { cursor: pointer; -webkit-user-drag: none; }
+.space-tabs .board-tab.active { background: var(--surface-card); }
+/* Подсветка вкладки-цели при перетаскивании выделения на неё */
+.space-tabs .board-tab.space-tab-drop-target {
+    background: var(--brand-pine); color: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+/* Контекстное меню Пространства (ПКМ по выделению) */
+.space-context-menu {
+    position: fixed; z-index: 1000000; min-width: 220px;
+    background: var(--surface-card); border: 1px solid var(--border-light);
+    box-shadow: var(--shadow-menu); border-radius: 12px; padding: 6px;
+    display: none; flex-direction: column;
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+}
+.space-context-menu.show { display: flex; }
+.space-context-item {
+    display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 8px;
+    font-size: 13px; color: var(--text-primary); cursor: pointer; white-space: nowrap;
+    border: none; background: transparent; text-align: left; width: 100%;
+}
+.space-context-item:hover { background: var(--bg-board); }
+.space-context-item svg { flex-shrink: 0; color: var(--text-secondary); }
+
+/* Кнопка возврата в Пространство поверх статичного вектора в описании карточки */
+.image-resizer-wrapper.space-vec { position: relative; }
+.space-vec-btn {
+    position: absolute; top: 6px; right: 6px; width: 26px; height: 26px;
+    display: flex; align-items: center; justify-content: center;
+    border: none; border-radius: 7px; cursor: pointer;
+    background: rgba(20,20,22,0.55); color: #fff; opacity: 0;
+    transition: opacity 0.15s, background 0.15s; z-index: 3;
+    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+}
+.image-resizer-wrapper.space-vec:hover .space-vec-btn { opacity: 1; }
+.space-vec-btn:hover { background: rgba(20,20,22,0.82); }
+.space-vec-btn svg { width: 15px; height: 15px; }
+
+/* Подсказка перетаскивания */
+.space-drop-hint {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 16px 24px;
+    background: var(--surface-card); border: 2px dashed var(--brand-pine); border-radius: 16px;
+    color: var(--text-primary); font-size: 15px; font-weight: 500; pointer-events: none; opacity: 0; transition: opacity 0.2s; z-index: 3;
+    box-shadow: var(--shadow-menu);
+}
+.space-viewport.drop-hover .space-drop-hint { opacity: 1; }

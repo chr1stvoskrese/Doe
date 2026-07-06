@@ -40,8 +40,11 @@ async def lifespan(app: FastAPI):
             if initialized is not None:
                 print(f"✅ База данных инициализирована в: {vault_path}")
                 from src.db.database import get_session_factory
-                from src.services.automation_service import start_scheduler
-                start_scheduler(get_session_factory())
+                from src.core.config import get_ui_settings
+                exts = get_ui_settings().get("extensions", {})
+                if exts.get("automations", True):
+                    from src.services.automation_service import start_scheduler
+                    start_scheduler(get_session_factory())
                 startup_state["state"] = "ready"
             else:
                 print("⚠️ Хранилище не выбрано, защищено паролем или удалено. Ждем действий пользователя.")

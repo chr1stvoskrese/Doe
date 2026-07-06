@@ -10,6 +10,56 @@ import copy
 
 _config_cache = {"stat": None, "data": None}
 
+# ============================================================
+#  Доступные расширения (allowlist, запечённый в сборку build.py)
+# ============================================================
+# Канонический список ключей расширений. Держать синхронным с фронтендом
+# (ext-toggle-<key>) и с EXTENSION_FEATURES в build.py.
+ALL_EXTENSION_KEYS = (
+    "search", "calendar", "reminders", "graph", "tabs", "deadlines",
+    "export", "priority", "ai", "automations", "statistics", "memory", "space",
+)
+
+_feature_flags_cache = {"loaded": False, "available": None}
+
+def _bundled_available_extensions():
+    """Список доступных расширений из feature_flags.json (запекается build.py).
+
+    Возвращает set ключей, либо None, если файла нет — тогда доступны все
+    расширения (обычная сборка / dev-режим, поведение прежнее). Результат
+    кэшируется: файл статичен в пределах запуска приложения."""
+    if _feature_flags_cache["loaded"]:
+        return _feature_flags_cache["available"]
+
+    result = None
+    try:
+        import sys
+        if getattr(sys, "frozen", False):
+            base = Path(sys._MEIPASS)
+        else:
+            # config.py -> core -> src -> корень репозитория
+            base = Path(__file__).resolve().parents[2]
+        flags_file = base / "feature_flags.json"
+        if flags_file.exists():
+            with open(flags_file, "r", encoding="utf-8") as fh:
+                data = json.load(fh)
+            avail = data.get("available")
+            if isinstance(avail, list):
+                result = {str(x) for x in avail}
+    except Exception:
+        result = None
+
+    _feature_flags_cache["loaded"] = True
+    _feature_flags_cache["available"] = result
+    return result
+
+def get_available_extensions() -> list | None:
+    """Allowlist в каноническом порядке для отдачи фронтенду (или None)."""
+    available = _bundled_available_extensions()
+    if available is None:
+        return None
+    return [k for k in ALL_EXTENSION_KEYS if k in available]
+
 def _load_config() -> dict:
     try:
         st = CONFIG_FILE.stat()
@@ -106,7 +156,7 @@ def get_ui_settings() -> dict:
     data = _load_config()
     vault_path = get_active_vault()
     active_workspaces = data.get("active_workspaces", {})
-    default_extensions = {"search": True, "calendar": True, "reminders": True, "graph": True, "tabs": True, "deadlines": True, "export": True, "priority": True, "ai": True, "automations": True, "statistics": True, "memory": True}
+    default_extensions = {"search": True, "calendar": True, "reminders": True, "graph": True, "tabs": True, "deadlines": True, "export": True, "priority": True, "ai": True, "automations": True, "statistics": True, "memory": True, "space": True}
 
     # Дефолтные настройки запоминания (spaced repetition)
     default_memory = {
@@ -130,13 +180,29 @@ def get_ui_settings() -> dict:
     vault_states = data.get("vault_states", {})
     state = vault_states.get(vault_path, {})
 
+    # Применяем allowlist сборки: недоступные расширения жёстко выключены и
+    # присутствуют в словаре как False, чтобы фронтенд их гарантированно скрыл.
+    # Без файла feature_flags.json (обычная сборка/dev) — поведение прежнее.
+    stored_exts = data.get("extensions", default_extensions)
+    available = _bundled_available_extensions()
+    if available is None:
+        effective_exts = stored_exts
+    else:
+        effective_exts = {}
+        for k in ALL_EXTENSION_KEYS:
+            if k in available:
+                effective_exts[k] = bool(stored_exts.get(k, default_extensions.get(k, True)))
+            else:
+                effective_exts[k] = False
+
     return {
         "theme": data.get("theme", "light"),
         "language": data.get("language", "ru"),
         "active_workspace_id": active_workspaces.get(vault_path),
         "global_attachments_path": data.get("global_attachments_path"),
         "ui_font": data.get("ui_font", ""),
-        "extensions": data.get("extensions", default_extensions),
+        "extensions": effective_exts,
+        "available_extensions": get_available_extensions(),
         "priority_settings": data.get("priority_settings", default_priority),
         "memory_settings": {**default_memory, **data.get("memory_settings", {})},
         "tabs_hidden": state.get("tabs_hidden", False),
@@ -161,7 +227,11 @@ def set_ui_settings(
     if language is not None: data["language"] = language
     if ui_font is not None: data["ui_font"] = ui_font
     if extensions is not None:
-        current_exts = data.get("extensions", {"search": True, "calendar": True, "reminders": True, "graph": True, "tabs": True, "deadlines": True, "export": True, "priority": True, "ai": True, "automations": True, "statistics": True, "memory": True})
+        # Нельзя включить расширение, исключённое из сборки (allowlist).
+        available = _bundled_available_extensions()
+        if available is not None:
+            extensions = {k: v for k, v in extensions.items() if k in available}
+        current_exts = data.get("extensions", {"search": True, "calendar": True, "reminders": True, "graph": True, "tabs": True, "deadlines": True, "export": True, "priority": True, "ai": True, "automations": True, "statistics": True, "memory": True, "space": True})
         current_exts.update(extensions)
         data["extensions"] = current_exts
     if memory_settings is not None:
