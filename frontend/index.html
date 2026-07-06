@@ -231,6 +231,14 @@
             <span class="bell-badge" id="memory-badge" style="display: none;"></span>
         </button>
 
+        <button class="icon-btn" id="space-trigger" aria-label="Space">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="3"></rect>
+                <path d="M7 15c1.4-3 2.8-4.4 4.2-4.4 1.4 0 1.9 1.9 3.1 1.9 1.1 0 1.6-1.1 2.7-3"></path>
+                <circle cx="8" cy="8" r="1.2" fill="currentColor" stroke="none"></circle>
+            </svg>
+        </button>
+
         <div class="search-wrapper" id="global-search-wrapper">
             <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
             <input type="text" id="global-search-input" class="search-input" data-i18n="searchPlaceholder" placeholder="Поиск..." autocomplete="off" spellcheck="false">
@@ -1233,6 +1241,16 @@
                     </label>
                 </div>
 
+                <div class="setting-row" style="cursor: default;">
+                    <div class="setting-text-box">
+                        <div class="setting-title" data-i18n="modals.extSpace">Пространство</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="ext-toggle-space" onchange="toggleExtension('space', this.checked)">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
                 <div class="setting-row" id="ai-settings-row" style="display: none; justify-content: center; background: transparent; border: none;">
                     <button class="confirm-btn cancel-btn" onclick="openAiSettingsModal()" style="font-size: 12px; padding: 6px 12px;" data-i18n="ai.setupBtn">✨ Настроить ИИ-ассистента</button>
                 </div>
@@ -1699,9 +1717,167 @@
     </div>
 </div>
 
+<!-- ============ 🌌 Space — бесконечный холст ============ -->
+<div class="space-view" id="space-view">
+    <div class="space-viewport" id="space-viewport" data-tool="select">
+        <div class="space-world" id="space-world">
+            <div class="space-grid" id="space-grid"></div>
+            <svg class="space-svg" id="space-svg" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <marker id="space-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" markerUnits="userSpaceOnUse" orient="auto-start-reverse">
+                        <path d="M0,0 L10,5 L0,10 z"></path>
+                    </marker>
+                    <marker id="space-arrowhead" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" markerUnits="strokeWidth" orient="auto-start-reverse">
+                        <path d="M0,0 L10,5 L0,10 z" fill="context-stroke"></path>
+                    </marker>
+                </defs>
+                <g id="space-conn-layer"></g>
+                <g id="space-shape-layer"></g>
+                <g id="space-stroke-layer"></g>
+            </svg>
+            <div class="space-ui-layer" id="space-ui-layer"></div>
+        </div>
+        <div class="space-overlay" id="space-overlay"></div>
+        <div class="space-drop-hint" data-i18n="space.dropHint">Бросьте изображение сюда</div>
+    </div>
+
+    <!-- Вкладки Пространств -->
+    <div class="space-tabs" id="space-tabs"></div>
+
+    <!-- Контекстное меню (ПКМ по выделению) -->
+    <div class="space-context-menu" id="space-context-menu"></div>
+
+    <!-- Верхняя панель: заголовок + закрытие -->
+    <div class="space-topbar">
+        <div class="space-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="3"></rect>
+                <path d="M7 15c1.4-3 2.8-4.4 4.2-4.4 1.4 0 1.9 1.9 3.1 1.9 1.1 0 1.6-1.1 2.7-3"></path>
+                <circle cx="8" cy="8" r="1.2" fill="currentColor" stroke="none"></circle>
+            </svg>
+            <span data-i18n="space.title">Пространство</span>
+        </div>
+        <button class="space-icon-btn" id="space-close" aria-label="Закрыть">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+    </div>
+
+    <!-- Инструментальная панель -->
+    <div class="space-toolbar">
+        <button class="space-tool" data-tool="select" data-i18n-title="space.toolSelect" title="Выбор и перемещение (V)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 3 7.07 16.97 2.51-7.39 7.39-2.51L3 3z"></path><path d="m13 13 6 6"></path></svg>
+        </button>
+        <button class="space-tool" data-tool="pen" data-i18n-title="space.toolPen" title="Перо (P)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"></path><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path><path d="M2 2l7.586 7.586"></path><circle cx="11" cy="11" r="2"></circle></svg>
+        </button>
+        <button class="space-tool" data-tool="eraser" data-i18n-title="space.toolEraser" title="Ластик (E)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 20H7L3 16a1.5 1.5 0 0 1 0-2.1l9-9a1.5 1.5 0 0 1 2.1 0l5 5a1.5 1.5 0 0 1 0 2.1L11 20"></path><path d="M6.5 11.5l6 6"></path></svg>
+        </button>
+        <button class="space-tool" data-tool="text" data-i18n-title="space.toolText" title="Текст (T)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 4 4 20 4 20 7"></polyline><line x1="9" y1="20" x2="15" y2="20"></line><line x1="12" y1="4" x2="12" y2="20"></line></svg>
+        </button>
+        <button class="space-tool" data-tool="connector" data-i18n-title="space.toolConnector" title="Соединитель (C)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="6" r="2.5"></circle><circle cx="19" cy="18" r="2.5"></circle><path d="M7 7.5c4 2 6 6 10 8.5"></path></svg>
+        </button>
+        <button class="space-tool space-shape-trigger" id="space-shape-trigger" data-i18n-title="space.toolShape" title="Фигуры (S)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="8" height="8" rx="1"></rect><circle cx="17.5" cy="7.5" r="4"></circle><path d="M7.5 13 3 21h9z"></path></svg>
+        </button>
+
+        <!-- Поповер выбора фигуры -->
+        <div class="space-shape-pop" id="space-shape-pop">
+            <button class="space-shape-opt active" data-shape="rect" title="Прямоугольник">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="14" rx="1.5"></rect></svg>
+            </button>
+            <button class="space-shape-opt" data-shape="ellipse" title="Эллипс">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="12" rx="9" ry="7"></ellipse></svg>
+            </button>
+            <button class="space-shape-opt" data-shape="triangle" title="Треугольник">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 4 21 20H3z"></path></svg>
+            </button>
+            <button class="space-shape-opt" data-shape="diamond" title="Ромб">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3 21 12 12 21 3 12z"></path></svg>
+            </button>
+            <button class="space-shape-opt" data-shape="hexagon" title="Шестиугольник">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3 20 7.5 20 16.5 12 21 4 16.5 4 7.5z"></path></svg>
+            </button>
+            <button class="space-shape-opt" data-shape="star" title="Звезда">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3 14.6 9.2 21 9.7 16.1 13.9 17.6 20 12 16.6 6.4 20 7.9 13.9 3 9.7 9.4 9.2z"></path></svg>
+            </button>
+            <button class="space-shape-opt" data-shape="line" title="Линия">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="5" y1="19" x2="19" y2="5"></line></svg>
+            </button>
+            <button class="space-shape-opt" data-shape="arrow" title="Стрелка">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="19" x2="19" y2="5"></line><path d="M11 5h8v8"></path></svg>
+            </button>
+        </div>
+
+        <button class="space-tool" data-tool="fill" data-i18n-title="space.toolFill" title="Заливка (G)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 11 9 1 3.5 6.5a2.5 2.5 0 0 0 0 3.5l5.5 5.5a2.5 2.5 0 0 0 3.5 0z"></path><path d="M6 8.5 12.5 15"></path><path d="M20.5 15.5s1.5 2 1.5 3a1.5 1.5 0 0 1-3 0c0-1 1.5-3 1.5-3z"></path></svg>
+        </button>
+
+        <!-- Кастомный выбор цвета -->
+        <button class="space-tool space-color-trigger" id="space-color-trigger" data-i18n-title="space.colorTitle" title="Выбор цвета">
+            <span class="space-color-swatch" id="space-color-swatch"></span>
+        </button>
+        <input type="range" id="space-pen-size" class="space-pen-size" min="1" max="24" step="1" value="3" data-i18n-title="space.penSize" title="Толщина">
+
+        <div class="space-tool-sep"></div>
+
+        <button class="space-tool" id="space-add-image" data-i18n-title="space.toolImage" title="Изображение">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+        </button>
+        <button class="space-tool" id="space-add-attach" data-i18n-title="space.toolAttach" title="Прикрепить карточку">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
+        </button>
+        <input type="file" id="space-image-input" accept="image/*" multiple style="display:none;">
+
+        <!-- Поповер прикрепления -->
+        <div class="space-attach-pop" id="space-attach-pop">
+            <input type="text" id="space-attach-input" data-i18n="space.attachPlaceholder" placeholder="Найти карточку..." autocomplete="off" spellcheck="false">
+            <div class="space-attach-results" id="space-attach-results"></div>
+        </div>
+
+        <!-- Поповер выбора цвета -->
+        <div class="space-color-pop" id="space-color-pop">
+            <canvas id="space-sv" class="space-sv" width="200" height="130"></canvas>
+            <canvas id="space-hue" class="space-hue" width="200" height="14"></canvas>
+            <div class="space-color-row">
+                <span class="space-color-hash">#</span>
+                <input type="text" id="space-color-hex" class="space-color-hex" maxlength="7" spellcheck="false" autocomplete="off" value="#7C5CB7">
+            </div>
+            <div class="space-swatches">
+                <span class="space-swatch" data-color="#2A3029" style="background:#2A3029"></span>
+                <span class="space-swatch" data-color="#D35446" style="background:#D35446"></span>
+                <span class="space-swatch" data-color="#E0913A" style="background:#E0913A"></span>
+                <span class="space-swatch" data-color="#B3863A" style="background:#B3863A"></span>
+                <span class="space-swatch" data-color="#89A085" style="background:#89A085"></span>
+                <span class="space-swatch" data-color="#3E8C84" style="background:#3E8C84"></span>
+                <span class="space-swatch" data-color="#4C7CC0" style="background:#4C7CC0"></span>
+                <span class="space-swatch" data-color="#7C5CB7" style="background:#7C5CB7"></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Управление зумом -->
+    <div class="space-zoombar">
+        <button class="space-icon-btn" id="space-zoom-out" aria-label="Уменьшить">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        </button>
+        <span class="space-zoom-label" id="space-zoom-label">100%</span>
+        <button class="space-icon-btn" id="space-zoom-in" aria-label="Увеличить">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        </button>
+        <div class="space-tool-sep"></div>
+        <button class="space-icon-btn" id="space-fit" data-i18n-title="space.fit" title="Показать всё">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8V5a2 2 0 0 1 2-2h3"></path><path d="M21 8V5a2 2 0 0 0-2-2h-3"></path><path d="M3 16v3a2 2 0 0 0 2 2h3"></path><path d="M21 16v3a2 2 0 0 1-2 2h-3"></path></svg>
+        </button>
+    </div>
+</div>
+
 <script src="static/prism.min.js"></script>
 <script src="static/marked.min.js"></script>
 <script src="/static/app.js?v=priority"></script>
+<script src="/static/space.js?v=1"></script>
 
 </body>
 </html>

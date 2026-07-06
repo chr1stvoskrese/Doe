@@ -769,6 +769,7 @@ class SettingsResponse(BaseModel):
     custom_font: Optional[str] = None
     ui_font: Optional[str] = ""
     extensions: Optional[dict] = None
+    available_extensions: Optional[list] = None  # allowlist сборки (None = все)
     priority_settings: Optional[dict] = None
     memory_settings: Optional[dict] = None
     tabs_hidden: Optional[bool] = False
@@ -961,6 +962,107 @@ async def upload_file(file: UploadFile = File(...)):
         shutil.copyfileobj(file.file, buffer)
         
     return {"path": f"doe/{file_path.name}", "name": file_path.name}
+
+
+# ============================================================
+# 🌌 Space — бесконечный холст. Данные (штрихи, текст, изображения,
+# прикреплённые карточки/колонки) хранятся в одном JSON-файле в корне
+# хранилища, поэтому шифруются вместе с остальным содержимым vault.
+# ============================================================
+def _space_file() -> Optional[Path]:
+    vault_path = get_active_vault()
+    if not vault_path:
+        return None
+    return Path(vault_path) / "space.doe.json"
+
+
+class SpaceState(BaseModel):
+    # Легаси-формат (одно Пространство) — оставлен для обратной совместимости.
+    items: Optional[list] = None
+    view: Optional[dict] = None
+    # Мультиспейс: несколько вкладок-Пространств.
+    spaces: Optional[list] = None
+    activeSpaceId: Optional[str] = None
+
+
+def _migrate_space_doc(data: dict) -> dict:
+    """Приводит содержимое space.doe.json к мультиспейс-формату.
+
+    Старый формат {items, view} превращаем в одну вкладку. Так существующие
+    хранилища не теряют нарисованное при переходе на вкладки Пространств.
+    """
+    if not isinstance(data, dict):
+        return {"spaces": [], "activeSpaceId": None}
+
+    spaces = data.get("spaces")
+    if isinstance(spaces, list) and spaces:
+        clean = []
+        for i, sp in enumerate(spaces):
+            if not isinstance(sp, dict):
+                continue
+            clean.append({
+                "id": sp.get("id") or f"sp{i}",
+                "name": sp.get("name") or f"Пространство {i + 1}",
+                "items": sp.get("items") if isinstance(sp.get("items"), list) else [],
+                "view": sp.get("view"),
+            })
+        active = data.get("activeSpaceId")
+        if not any(sp["id"] == active for sp in clean):
+            active = clean[0]["id"] if clean else None
+        return {"spaces": clean, "activeSpaceId": active}
+
+    # Легаси: одно Пространство.
+    items = data.get("items")
+    legacy = {
+        "id": "sp0",
+        "name": "Пространство 1",
+        "items": items if isinstance(items, list) else [],
+        "view": data.get("view"),
+    }
+    return {"spaces": [legacy], "activeSpaceId": "sp0"}
+
+
+@router.get("/space")
+async def get_space():
+    fp = _space_file()
+    if not fp or not fp.exists():
+        return {"spaces": [], "activeSpaceId": None}
+    try:
+        def _read():
+            with open(fp, "r", encoding="utf-8") as f:
+                return json.load(f)
+        data = await anyio.to_thread.run_sync(_read)
+        return _migrate_space_doc(data)
+    except Exception as e:
+        print(f"[Space] Failed to read space file: {e}")
+        return {"spaces": [], "activeSpaceId": None}
+
+
+@router.post("/space")
+async def save_space(state: SpaceState):
+    fp = _space_file()
+    if not fp:
+        raise HTTPException(status_code=400, detail="No active vault")
+
+    if state.spaces is not None:
+        payload = {"spaces": state.spaces, "activeSpaceId": state.activeSpaceId}
+    else:
+        # Обратная совместимость: если пришёл легаси-формат, сохраняем как один спейс.
+        payload = _migrate_space_doc({"items": state.items or [], "view": state.view})
+
+    try:
+        def _write():
+            fp.parent.mkdir(parents=True, exist_ok=True)
+            tmp = fp.with_suffix(fp.suffix + ".tmp")
+            with open(tmp, "w", encoding="utf-8") as f:
+                json.dump(payload, f, ensure_ascii=False)
+            os.replace(tmp, fp)
+        await anyio.to_thread.run_sync(_write)
+        return {"success": True}
+    except Exception as e:
+        print(f"[Space] Failed to write space file: {e}")
+        raise HTTPException(status_code=500, detail="Failed to save space")
+
 
 class ImportFileReq(BaseModel):
     absolute_path: str
@@ -1437,7 +1539,7 @@ async def relink_vault_history_endpoint(req: RelinkHistoryReq):
 class RemoveHistoryReq(BaseModel):
     path: str
 
-from src.core.config import get_active_reminders, remove_active_reminder, remove_all_vault_reminders
+from src.core.config import get_active_reminders, remove_active_reminder, remove_all_vault_reminders, get_active_vault
 
 @router.post("/vault/history/remove")
 async def remove_vault_history_endpoint(req: RemoveHistoryReq):
@@ -1449,8 +1551,17 @@ async def remove_vault_history_endpoint(req: RemoveHistoryReq):
 
 @router.get("/reminders")
 async def get_reminders_endpoint():
-    """Возвращает список всех активных запланированных напоминаний."""
-    return get_active_reminders()
+    """Возвращает активные напоминания ТОЛЬКО текущего (активного) хранилища.
+
+    Фоновые воркеры по-прежнему привязаны к своему vault_path и срабатывают
+    независимо; здесь мы лишь ограничиваем то, что показывается в UI
+    (колокольчик/бейдж), чтобы не «протекали» напоминания из других хранилищ.
+    """
+    active_vault = get_active_vault()
+    reminders = get_active_reminders()
+    if not active_vault:
+        return reminders
+    return [r for r in reminders if r.get("vault_path") == active_vault]
 
 
 # Внимание: путь меняется с {task_id} на {reminder_id}
@@ -1743,6 +1854,82 @@ async def _search_by_tags(db: AsyncSession, inner: str):
         "search_mode": "tags", "tags": all_tags
     }
 
+_ATTACH_REF_RE = re.compile(r'(!?)\[([^\]]*)\]\(([^)]+)\)')
+
+
+def _extract_attachment_refs(desc: str):
+    """Вытаскивает из описания все вложения: внутренние (doe/...) и файлы,
+    на которые ссылаются напрямую из файловой системы (абсолютные пути, file://,
+    ~/, диск Windows). Обычные http-ссылки и якоря игнорируются."""
+    if not desc:
+        return []
+    clean = re.sub(r'```[\s\S]*?```', '', desc)
+    clean = re.sub(r'`[^`]*`', '', clean)
+    refs = []
+    for m in _ATTACH_REF_RE.finditer(clean):
+        is_img = m.group(1) == '!'
+        label = m.group(2)
+        url = m.group(3).strip()
+        if url.startswith('<') and url.endswith('>'):
+            url = url[1:-1].strip()
+        low = url.lower()
+        if not url or low.startswith(('http://', 'https://', 'mailto:', 'tel:', '#')):
+            continue
+        is_internal = url.startswith('doe/')
+        is_fs = url.startswith(('/', '~', 'file:')) or bool(re.match(r'^[A-Za-z]:[\\/]', url))
+        if not (is_internal or is_fs):
+            continue
+        name = url.split('?')[0].split('#')[0]
+        name = re.split(r'[\\/]', name)[-1] or url
+        refs.append({
+            "label": label,
+            "path": url,
+            "name": name,
+            "markdown": m.group(0),
+            "is_image": is_img,
+            "kind": "internal" if is_internal else "fs",
+        })
+    return refs
+
+
+async def _collect_all_attachments(db: AsyncSession, limit: int = 300):
+    """Все вложения из всех карточек активного хранилища — для показа в поиске."""
+    sql = text("""
+        SELECT t.id, t.title, t.column_id, c.title, c.workspace_id, w.name, t.description
+        FROM tasks t
+        JOIN columns c ON t.column_id = c.id
+        JOIN workspaces w ON c.workspace_id = w.id
+        WHERE t.description IS NOT NULL AND t.description LIKE '%](%'
+        ORDER BY t.updated_at DESC
+    """)
+    out = []
+    try:
+        res = await db.execute(sql)
+        for r in res.fetchall():
+            for ref in _extract_attachment_refs(r[6] or ""):
+                out.append({
+                    **ref,
+                    "task_id": r[0],
+                    "task_title": r[1],
+                    "column_id": r[2],
+                    "column_title": r[3],
+                    "workspace_id": r[4],
+                    "workspace_name": r[5],
+                    "type": "attachment",
+                })
+                if len(out) >= limit:
+                    return out
+    except Exception as e:
+        print(f"[Search] attachments scan failed: {e}")
+    return out
+
+
+@router.get("/attachments-index")
+async def attachments_index(db: AsyncSession = Depends(get_session)):
+    """Полный список вложений хранилища (карточка-источник, имя файла, markdown-вид)."""
+    return {"attachments": await _collect_all_attachments(db)}
+
+
 @router.get("/search")
 async def global_search(q: str, db: AsyncSession = Depends(get_session)):
     """
@@ -1878,7 +2065,10 @@ async def global_search(q: str, db: AsyncSession = Depends(get_session)):
         traceback.print_exc()
         tasks = []
 
-    return {"workspaces": workspaces, "columns": columns, "tasks": tasks}
+    # Все вложения показываем всегда (не фильтруя по запросу).
+    attachments = await _collect_all_attachments(db)
+
+    return {"workspaces": workspaces, "columns": columns, "tasks": tasks, "attachments": attachments}
 
 
 @router.get("/graph")

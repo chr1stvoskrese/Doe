@@ -5,12 +5,22 @@
 
 Запусти на macOS или Windows:  python build.py
 Скрипт сам определит систему, спросит (стрелками ↑/↓ + Enter), что собрать,
+затем — какие расширения включить в сборку (Пробел — вкл/выкл, Enter — готово),
 и сделает всё необходимое — включая авто-создание x86_64-окружения для Intel.
 
-Неинтерактивно (для CI):  python build.py --target {arm64|intel|both|windows}
+Невыбранные расширения полностью исключаются: в приложении они выключены и
+не показываются в списке расширений (включить их нельзя). Выбор запекается в
+сборку через feature_flags.json, который читает приложение (src/core/config.py).
+Расширение «ai» дополнительно управляет бандлингом llama_cpp (только arm64).
+
+Неинтерактивно (для CI):
+    python build.py --target {arm64|intel|both|windows}
+    python build.py --target arm64 --features search,calendar,ai   # только эти
+    python build.py --target arm64 --disable ai,statistics         # все, кроме этих
 """
 import os
 import sys
+import json
 import base64
 import shutil
 import platform
@@ -36,8 +46,32 @@ HIDDEN_BASE = [
     "uvicorn.lifespan", "uvicorn.lifespan.on", "uvicorn.lifespan.off",
     "aiosqlite", "watchdog", "websockets",
 ]
-HIDDEN_MAC = HIDDEN_BASE + ["webview.platforms.cocoa", "requests", "jinja2", "numpy"]
+# Базовый набор для macOS (без ИИ-зависимостей).
+HIDDEN_MAC_BASE = HIDDEN_BASE + ["webview.platforms.cocoa", "jinja2"]
+# ИИ-зависимости: llama_cpp тянет numpy, requests нужен для загрузки моделей.
+# Подключаются только когда расширение «ai» выбрано и сборка идёт под arm64.
+HIDDEN_AI = ["requests", "numpy"]
 HIDDEN_WIN = list(HIDDEN_BASE)  # как в исходном build_win.bat: без requests/jinja2/numpy
+
+# ---- расширения приложения, выбираемые при сборке ----
+# key совпадает с ключами в src/core/config.py и во фронтенде (ext-toggle-<key>);
+# label — подпись в интерактивном меню. Порядок = порядок в меню.
+EXTENSION_FEATURES = [
+    ("search",      "Поиск"),
+    ("calendar",    "Календарь"),
+    ("reminders",   "Напоминания"),
+    ("graph",       "Граф связей"),
+    ("tabs",        "Вкладки"),
+    ("deadlines",   "Дедлайны"),
+    ("export",      "Экспорт карточек"),
+    ("priority",    "Приоритетность"),
+    ("ai",          "ИИ-ассистент (llama.cpp, только arm64)"),
+    ("automations", "Автоматизации"),
+    ("statistics",  "Статистика"),
+    ("memory",      "Запоминание"),
+    ("space",       "Пространство"),
+]
+FEATURE_KEYS = [k for k, _ in EXTENSION_FEATURES]
 
 # version.txt для Windows-уведомлений (тот же, что в build_win.bat)
 WIN_VERSION_B64 = (
@@ -143,6 +177,53 @@ def select_menu(title, options):
         elif k in ("esc", "q", "Q"):
             return None
 
+def multiselect_menu(title, options, defaults):
+    """Чекбокс-меню. options: список (key, label); defaults: список bool.
+    Возвращает список bool той же длины, либо None (отмена).
+    Управление: ↑/↓ — навигация, Пробел — вкл/выкл, A — все/никого,
+    Enter — подтвердить, Esc — отмена."""
+    checked = list(defaults)
+    if not sys.stdin.isatty():
+        # Без терминала (CI): интерактив невозможен — возвращаем дефолты как есть.
+        return checked
+
+    _enable_vt()
+    cur = 0
+    print(title)
+    print("  (↑/↓ — выбор, Пробел — вкл/выкл, A — все, Enter — готово, Esc — отмена)")
+
+    def draw(first=False):
+        if not first:
+            sys.stdout.write(f"\x1b[{len(options)}A")
+        for i, (_key, label) in enumerate(options):
+            box = "[x]" if checked[i] else "[ ]"
+            marker = "❯ " if i == cur else "  "
+            line = f"{marker}{box} {label}"
+            if i == cur:
+                line = f"\x1b[7m{line}\x1b[0m"
+            sys.stdout.write("\x1b[2K" + line + "\n")
+        sys.stdout.flush()
+
+    draw(first=True)
+    while True:
+        try:
+            k = _read_key()
+        except KeyboardInterrupt:
+            return None
+        if k == "up":
+            cur = (cur - 1) % len(options); draw()
+        elif k == "down":
+            cur = (cur + 1) % len(options); draw()
+        elif k == " ":
+            checked[cur] = not checked[cur]; draw()
+        elif k in ("a", "A"):
+            new_state = not all(checked)
+            checked = [new_state] * len(options); draw()
+        elif k == "enter":
+            return checked
+        elif k in ("esc", "q", "Q"):
+            return None
+
 # ============================================================
 #  Утилиты
 # ============================================================
@@ -180,14 +261,14 @@ def make_source_zip():
         for root, dirs, files in os.walk(ROOT):
             dirs[:] = [d for d in dirs if d not in ignore_dirs]
             for f in files:
-                if any(f.endswith(e) for e in ignore_exts) or f == "doe_source.zip":
+                if any(f.endswith(e) for e in ignore_exts) or f in ("doe_source.zip", "feature_flags.json"):
                     continue
                 path = os.path.join(root, f)
                 zf.write(path, os.path.relpath(path, ROOT))
 
-def add_data_args(sep):
+def add_data_args(sep, extra=()):
     out = []
-    for s, d in ADD_DATA:
+    for s, d in list(ADD_DATA) + list(extra):
         out += ["--add-data", f"{s}{sep}{d}"]
     return out
 
@@ -196,6 +277,28 @@ def hidden_args(names):
     for n in names:
         out += ["--hidden-import", n]
     return out
+
+def write_feature_flags(available):
+    """Записывает feature_flags.json со списком доступных расширений (allowlist).
+
+    Файл запекается в бандл (--add-data) и читается приложением (config.py):
+    расширения не из списка выключены и скрыты — включить их нельзя.
+    Порядок сохраняем канонический (как в EXTENSION_FEATURES)."""
+    ordered = [k for k in FEATURE_KEYS if k in set(available)]
+    path = os.path.join(ROOT, "feature_flags.json")
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump({"available": ordered}, f, ensure_ascii=False, indent=2)
+    return path
+
+def cleanup_feature_flags():
+    """Удаляет feature_flags.json из корня после сборки.
+
+    Важно: если оставить файл, dev-режим (python wrapper.py) тоже начнёт
+    читать allowlist и прятать расширения. В деве файла быть не должно."""
+    try:
+        os.remove(os.path.join(ROOT, "feature_flags.json"))
+    except OSError:
+        pass
 
 # ============================================================
 #  macOS
@@ -313,9 +416,23 @@ def ensure_venv_intel():
     log("✅ venv-intel готова.")
     return py
 
-def build_macos(arch):
-    """arch: 'arm64' (с ИИ) или 'x86_64' (без ИИ)."""
+def build_macos(arch, available):
+    """Обёртка: запекает feature_flags.json в бандл и гарантированно чистит его.
+
+    available — список доступных расширений (allowlist). Файл нужен во время
+    прогона PyInstaller и должен быть удалён после — иначе dev-режим подхватит
+    ограничения (см. cleanup_feature_flags)."""
+    write_feature_flags(available)
+    try:
+        return _build_macos(arch, available)
+    finally:
+        cleanup_feature_flags()
+
+def _build_macos(arch, available):
+    """arch: 'arm64' (с ИИ, если выбран) или 'x86_64' (без ИИ)."""
     is_intel = (arch == "x86_64")
+    # ИИ бандлим только под arm64 и только если расширение выбрано.
+    ai_on = ("ai" in set(available)) and not is_intel
     if is_intel:
         py = ensure_venv_intel()
         if not py:
@@ -329,7 +446,8 @@ def build_macos(arch):
         distpath, workpath = "dist", "build"
         min_os = "11.0"
 
-    log(f"\n🚀 macOS-сборка ({arch})...")
+    log(f"\n🚀 macOS-сборка ({arch}, {'с ИИ' if ai_on else 'без ИИ'}, "
+        f"расширений: {len(available)}/{len(FEATURE_KEYS)})...")
     clean([workpath, distpath, "doe_source.zip"])
     make_source_zip()
     ensure_icns()
@@ -351,13 +469,16 @@ def build_macos(arch):
         "--osx-bundle-identifier", "com.aesthetic.doe",
         "--distpath", distpath, "--workpath", workpath,
     ]
-    app_cmd += add_data_args(":")
-    app_cmd += hidden_args(HIDDEN_MAC)
-    app_cmd += ["--collect-all", "numpy"]
+    app_cmd += add_data_args(":", extra=[("feature_flags.json", ".")])
+    hidden = list(HIDDEN_MAC_BASE)
+    if ai_on:
+        hidden += HIDDEN_AI
+    app_cmd += hidden_args(hidden)
+    if ai_on:
+        # llama_cpp тянет numpy — собираем обе библиотеки целиком.
+        app_cmd += ["--collect-all", "numpy", "--collect-all", "llama_cpp"]
     if is_intel:
         app_cmd += ["--target-arch", "x86_64"]   # ИИ не бандлим — llama_cpp только arm64
-    else:
-        app_cmd += ["--collect-all", "llama_cpp"]
     app_cmd += ["wrapper.py"]
     if run(app_cmd).returncode != 0:
         log("❌ Сборка приложения не удалась.")
@@ -408,8 +529,16 @@ def build_macos(arch):
 # ============================================================
 #  Windows
 # ============================================================
-def build_windows():
-    log("\n🚀 Windows-сборка (.exe)...")
+def build_windows(available):
+    """Обёртка: запекает feature_flags.json и гарантированно чистит его после."""
+    write_feature_flags(available)
+    try:
+        return _build_windows(available)
+    finally:
+        cleanup_feature_flags()
+
+def _build_windows(available):
+    log(f"\n🚀 Windows-сборка (.exe, расширений: {len(available)}/{len(FEATURE_KEYS)})...")
     subprocess.run(["taskkill", "/F", "/IM", "Doe.exe", "/T"],
                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     clean(["build", "dist", "Doe.spec", "doe_source.zip"])
@@ -422,7 +551,7 @@ def build_windows():
     py = venv_python("venv") or sys.executable
     cmd = [py, "-m", "PyInstaller", "--noconfirm", "--windowed",
            "--name", "Doe", "--icon", "favicon.ico", "--version-file", "version.txt"]
-    cmd += add_data_args(";")
+    cmd += add_data_args(";", extra=[("feature_flags.json", ".")])
     cmd += hidden_args(HIDDEN_WIN)
     cmd += ["wrapper.py"]
     rc = run(cmd).returncode
@@ -435,21 +564,64 @@ def build_windows():
     return True
 
 # ============================================================
+#  Выбор расширений
+# ============================================================
+def _validate_feature_keys(keys):
+    unknown = [k for k in keys if k not in FEATURE_KEYS]
+    if unknown:
+        log(f"❌ Неизвестные расширения: {', '.join(unknown)}")
+        log(f"   Доступные ключи: {', '.join(FEATURE_KEYS)}")
+        sys.exit(2)
+
+def features_from_cli(args):
+    """Строит allowlist из флагов --features / --disable.
+    Без флагов включены все расширения (прежнее поведение)."""
+    if args.features is not None:
+        keys = [x.strip() for x in args.features.split(",") if x.strip()]
+        _validate_feature_keys(keys)
+        enabled = set(keys)
+    else:
+        enabled = set(FEATURE_KEYS)
+    if args.disable:
+        dis = [x.strip() for x in args.disable.split(",") if x.strip()]
+        _validate_feature_keys(dis)
+        enabled -= set(dis)
+    return [k for k in FEATURE_KEYS if k in enabled]
+
+def choose_features_interactive():
+    """Мультивыбор расширений (по умолчанию все включены).
+    Возвращает allowlist или None (отмена)."""
+    title = ("\n  Какие расширения включить в сборку?\n"
+             "  (невыбранные будут скрыты в приложении — включить их нельзя)\n")
+    checked = multiselect_menu(title, EXTENSION_FEATURES, [True] * len(EXTENSION_FEATURES))
+    if checked is None:
+        return None
+    return [EXTENSION_FEATURES[i][0] for i in range(len(EXTENSION_FEATURES)) if checked[i]]
+
+def summarize_features(available):
+    avail = set(available)
+    on = [k for k in FEATURE_KEYS if k in avail]
+    off = [k for k in FEATURE_KEYS if k not in avail]
+    log("  Включено: " + (", ".join(on) if on else "—"))
+    if off:
+        log("  Исключено (скрыто в приложении): " + ", ".join(off))
+
+# ============================================================
 #  main
 # ============================================================
-def run_target(target):
+def run_target(target, available):
     if target == "arm64":
-        return build_macos("arm64")
+        return build_macos("arm64", available)
     if target == "intel":
-        return build_macos("x86_64")
+        return build_macos("x86_64", available)
     if target == "both":
-        ok = build_macos("arm64")
-        return build_macos("x86_64") and ok
+        ok = build_macos("arm64", available)
+        return build_macos("x86_64", available) and ok
     if target == "windows":
-        return build_windows()
+        return build_windows(available)
     return False
 
-def interactive():
+def interactive(preset_features=None):
     if MAC:
         title = "\n  Сборка Doe для macOS — выбери цель (↑/↓, Enter; Esc — выход):\n"
         options = [
@@ -471,7 +643,18 @@ def interactive():
     if idx is None or targets[idx] is None:
         log("Отменено.")
         return 0
-    ok = run_target(targets[idx])
+
+    # Расширения: либо из флагов (--features/--disable), либо спрашиваем в меню.
+    if preset_features is not None:
+        available = preset_features
+    else:
+        available = choose_features_interactive()
+        if available is None:
+            log("Отменено.")
+            return 0
+    summarize_features(available)
+
+    ok = run_target(targets[idx], available)
     return 0 if ok else 1
 
 def main():
@@ -479,7 +662,21 @@ def main():
     ap = argparse.ArgumentParser(description="Единый сборщик Doe.")
     ap.add_argument("--target", choices=["arm64", "intel", "both", "windows"],
                     help="Собрать без интерактивного меню.")
+    ap.add_argument("--features", metavar="LIST",
+                    help="Список расширений через запятую — включить ТОЛЬКО их, "
+                         "остальные скрыть. Пример: search,calendar,ai")
+    ap.add_argument("--disable", metavar="LIST",
+                    help="Список расширений через запятую — исключить их, "
+                         "остальные включены. Пример: ai,statistics")
+    ap.add_argument("--list-features", action="store_true",
+                    help="Показать доступные ключи расширений и выйти.")
     args = ap.parse_args()
+
+    if args.list_features:
+        log("Доступные расширения (ключ — подпись):")
+        for k, label in EXTENSION_FEATURES:
+            log(f"  {k:<12} {label}")
+        return 0
 
     if args.target:
         if args.target in ("arm64", "intel", "both") and not MAC:
@@ -488,10 +685,14 @@ def main():
         if args.target == "windows" and not WIN:
             log("❌ Windows-сборку можно делать только на Windows.")
             return 1
-        return 0 if run_target(args.target) else 1
+        available = features_from_cli(args)
+        summarize_features(available)
+        return 0 if run_target(args.target, available) else 1
 
+    # Интерактив по цели; расширения — из флагов, если заданы, иначе спросим.
+    preset = features_from_cli(args) if (args.features is not None or args.disable) else None
     try:
-        return interactive()
+        return interactive(preset)
     except KeyboardInterrupt:
         log("\nОтменено.")
         return 0

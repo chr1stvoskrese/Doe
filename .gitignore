@@ -22,6 +22,9 @@ build/
 dist/
 *.spec
 
+# Временный allowlist расширений (пишется build.py на время сборки)
+feature_flags.json
+
 # IDEs (VSCode, PyCharm)
 .vscode/
 .idea/
