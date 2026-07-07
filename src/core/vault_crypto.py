@@ -506,11 +506,21 @@ def lock_vault(vault_path: str, key: bytes) -> dict:
 
         # 🕵️ Скрываем структуру папок: контейнеры лежат плоско в корне,
         # опустевшие подпапки удаляем (их имена тоже не должны ничего выдавать).
-        # rmdir() удаляет ТОЛЬКО пустые папки — папки с пропущенными файлами
-        # (логи и т.п.) остаются нетронутыми.
+        # rmdir() удаляет ТОЛЬКО пустые папки. Если внутри остался системный
+        # мусор (например, .DS_Store), аккуратно удаляем его перед сносом папки.
         try:
             for d in sorted((p for p in root.rglob("*") if p.is_dir()),
                             key=lambda p: len(p.parts), reverse=True):
+                
+                # Зачищаем невидимый мусор ОС, мешающий удалению папки
+                for trash in (".DS_Store", "desktop.ini", "Thumbs.db"):
+                    trash_path = d / trash
+                    if trash_path.exists():
+                        try:
+                            trash_path.unlink()
+                        except OSError:
+                            pass
+                
                 try:
                     d.rmdir()
                 except OSError:

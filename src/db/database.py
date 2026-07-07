@@ -20,6 +20,7 @@ from src.core.config import (
 import shutil
 from src.core.watcher import vault_observer # <-- ИМПОРТ НАШЕГО WATCHER'A
 from src.core import vault_crypto
+from src.core import fs_store
 
 _engine = None
 _session_factory = None
@@ -49,58 +50,58 @@ def _is_backup_file(p: Path) -> bool:
     return p.name.endswith(".backup.db.doe")
 
 
+# Имя скрытого SQLite-индекса нового (файлового) формата хранилища.
+# Оканчивается на .db.doe, поэтому вся существующая логика обнаружения
+# хранилищ (vault picker, notify_worker, wrapper) продолжает работать.
+INDEX_DB_NAME = ".doe.index.db.doe"
+
+
 def _resolve_db_path(vault_path: str) -> Path:
     """
-    Возвращает путь к рабочему файлу БД для данного хранилища.
-    Использует уникальное расширение .db.doe
+    Возвращает путь к рабочему файлу БД (скрытому индексу) для данного хранилища.
+    Старые видимые файлы БД бесшовно переносятся на роль скрытого индекса:
+    источником правды для доски становятся папки и .md-файлы (формат v2).
     """
     vault_dir = Path(vault_path)
-    
-    # 1. Сначала ищем рабочую БД
-    candidates = [f for f in vault_dir.glob("*.db.doe") if not _is_backup_file(f) and not f.name.startswith("._")]
-    if candidates:
-        target_db = max(candidates, key=lambda p: p.stat().st_mtime)
-        print(f"[Database] Found existing database file: {target_db.name}")
-        return target_db
+    index_db = vault_dir / INDEX_DB_NAME
 
-    # 2. БЕСШОВНАЯ МИГРАЦИЯ со старого .doe.db на новый .db.doe
+    # 0. Новый формат: скрытый индекс уже существует
+    if index_db.exists():
+        return index_db
+
+    def _adopt(old_db: Path) -> Path:
+        """Перенос старой БД на роль скрытого индекса (вместе с -wal/-shm)."""
+        try:
+            for sfx in ("-wal", "-shm"):
+                side = Path(str(old_db) + sfx)
+                if side.exists():
+                    side.rename(Path(str(index_db) + sfx))
+            old_db.rename(index_db)
+            print(f"[Database] 🔄 Migrated DB to hidden index: {old_db.name} -> {INDEX_DB_NAME}")
+            return index_db
+        except Exception as e:
+            print(f"[Database] ❌ Failed to migrate DB to hidden index: {e}")
+            return old_db  # Фолбэк на старый файл, если нет прав
+
+    # 1. Рабочая БД старого формата *.db.doe
+    candidates = [f for f in vault_dir.glob("*.db.doe")
+                  if not _is_backup_file(f) and not f.name.startswith("._") and f.name != INDEX_DB_NAME]
+    if candidates:
+        return _adopt(max(candidates, key=lambda p: p.stat().st_mtime))
+
+    # 2. Совсем старый формат .doe.db
     doe_db_candidates = [f for f in vault_dir.glob("*.doe.db") if not f.name.startswith("._")]
     if doe_db_candidates:
-        old_db = max(doe_db_candidates, key=lambda p: p.stat().st_mtime)
-        new_db_name = old_db.name.replace(".doe.db", ".db.doe")
-        new_db_path = vault_dir / new_db_name
-        try:
-            old_db.rename(new_db_path)
-            print(f"[Database] 🔄 Migrated DB extension: {old_db.name} -> {new_db_path.name}")
-        except Exception as e:
-            print(f"[Database] ❌ Failed to migrate DB extension: {e}")
-            return old_db
+        return _adopt(max(doe_db_candidates, key=lambda p: p.stat().st_mtime))
 
-    # 3. БЕСШОВНАЯ МИГРАЦИЯ: Если есть старый .db (не backup), переименовываем в .db.doe
+    # 3. Легаси .db (не backup)
     legacy_candidates = [f for f in vault_dir.glob("*.db") if not f.name.endswith(".db.doe") and not f.name.endswith(".backup.db") and not f.name.endswith(".doe.db") and not f.name.startswith("._")]
     if legacy_candidates:
-        old_db = max(legacy_candidates, key=lambda p: p.stat().st_mtime)
-        new_db_name = old_db.stem + ".db.doe"
-        new_db_path = vault_dir / new_db_name
-        try:
-            old_db.rename(new_db_path)
-            print(f"[Database] 🔄 Migrated DB extension: {old_db.name} -> {new_db_path.name}")
-        except Exception as e:
-            print(f"[Database] ❌ Failed to migrate DB extension: {e}")
-            return old_db # Фолбэк на старый файл, если нет прав
+        return _adopt(max(legacy_candidates, key=lambda p: p.stat().st_mtime))
 
-    # 4. Повторный поиск после миграций
-    candidates = [f for f in vault_dir.glob("*.db.doe") if not _is_backup_file(f) and not f.name.startswith("._")]
-    if candidates:
-        target_db = max(candidates, key=lambda p: p.stat().st_mtime)
-        print(f"[Database] Found existing database file: {target_db.name}")
-        return target_db
-
-    # 5. Если файлов нет (создание абсолютно нового хранилища)
-    vault_name = vault_dir.name
-    new_db_target = vault_dir / f"{vault_name}.db.doe"
-    print(f"[Database] No existing DB found. Targeting new file: {new_db_target.name}")
-    return new_db_target
+    # 4. Файлов нет (создание абсолютно нового хранилища)
+    print(f"[Database] No existing DB found. Targeting new index file: {INDEX_DB_NAME}")
+    return index_db
 
 
 def get_database_url(vault_path: str) -> str:
@@ -177,8 +178,16 @@ async def init_database(vault_path: str):
     
     _session_factory = async_sessionmaker(_engine, class_=AsyncSession, expire_on_commit=False)
 
-    # Запускаем системного "слушателя" папки для iCloud Sync
-    vault_observer.start(vault_path)
+    # 📁 ФАЙЛОВОЕ ХРАНИЛИЩЕ (формат v2): активируем сквозную запись в .md/папки
+    # и пересобираем индекс из файлов — папки и .md-файлы являются источником
+    # правды для вкладок/колонок/карточек (полная совместимость с Obsidian).
+    fs_store.init(vault_path, _session_factory, _engine)
+    try:
+        async with _session_factory() as session:
+            await fs_store.reconcile(session)
+    except Exception as e:
+        # Ошибка синхронизации не должна блокировать открытие хранилища
+        print(f"[Database] ⚠️ FS reconcile failed (non-fatal): {e}")
 
     # ⚠️ ВАЖНО: планировщик автоматизаций здесь НЕ запускаем. Его первый тик
     # выполняется в отдельном потоке со своим event loop и, стартуя параллельно
@@ -186,12 +195,13 @@ async def init_database(vault_path: str):
     # соединения пула SQLAlchemy → дедлок всего lifespan (сервер не отвечает).
     # Запуск делается ПОСЛЕ полной инициализации: в lifespan (main.py)
     # и в switch_vault (вход в хранилище, в т.ч. после ввода пароля).
-    
+
     # ВНИМАНИЕ: Base.metadata.create_all УБРАНО! Теперь всем рулит Alembic.
-    
+
     from .models import WorkspaceModel, ColumnModel, ColumnMode
     async with _session_factory() as session:
         # 3. Дефолтное наполнение, если база абсолютно пустая
+        # (reconcile выше уже импортировал структуру из файлов, если она есть)
         result = await session.execute(select(WorkspaceModel).limit(1))
         if result.first() is None:
             # Читаем язык из глобальных настроек приложения
@@ -216,6 +226,19 @@ async def init_database(vault_path: str):
             session.add_all(default_columns)
             await session.commit()
 
+    # 📁 Материализуем доску в файлы: после миграции со старого db.doe это
+    # создаст всю структуру папок/.md; при обычном открытии — дешёвый no-op
+    # (файлы перезаписываются только при реальном изменении содержимого).
+    try:
+        async with _session_factory() as session:
+            await fs_store.export_all(session)
+    except Exception as e:
+        print(f"[Database] ⚠️ FS export failed (non-fatal): {e}")
+
+    # Запускаем системного "слушателя" папки (iCloud Sync + правки из Obsidian).
+    # Строго ПОСЛЕ export_all, чтобы не ловить шквал собственных событий.
+    vault_observer.start(vault_path)
+
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
     if _session_factory is None:
         # 🔐 Штатная ситуация: хранилище заблокировано/закрыто (экран выбора),
@@ -236,6 +259,14 @@ def is_database_open() -> bool:
 
 async def close_database():
     global _engine, _session_factory
+
+    # 📁 Дописываем на диск все накопленные изменения файлового хранилища,
+    # пока фабрика сессий ещё жива (иначе последние правки не попадут в .md).
+    try:
+        await fs_store.shutdown()
+    except Exception as e:
+        print(f"[Database] FS store shutdown failed: {e}")
+
     if _engine:
         from sqlalchemy import text
         if _session_factory:
@@ -277,7 +308,11 @@ async def init_dev_database():
     has_db = False
     if dev_vault.exists() and dev_vault.is_dir():
         has_db = any(f for f in dev_vault.iterdir() if f.is_file() and (f.name.endswith(".db.doe") or f.name.endswith(vault_crypto.ENC_SUFFIX)) and "backup" not in f.name and not f.name.startswith("._"))
-        
+        # Формат v2: хранилище может состоять из одних .md-файлов (индекс
+        # пересоберётся автоматически) — маркер доски тоже признак хранилища.
+        if not has_db:
+            has_db = fs_store.has_board_marker(str(dev_vault))
+
     if not has_db:
         config_data = _load_config()
         if config_data.get("active_vault") == str(dev_vault):
