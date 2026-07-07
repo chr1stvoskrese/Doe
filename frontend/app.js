@@ -1837,13 +1837,24 @@ window.syncColumnDOM = async function(columnId) {
         const cardList = colEl.querySelector('.card-list');
         if (!cardList) return;
 
-        const oldCards = Array.from(cardList.querySelectorAll('.card:not(.card-drag-clone)'));
+        const oldCards = Array.from(cardList.querySelectorAll('.card:not(.card-drag-clone):not(.card-entering)'));
         const newIds = new Set(colState.tasks.map(t => String(t.id)));
 
         oldCards.forEach(card => {
             if (!newIds.has(card.dataset.cardId)) {
-                animateCardDeletion(card); 
+                animateCardDeletion(card);
             }
+        });
+
+        // Сохраняем открытые формы создания карточки, чтобы перестройка списка их не стёрла
+        const openForms = Array.from(cardList.querySelectorAll('.card-entering')).map(form => {
+            let prev = form.previousElementSibling;
+            while (prev && !(prev.classList.contains('card') && prev.dataset.cardId)) {
+                prev = prev.previousElementSibling;
+            }
+            const wasFocused = form.contains(document.activeElement);
+            form.remove();
+            return { form, prevId: prev ? prev.dataset.cardId : null, wasFocused };
         });
 
         const remainingCards = Array.from(cardList.querySelectorAll('.card:not(.card-drag-clone)'));
@@ -1898,6 +1909,20 @@ window.syncColumnDOM = async function(columnId) {
         if (spacerMap.has('END')) {
             spacerMap.get('END').forEach(s => cardList.appendChild(s));
         }
+
+        // Возвращаем открытые формы на место
+        openForms.forEach(({ form, prevId, wasFocused }) => {
+            const anchor = prevId ? cardList.querySelector(`.card[data-card-id="${prevId}"]`) : null;
+            if (anchor) {
+                anchor.after(form);
+            } else {
+                cardList.appendChild(form);
+            }
+            if (wasFocused) {
+                const inp = form.querySelector('textarea');
+                if (inp) inp.focus();
+            }
+        });
 
         updateColumnCount(colEl, sortedTasks.length);
     } catch (e) {
@@ -2453,6 +2478,7 @@ async function onAddCardInline(plusBtn) {
         if (isResolved) return;
         requestAnimationFrame(() => {
             if (isResolved) return;
+            if (document.activeElement === input) return;
             if (input.value.trim()) {
                 submit();
             } else {
@@ -2644,6 +2670,7 @@ async function onAddTask(columnId) {
             if (isResolved) return;
 
             const active = document.activeElement;
+            if (active === input) return;
             const thisAddBtn = columnEl.querySelector('.btn-add-card');
             const isThisAddBtn = active === thisAddBtn;
 
