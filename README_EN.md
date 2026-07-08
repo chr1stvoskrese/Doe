@@ -46,7 +46,7 @@
   <td width="50%">
 
 ### 🔒 100% Local
-All data is stored in a `.db.doe` file on your computer. Want to put it in iCloud and sync between Macs? Go ahead. A USB stick? Works too. Nobody but you has access.
+All data is stored in a vault folder on your computer. Inside — Obsidian-compatible files (.md with YAML frontmatter) and a hidden SQLite index. Want to put the vault in iCloud and sync between Macs? Go ahead. A USB stick? Works too. Nobody but you has access.
 
 ### 🎨 Aesthetics in Everything
 Dark and light themes, custom fonts, smooth animations, thoughtful typography. The board looks as good as it works.
@@ -176,9 +176,11 @@ python build.py
 └───────────────────────┼──────────────────────┘
                         │
 ┌───────────────────────┴──────────────────────┐
-│  doe.db.doe   +   doe/ (attachments)         │
-│  or Obsidian-compatible folder (.md files)   │
-│  storage folder on disk                      │
+│  Vault folder on disk                         │
+│  ├── .doe.index.db.doe  (SQLite index)        │
+│  ├── Columns/            (.md with YAML frontmatter)
+│  └── attachments/                             │
+│  Obsidian-compatible                          │
 └─────────────────────────────────────────────┘
 ```
 
