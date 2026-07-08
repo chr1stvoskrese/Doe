@@ -9,6 +9,7 @@
 
     --brand-pine: #4A5A48;
     --brand-pale: rgba(74, 90, 72, 0.08);
+    --border-dashed: rgba(74, 90, 72, 0.25);
 
     --timer-text: #C27A62;
     --timer-bg: rgba(194, 122, 98, 0.1);
@@ -214,6 +215,7 @@ svg, img {
 
     --brand-pine: #89A085;
     --brand-pale: rgba(137, 160, 133, 0.15);
+    --border-dashed: rgba(137, 160, 133, 0.25);
 
     --timer-text: #D69780;
     --timer-bg: rgba(214, 151, 128, 0.12);
@@ -1114,14 +1116,14 @@ body {
     transform: translateY(-50%);
     height: 0;
     background: transparent;
-    border-top: 1.5px dashed var(--brand-pine);
+    border-top: 1.5px dashed var(--border-dashed);
     opacity: 0.25;
     pointer-events: none;
 }
 
 [data-theme="dark"] .card-inline-trigger::before {
     background: transparent;
-    border-top: 1.5px dashed var(--brand-pine);
+    border-top: 1.5px dashed var(--border-dashed);
     opacity: 0.4;
 }
 
@@ -1293,7 +1295,7 @@ body[class*="is-dragging-"] .card-inline-trigger {
     min-width: 320px;
     height: 60px;
     background: transparent;
-    border: 2px dashed rgba(74, 90, 72, 0.25);
+    border: 2px dashed var(--border-dashed);
     border-radius: var(--radius-board);
     display: flex;
     align-items: center;
@@ -1413,7 +1415,7 @@ body[class*="is-dragging-"] .card-inline-trigger {
 
 .column.is-ghost {
     background: var(--bg-canvas) !important;
-    border: 2px dashed var(--border-light) !important;
+    border: 2px dashed var(--border-dashed) !important;
     box-shadow: none !important;
     opacity: 0.6 !important;
     transition: none !important;
@@ -1999,7 +2001,7 @@ select.column-input:focus-visible {
     min-width: 320px;
     flex-shrink: 0;
     background: transparent;
-    border: 2px dashed rgba(74, 90, 72, 0.25);
+    border: 2px dashed var(--border-dashed);
     border-radius: var(--radius-board);
     opacity: 0;
     transform: scale(0.98);
@@ -2045,7 +2047,7 @@ select.column-input:focus-visible {
 .column-input {
     width: 100%;
     background: transparent;
-    border: 1.5px dashed rgba(74, 90, 72, 0.25);
+    border: 1.5px dashed var(--border-dashed);
     border-radius: 10px;
     padding: 8px 12px;
     font-family: var(--font-main);
@@ -2374,7 +2376,7 @@ body.is-dragging-card .column-header {
     word-break: break-all;
     margin-bottom: 12px;
     text-align: center;
-    border: 1px dashed var(--border-light);
+    border: 1px dashed var(--border-dashed);
 }
 [data-theme="dark"] .att-path-box { background: rgba(255, 255, 255, 0.06); }
 .att-warning {
@@ -2893,7 +2895,7 @@ body:not(.is-dragging-tab) .add-tab-btn:hover {
 
     border: none !important;
 
-    outline: 2px dashed var(--border-light) !important;
+    outline: 2px dashed var(--border-dashed) !important;
     outline-offset: -2px !important;
 
     transform: translateZ(0) !important;
@@ -2960,7 +2962,7 @@ body.is-dragging-tab .board-tab::after {
 
 .board-tab.tab-entering {
     background: transparent;
-    border: 1.5px dashed rgba(74, 90, 72, 0.25);
+    border: 1.5px dashed var(--border-dashed);
     opacity: 0;
     transform: scale(0.96) translateX(-10px);
     will-change: opacity, transform;
@@ -4506,7 +4508,7 @@ body.is-dragging-subtask .subtask-item {
 
 .subtask-item.subtask-entering {
     background: transparent !important;
-    border: 1.5px dashed rgba(74, 90, 72, 0.25) !important;
+    border: 1.5px dashed var(--border-dashed) !important;
     box-shadow: none !important;
     padding: 10px 12px !important;
     flex-direction: column !important;
@@ -4906,7 +4908,7 @@ body.is-dragging-attachment .attachment-item:not(.attachment-drag-clone) {
     height: 48px;
     margin: 0 auto 12px;
     border-radius: 50%;
-    border: 1.5px dashed rgba(74, 90, 72, 0.25);
+    border: 1.5px dashed var(--border-dashed);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -7350,7 +7352,7 @@ span.local-search-highlight.active {
 
 .notify-field {
     background: transparent !important;
-    border: 1.5px dashed rgba(74, 90, 72, 0.25) !important;
+    border: 1.5px dashed var(--border-dashed) !important;
     border-radius: 10px !important;
     font-family: var(--font-main) !important;
     font-size: 14px !important;
@@ -8506,7 +8508,7 @@ body.ext-statistics-hidden #statistics-trigger {
     left: 50%;
     margin-left: -0.75px;
     width: 0;
-    border-left: 1.5px dashed var(--brand-pine);
+    border-left: 1.5px dashed var(--border-dashed);
     opacity: 0.25;
     pointer-events: none;
 }
@@ -9554,7 +9556,7 @@ body:has(.modal-overlay.show) .card-inline-trigger {
     padding: 7px 12px;
     border-radius: 10px;
     background: var(--brand-pale);
-    border: 1px dashed rgba(74, 90, 72, 0.35);
+    border: 1px dashed var(--border-dashed);
     color: var(--text-secondary);
     font-size: 13px;
     line-height: 1.3;
@@ -9735,7 +9737,7 @@ body:has(.modal-overlay.show) .card-inline-trigger {
 .space-embed-loading, .space-embed-missing { padding: 20px; text-align: center; color: var(--text-secondary); font-size: 13px; min-width: 120px; }
 .space-embed-missing {
     display: flex; flex-direction: column; gap: 4px; align-items: center; justify-content: center;
-    max-width: 240px; border: 1px dashed var(--border-light); border-radius: 8px; background: var(--surface-card);
+    max-width: 240px; border: 1px dashed var(--border-dashed); border-radius: 8px; background: var(--surface-card);
 }
 .space-embed-missing-title { color: var(--text-primary); font-weight: 500; word-break: break-word; }
 .space-embed-missing-note { font-size: 11px; opacity: 0.6; text-transform: lowercase; }
@@ -9873,7 +9875,7 @@ body:has(.modal-overlay.show) .card-inline-trigger {
 /* Подсказка перетаскивания */
 .space-drop-hint {
     position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 16px 24px;
-    background: var(--surface-card); border: 2px dashed var(--brand-pine); border-radius: 16px;
+    background: var(--surface-card); border: 2px dashed var(--border-dashed); border-radius: 16px;
     color: var(--text-primary); font-size: 15px; font-weight: 500; pointer-events: none; opacity: 0; transition: opacity 0.2s; z-index: 3;
     box-shadow: var(--shadow-menu);
 }
@@ -9975,7 +9977,7 @@ details.callout:not([open]) .callout-fold { transform: rotate(0deg); }
 .doe-wikilink {
     color: var(--brand-pine);
     text-decoration: none;
-    border-bottom: 1px dashed rgba(74, 90, 72, 0.45);
+    border-bottom: 1px dashed var(--border-dashed);
     cursor: pointer;
 }
 .doe-wikilink:hover { border-bottom-style: solid; }
