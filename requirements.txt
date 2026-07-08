@@ -15,3 +15,5 @@ pyyaml
 huggingface-hub
 llama-cpp-python; sys_platform == "darwin" and platform_machine == "arm64"
 cryptography
+PyGObject; sys_platform == "linux" or sys_platform == "linux2"
+
