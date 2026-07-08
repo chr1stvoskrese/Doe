@@ -162,6 +162,7 @@ python build.py
 │  │  /api/v1/system       vault/settings  │  │
 │  │  /api/v1/ai           local LLM       │  │
 │  │  /api/v1/automations                  │  │
+│  │  /api/v1/memory       spaced repetition│  │
 │  └────────────────────┬──────────────────┘  │
 │                       │                       │
 │  ┌────────────────────┴──────────────────┐  │
@@ -172,6 +173,7 @@ python build.py
                         │
 ┌───────────────────────┴──────────────────────┐
 │  doe.db.doe   +   doe/ (attachments)         │
+│  or Obsidian-compatible folder (.md files)   │
 │  storage folder on disk                      │
 └─────────────────────────────────────────────┘
 ```
@@ -184,9 +186,11 @@ python build.py
 | **Desktop** | pywebview (native OS WebView) |
 | **Build** | PyInstaller (`.app` / `.exe`) |
 | **AI** | llama-cpp-python · Gemma 4 (Metal-accelerated) |
-| **Frontend** | Vanilla JS (~14k lines) · CSS (~8.4k lines) |
+| **Frontend** | Vanilla JS (~17k lines) · CSS (~10k lines) · space.js (~1.7k) |
+| **Storage** | SQLite (+aiosqlite) **and** Obsidian-compatible file store (FS Store v2) |
 | **Editor** | CodeMirror · Marked.js · Prism.js · KaTeX |
 | **Sync** | WebSocket · watchdog |
+| **iOS** | Native SwiftUI app (iPad/iPhone) |
 
 ---
 
@@ -216,7 +220,7 @@ python build.py
 </details>
 
 <details>
-<summary><strong>🧩 Extensions (11 modules)</strong></summary>
+<summary><strong>🧩 Extensions (13 modules)</strong></summary>
 
 | Module | Description |
 |---|---|
@@ -231,6 +235,8 @@ python build.py
 | **Priorities** | Color labels and emoji for priorities |
 | **Export** | Export cards to Markdown |
 | **Tabs** | Switch between workspaces |
+| **Space** | Infinite vector canvas (DoeSpace): drawing, text, connections |
+| **Memory** | Spaced repetition (SRS, SM-2 algorithm) for facts and notes |
 
 </details>
 
@@ -286,18 +292,26 @@ alembic downgrade -1
 ```
 # Project structure
 src/
-├── api/v1/          # FastAPI routers (columns, tasks, workspaces, system, ai, automations)
-├── core/            # config, watcher (WebSocket)
+├── api/v1/          # FastAPI routers (columns, tasks, workspaces, system, ai, automations, memory)
+├── core/            # config, watcher, vault_crypto, biometric, fs_store (Obsidian-vault), attach_jobs
 ├── db/              # database.py, models.py
-├── services/        # business logic
-└── schemas/         # Pydantic DTOs
+├── services/        # task_service, column_service, workspace_service, ai_service, automation_service, memory_service, srs, hardware
+└── schemas/         # Pydantic DTOs (task, column, workspace, automation)
 frontend/
-├── index.html       # entry point (~1.5k lines)
-├── app.js           # all logic (~14k lines)
-└── styles.css       # styles (~8.4k lines)
+├── index.html       # entry point (~1.9k lines)
+├── app.js           # all logic (~17k lines)
+├── styles.css       # styles (~10k lines)
+└── space.js         # «Space» extension (~1.7k lines)
+iOS/                 # native SwiftUI app (iPad/iPhone)
 wrapper.py           # entry point, window management
 main.py              # FastAPI application
 notify_worker.py     # background notification worker
+build.py             # cross-platform builder
+rewrite.py           # AI-powered refactoring via git
+gather_context.py    # code context collector for AI dialogues
+dev_stats.py         # development statistics
+run_ios.py           # build and run iOS version
+make_dmg.sh          # DMG image builder
 ```
 
 ---
