@@ -162,6 +162,7 @@ python build.py
 │  │  /api/v1/system       vault/settings  │  │
 │  │  /api/v1/ai           local LLM       │  │
 │  │  /api/v1/automations                  │  │
+│  │  /api/v1/memory       spaced repetition│  │
 │  └────────────────────┬──────────────────┘  │
 │                       │                       │
 │  ┌────────────────────┴──────────────────┐  │
@@ -172,7 +173,8 @@ python build.py
                         │
 ┌───────────────────────┴──────────────────────┐
 │  doe.db.doe   +   doe/ (вложения)            │
-│  папка-хранилище на диске                    │
+│  или Obsidian-совместимая папка (.md файлы)  │
+│  хранилище на диске                          │
 └─────────────────────────────────────────────┘
 ```
 
@@ -184,9 +186,11 @@ python build.py
 | **Десктоп** | pywebview (нативный WebView ОС) |
 | **Сборка** | PyInstaller (`.app` / `.exe`) |
 | **AI** | llama-cpp-python · Gemma 4 (Metal-ускорение) |
-| **Фронтенд** | Vanilla JS (~14k строк) · CSS (~8.4k строк) |
+| **Фронтенд** | Vanilla JS (~17k строк) · CSS (~10k строк) · space.js (~1.7k) |
+| **Хранилище** | SQLite (+aiosqlite) **и** Obsidian-совместимое файловое хранилище (FS Store v2) |
 | **Редактор** | CodeMirror · Marked.js · Prism.js · KaTeX |
 | **Синхронизация** | WebSocket · watchdog |
+| **iOS** | Нативное SwiftUI-приложение (iPad/iPhone) |
 
 ---
 
@@ -216,7 +220,7 @@ python build.py
 </details>
 
 <details>
-<summary><strong>🧩 Расширения (11 модулей)</strong></summary>
+<summary><strong>🧩 Расширения (13 модулей)</strong></summary>
 
 | Модуль | Описание |
 |---|---|
@@ -231,6 +235,8 @@ python build.py
 | **Приоритеты** | Цветовые метки и эмодзи приоритетов |
 | **Экспорт** | Выгрузка карточек в Markdown |
 | **Табы** | Переключение между рабочими пространствами |
+| **Пространство** | Бесконечный векторный холст (DoeSpace): рисование, текст, соединения |
+| **Запоминание** | Интервальное повторение (SRS, алгоритм SM-2) для фактов и заметок |
 
 </details>
 
@@ -286,18 +292,26 @@ alembic downgrade -1
 ```
 # Структура проекта
 src/
-├── api/v1/          # FastAPI роутеры (columns, tasks, workspaces, system, ai, automations)
-├── core/            # config, watcher (WebSocket)
+├── api/v1/          # FastAPI роутеры (columns, tasks, workspaces, system, ai, automations, memory)
+├── core/            # config, watcher, vault_crypto, biometric, fs_store (Obsidian-vault), attach_jobs
 ├── db/              # database.py, models.py
-├── services/        # бизнес-логика
-└── schemas/         # Pydantic DTO
+├── services/        # task_service, column_service, workspace_service, ai_service, automation_service, memory_service, srs, hardware
+└── schemas/         # Pydantic DTO (task, column, workspace, automation)
 frontend/
-├── index.html       # точка входа (~1.5k строк)
-├── app.js           # вся логика (~14k строк)
-└── styles.css       # стили (~8.4k строк)
+├── index.html       # точка входа (~1.9k строк)
+├── app.js           # вся логика (~17k строк)
+├── styles.css       # стили (~10k строк)
+└── space.js         # расширение «Пространство» (~1.7k строк)
+iOS/                 # нативное SwiftUI-приложение (iPad/iPhone)
 wrapper.py           # точка входа, менеджмент окна
 main.py              # FastAPI-приложение
 notify_worker.py     # фоновый воркер уведомлений
+build.py             # кросс-платформенный сборщик
+rewrite.py           # AI-рефакторинг через git
+gather_context.py    # сбор контекста кода для AI-диалогов
+dev_stats.py         # статистика разработки
+run_ios.py           # сборка и запуск iOS-версии
+make_dmg.sh          # сборка DMG-образов
 ```
 
 ---
