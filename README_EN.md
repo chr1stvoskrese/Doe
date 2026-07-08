@@ -2,6 +2,10 @@
   <img src="doe.png" alt="Doe" width="120" />
 </p>
 
+<p align="center">
+  <a href="README.md"><strong>🇷🇺 Русский</strong></a>
+</p>
+
 <h1 align="center">Doe</h1>
 
 <p align="center">
