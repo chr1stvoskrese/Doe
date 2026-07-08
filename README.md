@@ -57,6 +57,9 @@ Built-in AI assistant powered by **Gemma 4** — fully offline with Apple Silico
 ### ⏱️ Built-in Time Tracker
 Start a timer on a task — time is written to the database. The calendar shows your daily breakdown. Statistics sum up your week.
 
+### 🔐 Vault Encryption
+Password-protect your entire vault with **AES-256-GCM + scrypt**. Even if someone gets your files — they're useless without the password. Optionally unlock with **Touch ID** on macOS. Your data, your rules.
+
   </td>
   <td width="50%">
 
