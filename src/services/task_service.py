@@ -8,6 +8,7 @@ import shutil
 from pathlib import Path
 from urllib.parse import unquote
 from src.core.config import get_active_vault, get_attachments_dir, get_ui_settings
+from src.core import attach_jobs
 
 from datetime import datetime, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -50,8 +51,23 @@ async def cleanup_orphaned_attachments(db: AsyncSession):
     if not att_dir.exists():
         return
         
+    # Файлы, которые прямо сейчас копируются/загружаются (или только что
+    # завершились и ещё не сохранены в описании), трогать нельзя.
+    busy_names = attach_jobs.protected_names()
+
     for file_path in att_dir.iterdir():
         if file_path.is_file():
+            if file_path.name in busy_names:
+                continue
+            # Брошенные .doepart (например, после падения приложения) —
+            # мусор незавершённого копирования, удаляем.
+            if file_path.name.endswith(attach_jobs.PARTIAL_SUFFIX):
+                try:
+                    os.remove(file_path)
+                    print(f"[Garbage Collector] Deleted stale partial: {file_path.name}")
+                except Exception:
+                    pass
+                continue
             rel_path = f"doe/{file_path.name}"
             # Если файла нет в текстах описаний — уничтожаем
             if rel_path not in used_files:

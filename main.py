@@ -103,6 +103,36 @@ async def serve_attachment(file_path: str):
         return FileResponse(full_path)
     return Response(status_code=404)
 
+@app.get("/localfile/{file_path:path}")
+async def serve_local_file(file_path: str):
+    """
+    Раздаёт локальные файлы по абсолютному пути — для рендера изображений,
+    прикреплённых ссылкой на оригинал без копирования (Option/Ctrl + DnD,
+    как в Obsidian). Ссылки в Markdown пишутся обычным синтаксисом
+    [имя](/абсолютный/путь) без file:///.
+    """
+    import re as _re
+    fp = file_path
+    # POSIX-путь теряет ведущий слэш в сегменте маршрута — возвращаем его.
+    # Windows-пути (C:/...) остаются как есть.
+    if not _re.match(r"^[A-Za-z]:[\\/]", fp) and not fp.startswith("/"):
+        fp = "/" + fp
+    p = Path(fp)
+    if p.is_absolute() and p.exists() and p.is_file():
+        return FileResponse(p)
+    return Response(status_code=404)
+
+@app.get("/vendor/pdfjs/{file_name}")
+async def serve_pdfjs(file_name: str):
+    """Раздаёт локально закэшированный PDF.js (см. /system/ensure-pdfjs)."""
+    from src.api.v1.system import get_pdfjs_dir, PDFJS_FILES
+    if file_name not in PDFJS_FILES:
+        return Response(status_code=404)
+    p = get_pdfjs_dir() / file_name
+    if p.exists() and p.is_file():
+        return FileResponse(p, media_type="application/javascript")
+    return Response(status_code=404)
+
 @app.get("/favicon.ico", include_in_schema=False)
 async def favicon():
     favicon_path = base_dir / "favicon.ico"

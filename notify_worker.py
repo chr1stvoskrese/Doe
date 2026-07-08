@@ -362,5 +362,29 @@ def main():
             
         os._exit(0)
 
+    elif sys.platform.startswith('linux'):
+        # Linux (Fedora/Ubuntu) через libnotify
+        # Подготовим вызов для клика
+        action_cmd = ""
+        if getattr(sys, 'frozen', False):
+            exe_path = sys.executable
+            action_cmd = f"\"{exe_path}\""
+        else:
+            action_cmd = f"python3 wrapper.py"
+
+        # notify-send в свежих версиях GNOME поддерживает --action, но чтобы 
+        # не зависеть от версии libnotify, мы кидаем обычное уведомление.
+        # Если нужно обязательно отловить клик, лучше использовать pydbus,
+        # но для минимизации зависимостей мы просто покажем всплывашку:
+        try:
+            icon_path = os.path.join(getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__))), "doe.png")
+            cmd = ["notify-send", "-a", "Doe", "-i", icon_path if os.path.exists(icon_path) else "dialog-information", title, message]
+            subprocess.run(cmd, check=False)
+        except Exception:
+            pass
+
+        # Очищаем память
+        os._exit(0)
+
 if __name__ == "__main__":
     main()

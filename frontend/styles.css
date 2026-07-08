@@ -7285,6 +7285,16 @@ span.local-search-highlight.active {
     top: 6px;
 }
 
+/* В Linux (GTK/Wayland) обычно есть нативный заголовок CSD. 
+   Мы убираем левый отступ, который предназначался для светофора Mac. */
+.linux-os .app-header {
+    padding-left: 24px !important;
+    padding-right: 24px !important;
+}
+.linux-os .mac-traffic-lights {
+    display: none !important;
+}
+
 .mac-traffic-lights {
     position: absolute;
     top: 27px;
