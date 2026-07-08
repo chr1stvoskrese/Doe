@@ -2540,13 +2540,7 @@ async function onAddTask(columnId) {
     requestAnimationFrame(() => {
         requestAnimationFrame(() => {
             formCard.classList.add('entered');
-            const pinStart = performance.now();
-            const pinToBottom = () => {
-                if (!formCard.isConnected) return;
-                cardList.scrollTop = cardList.scrollHeight;
-                if (performance.now() - pinStart < 260) requestAnimationFrame(pinToBottom);
-            };
-            pinToBottom();
+            cardList.scrollTo({ top: cardList.scrollHeight, behavior: 'smooth' });
         });
     });
 
