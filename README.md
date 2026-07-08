@@ -173,40 +173,40 @@ python build.py
 ## 🧱 Architecture
 
 ```
-┌─────────────────────────────────────────────┐
+┌──────────────────────────────────────────────┐
 │          Desktop Window (pywebview)          │
-│  ┌───────────────────────────────────────┐  │
-│  │     index.html · app.js · styles.css  │  │
-│  │     Vanilla JS · Fetch · WebSocket    │  │
-│  └────────────────────┬──────────────────┘  │
+│  ┌────────────────────────────────────────┐  │
+│  │    index.html · app.js · styles.css    │  │
+│  │     Vanilla JS · Fetch · WebSocket     │  │
+│  └────────────────────┬───────────────────┘  │
 │                       │ localhost:8000       │
 └───────────────────────┼──────────────────────┘
                         │
 ┌───────────────────────┼──────────────────────┐
-│          FastAPI Server (uvicorn)            │
-│  ┌────────────────────┴──────────────────┐  │
-│  │  /api/v1/columns                      │  │
-│  │  /api/v1/tasks        CRUD + move     │  │
-│  │  /api/v1/workspaces                   │  │
-│  │  /api/v1/system       vault/settings  │  │
-│  │  /api/v1/ai           local LLM       │  │
-│  │  /api/v1/automations                  │  │
+│           FastAPI Server (uvicorn)           │
+│  ┌────────────────────┴───────────────────┐  │
+│  │  /api/v1/columns                       │  │
+│  │  /api/v1/tasks          CRUD + move    │  │
+│  │  /api/v1/workspaces                    │  │
+│  │  /api/v1/system     vault/settings     │  │
+│  │  /api/v1/ai            local LLM       │  │
+│  │  /api/v1/automations                   │  │
 │  │  /api/v1/memory       spaced repetition│  │
-│  └────────────────────┬──────────────────┘  │
-│                       │                       │
-│  ┌────────────────────┴──────────────────┐  │
-│  │  SQLAlchemy 2.0 (async) + aiosqlite   │  │
-│  │  Alembic migrations                   │  │
-│  └────────────────────┬──────────────────┘  │
+│  └────────────────────┬───────────────────┘  │
+│                       │                      │
+│  ┌────────────────────┴───────────────────┐  │
+│  │  SQLAlchemy 2.0 (async) + aiosqlite    │  │
+│  │  Alembic migrations                    │  │
+│  └────────────────────┬───────────────────┘  │
 └───────────────────────┼──────────────────────┘
                         │
 ┌───────────────────────┴──────────────────────┐
-│  Vault folder on disk                         │
-│  ├── .doe.index.db.doe  (SQLite index)        │
-│  ├── Columns/            (.md with YAML frontmatter)
-│  └── attachments/                             │
-│  Obsidian-compatible                          │
-└─────────────────────────────────────────────┘
+│             Vault folder on disk             │
+│  ├── .doe.index.db.doe   (SQLite index)      │
+│  ├── Columns/             (.md + frontmatter)│
+│  └── attachments/                            │
+│  Obsidian-compatible                         │
+└──────────────────────────────────────────────┘
 ```
 
 | Layer | Technology |
