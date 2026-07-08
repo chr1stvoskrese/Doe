@@ -17,6 +17,10 @@ if (navigator.userAgent.toLowerCase().includes('windows')) {
     document.documentElement.classList.add('win-os');
 }
 
+if (navigator.userAgent.toLowerCase().includes('linux')) {
+    document.documentElement.classList.add('linux-os');
+}
+
 const translations = {
     ru: {
         zenToggle: 'Скрыть/Показать вкладки (Cmd/Ctrl + \\)',

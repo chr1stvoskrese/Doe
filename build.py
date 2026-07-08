@@ -29,6 +29,7 @@ import subprocess
 
 WIN = (os.name == "nt")
 MAC = (sys.platform == "darwin")
+LINUX = sys.platform.startswith("linux")
 ROOT = os.path.dirname(os.path.abspath(__file__))
 
 # ---- общие данные сборки ----
@@ -609,6 +610,29 @@ def summarize_features(available):
 # ============================================================
 #  main
 # ============================================================
+def build_linux(available):
+    """Сборка ELF бинарника для Linux (Fedora/Ubuntu)."""
+    write_feature_flags(available)
+    try:
+        log(f"\n🚀 Linux-сборка (ELF, расширений: {len(available)}/{len(FEATURE_KEYS)})...")
+        clean(["build", "dist", "Doe.spec", "doe_source.zip"])
+        make_source_zip()
+
+        py = venv_python("venv") or sys.executable
+        cmd = [py, "-m", "PyInstaller", "--noconfirm", "--windowed",
+               "--name", "Doe", "--icon", "doe.png"]
+        cmd += add_data_args(":", extra=[("feature_flags.json", ".")])
+        cmd += hidden_args(HIDDEN_BASE + ["webview.platforms.gtk"])
+        cmd += ["wrapper.py"]
+        
+        if run(cmd).returncode != 0:
+            log("❌ Сборка ELF не удалась.")
+            return False
+        log("✅ Готово: dist/Doe/Doe")
+        return True
+    finally:
+        cleanup_feature_flags()
+
 def run_target(target, available):
     if target == "arm64":
         return build_macos("arm64", available)
@@ -619,6 +643,8 @@ def run_target(target, available):
         return build_macos("x86_64", available) and ok
     if target == "windows":
         return build_windows(available)
+    if target == "linux":
+        return build_linux(available)
     return False
 
 def interactive(preset_features=None):
@@ -635,8 +661,12 @@ def interactive(preset_features=None):
         title = "\n  Сборка Doe для Windows (↑/↓, Enter; Esc — выход):\n"
         options = ["Windows (.exe)", "Отмена"]
         targets = ["windows", None]
+    elif LINUX:
+        title = "\n  Сборка Doe для Linux/Fedora (↑/↓, Enter; Esc — выход):\n"
+        options = ["Linux (ELF x86_64/arm64)", "Отмена"]
+        targets = ["linux", None]
     else:
-        log(f"❌ Сборка поддерживается на macOS и Windows. Текущая ОС: {platform.system()}")
+        log(f"❌ Сборка поддерживается на macOS, Windows и Linux. Текущая ОС: {platform.system()}")
         return 1
 
     idx = select_menu(title, options)

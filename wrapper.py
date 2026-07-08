@@ -306,6 +306,97 @@ if sys.platform == 'darwin':
 
         import webview.platforms.cocoa
 
+        # ============================================================
+        # 📎 Перехват нативных путей файлов при Drag & Drop.
+        #
+        # DOM-событие drop в WKWebView не отдаёт JS настоящие пути файлов
+        # (только имя и размер). Из-за этого раньше файл приходилось гнать
+        # через HTTP-загрузку, что для больших файлов (200 ГБ+) означало
+        # медленную двойную запись на диск. Здесь мы подменяем
+        # performDragOperation: у WKWebView-подкласса pywebview: до передачи
+        # события в WebKit читаем пути из NSPasteboard и складываем их в
+        # реестр. JS сразу после drop забирает их через
+        # pywebview.api.get_dropped_files() и прикрепляет файлы по нативному
+        # пути (мгновенный APFS-клон, как Cmd+C/Cmd+V в Finder).
+        # Само DOM-событие продолжает работать как раньше (вызываем super).
+        # ============================================================
+        try:
+            import threading as _dd_threading
+            import time as _dd_time
+
+            _doe_drop_registry = {"ts": 0.0, "files": []}
+            _doe_drop_lock = _dd_threading.Lock()
+
+            def _doe_store_dropped_paths(paths):
+                files = []
+                for p in paths:
+                    try:
+                        files.append({
+                            "path": p,
+                            "name": os.path.basename(p),
+                            "size": os.path.getsize(p) if os.path.isfile(p) else -1,
+                            "is_dir": os.path.isdir(p),
+                        })
+                    except Exception:
+                        pass
+                with _doe_drop_lock:
+                    _doe_drop_registry["ts"] = _dd_time.time()
+                    _doe_drop_registry["files"] = files
+                if files:
+                    print(f"[DnD] 📎 Captured {len(files)} native path(s) from drop")
+
+            def _doe_take_dropped_files(max_age=15.0):
+                """Отдаёт и очищает пути последнего drop (не старше max_age сек)."""
+                with _doe_drop_lock:
+                    ts = _doe_drop_registry["ts"]
+                    files = _doe_drop_registry["files"]
+                    _doe_drop_registry["files"] = []
+                    _doe_drop_registry["ts"] = 0.0
+                if not files or (_dd_time.time() - ts) > max_age:
+                    return []
+                return files
+
+            _WebKitHost = webview.platforms.cocoa.BrowserView.WebKitHost
+
+            def _doe_performDragOperation_(self, sender):
+                try:
+                    pboard = sender.draggingPasteboard()
+                    ns_urls = pboard.readObjectsForClasses_options_(
+                        [AppKit.NSURL],
+                        {AppKit.NSPasteboardURLReadingFileURLsOnlyKey: True},
+                    )
+                    paths = []
+                    for u in (ns_urls or []):
+                        try:
+                            p = u.path()
+                            if p:
+                                paths.append(str(p))
+                        except Exception:
+                            pass
+                    if paths:
+                        _doe_store_dropped_paths(paths)
+                except Exception as e:
+                    print(f"[DnD] ⚠️ Failed to read drop pasteboard: {e}")
+                # Обязательно отдаём событие WebKit — DOM-drop работает как раньше.
+                try:
+                    return objc.super(_WebKitHost, self).performDragOperation_(sender)
+                except Exception as e:
+                    print(f"[DnD] ⚠️ super performDragOperation failed: {e}")
+                    return False
+
+            _doe_drag_selector = objc.selector(
+                _doe_performDragOperation_,
+                selector=b'performDragOperation:',
+                signature=b'Z@:@',  # BOOL (self, _cmd, id) — 'Z' как в остальных патчах файла
+            )
+            objc.classAddMethods(_WebKitHost, [_doe_drag_selector])
+            print("[DnD] ✅ Native drop path capture installed on WKWebView.")
+        except Exception as e:
+            # Некритично: без перехвата DnD откатится на потоковую загрузку.
+            print(f"[DnD] ⚠️ Could not install drop path capture: {e}")
+            def _doe_take_dropped_files(max_age=15.0):
+                return []
+
         # Единая логика обработки пути к файлу хранилища.
         # Выделена в отдельную функцию, чтобы её могли вызвать оба селектора macOS:
         # deprecated application:openFile: (старые системы) и
@@ -1932,6 +2023,41 @@ class WindowAPI:
             return result[0]
         return None
 
+    def choose_files(self):
+        """Нативный диалог выбора НЕСКОЛЬКИХ файлов. Возвращает список путей.
+
+        Пути отдаются фронтенду, который прикрепляет файлы через
+        /system/attach-local: копирование в фоне с прогрессом, на macOS —
+        мгновенный APFS-клон. Так вложения любого размера (200 ГБ+)
+        прикрепляются без загрузки по HTTP и без подвисаний."""
+        if not webview.windows:
+            return []
+
+        window = webview.windows[0]
+        result = window.create_file_dialog(
+            dialog_type=webview.OPEN_DIALOG,
+            allow_multiple=True
+        )
+
+        if result:
+            return list(result)
+        return []
+
+    def get_dropped_files(self):
+        """Пути файлов из последнего Drag & Drop (только macOS).
+
+        WKWebView не отдаёт JS настоящие пути при drop; их перехватывает
+        патч performDragOperation: (см. верх файла) и складывает в реестр.
+        Возвращает [{path, name, size, is_dir}] и очищает реестр."""
+        taker = globals().get('_doe_take_dropped_files')
+        if taker is None:
+            return []
+        try:
+            return taker()
+        except Exception as e:
+            print(f"[DnD] ⚠️ get_dropped_files failed: {e}")
+            return []
+
     def choose_directory(self):
         """Вызывает нативный диалог выбора папки (macOS/Windows)"""
         if not webview.windows:
@@ -1959,6 +2085,8 @@ class WindowAPI:
                 subprocess.call(['open', clean_path])
             elif sys.platform == 'win32':
                 os.startfile(clean_path)
+            elif sys.platform.startswith('linux'):
+                subprocess.call(['xdg-open', clean_path])
             return True
         except Exception as e:
             print(f"[System] Failed to open path: {e}")
@@ -1978,6 +2106,11 @@ class WindowAPI:
             elif sys.platform == 'win32':
                 # Флаг /select открывает Проводник и выделяет элемент
                 subprocess.call(['explorer', f'/select,{clean_path}'])
+            elif sys.platform.startswith('linux'):
+                # В Linux нет стандартизированного флага для выделения файла.
+                # Безопасный фолбэк: просто открываем родительскую директорию.
+                parent_dir = os.path.dirname(clean_path)
+                subprocess.call(['xdg-open', parent_dir])
             return True
         except Exception as e:
             print(f"[System] Failed to reveal path: {e}")

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status, UploadFile, File, Depends, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, HTTPException, status, UploadFile, File, Depends, WebSocket, WebSocketDisconnect, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.core.watcher import ws_manager  # <-- ДОБАВИТЬ ЭТО
@@ -30,6 +30,7 @@ from src.core.config import get_active_vault, get_ui_settings, set_ui_settings, 
 from src.core.watcher import vault_observer
 
 from src.core import vault_crypto
+from src.core import attach_jobs
 from src.db.database import lock_active_vault, is_database_open
 
 router = APIRouter(prefix="/system", tags=["system"])
@@ -947,21 +948,214 @@ async def update_settings_endpoint(settings: SettingsUpdate):
 
     return SettingsResponse(**get_ui_settings())
 
-@router.post("/upload")
-async def upload_file(file: UploadFile = File(...)):
+# ============================================================
+# 📎 Вложения: загрузка и прикрепление файлов любого размера.
+#
+# Три пути попадания файла в хранилище:
+#   1. /attach-local  — есть нативный путь (диалог «+» или DnD в
+#      десктоп-приложении). Файл копируется в фоновом потоке; на macOS
+#      в пределах тома APFS — мгновенный CoW-клон, как Cmd+C/Cmd+V в
+#      Finder. Прогресс опрашивается через /attach-progress.
+#   2. /upload-stream — нативного пути нет (DnD на Windows, браузер).
+#      Тело запроса пишется потоково сразу в файл назначения: одна
+#      запись на диск, постоянная память, любой размер.
+#   3. /upload        — легаси-multipart (вставка из буфера обмена,
+#      старые вызовы). Оставлен для мелких файлов.
+# ============================================================
+
+def _safe_attachment_name(raw_name: str) -> str:
+    """Отсекает пути и запрещённые символы, оставляя только имя файла."""
+    name = Path(str(raw_name).replace("\\", "/")).name.strip()
+    name = name.replace("\x00", "")
+    if not name or name in (".", ".."):
+        name = f"file_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+    return name
+
+
+def _unique_attachment_path(name: str) -> Path:
+    """Свободный путь в папке вложений (добавляет _1, _2… при коллизии)."""
     attachments_dir = get_attachments_dir()
     attachments_dir.mkdir(parents=True, exist_ok=True)
-    
-    file_path = attachments_dir / file.filename
+    name = _safe_attachment_name(name)
+    file_path = attachments_dir / name
     counter = 1
-    while file_path.exists():
-        file_path = attachments_dir / f"{Path(file.filename).stem}_{counter}{Path(file.filename).suffix}"
+    # Учитываем и защищённые имена: файл параллельного задания мог ещё
+    # не появиться на диске (или существовать как .doepart).
+    busy = attach_jobs.protected_names()
+    while (file_path.exists()
+           or file_path.name in busy
+           or (file_path.parent / (file_path.name + attach_jobs.PARTIAL_SUFFIX)).exists()):
+        file_path = attachments_dir / f"{Path(name).stem}_{counter}{Path(name).suffix}"
         counter += 1
-        
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
-        
+    return file_path
+
+
+@router.post("/upload")
+async def upload_file(file: UploadFile = File(...)):
+    file_path = _unique_attachment_path(file.filename or "file")
+    attach_jobs.protect_name(file_path.name)
+    try:
+        # Копирование в отдельном потоке: даже большой файл не заблокирует
+        # event loop и интерфейс приложения.
+        def _write():
+            with open(file_path, "wb") as buffer:
+                shutil.copyfileobj(file.file, buffer, length=1024 * 1024)
+
+        await anyio.to_thread.run_sync(_write)
+    except Exception:
+        attach_jobs.unprotect_name(file_path.name)
+        try:
+            if file_path.exists():
+                file_path.unlink()
+        except Exception:
+            pass
+        raise
+
+    attach_jobs.finish_protection(file_path.name)
     return {"path": f"doe/{file_path.name}", "name": file_path.name}
+
+
+@router.put("/upload-stream")
+async def upload_stream(request: Request, name: str):
+    """Потоковая загрузка: тело запроса (сырые байты файла) пишется сразу
+    в файл назначения. Ни временных файлов, ни двойной записи на диск —
+    работает с файлами любого размера при постоянном расходе памяти."""
+    file_path = _unique_attachment_path(name)
+    tmp_path = file_path.with_name(file_path.name + attach_jobs.PARTIAL_SUFFIX)
+    attach_jobs.protect_name(file_path.name)
+    attach_jobs.protect_name(tmp_path.name)
+
+    # Буферизуем мелкие чанки HTTP-потока в крупные блоки, чтобы не дёргать
+    # диск и пул потоков на каждые 64 КБ.
+    FLUSH_SIZE = 8 * 1024 * 1024
+    buffer = bytearray()
+    try:
+        with await anyio.to_thread.run_sync(lambda: open(tmp_path, "wb")) as fout:
+            async for chunk in request.stream():
+                if not chunk:
+                    continue
+                buffer.extend(chunk)
+                if len(buffer) >= FLUSH_SIZE:
+                    data = bytes(buffer)
+                    buffer.clear()
+                    await anyio.to_thread.run_sync(fout.write, data)
+            if buffer:
+                await anyio.to_thread.run_sync(fout.write, bytes(buffer))
+        await anyio.to_thread.run_sync(lambda: os.replace(tmp_path, file_path))
+    except Exception as e:
+        # Клиент оборвал соединение или ошибка записи — подчищаем «полуфайл».
+        attach_jobs.unprotect_name(file_path.name)
+        attach_jobs.unprotect_name(tmp_path.name)
+        try:
+            if tmp_path.exists():
+                tmp_path.unlink()
+        except Exception:
+            pass
+        print(f"[Attach] ❌ Stream upload failed for {name}: {e}")
+        raise HTTPException(status_code=500, detail="Upload failed")
+
+    attach_jobs.finish_protection(file_path.name)
+    attach_jobs.unprotect_name(tmp_path.name)
+    return {"path": f"doe/{file_path.name}", "name": file_path.name}
+
+
+# ============================================================
+# 📄 PDF.js — движок кастомного PDF-ридера (тот же, что в Obsidian).
+#
+# Библиотека не лежит в репозитории (~1.4 МБ), а скачивается ОДИН раз
+# при первом просмотре PDF и кэшируется в ~/.doe/vendor. Дальше всё
+# работает полностью офлайн. Если сети нет — фронтенд откатывается
+# на нативный просмотрщик WebView.
+# ============================================================
+
+PDFJS_VERSION = "3.11.174"
+PDFJS_FILES = ("pdf.min.js", "pdf.worker.min.js")
+PDFJS_CDNS = (
+    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/{v}/{f}",
+    "https://cdn.jsdelivr.net/npm/pdfjs-dist@{v}/build/{f}",
+    "https://unpkg.com/pdfjs-dist@{v}/build/{f}",
+)
+
+
+def get_pdfjs_dir() -> Path:
+    return Path.home() / ".doe" / "vendor" / f"pdfjs-{PDFJS_VERSION}"
+
+
+def _pdfjs_ready() -> bool:
+    d = get_pdfjs_dir()
+    # Минимальные размеры — защита от кэширования HTML-страницы ошибки
+    return all((d / f).exists() and (d / f).stat().st_size > 100_000 for f in PDFJS_FILES)
+
+
+def _download_pdfjs() -> bool:
+    import urllib.request
+    d = get_pdfjs_dir()
+    d.mkdir(parents=True, exist_ok=True)
+    for f in PDFJS_FILES:
+        target = d / f
+        if target.exists() and target.stat().st_size > 100_000:
+            continue
+        ok = False
+        for cdn in PDFJS_CDNS:
+            url = cdn.format(v=PDFJS_VERSION, f=f)
+            try:
+                req = urllib.request.Request(url, headers={"User-Agent": "Doe-App"})
+                with urllib.request.urlopen(req, timeout=30) as resp:
+                    data = resp.read()
+                # Защита от закэшированной HTML-страницы ошибки вместо JS
+                if len(data) < 100_000 or data.lstrip()[:1] == b"<":
+                    continue
+                tmp = target.with_suffix(".part")
+                tmp.write_bytes(data)
+                tmp.replace(target)
+                ok = True
+                print(f"[PDF.js] ✅ Downloaded {f} ({len(data)} bytes) from {url.split('/')[2]}")
+                break
+            except Exception as e:
+                print(f"[PDF.js] ⚠️ {url.split('/')[2]} failed: {e}")
+        if not ok:
+            return False
+    return True
+
+
+@router.get("/pdfjs-status")
+async def pdfjs_status():
+    return {"ready": _pdfjs_ready(), "version": PDFJS_VERSION}
+
+
+@router.post("/ensure-pdfjs")
+async def ensure_pdfjs():
+    """Скачивает PDF.js в локальный кэш (однократно). Блокирующая загрузка
+    выполняется в пуле потоков — event loop свободен."""
+    if _pdfjs_ready():
+        return {"ready": True, "version": PDFJS_VERSION}
+    ok = await anyio.to_thread.run_sync(_download_pdfjs)
+    return {"ready": bool(ok), "version": PDFJS_VERSION}
+
+
+class AttachLocalReq(BaseModel):
+    absolute_path: str
+
+
+@router.post("/attach-local")
+async def attach_local_file(req: AttachLocalReq):
+    """Прикрепляет файл по нативному пути: копирование идёт в фоне,
+    ответ возвращается мгновенно. Прогресс — GET /attach-progress/{job_id}."""
+    src_path = Path(req.absolute_path)
+    if not src_path.exists() or not src_path.is_file():
+        raise HTTPException(status_code=404, detail="File not found")
+
+    dst_path = _unique_attachment_path(src_path.name)
+    job = attach_jobs.start_copy_job(src_path, dst_path)
+    return job
+
+
+@router.get("/attach-progress/{job_id}")
+async def attach_progress(job_id: str):
+    job = attach_jobs.get_job(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return job
 
 
 # ============================================================
@@ -1069,21 +1263,29 @@ class ImportFileReq(BaseModel):
 
 @router.post("/import-file")
 async def import_file(req: ImportFileReq):
-    attachments_dir = get_attachments_dir()
-    attachments_dir.mkdir(parents=True, exist_ok=True)
-    
+    """Легаси-эндпоинт: отвечает после завершения копирования.
+
+    Раньше shutil.copy2 выполнялся прямо в event loop и замораживал всё
+    приложение на время копирования. Теперь копирование идёт через фоновое
+    задание (с мгновенным CoW-клоном на macOS), а здесь мы лишь ждём его,
+    не блокируя остальные запросы. Новый код фронтенда использует
+    /attach-local + /attach-progress и показывает прогресс.
+    """
     src_path = Path(req.absolute_path)
     if not src_path.exists() or not src_path.is_file():
         raise HTTPException(status_code=404, detail="File not found")
-        
-    file_path = attachments_dir / src_path.name
-    counter = 1
-    while file_path.exists():
-        file_path = attachments_dir / f"{src_path.stem}_{counter}{src_path.suffix}"
-        counter += 1
-        
-    shutil.copy2(src_path, file_path)
-    return {"path": f"doe/{file_path.name}", "name": file_path.name}
+
+    dst_path = _unique_attachment_path(src_path.name)
+    job = attach_jobs.start_copy_job(src_path, dst_path)
+
+    while True:
+        state = attach_jobs.get_job(job["job_id"])
+        if state is None or state["status"] == "error":
+            detail = (state or {}).get("error") or "Copy failed"
+            raise HTTPException(status_code=500, detail=detail)
+        if state["status"] == "done":
+            return {"path": state["path"], "name": state["name"]}
+        await anyio.sleep(0.2)
 
 class OpenFileReq(BaseModel):
     path: str
@@ -1216,6 +1418,9 @@ async def open_link_endpoint(req: OpenLinkReq):
         elif sys.platform == 'win32':
             # Windows: os.startfile — это аналог двойного клика в проводнике
             os.startfile(str(final_path))
+        elif sys.platform.startswith('linux'):
+            # Linux: стандартный системный хэндлер
+            subprocess.call(['xdg-open', str(final_path)])
 
         return {"success": True}
         
@@ -1244,6 +1449,9 @@ async def reveal_folder_endpoint(req: RevealFolderReq):
             subprocess.call(['open', '-R', str(final_path)])
         elif sys.platform == 'win32':
             subprocess.call(['explorer', f'/select,{str(final_path)}'])
+        elif sys.platform.startswith('linux'):
+            # В Linux открываем родительскую папку
+            subprocess.call(['xdg-open', str(final_path.parent)])
             
         return {"success": True}
     except Exception as e:
