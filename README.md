@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <a href="README_EN.md"><strong>🇬🇧 English</strong></a>
+  <a href="README_RU.md"><strong>🇷🇺 Русский</strong></a>
 </p>
 
 <h1 align="center">Doe</h1>
@@ -23,57 +23,57 @@
 
 <br>
 
-> **Doe** — десктопное Kanban-приложение для тех, кто ценит эстетику, приватность и полный контроль над данными.
-> Никаких облаков, подписок и регистраций. Только ты, твои задачи и локальная база данных.
+> **Doe** — a desktop Kanban app for those who value aesthetics, privacy, and complete control over their data.
+> No clouds, subscriptions, or sign-ups. Just you, your tasks, and a local database.
 
 <br>
 
 <p align="center">
-  <a href="#-почему-doe">Почему Doe</a> ·
-  <a href="#-быстрый-старт">Быстрый старт</a> ·
-  <a href="#-архитектура">Архитектура</a> ·
-  <a href="#-возможности">Возможности</a> ·
-  <a href="#-горячие-клавиши">Горячие клавиши</a> ·
-  <a href="#-разработка">Разработка</a>
+  <a href="#-why-doe">Why Doe</a> ·
+  <a href="#-quick-start">Quick Start</a> ·
+  <a href="#-architecture">Architecture</a> ·
+  <a href="#-features">Features</a> ·
+  <a href="#-keyboard-shortcuts">Keyboard Shortcuts</a> ·
+  <a href="#-development">Development</a>
 </p>
 
 ---
 
-## ✨ Почему Doe?
+## ✨ Why Doe?
 
 <table>
 <tr>
   <td width="50%">
 
-### 🔒 100% Локально
-Все данные хранятся в папке-хранилище (vault) на твоём компьютере. Внутри — файлы в Obsidian-совместимом формате (.md с YAML frontmatter) и служебный SQLite-индекс. Хочешь — положи vault в iCloud и синхронизируй между Mac'ами. Хочешь — на флешку. Никто, кроме тебя, не имеет доступа.
+### 🔒 100% Local
+All data is stored in a vault folder on your computer. Inside — Obsidian-compatible files (.md with YAML frontmatter) and a hidden SQLite index. Want to put the vault in iCloud and sync between Macs? Go ahead. A USB stick? Works too. Nobody but you has access.
 
-### 🎨 Эстетика во всём
-Тёмная и светлая темы, кастомные шрифты, плавные анимации, продуманная типографика. Доска выглядит так же хорошо, как работает.
+### 🎨 Aesthetics in Everything
+Dark and light themes, custom fonts, smooth animations, thoughtful typography. The board looks as good as it works.
 
-### 🧠 Локальный AI
-Встроенный AI-ассистент на базе **Gemma 4** — работает полностью оффлайн, с ускорением на Apple Silicon. Общается о задачах, ищет по доске, создаёт карточки, помнит факты между сессиями.
+### 🧠 Local AI
+Built-in AI assistant powered by **Gemma 4** — fully offline with Apple Silicon acceleration. Discuss tasks, search the board, create cards, remember facts between sessions.
 
-### ⏱️ Встроенный тайм-трекер
-Запускай таймер на задаче — время пишется в базу. Календарь покажет раскладку по дням. Статистика подведёт итоги недели.
+### ⏱️ Built-in Time Tracker
+Start a timer on a task — time is written to the database. The calendar shows your daily breakdown. Statistics sum up your week.
 
   </td>
   <td width="50%">
 
-### 📝 Markdown-редактор
-Полноценный редактор с живым предпросмотром, сворачиваемыми заголовками, подсветкой синтаксиса (Prism.js), математикой (KaTeX) и drag-and-drop вложениями.
+### 📝 Markdown Editor
+Full-featured editor with live preview, collapsible headings, syntax highlighting (Prism.js), math (KaTeX), and drag-and-drop attachments.
 
-### 🔗 Связи между задачами
-Многие-ко-многим: родительские, дочерние, зависимые. Граф связей визуализируется через D3.js.
+### 🔗 Task Links
+Many-to-many relationships: parent, child, dependent tasks. The relationship graph is visualized with D3.js.
 
-### 🔁 Автоматизации
-Повторяющиеся карточки по расписанию (ежедневно, еженедельно…), авто-сортировка колонок, авто-очистка старых задач.
+### 🔁 Automations
+Recurring cards on schedule (daily, weekly…), auto-sort columns, auto-cleanup of old tasks.
 
-### 📊 Приоритеты
-9-факторная модель оценки важности: ценность, шанс успеха, фоновое бремя, боль процесса, затянутость, потребность в отчёте, проактивность, безмятежность, вред.
+### 📊 Priorities
+9-factor importance model: value, success chance, background burden, process pain, drag, reporting need, proactivity, serenity, harm.
 
-### 🌍 Русский и English
-Полная локализация интерфейса на двух языках. Переключение на лету.
+### 🌍 Russian & English
+Full UI localization in two languages. Switch on the fly.
 
   </td>
 </tr>
@@ -81,71 +81,71 @@
 
 ---
 
-## 🖼 Скриншоты
+## 🖼 Screenshots
 
 <p align="center">
-  <em>Скоро здесь будут скриншоты. А пока — запусти и увидишь сам.</em>
+  <em>Screenshots coming soon. In the meantime — run it and see for yourself.</em>
 </p>
 
 ---
 
-## 🚀 Быстрый старт
+## 🚀 Quick Start
 
 ### macOS (Apple Silicon)
 
 ```bash
-# 1. Клонируй
+# 1. Clone
 git clone https://github.com/chr1stvoskrese/Doe.git
 cd Doe
 
-# 2. Создай виртуальное окружение
+# 2. Create virtual environment
 python3 -m venv venv
 source venv/bin/activate
 
-# 3. Установи зависимости
+# 3. Install dependencies
 pip install -r requirements.txt
 
-# 4. Запусти
+# 4. Run
 python wrapper.py
 ```
 
-### Сборка
+### Build
 
-Единый кросс-платформенный сборщик с интерактивным меню (работает и на macOS, и на Windows):
+Single cross-platform builder with an interactive menu (works on both macOS and Windows):
 
 ```bash
 python build.py
 ```
 
-Скрипт сам определит систему и предложит цели: Apple Silicon (с ИИ), Intel (без ИИ, для старых маков) или обе сразу. Intel-окружение создаётся автоматически. Результат: `dist/Doe.app` (arm64) и/или `dist-intel/Doe.app` (Intel).
+The script auto-detects your system and suggests targets: Apple Silicon (with AI), Intel (without AI, for older Macs), or both. The Intel environment is created automatically. Output: `dist/Doe.app` (arm64) and/or `dist-intel/Doe.app` (Intel).
 
-Без меню (для CI): `python build.py --target arm64|intel|both|windows`.
+Menu-less (for CI): `python build.py --target arm64|intel|both|windows`.
 
 ### Windows
 
 ```bat
-:: 1. Клонируй и перейди в папку
+:: 1. Clone and navigate
 git clone https://github.com/chr1stvoskrese/Doe.git
 cd Doe
 
-:: 2. Виртуальное окружение и зависимости
+:: 2. Virtual environment and dependencies
 python -m venv venv
 venv\Scripts\activate
 pip install -r requirements.txt
 
-:: 3. Запуск
+:: 3. Run
 python wrapper.py
 
-:: 4. Сборка (.exe)
+:: 4. Build (.exe)
 python build.py
 ```
 
-> **Примечание:** AI-ассистент (llama-cpp) работает только на macOS arm64 с Apple Silicon.
-> На Windows и Intel Mac AI недоступен — всё остальное работает полностью.
+> **Note:** The AI assistant (llama-cpp) only works on macOS arm64 with Apple Silicon.
+> On Windows and Intel Macs, AI is unavailable — everything else works fully.
 
 ---
 
-## 🧱 Архитектура
+## 🧱 Architecture
 
 ```
 ┌─────────────────────────────────────────────┐
@@ -176,152 +176,152 @@ python build.py
 └───────────────────────┼──────────────────────┘
                         │
 ┌───────────────────────┴──────────────────────┐
-│  Папка-хранилище (vault) на диске             │
-│  ├── .doe.index.db.doe  (SQLite-индекс)       │
-│  ├── Колонки/            (.md с YAML frontmatter)
-│  └── вложения/                                │
-│  Совместимо с Obsidian                        │
+│  Vault folder on disk                         │
+│  ├── .doe.index.db.doe  (SQLite index)        │
+│  ├── Columns/            (.md with YAML frontmatter)
+│  └── attachments/                             │
+│  Obsidian-compatible                          │
 └─────────────────────────────────────────────┘
 ```
 
-| Слой | Технология |
+| Layer | Technology |
 |---|---|
-| **Рантайм** | Python 3.12 · FastAPI 0.115 · Uvicorn |
-| **База данных** | SQLite (aiosqlite) · SQLAlchemy 2.0 (async) |
-| **Миграции** | Alembic |
-| **Десктоп** | pywebview (нативный WebView ОС) |
-| **Сборка** | PyInstaller (`.app` / `.exe`) |
-| **AI** | llama-cpp-python · Gemma 4 (Metal-ускорение) |
-| **Фронтенд** | Vanilla JS (~17k строк) · CSS (~10k строк) · space.js (~1.7k) |
-| **Хранилище** | SQLite (+aiosqlite) **и** Obsidian-совместимое файловое хранилище (FS Store v2) |
-| **Редактор** | CodeMirror · Marked.js · Prism.js · KaTeX |
-| **Синхронизация** | WebSocket · watchdog |
-| **iOS** | Нативное SwiftUI-приложение (iPad/iPhone) |
+| **Runtime** | Python 3.12 · FastAPI 0.115 · Uvicorn |
+| **Database** | SQLite (aiosqlite) · SQLAlchemy 2.0 (async) |
+| **Migrations** | Alembic |
+| **Desktop** | pywebview (native OS WebView) |
+| **Build** | PyInstaller (`.app` / `.exe`) |
+| **AI** | llama-cpp-python · Gemma 4 (Metal-accelerated) |
+| **Frontend** | Vanilla JS (~17k lines) · CSS (~10k lines) · space.js (~1.7k) |
+| **Storage** | SQLite (+aiosqlite) **and** Obsidian-compatible file store (FS Store v2) |
+| **Editor** | CodeMirror · Marked.js · Prism.js · KaTeX |
+| **Sync** | WebSocket · watchdog |
+| **iOS** | Native SwiftUI app (iPad/iPhone) |
 
 ---
 
-## 📦 Возможности
+## 📦 Features
 
 <details open>
-<summary><strong>📋 Kanban-доска</strong></summary>
+<summary><strong>📋 Kanban Board</strong></summary>
 
-- Неограниченное количество рабочих пространств (табов) и колонок
-- Drag-and-drop карточек между колонками и внутри них
-- Три режима колонок: **Обычная**, **Трекер времени**, **Завершение**
-- Сворачивание колонок, настраиваемая ширина, горячие клавиши
-- JSON-экспорт/импорт всей доски или отдельных карточек
-
-</details>
-
-<details>
-<summary><strong>📝 Карточки задач</strong></summary>
-
-- Markdown-описание с живым предпросмотром
-- Чек-листы (подзадачи) через связи многие-ко-многим
-- Дедлайны с нативными уведомлениями macOS/Windows
-- Вложения: drag-and-drop, файл-пикер, авто-очистка осиротевших файлов
-- Приоритеты: 9-факторная модель с визуальными индикаторами
-- Тайм-трекинг: запуск/стоп таймера, накопление времени, ручная правка
+- Unlimited workspaces (tabs) and columns
+- Drag-and-drop cards between and within columns
+- Three column modes: **Normal**, **Time Tracker**, **Close-out**
+- Collapsible columns, adjustable width, keyboard shortcuts
+- JSON export/import of the entire board or individual cards
 
 </details>
 
 <details>
-<summary><strong>🧩 Расширения (13 модулей)</strong></summary>
+<summary><strong>📝 Task Cards</strong></summary>
 
-| Модуль | Описание |
+- Markdown description with live preview
+- Checklists (subtasks) via many-to-many relations
+- Deadlines with native macOS/Windows notifications
+- Attachments: drag-and-drop, file picker, auto-cleanup of orphaned files
+- Priorities: 9-factor model with visual indicators
+- Time tracking: start/stop timer, accumulated time, manual adjustment
+
+</details>
+
+<details>
+<summary><strong>🧩 Extensions (13 modules)</strong></summary>
+
+| Module | Description |
 |---|---|
-| **Поиск** | Глобальный поиск с булевыми выражениями (`&&`, `\|\|`) и поиском по тегам |
-| **Календарь** | День/неделя/месяц: дедлайны и блоки времени |
-| **Напоминания** | Системные уведомления по расписанию |
-| **Граф** | Визуализация связей задач (D3.js force-directed graph) |
-| **Статистика** | Недельная аналитика: тренды, топ задач, разбивка по дням |
-| **AI Ассистент** | Локальный LLM: чат, поиск, создание задач, память |
-| **Автоматизации** | Повторяющиеся карточки, авто-сортировка, авто-очистка |
-| **Дедлайны** | Просроченные и ближайшие дедлайны |
-| **Приоритеты** | Цветовые метки и эмодзи приоритетов |
-| **Экспорт** | Выгрузка карточек в Markdown |
-| **Табы** | Переключение между рабочими пространствами |
-| **Пространство** | Бесконечный векторный холст (DoeSpace): рисование, текст, соединения |
-| **Запоминание** | Интервальное повторение (SRS, алгоритм SM-2) для фактов и заметок |
+| **Search** | Global search with boolean expressions (`&&`, `\|\|`) and tag search |
+| **Calendar** | Day/week/month: deadlines and time blocks |
+| **Reminders** | System notifications on schedule |
+| **Graph** | Task relationship visualization (D3.js force-directed graph) |
+| **Statistics** | Weekly analytics: trends, top tasks, daily breakdown |
+| **AI Assistant** | Local LLM: chat, search, task creation, memory |
+| **Automations** | Recurring cards, auto-sort, auto-cleanup |
+| **Deadlines** | Overdue and upcoming deadlines |
+| **Priorities** | Color labels and emoji for priorities |
+| **Export** | Export cards to Markdown |
+| **Tabs** | Switch between workspaces |
+| **Space** | Infinite vector canvas (DoeSpace): drawing, text, connections |
+| **Memory** | Spaced repetition (SRS, SM-2 algorithm) for facts and notes |
 
 </details>
 
 <details>
-<summary><strong>🤖 AI Ассистент</strong></summary>
+<summary><strong>🤖 AI Assistant</strong></summary>
 
-Работает **полностью оффлайн** — локальная **Gemma 4** (Google), Apple Silicon с Metal-ускорением и flash-attention (macOS arm64). Линейка моделей скачивается через HuggingFace:
+Runs **fully offline** — local **Gemma 4** (Google), Apple Silicon with Metal acceleration and flash-attention (macOS arm64). Models are downloaded via HuggingFace:
 
-| Модель | Параметры | Размер |
+| Model | Parameters | Size |
 |---|---|---|
 | Gemma 4 E2B | 2.3B | ~3.1 GB |
 | Gemma 4 E4B | 4.5B | ~4.8 GB |
 | Gemma 4 12B | 12B | ~6.5 GB |
 | Gemma 4 26B (A4B MoE) | 26B | ~13.5 GB |
 
-- **Умеет:** искать по доске, создавать/менять/удалять задачи, двигать карточки, создавать колонки и пространства, менять тему и язык, включать расширения, приоритизировать задачи, ставить напоминания
-- **Память:** запоминает факты между сессиями (`~/.doe_app/memory/`)
+- **Can:** search the board, create/edit/delete tasks, move cards, create columns and workspaces, change theme and language, toggle extensions, prioritize tasks, set reminders
+- **Memory:** remembers facts between sessions (`~/.doe_app/memory/`)
 
 </details>
 
 <details>
-<summary><strong>⚙️ Настройки</strong></summary>
+<summary><strong>⚙️ Settings</strong></summary>
 
-- Тема: светлая / тёмная (CSS-переменные)
-- Язык: русский / English
-- Кастомные шрифты: системный пикер или `.ttf` / `.woff2` в хранилище
-- Хранилище вложений: внутри vault или глобальная папка
-- Приоритеты: настройка порогов, цветов и эмодзи
+- Theme: light / dark (CSS variables)
+- Language: Russian / English
+- Custom fonts: system picker or `.ttf` / `.woff2` from storage
+- Attachment storage: inside vault or global folder
+- Priorities: configure thresholds, colors, and emoji
 
 </details>
 
 ---
 
-## ⌨ Горячие клавиши
+## ⌨ Keyboard Shortcuts
 
-| Клавиши | Действие |
+| Keys | Action |
 |---|---|
-| `Cmd/Ctrl + F` | Поиск — по доске, либо внутри открытой карточки |
-| `Cmd/Ctrl + \` | Свернуть / развернуть вкладки |
-| `Esc` | Закрыть модальное окно / отменить редактирование |
+| `Cmd/Ctrl + F` | Search — across the board or within an open card |
+| `Cmd/Ctrl + \` | Collapse / expand tabs |
+| `Esc` | Close modal / cancel editing |
 
 ---
 
-## 🛠 Разработка
+## 🛠 Development
 
 ```bash
-# Миграции Alembic
-alembic revision --autogenerate -m "описание"
+# Alembic migrations
+alembic revision --autogenerate -m "description"
 alembic upgrade head
 alembic downgrade -1
 ```
 
 ```
-# Структура проекта
+# Project structure
 src/
-├── api/v1/          # FastAPI роутеры (columns, tasks, workspaces, system, ai, automations, memory)
+├── api/v1/          # FastAPI routers (columns, tasks, workspaces, system, ai, automations, memory)
 ├── core/            # config, watcher, vault_crypto, biometric, fs_store (Obsidian-vault), attach_jobs
 ├── db/              # database.py, models.py
 ├── services/        # task_service, column_service, workspace_service, ai_service, automation_service, memory_service, srs, hardware
-└── schemas/         # Pydantic DTO (task, column, workspace, automation)
+└── schemas/         # Pydantic DTOs (task, column, workspace, automation)
 frontend/
-├── index.html       # точка входа (~1.9k строк)
-├── app.js           # вся логика (~17k строк)
-├── styles.css       # стили (~10k строк)
-└── space.js         # расширение «Пространство» (~1.7k строк)
-iOS/                 # нативное SwiftUI-приложение (iPad/iPhone)
-wrapper.py           # точка входа, менеджмент окна
-main.py              # FastAPI-приложение
-notify_worker.py     # фоновый воркер уведомлений
-build.py             # кросс-платформенный сборщик
-rewrite.py           # AI-рефакторинг через git
-gather_context.py    # сбор контекста кода для AI-диалогов
-dev_stats.py         # статистика разработки
-run_ios.py           # сборка и запуск iOS-версии
-make_dmg.sh          # сборка DMG-образов
+├── index.html       # entry point (~1.9k lines)
+├── app.js           # all logic (~17k lines)
+├── styles.css       # styles (~10k lines)
+└── space.js         # «Space» extension (~1.7k lines)
+iOS/                 # native SwiftUI app (iPad/iPhone)
+wrapper.py           # entry point, window management
+main.py              # FastAPI application
+notify_worker.py     # background notification worker
+build.py             # cross-platform builder
+rewrite.py           # AI-powered refactoring via git
+gather_context.py    # code context collector for AI dialogues
+dev_stats.py         # development statistics
+run_ios.py           # build and run iOS version
+make_dmg.sh          # DMG image builder
 ```
 
 ---
 
 <p align="center">
-  <sub>Сделано с любовью к деталям. Данные — твои. Приватность — абсолютная.</sub>
+  <sub>Crafted with love for detail. Your data is yours. Privacy is absolute.</sub>
 </p>
