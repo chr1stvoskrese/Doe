@@ -1,4 +1,5 @@
-window.addEventListener('scroll', () => { if (window.scrollX !== 0 || window.scrollY !== 0) window.scrollTo(0, 0); });
+// Scroll prevention is handled by CSS (html, body { overflow: hidden })
+
 let state = { columns: [], workspaces: [], activeWorkspaceId: null };
 const API_BASE = '/api/v1';
 window.prioritySettings = { 
@@ -128,6 +129,8 @@ const translations = {
         columnModes: { default: 'Стандартный', track_time: 'Учёт времени', completion: 'Результирующий' },
         defaultWorkspace: 'Начальная вкладка',
         attachments: 'Вложения', addAttachment: '+ Добавить вложение...',
+        copyFragmentLink: 'Скопировать ссылку на фрагмент', fragmentLinkCopied: 'Ссылка скопирована',
+        subtaskFragmentLinkError: 'Ссылка на фрагмент описания не может быть подзадачей',
         missingTooltip: 'Файл не найден. Нажмите, чтобы перепривязать',
         pendingTooltip: 'Ожидаемое вложение. Нажмите, чтобы привязать файл',
         pendingTitle: (name) => `Ожидание файла для [${name}](doe/)`,
@@ -402,6 +405,8 @@ const translations = {
         columnModes: { default: 'Standard', track_time: 'Track time', completion: 'Completed' },
         defaultWorkspace: 'Main Board',
         attachments: 'Attachments', addAttachment: '+ Add attachment...',
+        copyFragmentLink: 'Copy link to fragment', fragmentLinkCopied: 'Link copied',
+        subtaskFragmentLinkError: 'A link to a description fragment cannot be a subtask',
         missingTooltip: 'File not found. Click to relink',
         pendingTooltip: 'Pending attachment. Click to link a file',
         pendingTitle: (name) => `Waiting for file [${name}](doe/)`,
@@ -890,16 +895,32 @@ function initMarkdownWorker() {
             return text.replace(/[&<>"']/g, function(m) { return map[m]; });
         }
 
+        // Obsidian-совместимость: те же функции, что и в главном потоке
+        // (исходник внедряется через .toString, чтобы не было двух копий логики)
+        ${resolveMarkdownAssetSrc.toString()}
+        ${sanitizeRenderedHtml.toString()}
+        ${obsidianPreprocess.toString()}
+
         // Копия вашего парсера, работающая в фоне
-        function parseMarkdownWithMathWorker(text) {
+        function parseMarkdownWithMathWorker(text, _depth = 0) {
             if (!text) return "";
+            if (_depth > 4) return escapeHtml(String(text));
             const mathBlocks = [];
             const codeBlocks = [];
-            
+
             let processed = text.replace(/(\`\`\`[\\s\\S]*?\`\`\`|\`[^\`]*\`)/g, (match) => {
                 codeBlocks.push(match);
                 return \`DOECODEPLACEHOLDER\${codeBlocks.length - 1}END\`;
             });
+
+            const parseInner = (md) => {
+                codeBlocks.forEach((code, ci) => {
+                    md = md.replace(\`DOECODEPLACEHOLDER\${ci}END\`, () => code);
+                });
+                return parseMarkdownWithMathWorker(md, _depth + 1);
+            };
+            const obs = obsidianPreprocess(processed, parseInner);
+            processed = obs.text;
 
             processed = processed.replace(/\\$\\$([\\s\\S]+?)\\$\\$/g, (match, math) => {
                 mathBlocks.push({ math, displayMode: true });
@@ -911,10 +932,10 @@ function initMarkdownWorker() {
                 return \`DOEMATHPLACEHOLDER\${mathBlocks.length - 1}END\`;
             });
 
-            processed = processed.replace(/!\\[([^\\]]*)\\]\\(([^)]+)\\)(?:\\{(\\d+)\\s*,\\s*(\\d+)\\})?/g, (match, alt, url, w, h) => {
+            processed = processed.replace(/!\\[([^\\]]*)\\]\\(([^)]+)\\)(?:\\{(\\d+)\\s*(?:,\\s*(\\d+))?\\})?/g, (match, alt, url, w, h) => {
                 const ext = url.split('.').pop().toLowerCase();
                 const isImage = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'ico'].includes(ext);
-                
+
                 if (!isImage) {
                     return \`[\${alt}](\${url})\`;
                 }
@@ -922,13 +943,13 @@ function initMarkdownWorker() {
                 const safeMatch = escapeHtml(match);
                 let style = '';
                 let customClass = '';
-                
-                if (w && h) {
-                    style = \`width: \${w}px; height: \${h}px;\`;
+
+                if (w) {
+                    style = \`width: \${w}px;\` + (h ? \` height: \${h}px;\` : '');
                     customClass = 'has-custom-size';
                 }
 
-                return \`<span class="image-resizer-wrapper \${customClass}" style="\${style}" data-md="\${safeMatch}"><img src="/\${url}" alt="\${alt}" draggable="false"><span class="image-resize-handle" title="Потяните для изменения размера"></span></span>\`;
+                return \`<span class="image-resizer-wrapper \${customClass}" style="\${style}" data-md="\${safeMatch}"><img src="\${resolveMarkdownAssetSrc(url)}" alt="\${alt}" draggable="false"><span class="image-resize-handle" title="Потяните для изменения размера"></span></span>\`;
             });
 
             // Ссылка с пустым текстом [](путь) — CommonMark рендерит её невидимой.
@@ -965,7 +986,11 @@ function initMarkdownWorker() {
                 });
             }
 
-            return html;
+            obs.blocks.forEach((blockHtml, i) => {
+                html = html.replace(\`DOEOBSBLOCK\${i}END\`, () => blockHtml);
+            });
+
+            return sanitizeRenderedHtml(html);
         }
 
         // Слушатель сообщений от главного потока
@@ -4206,7 +4231,7 @@ document.addEventListener('pointerup', async (e) => {
     
     if (isDragging) {
         window._isAfterDrag = true;
-        setTimeout(() => window._isAfterDrag = false, 50);
+        setTimeout(() => window._isAfterDrag = false, 250);
         await endDrag();
     }
 });
@@ -6290,7 +6315,7 @@ async function loadTaskIntoModal(taskId, pushToStack = true, highlightQuery = nu
             attachmentsList.innerHTML = '';
             extracted.forEach(att => attachmentsList.appendChild(createAttachmentElement(att)));
 
-            const cleanRegex = /(!?)\[[^\]]+\]\(doe\/[^)]+\)!\s*/g;
+            const cleanRegex = /(!?)\[[^\]]*\]\(doe\/[^)]+\)(?:\{[^}]+\})?!\s*/g;
             let readModeText = task.description.replace(cleanRegex, '');
             
             const applyScroll = () => {
@@ -7330,6 +7355,12 @@ function _refreshAllCodeBlocks() {
 }
 
 function enhanceCodeBlocks(container) {
+    // Попутно инициализируем встроенные PDF-ридеры: эта функция вызывается
+    // после каждого рендера описания — единая точка пост-обработки.
+    if (typeof enhancePdfEmbeds === 'function') {
+        try { enhancePdfEmbeds(container); } catch (e) { console.warn('PDF enhance failed:', e); }
+    }
+
     const codeBlocks = Array.from(container.querySelectorAll('pre code'));
 
     codeBlocks.forEach(block => {
@@ -7543,6 +7574,25 @@ async function onAddSubtask() {
     const submit = async () => {
         const rawTitle = input.value.trim();
         if (!rawTitle) { cancel(); return; }
+
+        // Ссылки на ФРАГМЕНТЫ описаний (doe://task/ID#text=...) и прочие
+        // некорректные ссылки на карточки не могут быть подзадачами:
+        // подзадача — это связь с целой карточкой, а не с куском текста.
+        if (/doe:\/\/task\/\d+#/i.test(rawTitle) || /doe:\/\/task\/(?!\d+([)\s]|$))/i.test(rawTitle)) {
+            let hint = formItem.querySelector('.card-error-hint');
+            if (!hint) {
+                hint = document.createElement('div');
+                hint.className = 'card-error-hint';
+                formItem.appendChild(hint);
+            }
+            hint.textContent = t('subtaskFragmentLinkError');
+            formItem.classList.remove('is-error');
+            void formItem.offsetWidth;
+            formItem.classList.add('is-error');
+            setTimeout(() => formItem.classList.remove('is-error'), 400);
+            input.focus({ preventScroll: true });
+            return;
+        }
 
         const linkMatch = rawTitle.match(/\[(.*?)\]\(doe:\/\/task\/(\d+)\)/i) || rawTitle.match(/doe:\/\/task\/(\d+)/i);
         if (linkMatch) {
@@ -8065,8 +8115,14 @@ function initTaskDescriptionLogic() {
         _calibrateEditorHeights();
     };
 
-    const processFileForDescription = async (file) => {
+    // nativePath — настоящий путь файла на диске (если его удалось получить
+    // от нативной обёртки). Тогда файл прикрепляется через /attach-local:
+    // фоновое копирование на сервере, на macOS — мгновенный APFS-клон.
+    // Без нативного пути — потоковая загрузка с прогрессом. Оба пути
+    // работают с файлами любого размера и не блокируют интерфейс.
+    const processFileForDescription = async (file, nativePath = null) => {
         const isEditMode = renderDiv.style.display === 'none';
+        const taskIdAtStart = modal.dataset.taskId;
 
         let fileName = file.name;
         if (!fileName || fileName === 'image.png') {
@@ -8077,20 +8133,21 @@ function initTaskDescriptionLogic() {
         const ext = fileName.split('.').pop().toLowerCase();
         const isImg = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'ico'].includes(ext);
         const prefix = isImg ? '!' : '';
-        const placeholder = `${prefix}[⏳ Загрузка ${fileName}...]()`;
+        const makeLabel = (pct) => pct === null ? `⏳ Загрузка ${fileName}...` : `⏳ Загрузка ${fileName}... ${pct}%`;
+        const placeholder = `${prefix}[${makeLabel(null)}]()`;
 
         let placeholderRange = null;
 
         if (isEditMode) {
             const insertPos = cmEditor.getCursor();
             const textBefore = cmEditor.getRange({line: 0, ch: 0}, insertPos);
-            
+
             let pfx = "";
             if (textBefore.trim() !== "") {
                 if (textBefore.endsWith('\n')) pfx = "\n";
                 else pfx = "\n\n";
             }
-            
+
             const insertText = `${pfx}${placeholder}\n`;
             cmEditor.replaceSelection(insertText);
             cmEditor.focus();
@@ -8108,45 +8165,138 @@ function initTaskDescriptionLogic() {
                 else pfx = "\n\n";
             }
             cmEditor.setValue(text + pfx + placeholder);
-            
+
             const startIdx = text.length + pfx.length;
             placeholderRange = {
                 from: cmEditor.posFromIndex(startIdx),
                 to: cmEditor.posFromIndex(startIdx + placeholder.length)
             };
 
-            const cleanRegex = /(!?)\[[^\]]+\]\(doe\/[^)]+\)!\s*/g;
+            const cleanRegex = /(!?)\[[^\]]*\]\(doe\/[^)]+\)(?:\{[^}]+\})?!\s*/g;
             const tempText = cmEditor.getValue().replace(cleanRegex, '');
             renderDiv.innerHTML = parseMarkdownWithMath(tempText);
             enhanceCodeBlocks(renderDiv);
+
+            // Сразу сохраняем плейсхолдер в описание: если карточку закроют,
+            // пока большой файл копируется, завершение найдёт плейсхолдер в
+            // БД и заменит его на готовую ссылку (finalizeAttachmentInTask).
+            if (taskIdAtStart) {
+                try {
+                    const newText = cmEditor.getValue();
+                    await fetch(`${API_BASE}/tasks/${taskIdAtStart}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ description: newText })
+                    });
+                    for (let col of state.columns) {
+                        const tsk = col.tasks.find(tt => tt.id == taskIdAtStart);
+                        if (tsk) { tsk.description = newText; break; }
+                    }
+                } catch (err) { /* некритично: сохранится при закрытии */ }
+            }
         }
 
-        const formData = new FormData();
-        formData.append('file', file, fileName);
+        // Маркер CodeMirror следит за плейсхолдером, даже если пользователь
+        // редактирует текст выше/ниже, пока файл копируется.
+        let marker = placeholderRange
+            ? cmEditor.markText(placeholderRange.from, placeholderRange.to, {})
+            : null;
+        let currentLabel = makeLabel(null);
+
+        // Заменяет текст плейсхолдера. Возвращает false, если плейсхолдер
+        // уже недоступен (карточку закрыли / открыли другую).
+        const replacePlaceholderWith = (newText) => {
+            if (!marker) return false;
+            const pos = marker.find();
+            if (!pos) { marker = null; return false; }
+            marker.clear();
+            cmEditor.replaceRange(newText, pos.from, pos.to);
+            const endIdx = cmEditor.indexFromPos(pos.from) + newText.length;
+            marker = cmEditor.markText(pos.from, cmEditor.posFromIndex(endIdx), {});
+            return true;
+        };
+
+        const setProgress = (pct) => {
+            const label = makeLabel(pct);
+            replacePlaceholderWith(`${prefix}[${label}]()`);
+            // В режиме чтения обновляем и отрендеренный текст ссылки.
+            if (!isEditMode) {
+                try {
+                    const links = renderDiv.querySelectorAll('a');
+                    for (const a of links) {
+                        if (a.textContent === currentLabel) { a.textContent = label; break; }
+                    }
+                } catch (err) { /* некритично */ }
+            }
+            currentLabel = label;
+        };
 
         try {
-            const res = await fetch(`${API_BASE}/system/upload`, { method: 'POST', body: formData });
-            if (!res.ok) throw new Error('Upload failed');
-            const data = await res.json();
+            let data;
+            if (nativePath) {
+                data = await attachByNativePath(nativePath, setProgress);
+            } else {
+                data = await uploadFileStreaming(file, fileName, setProgress);
+            }
             const encodedPath = encodeMarkdownPath(data.path);
             const finalMarkdown = `${prefix}[${data.name}](${encodedPath})`;
-            
-            if (placeholderRange) {
-                cmEditor.replaceRange(finalMarkdown, placeholderRange.from, placeholderRange.to);
+
+            const replaced = replacePlaceholderWith(finalMarkdown);
+            if (!replaced && taskIdAtStart) {
+                // Редактор уже показывает другую карточку — правим описание
+                // исходной задачи напрямую через API.
+                await finalizeAttachmentInTask(taskIdAtStart, fileName, finalMarkdown);
             }
             refreshAttachmentsList();
         } catch (err) {
-            if (placeholderRange) {
-                cmEditor.replaceRange(`${prefix}[❌ Ошибка: ${fileName}]()`, placeholderRange.from, placeholderRange.to);
+            console.error('Attachment failed:', err);
+            const errorMarkdown = `${prefix}[❌ Ошибка: ${fileName}]()`;
+            const replaced = replacePlaceholderWith(errorMarkdown);
+            if (!replaced && taskIdAtStart) {
+                await finalizeAttachmentInTask(taskIdAtStart, fileName, errorMarkdown);
             }
         }
+        if (marker) { marker.clear(); marker = null; }
 
-        if (isEditMode) {
-            cmEditor.focus();
+        // Пока файл копировался, пользователь мог закрыть карточку или
+        // открыть другую — тогда ничего не трогаем.
+        const stillSameTask = modal.classList.contains('show') && modal.dataset.taskId === taskIdAtStart;
+        if (!stillSameTask) return;
+
+        const nowEditMode = renderDiv.style.display === 'none';
+        if (nowEditMode) {
+            if (isEditMode) cmEditor.focus();
         } else {
-            lastSavedValue = null; 
+            lastSavedValue = null;
             await switchToReadMode();
         }
+    };
+
+    // Вставка ссылки на оригинал файла БЕЗ копирования в хранилище
+    // (Option+DnD на macOS / Ctrl+DnD на Windows — как в Obsidian).
+    // Путь пишется обычным Markdown-синтаксисом [имя](путь), без file:///.
+    const insertExternalFileLink = (absPath) => {
+        const normPath = String(absPath).replace(/\\/g, '/');
+        const baseName = normPath.split('/').pop();
+        const ext = baseName.split('.').pop().toLowerCase();
+        const isImg = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'ico'].includes(ext);
+        const md = `${isImg ? '!' : ''}[${baseName}](${encodeMarkdownPath(normPath)})`;
+
+        const isEditMode = renderDiv.style.display === 'none';
+        if (isEditMode) {
+            const cursor = cmEditor.getCursor();
+            const textBefore = cmEditor.getRange({line: 0, ch: 0}, cursor);
+            let pfx = "";
+            if (textBefore.trim() !== "") pfx = textBefore.endsWith('\n') ? "\n" : "\n\n";
+            cmEditor.replaceSelection(`${pfx}${md}\n`);
+            cmEditor.focus();
+        } else {
+            const text = cmEditor.getValue();
+            let pfx = "";
+            if (text.trim() !== "") pfx = text.endsWith('\n') ? "\n" : "\n\n";
+            cmEditor.setValue(text + pfx + md);
+        }
+        return isEditMode;
     };
 
     const handleFileDrop = async (e) => {
@@ -8155,10 +8305,35 @@ function initTaskDescriptionLogic() {
         dragEnterCount = 0;
         descWrapper.classList.remove('is-drag-over');
 
+        // Option (macOS) / Ctrl (Windows) — вставить ссылку на оригинал
+        // без копирования файла в хранилище (как в Obsidian)
+        const wantLinkOnly = e.altKey || e.ctrlKey;
+
         const files = e.dataTransfer.files;
         if (!files || files.length === 0) return;
+
+        // Нативные пути из обёртки (macOS): позволяют прикрепить файл
+        // без HTTP-загрузки — мгновенный клон или быстрое фоновое копирование.
+        const nativeFiles = await getNativeDropFiles();
+        let needSave = false;
         for (const file of files) {
-            await processFileForDescription(file);
+            const native = takeNativeDropMatch(nativeFiles, file);
+            if (wantLinkOnly) {
+                if (native) {
+                    const wasEdit = insertExternalFileLink(native.path);
+                    if (!wasEdit) needSave = true;
+                    continue;
+                }
+                // Нативный путь недоступен (Windows DnD) — честно предупреждаем
+                // и копируем файл, чтобы вложение не потерялось.
+                if (window.showToast) window.showToast(t('alerts.error'), 'Путь к оригиналу недоступен — файл будет скопирован в хранилище', true);
+            }
+            await processFileForDescription(file, native ? native.path : null);
+        }
+        // Ссылки вставлялись в режиме чтения — сохраняем и перерисовываем
+        if (needSave) {
+            lastSavedValue = null;
+            await switchToReadMode();
         }
     };
 
@@ -8313,7 +8488,7 @@ function initTaskDescriptionLogic() {
         };
 
         if (content.trim()) {
-            const cleanRegex = /(!?)\[[^\]]+\]\(doe\/[^)]+\)!\s*/g;
+            const cleanRegex = /(!?)\[[^\]]*\]\(doe\/[^)]+\)(?:\{[^}]+\})?!\s*/g;
             const cleanContent = content.replace(cleanRegex, '');
             
             renderMarkdownProgressively(cleanContent, renderDiv, {
@@ -8422,28 +8597,127 @@ function initTaskDescriptionLogic() {
 
     renderDiv.addEventListener('dblclick', (e) => {
         if (e.target.tagName === 'A') return;
-        if (e.target.closest('.image-resizer-wrapper')) return; 
+        if (e.target.closest('.image-resizer-wrapper')) return;
+        // Быстрые клики по чекбоксу/медиа не должны открывать редактор
+        if (e.target.closest('input.doe-task-checkbox')) return;
+        if (e.target.closest('.doe-pdf-embed, .doe-video-embed, .doe-audio-embed, .doe-media-embed, details.callout > summary')) return;
         switchToEditMode();
     });
 
+    // Переключение чекбокса - [ ]/- [x] в режиме чтения: правим маркер
+    // в исходном Markdown (по порядковому номеру, код-блоки замаскированы)
+    // и сохраняем описание. Визуально input переключается сам.
+    const toggleTaskCheckbox = async (idx, nowChecked) => {
+        const src = cmEditor.getValue();
+        const masked = src.replace(/```[\s\S]*?```|`[^`\n]*`/g, (m) => m.replace(/\[[ xX]\]/g, '[?]'));
+        const re = /^((?:[ \t]*>)*[ \t]*(?:[-*+]|\d+[.)])[ \t]+\[)([ xX])\]/gm;
+        let n = -1, m, pos = -1;
+        while ((m = re.exec(masked)) !== null) {
+            n++;
+            if (n === idx) { pos = m.index + m[1].length; break; }
+        }
+        if (pos === -1) return;
+
+        const newSrc = src.slice(0, pos) + (nowChecked ? 'x' : ' ') + src.slice(pos + 1);
+        cmEditor.setValue(newSrc);
+        lastSavedValue = newSrc; // рендер уже актуален, повторное сохранение не нужно
+
+        const taskId = parseInt(modal.dataset.taskId);
+        if (!taskId) return;
+        try {
+            await fetch(`${API_BASE}/tasks/${taskId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ description: newSrc })
+            });
+            bumpModalUpdatedDate();
+            for (let col of state.columns) {
+                const tk = col.tasks.find(tt => tt.id == taskId);
+                if (tk) { tk.description = newSrc; break; }
+            }
+        } catch (err) {
+            console.error('Checkbox toggle save failed:', err);
+        }
+    };
+
     renderDiv.addEventListener('click', (e) => {
+        const checkbox = e.target.closest('input.doe-task-checkbox');
+        if (checkbox) {
+            e.stopPropagation();
+            const all = Array.from(renderDiv.querySelectorAll('input.doe-task-checkbox'));
+            toggleTaskCheckbox(all.indexOf(checkbox), checkbox.checked);
+            return;
+        }
         const link = e.target.closest('a');
         if (link) {
             e.preventDefault();
             e.stopPropagation();
             const href = link.getAttribute('href');
             if (!href) return;
+            // Якоря сносок (#doe-fn-...) — плавный скролл внутри описания
+            if (href.startsWith('#')) {
+                const target = renderDiv.querySelector(`[id="${CSS.escape(href.slice(1))}"]`);
+                if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return;
+            }
+            // Вики-ссылка на заметку [[...]] — открываем глобальный поиск
+            if (href.startsWith('doe://wikilink/')) {
+                const name = decodeURIComponent(href.slice('doe://wikilink/'.length));
+                const input = document.getElementById('global-search-input');
+                if (input) {
+                    input.value = name;
+                    input.focus();
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+                return;
+            }
             if (href.startsWith('doe/') || href.startsWith('/doe/')) {
                 const cleanHref = href.startsWith('/') ? href.slice(1) : href;
-                fetch(`${API_BASE}/system/open-file`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({path: decodeURIComponent(cleanHref)}) });
+                const hashIdx = cleanHref.indexOf('#');
+                const filePart = hashIdx === -1 ? cleanHref : cleanHref.slice(0, hashIdx);
+                // PDF со страницей ([цитата](doe/файл.pdf#page=5)) — открываем
+                // встроенный просмотрщик сразу на нужном месте
+                if (hashIdx !== -1 && decodeURIComponent(filePart).toLowerCase().endsWith('.pdf')) {
+                    openPdfOverlay('/' + filePart + cleanHref.slice(hashIdx));
+                    return;
+                }
+                fetch(`${API_BASE}/system/open-file`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({path: decodeURIComponent(filePart)}) });
+                return;
+            }
+            // Относительный путь из Obsidian-заметки (attachments/file.pdf) —
+            // ищем в папке вложений хранилища
+            if (!/^([a-z][a-z0-9+.-]*:|\/)/i.test(href)) {
+                fetch(`${API_BASE}/system/open-file`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({path: 'doe/' + decodeURIComponent(href.split('#')[0])}) });
                 return;
             }
             if (href.startsWith('doe://task/')) {
-                const targetTaskId = parseInt(href.split('/').pop());
+                const rest = href.slice('doe://task/'.length);
+                const hashIdx = rest.indexOf('#');
+                const targetTaskId = parseInt(hashIdx === -1 ? rest : rest.slice(0, hashIdx));
+                let fragText = null;
+                if (hashIdx !== -1) {
+                    const frag = rest.slice(hashIdx + 1);
+                    if (frag.startsWith('text=')) {
+                        try { fragText = decodeURIComponent(frag.slice(5)); } catch (err) { fragText = frag.slice(5); }
+                    }
+                }
+                // Ссылка на фрагмент текущей карточки — просто подсвечиваем
+                if (fragText && parseInt(modal.dataset.taskId) === targetTaskId) {
+                    highlightDescriptionFragment(fragText);
+                    return;
+                }
                 fetch(`${API_BASE}/tasks/${targetTaskId}/context`)
                     .then(res => res.json())
-                    .then(context => { window.navigateToEntityGlobal(context.workspace_id, context.column_id, targetTaskId, null, true); })
+                    .then(context => {
+                        window.navigateToEntityGlobal(context.workspace_id, context.column_id, targetTaskId, null, true);
+                        if (fragText) highlightFragmentWhenReady(targetTaskId, fragText);
+                    })
                     .catch(err => console.error("Не удалось найти карточку", err));
+                return;
+            }
+            // Абсолютный путь на PDF со страницей — встроенный просмотрщик
+            if (/^\//.test(href) && /\.pdf#/i.test(href)) {
+                openPdfOverlay('/localfile' + href);
                 return;
             }
             fetch(`${API_BASE}/system/open-link`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({url: href}) })
@@ -8456,6 +8730,42 @@ function initTaskDescriptionLogic() {
         if (!cmEditor.getValue().trim()) {
             switchToEditMode();
         }
+    });
+
+    // Правый клик по выделенному тексту описания — «Скопировать ссылку
+    // на фрагмент»: markdown-ссылка doe://task/ID#text=..., по клику
+    // открывает карточку и подсвечивает это место (работает и из других карточек)
+    renderDiv.addEventListener('contextmenu', (e) => {
+        const sel = window.getSelection();
+        const selText = sel ? String(sel).trim() : '';
+        if (!selText || selText.length < 2) return;
+        e.preventDefault();
+        e.stopPropagation();
+
+        document.querySelectorAll('.doe-fragment-menu').forEach(m => m.remove());
+        const menu = document.createElement('div');
+        menu.className = 'dropdown-menu doe-fragment-menu show';
+        menu.style.position = 'fixed';
+        menu.style.left = `${Math.min(e.clientX, window.innerWidth - 260)}px`;
+        menu.style.top = `${Math.min(e.clientY, window.innerHeight - 60)}px`;
+        menu.style.zIndex = '10000';
+        const item = document.createElement('button');
+        item.className = 'dropdown-item';
+        item.textContent = '🔗 ' + t('copyFragmentLink');
+        item.addEventListener('click', async () => {
+            const taskId = modal.dataset.taskId;
+            const preview = selText.length > 40 ? selText.slice(0, 40).trim() + '…' : selText;
+            const md = `[«${preview}»](doe://task/${taskId}#text=${encodeURIComponent(selText)})`;
+            await doeCopyText(md);
+            menu.remove();
+            if (window.showToast) window.showToast(t('fragmentLinkCopied'), preview);
+        });
+        menu.appendChild(item);
+        document.body.appendChild(menu);
+        const dismiss = (ev) => {
+            if (!menu.contains(ev.target)) { menu.remove(); document.removeEventListener('mousedown', dismiss, true); }
+        };
+        document.addEventListener('mousedown', dismiss, true);
     });
 
     let preventBlurExit = false;
@@ -8767,7 +9077,7 @@ function initTaskModalDragAndResize() {
             
             if (Math.abs(e.clientX - startX) > 3 || Math.abs(e.clientY - startY) > 3) {
                 window._isAfterDrag = true;
-                setTimeout(() => window._isAfterDrag = false, 50);
+                setTimeout(() => window._isAfterDrag = false, 250);
             }
         }
 
@@ -8785,11 +9095,17 @@ function extractAttachments(desc, savedOrder = []) {
     let cleanDesc = desc.replace(/```[\s\S]*?```/g, '');
     cleanDesc = cleanDesc.replace(/`[^`]*`/g, '');
 
-    const regex = /(!?)\[([^\]]+)\]\((doe\/[^)]*)\)(?:\{[^}]+\})?(!?)/g;
+    // Метка может быть пустой ([](doe/...)), скрытые помечаются хвостовым "!",
+    // #фрагмент (страница PDF и т.п.) не входит в путь вложения.
+    const regex = /(!?)\[([^\]]*)\]\((doe\/[^)#]*)(?:#[^)]*)?\)(?:\{[^}]+\})?(!?)/g;
     let match;
     const attachments = [];
-    
+    const seenPaths = new Set();
+
     while ((match = regex.exec(cleanDesc)) !== null) {
+        // Несколько ссылок на разные страницы одного PDF — одно вложение
+        if (seenPaths.has(match[3])) continue;
+        seenPaths.add(match[3]);
         attachments.push({
             fullMatch: match[0],
             isImage: match[1] === '!',
@@ -8897,12 +9213,13 @@ function createAttachmentElement(att) {
                     input.type = 'file';
                     input.onchange = async () => {
                         if (input.files.length > 0) {
-                            const formData = new FormData();
-                            formData.append('file', input.files[0]);
-                            const res = await fetch(`${API_BASE}/system/upload`, { method: 'POST', body: formData });
-                            if(res.ok) {
-                                const data = await res.json();
+                            try {
+                                // Потоковая загрузка: работает с файлами любого размера.
+                                const f = input.files[0];
+                                const data = await uploadFileStreaming(f, f.name, null);
                                 replaceBrokenAttachment(att, data);
+                            } catch (err) {
+                                console.error('Relink upload failed:', err);
                             }
                         }
                         resolve();
@@ -8912,14 +9229,19 @@ function createAttachmentElement(att) {
             }
 
             if (newAbsPath) {
-                const res = await fetch(`${API_BASE}/system/import-file`, {
-                    method: 'POST', 
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ absolute_path: newAbsPath })
-                });
-                if(res.ok) {
-                    const data = await res.json();
+                // Фоновое копирование с прогрессом прямо в строке вложения
+                // (на macOS в пределах тома — мгновенно).
+                const titleEl = div.querySelector('.subtask-title');
+                const origTitle = titleEl ? titleEl.textContent : '';
+                try {
+                    const data = await attachByNativePath(newAbsPath, (pct) => {
+                        if (titleEl && titleEl.isConnected) titleEl.textContent = `${origTitle} — ${pct}%`;
+                    });
                     replaceBrokenAttachment(att, data);
+                } catch (err) {
+                    console.error('Relink failed:', err);
+                    if (titleEl) titleEl.textContent = origTitle;
+                    if (window.showToast) window.showToast(t('alerts.error'), origTitle, true);
                 }
             }
             return;
@@ -8983,7 +9305,7 @@ function createAttachmentElement(att) {
                             console.error('Failed to save after attachment delete:', err);
                         }
 
-                        const cleanRegex = /(!?)\[[^\]]+\]\(doe\/[^)]+\)!\s*/g;
+                        const cleanRegex = /(!?)\[[^\]]*\]\(doe\/[^)]+\)(?:\{[^}]+\})?!\s*/g;
                         const cleanContent = newText.replace(cleanRegex, '');
                         if (cleanContent.trim()) {
                             renderMarkdownProgressively(cleanContent, renderDiv, {
@@ -9078,7 +9400,7 @@ async function replaceBrokenAttachment(att, newData) {
             }
 
             const renderDiv = document.getElementById('task-desc-render');
-            const cleanRegex = /(!?)\[[^\]]+\]\(doe\/[^)]+\)!\s*/g;
+            const cleanRegex = /(!?)\[[^\]]*\]\(doe\/[^)]+\)(?:\{[^}]+\})?!\s*/g;
             const cleanContent = newText.replace(cleanRegex, '');
             if (cleanContent.trim()) {
                 renderMarkdownProgressively(cleanContent, renderDiv, {
@@ -9093,6 +9415,190 @@ async function replaceBrokenAttachment(att, newData) {
             }
             refreshAttachmentsList();
         }
+    }
+}
+
+// ============================================================
+// 📎 Прикрепление файлов любого размера (200 ГБ+)
+//
+// Два транспорта:
+//   1. Нативный путь (DnD в десктоп-приложении, диалог «+») →
+//      /system/attach-local: сервер копирует файл в фоновом потоке,
+//      на macOS в пределах тома APFS — мгновенный CoW-клон (как
+//      Cmd+C / Cmd+V в Finder). Прогресс поллится.
+//   2. Нет нативного пути (браузер, DnD на Windows, вставка) →
+//      /system/upload-stream: файл уходит сырым телом запроса и пишется
+//      на диск сразу в папку вложений — одна запись, любой размер,
+//      постоянная память. XHR вместо fetch ради события прогресса.
+// ============================================================
+
+function uploadFileStreaming(file, name, onProgress) {
+    return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('PUT', `${API_BASE}/system/upload-stream?name=${encodeURIComponent(name || file.name || 'file')}`);
+        xhr.responseType = 'json';
+        if (xhr.upload && onProgress) {
+            xhr.upload.onprogress = (e) => {
+                if (e.lengthComputable) onProgress(Math.min(99, Math.round(e.loaded / e.total * 100)));
+            };
+        }
+        xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300 && xhr.response) resolve(xhr.response);
+            else reject(new Error(`Upload failed (HTTP ${xhr.status})`));
+        };
+        xhr.onerror = () => reject(new Error('Network error during upload'));
+        xhr.onabort = () => reject(new Error('Upload aborted'));
+        xhr.send(file);
+    });
+}
+
+async function attachByNativePath(absPath, onProgress) {
+    const res = await fetch(`${API_BASE}/system/attach-local`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ absolute_path: absPath })
+    });
+    if (!res.ok) throw new Error('attach-local failed');
+    let job = await res.json();
+    let lastPct = -1;
+    while (job.status === 'running') {
+        await new Promise(r => setTimeout(r, 300));
+        const pr = await fetch(`${API_BASE}/system/attach-progress/${job.job_id}?t=${Date.now()}`);
+        if (!pr.ok) throw new Error('Progress poll failed');
+        job = await pr.json();
+        if (onProgress && job.total > 0) {
+            const pct = Math.min(99, Math.round(job.done / job.total * 100));
+            if (pct !== lastPct) { lastPct = pct; onProgress(pct); }
+        }
+    }
+    if (job.status !== 'done') throw new Error(job.error || 'Copy failed');
+    if (onProgress) onProgress(100);
+    return { path: job.path, name: job.name };
+}
+
+// Пути файлов последнего Drag & Drop, перехваченные нативной обёрткой
+// (macOS). Если недоступно (браузер/Windows) — пустой список, и DnD
+// автоматически идёт через потоковую загрузку.
+async function getNativeDropFiles() {
+    try {
+        if (window.pywebview && window.pywebview.api && window.pywebview.api.get_dropped_files) {
+            const files = await window.pywebview.api.get_dropped_files();
+            if (Array.isArray(files)) return files.filter(f => f && f.path && !f.is_dir);
+        }
+    } catch (e) {
+        console.warn('get_dropped_files failed:', e);
+    }
+    return [];
+}
+
+// Сопоставляет DOM-файл из события drop с нативным путём: сначала по
+// имени и размеру, затем только по имени. Найденный элемент изымается,
+// чтобы два одноимённых файла не получили один и тот же путь.
+function takeNativeDropMatch(nativeFiles, file) {
+    if (!nativeFiles || nativeFiles.length === 0) return null;
+    let idx = nativeFiles.findIndex(nf => nf.name === file.name && nf.size === file.size);
+    if (idx === -1) idx = nativeFiles.findIndex(nf => nf.name === file.name);
+    if (idx === -1) return null;
+    return nativeFiles.splice(idx, 1)[0];
+}
+
+// Финализация вложения, когда редактор уже недоступен (карточка закрыта
+// или открыта другая): меняем плейсхолдер «⏳ …» на финальную ссылку
+// прямо в описании задачи через API.
+async function finalizeAttachmentInTask(taskId, fileName, finalMarkdown) {
+    try {
+        const res = await fetch(`${API_BASE}/tasks/${taskId}`);
+        if (!res.ok) return false;
+        const task = await res.json();
+        const desc = task.description || '';
+        const esc = String(fileName).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const re = new RegExp(`!?\\[⏳ [^\\]]*${esc}[^\\]]*\\]\\(\\)`);
+        if (!re.test(desc)) return false;
+        const newDesc = desc.replace(re, finalMarkdown);
+        await fetch(`${API_BASE}/tasks/${taskId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ description: newDesc })
+        });
+        for (let col of state.columns) {
+            const t = col.tasks.find(t => t.id == taskId);
+            if (t) { t.description = newDesc; break; }
+        }
+        return true;
+    } catch (e) {
+        console.warn('finalizeAttachmentInTask failed:', e);
+        return false;
+    }
+}
+
+// Дописывает готовую ссылку на вложение в конец описания задачи через API —
+// используется, если карточку закрыли, пока файл ещё копировался.
+async function appendAttachmentMarkdownToTask(taskId, name, path) {
+    try {
+        const res = await fetch(`${API_BASE}/tasks/${taskId}`);
+        if (!res.ok) return false;
+        const task = await res.json();
+        const desc = task.description || '';
+        const ext = name.split('.').pop().toLowerCase();
+        const isImg = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'ico'].includes(ext);
+        const md = `${isImg ? '!' : ''}[${name}](${encodeMarkdownPath(path)})`;
+        const pfx = desc.trim() === '' ? '' : (desc.endsWith('\n') ? '\n' : '\n\n');
+        const newDesc = desc + pfx + md;
+        await fetch(`${API_BASE}/tasks/${taskId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ description: newDesc })
+        });
+        for (let col of state.columns) {
+            const t = col.tasks.find(t => t.id == taskId);
+            if (t) { t.description = newDesc; break; }
+        }
+        return true;
+    } catch (e) {
+        console.warn('appendAttachmentMarkdownToTask failed:', e);
+        return false;
+    }
+}
+
+// Прикрепление файла по нативному пути из панели вложений (кнопка «+»
+// и повторная привязка). Прогресс показывается временной строкой в списке
+// вложений; интерфейс не блокируется.
+async function attachNativePathToCurrentTask(absPath) {
+    const baseName = String(absPath).split(/[\\\/]/).pop();
+    const modal = document.getElementById('task-modal');
+    const taskIdAtStart = modal ? modal.dataset.taskId : null;
+
+    const list = document.getElementById('attachments-list');
+    let progressEl = null, titleEl = null;
+    if (list) {
+        progressEl = document.createElement('div');
+        progressEl.className = 'attachment-item is-uploading';
+        progressEl.style.opacity = '0.65';
+        progressEl.innerHTML = `<div class="subtask-checkbox">⏳</div><div class="subtask-title"></div>`;
+        titleEl = progressEl.querySelector('.subtask-title');
+        titleEl.textContent = baseName;
+        list.appendChild(progressEl);
+    }
+
+    try {
+        const result = await attachByNativePath(absPath, (pct) => {
+            if (titleEl && titleEl.isConnected) titleEl.textContent = `${baseName} — ${pct}%`;
+        });
+        if (progressEl) progressEl.remove();
+
+        const stillSameTask = modal && modal.classList.contains('show')
+            && modal.dataset.taskId === taskIdAtStart;
+        if (stillSameTask && document.getElementById('attachments-list')) {
+            appendAttachmentToDescription(result.name, result.path);
+        } else if (taskIdAtStart) {
+            await appendAttachmentMarkdownToTask(taskIdAtStart, result.name, result.path);
+        }
+        return result;
+    } catch (e) {
+        if (progressEl) progressEl.remove();
+        console.error('attachNativePathToCurrentTask failed:', e);
+        if (window.showToast) window.showToast(t('alerts.error'), baseName, true);
+        return null;
     }
 }
 
@@ -9162,7 +9668,7 @@ function appendAttachmentToDescription(name, path) {
                 renderedAtts.forEach(att => attachmentsList.appendChild(createAttachmentElement(att)));
             }
 
-            const cleanRegex = /(!?)\[[^\]]+\]\(doe\/[^)]+\)!\s*/g;
+            const cleanRegex = /(!?)\[[^\]]*\]\(doe\/[^)]+\)(?:\{[^}]+\})?!\s*/g;
             const cleanContent = newText.replace(cleanRegex, '');
             if (cleanContent.trim()) {
                 renderMarkdownProgressively(cleanContent, renderDiv, {
@@ -9178,32 +9684,33 @@ function appendAttachmentToDescription(name, path) {
 
 document.addEventListener('click', async (e) => {
     if (e.target.closest('#btn-add-attachment')) {
-        if (window.pywebview && window.pywebview.api && window.pywebview.api.choose_file) {
-            const absPath = await window.pywebview.api.choose_file();
-            if (absPath) {
-                const res = await fetch(`${API_BASE}/system/import-file`, {
-                    method: 'POST', 
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ absolute_path: absPath })
-                });
-                if(res.ok) {
-                    const data = await res.json();
-                    appendAttachmentToDescription(data.name, data.path);
-                }
+        const api = window.pywebview && window.pywebview.api;
+        if (api && (api.choose_files || api.choose_file)) {
+            // Нативный диалог → настоящие пути → фоновое копирование с
+            // прогрессом (мгновенный клон на macOS). Файлы любого размера.
+            let paths = [];
+            if (api.choose_files) {
+                paths = (await api.choose_files()) || [];
+            } else {
+                const p = await api.choose_file();
+                if (p) paths = [p];
+            }
+            for (const absPath of paths) {
+                await attachNativePathToCurrentTask(absPath);
             }
         } else {
             const input = document.createElement('input');
             input.type = 'file';
+            input.multiple = true;
             input.onchange = async () => {
-                if (input.files.length > 0) {
-                    const formData = new FormData();
-                    formData.append('file', input.files[0]);
-                    const res = await fetch(`${API_BASE}/system/upload`, {
-                        method: 'POST', body: formData
-                    });
-                    if(res.ok) {
-                        const data = await res.json();
+                for (const f of Array.from(input.files || [])) {
+                    // Потоковая загрузка: любой размер, одна запись на диск.
+                    try {
+                        const data = await uploadFileStreaming(f, f.name, null);
                         appendAttachmentToDescription(data.name, data.path);
+                    } catch (err) {
+                        console.error('Upload failed:', err);
+                        if (window.showToast) window.showToast(t('alerts.error'), f.name, true);
                     }
                 }
             };
@@ -12360,15 +12867,194 @@ document.addEventListener('click', async (e) => {
     }
 });
 
-function parseMarkdownWithMath(text) {
+// ============================================================
+// 📖 Совместимость с Obsidian Markdown.
+//
+// Функции ниже самодостаточны (без замыканий на состояние приложения),
+// потому что их исходник через .toString() внедряется и в веб-воркер
+// превью карточек — синтаксис рендерится одинаково везде.
+// ============================================================
+
+// Превращает путь из Markdown в src для <img> / <video>:
+//   doe/файл          → /doe/файл            (вложение хранилища)
+//   относительный     → /doe/относительный   (заметки из Obsidian-вольта)
+//   /абсолютный, C:\  → /localfile/...        (ссылка без копирования)
+//   http(s), data:    → как есть
+function resolveMarkdownAssetSrc(url) {
+    if (/^(https?:|data:|blob:)/i.test(url)) return url;
+    let u = String(url).replace(/^file:\/\//i, '');
+    if (/^[A-Za-z]:[\\/]/.test(u)) return '/localfile/' + u.replace(/\\/g, '/');
+    if (u.startsWith('/')) return '/localfile' + u;
+    if (u.startsWith('doe/')) return '/' + u;
+    return '/doe/' + u;
+}
+
+// Распознаёт ссылки YouTube (watch, youtu.be, shorts, live, embed) и
+// возвращает URL для встраивания (с сохранением стартового времени t=).
+function getYoutubeEmbedUrl(url) {
+    const m = String(url).match(/^https?:\/\/(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?(?:[^#]*&)?v=|shorts\/|live\/|embed\/)|youtu\.be\/)([A-Za-z0-9_-]{6,15})/i);
+    if (!m) return null;
+    const t = String(url).match(/[?&](?:t|start)=(\d+)/);
+    return 'https://www.youtube.com/embed/' + m[1] + (t ? '?start=' + t[1] : '');
+}
+
+// HTML в заметках разрешён (как в Obsidian), но скрипты не исполняются:
+// вырезаем <script>, inline-обработчики on* и javascript:-ссылки.
+// Экранированный код внутри <code> не трогаем — чистим только сами теги.
+function sanitizeRenderedHtml(html) {
+    return String(html)
+        .replace(/<script\b[\s\S]*?<\/script\s*>/gi, '')
+        .replace(/<script\b[^>]*\/?>/gi, '')
+        .replace(/<([a-zA-Z][^>]*)>/g, (tag) => tag
+            .replace(/\son\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '')
+            .replace(/(href|src)\s*=\s*(["']?)\s*javascript:[^"'>\s]*/gi, '$1=$2#'));
+}
+
+// Препроцессор Obsidian-синтаксиса. Вызывается ПОСЛЕ вырезания код-блоков.
+// parseInner(md) — рекурсивный парсер для содержимого callout'ов и сносок.
+// Возвращает { text, blocks }: text — изменённый markdown, blocks — готовые
+// HTML-куски, подставляемые после marked.parse по плейсхолдерам DOEOBSBLOCKnEND.
+function obsidianPreprocess(text, parseInner) {
+    const blocks = [];
+    const put = (html) => {
+        blocks.push(html);
+        return '\n\nDOEOBSBLOCK' + (blocks.length - 1) + 'END\n\n';
+    };
+    const encPath = (p) => encodeURIComponent(p).replace(/%2F/g, '/');
+    const escHtml = (s) => String(s).replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m]));
+
+    let processed = String(text);
+
+    // ---- %%Комментарии%% — не показываются в предпросмотре ----
+    processed = processed.replace(/%%[\s\S]*?%%/g, '');
+
+    // ---- Сноски: определения [^id]: текст (+ продолжения с отступом) ----
+    const footnotes = {};
+    const footnoteOrder = [];
+    processed = processed.replace(/^\[\^([^\]\s]+)\]:[ \t]*(.*(?:\n[ \t]+[^\n]*)*)/gm, (m, id, def) => {
+        footnotes[id] = def.replace(/\n[ \t]+/g, '\n').trim();
+        return '';
+    });
+    // Ссылки на сноски [^id] → номерок-надстрочник
+    processed = processed.replace(/\[\^([^\]\s]+)\]/g, (m, id) => {
+        if (!(id in footnotes)) return m;
+        let n = footnoteOrder.indexOf(id);
+        if (n === -1) { footnoteOrder.push(id); n = footnoteOrder.length - 1; }
+        return '<sup class="doe-footnote-ref"><a href="#doe-fn-' + encPath(id) + '" id="doe-fnref-' + encPath(id) + '">' + (n + 1) + '</a></sup>';
+    });
+
+    // ---- Размеры картинок Obsidian: ![alt|300](url), ![alt|300x200](url) ----
+    processed = processed.replace(/!\[([^\]|]*)\|(\d+)(?:x(\d+))?\]\(([^)]+)\)/g, (m, alt, w, h, url) => {
+        return '![' + alt + '](' + url + '){' + w + (h ? ',' + h : '') + '}';
+    });
+
+    // ---- Вики-встраивания ![[файл]] и ![[файл|300]] / ![[файл|300x200]] ----
+    processed = processed.replace(/!\[\[([^\]|#\n]+)(?:#[^\]|\n]*)?(?:\|([^\]\n]+))?\]\]/g, (m, target, alias) => {
+        const name = target.trim();
+        const size = alias && /^\d+(x\d+)?$/.test(alias.trim()) ? alias.trim() : null;
+        const label = (!size && alias) ? alias.trim() : name;
+        const sizeSuffix = size ? '{' + size.replace('x', ',') + '}' : '';
+        return '![' + label + '](doe/' + encPath(name) + ')' + sizeSuffix;
+    });
+
+    // ---- Вики-ссылки [[цель]], [[цель|текст]], [[цель#заголовок]] ----
+    processed = processed.replace(/\[\[([^\]|#\n]+)(?:#[^\]|\n]*)?(?:\|([^\]\n]+))?\]\]/g, (m, target, alias) => {
+        const name = target.trim();
+        const label = (alias || name).trim();
+        // Есть расширение файла → это вложение
+        if (/\.[A-Za-z0-9]{1,8}$/.test(name)) {
+            return '[' + label + '](doe/' + encPath(name) + ')';
+        }
+        // Иначе — ссылка на заметку/карточку: клик открывает глобальный поиск
+        return '<a class="doe-wikilink" href="doe://wikilink/' + encPath(name) + '">' + escHtml(label) + '</a>';
+    });
+
+    // ---- ==Подсветка== ----
+    processed = processed.replace(/==([^=\n]+)==/g, '<mark>$1</mark>');
+
+    // ---- Callout-блоки: > [!type][+|-] Заголовок ----
+    const CALLOUTS = {
+        note: ['note', '📝'], abstract: ['abstract', '📋'], summary: ['abstract', '📋'], tldr: ['abstract', '📋'],
+        info: ['info', 'ℹ️'], todo: ['todo', '☑️'],
+        tip: ['tip', '💡'], hint: ['tip', '💡'], important: ['tip', '💡'],
+        success: ['success', '✅'], check: ['success', '✅'], done: ['success', '✅'],
+        question: ['question', '❓'], help: ['question', '❓'], faq: ['question', '❓'],
+        warning: ['warning', '⚠️'], caution: ['warning', '⚠️'], attention: ['warning', '⚠️'],
+        failure: ['failure', '❌'], fail: ['failure', '❌'], missing: ['failure', '❌'],
+        danger: ['danger', '⚡'], error: ['danger', '⚡'],
+        bug: ['bug', '🐞'], example: ['example', '🧪'],
+        quote: ['quote', '❝'], cite: ['quote', '❝']
+    };
+    const lines = processed.split('\n');
+    const out = [];
+    let i = 0;
+    while (i < lines.length) {
+        const calloutStart = lines[i].match(/^\s*>\s*\[!([A-Za-z-]+)\]([+-])?\s*(.*)$/);
+        if (calloutStart && CALLOUTS[calloutStart[1].toLowerCase()]) {
+            const group = [];
+            while (i < lines.length && /^\s*>/.test(lines[i])) { group.push(lines[i]); i++; }
+            const type = calloutStart[1].toLowerCase();
+            const fold = calloutStart[2] || '';
+            const meta = CALLOUTS[type];
+            const title = calloutStart[3].trim() || type.charAt(0).toUpperCase() + type.slice(1);
+            const inner = group.slice(1).map(l => l.replace(/^\s*>\s?/, '')).join('\n');
+            const contentHtml = inner.trim() && typeof parseInner === 'function'
+                ? '<div class="callout-content">' + parseInner(inner) + '</div>' : '';
+            const titleInner = '<span class="callout-icon">' + meta[1] + '</span><span class="callout-title-text">' + escHtml(title) + '</span>';
+            let html;
+            if (fold) {
+                html = '<details class="callout callout-' + meta[0] + ' is-collapsible"' + (fold === '+' ? ' open' : '') + '>'
+                    + '<summary class="callout-title">' + titleInner + '<span class="callout-fold">›</span></summary>' + contentHtml + '</details>';
+            } else {
+                html = '<div class="callout callout-' + meta[0] + '">'
+                    + '<div class="callout-title">' + titleInner + '</div>' + contentHtml + '</div>';
+            }
+            out.push(put(html));
+        } else {
+            out.push(lines[i]);
+            i++;
+        }
+    }
+    processed = out.join('\n');
+
+    // ---- Секция сносок в конце заметки ----
+    if (footnoteOrder.length) {
+        let fnHtml = '<section class="doe-footnotes"><ol>';
+        for (const id of footnoteOrder) {
+            const body = typeof parseInner === 'function' ? parseInner(footnotes[id]) : escHtml(footnotes[id]);
+            fnHtml += '<li id="doe-fn-' + encPath(id) + '">' + body
+                + '<a class="doe-footnote-backref" href="#doe-fnref-' + encPath(id) + '">↩</a></li>';
+        }
+        fnHtml += '</ol></section>';
+        processed += put(fnHtml);
+    }
+
+    return { text: processed, blocks };
+}
+
+function parseMarkdownWithMath(text, _depth = 0) {
     if (!text) return "";
+    // Защита от бесконечной рекурсии (callout внутри callout внутри...)
+    if (_depth > 4) return escapeHtml(String(text));
     const mathBlocks = [];
     const codeBlocks = [];
-    
+
     let processed = text.replace(/(```[\s\S]*?```|`[^`]*`)/g, (match) => {
         codeBlocks.push(match);
         return `DOECODEPLACEHOLDER${codeBlocks.length - 1}END`;
     });
+
+    // Obsidian-синтаксис: callouts, сноски, вики-ссылки, ==подсветка==,
+    // %%комментарии%%, размеры картинок |300. Содержимое callout'ов и сносок
+    // парсится рекурсивно (с возвратом вырезанных код-блоков).
+    const parseInner = (md) => {
+        codeBlocks.forEach((code, ci) => {
+            md = md.replace(`DOECODEPLACEHOLDER${ci}END`, () => code);
+        });
+        return parseMarkdownWithMath(md, _depth + 1);
+    };
+    const obs = obsidianPreprocess(processed, parseInner);
+    processed = obs.text;
 
     processed = processed.replace(/\$\$([\s\S]+?)\$\$/g, (match, math) => {
         mathBlocks.push({ math, displayMode: true });
@@ -12380,10 +13066,42 @@ function parseMarkdownWithMath(text) {
         return `DOEMATHPLACEHOLDER${mathBlocks.length - 1}END`;
     });
 
-    processed = processed.replace(/!\[([^\]]*)\]\(([^)]+)\)(?:\{(\d+)\s*,\s*(\d+)\})?/g, (match, alt, url, w, h) => {
-        const ext = url.split('.').pop().toLowerCase();
+    // Медиа-встраивания ![метка](путь){w,h}: изображения, видео, аудио,
+    // PDF (в т.ч. с #page=N) и YouTube. Размер {w,h} или {w} (высота
+    // автоматически — как |300 в Obsidian).
+    processed = processed.replace(/!\[([^\]]*)\]\(([^)]+)\)(?:\{(\d+)\s*(?:,\s*(\d+))?\})?/g, (match, alt, url, w, h) => {
+        // Отделяем #фрагмент (например, страницу PDF) от пути к файлу,
+        // чтобы он не ломал определение расширения.
+        const hashIdx = url.indexOf('#');
+        const path = hashIdx === -1 ? url : url.slice(0, hashIdx);
+        const frag = hashIdx === -1 ? '' : url.slice(hashIdx);
+        const ext = path.split('.').pop().toLowerCase();
+
+        // YouTube: ![](https://youtube.com/watch?v=...) → встроенный плеер
+        const yt = getYoutubeEmbedUrl(url);
+        if (yt) {
+            const style = w ? ` style="width: ${w}px; height: ${h ? h + 'px' : Math.round(w * 9 / 16) + 'px'};"` : '';
+            return `<span class="doe-media-embed doe-youtube-embed"${style}><iframe src="${yt}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen loading="lazy"></iframe></span>`;
+        }
+
         const isImage = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'ico'].includes(ext);
-        
+        const isVideo = ['mp4', 'webm', 'mov', 'm4v', 'ogv'].includes(ext);
+        const isAudio = ['mp3', 'wav', 'm4a', 'flac', 'ogg', 'aac', 'opus'].includes(ext);
+
+        if (isVideo) {
+            const style = w ? ` style="width: ${w}px;${h ? ` height: ${h}px;` : ''}"` : '';
+            return `<video class="doe-video-embed" controls preload="metadata" src="${resolveMarkdownAssetSrc(path)}"${style}></video>`;
+        }
+        if (isAudio) {
+            return `<audio class="doe-audio-embed" controls preload="metadata" src="${resolveMarkdownAssetSrc(path)}"></audio>`;
+        }
+        if (ext === 'pdf') {
+            const style = `width: ${w ? w + 'px' : '100%'}; height: ${h ? h + 'px' : '520px'};`;
+            const pageM = frag.match(/page=(\d+)/);
+            // Плейсхолдер: кастомный ридер на PDF.js инициализируется после
+            // рендера (enhancePdfEmbeds), офлайн-фолбэк — нативный iframe.
+            return `<div class="doe-pdf-embed doe-pdf-host" data-pdf-src="${resolveMarkdownAssetSrc(path)}" data-pdf-page="${pageM ? pageM[1] : 1}" style="${style}" title="${escapeHtml(alt || path)}"></div>`;
+        }
         if (!isImage) {
             return `[${alt}](${url})`;
         }
@@ -12391,13 +13109,13 @@ function parseMarkdownWithMath(text) {
         const safeMatch = escapeHtml(match);
         let style = '';
         let customClass = '';
-        
-        if (w && h) {
-            style = `width: ${w}px; height: ${h}px;`;
+
+        if (w) {
+            style = `width: ${w}px;` + (h ? ` height: ${h}px;` : '');
             customClass = 'has-custom-size';
         }
 
-        return `<span class="image-resizer-wrapper ${customClass}" style="${style}" data-md="${safeMatch}"><img src="/${url}" alt="${alt}" draggable="false"><span class="image-resize-handle" title="Потяните для изменения размера"></span></span>`;
+        return `<span class="image-resizer-wrapper ${customClass}" style="${style}" data-md="${safeMatch}"><img src="${resolveMarkdownAssetSrc(path)}" alt="${alt}" draggable="false"><span class="image-resize-handle" title="Потяните для изменения размера"></span></span>`;
     });
 
     // Ссылка с пустым текстом [](путь) — CommonMark рендерит её невидимой.
@@ -12434,7 +13152,411 @@ function parseMarkdownWithMath(text) {
         });
     }
 
-    return html;
+    // Готовые HTML-блоки Obsidian-синтаксиса (callouts, сноски)
+    obs.blocks.forEach((blockHtml, i) => {
+        html = html.replace(`DOEOBSBLOCK${i}END`, () => blockHtml);
+    });
+
+    // Чекбоксы задач (- [ ]) делаем кликабельными: marked отдаёт их
+    // disabled, включаем и помечаем классом — клик в режиме чтения
+    // переключает [ ]/[x] прямо в тексте описания (как в Obsidian).
+    html = html.replace(/<input (checked="" )?disabled="" type="checkbox">/g,
+        (m, chk) => `<input ${chk || ''}class="doe-task-checkbox" type="checkbox">`);
+
+    return sanitizeRenderedHtml(html);
+}
+
+// ============================================================
+// 🔗 Ссылки на фрагменты: текст описаний карточек и страницы PDF
+// ============================================================
+
+async function doeCopyText(text) {
+    try {
+        if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(text);
+        } else {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed";
+            textArea.style.opacity = "0";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            document.execCommand('copy');
+            textArea.remove();
+        }
+        return true;
+    } catch (err) {
+        console.error("Copy failed:", err);
+        return false;
+    }
+}
+
+// Встроенный просмотрщик PDF: открывается по ссылкам вида
+// [цитата](doe/файл.pdf#page=5) прямо в приложении на нужной странице.
+// Внутри — кастомный ридер на PDF.js (см. createDoePdfViewer).
+function openPdfOverlay(src) {
+    let ov = document.getElementById('doe-pdf-overlay');
+    if (!ov) {
+        ov = document.createElement('div');
+        ov.id = 'doe-pdf-overlay';
+        ov.innerHTML = `
+            <div class="doe-pdf-overlay-backdrop"></div>
+            <div class="doe-pdf-overlay-panel">
+                <button class="doe-pdf-overlay-close" title="Esc">✕</button>
+                <div class="doe-pdf-overlay-host"></div>
+            </div>`;
+        document.body.appendChild(ov);
+        ov.querySelector('.doe-pdf-overlay-backdrop').addEventListener('click', closePdfOverlay);
+        ov.querySelector('.doe-pdf-overlay-close').addEventListener('click', closePdfOverlay);
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && ov.classList.contains('show')) {
+                e.stopPropagation();
+                closePdfOverlay();
+            }
+        }, true);
+    }
+    const hashIdx = src.indexOf('#');
+    const cleanSrc = hashIdx === -1 ? src : src.slice(0, hashIdx);
+    const pageM = hashIdx === -1 ? null : src.slice(hashIdx).match(/page=(\d+)/);
+    const host = ov.querySelector('.doe-pdf-overlay-host');
+    host.innerHTML = '';
+    ov.classList.add('show');
+    createDoePdfViewer(host, cleanSrc, pageM ? parseInt(pageM[1]) : 1);
+}
+
+function closePdfOverlay() {
+    const ov = document.getElementById('doe-pdf-overlay');
+    if (!ov) return;
+    ov.classList.remove('show');
+    // Освобождаем документ PDF.js
+    const host = ov.querySelector('.doe-pdf-overlay-host');
+    if (host) setTimeout(() => { if (!ov.classList.contains('show')) { host.innerHTML = ''; _cleanupPdfDocs(); } }, 300);
+}
+
+// Ищет фразу в отрендеренном описании, подсвечивает и скроллит к ней.
+// Если точного совпадения нет (фраза пересекает форматирование) —
+// пробует более короткие префиксы.
+function highlightDescriptionFragment(text) {
+    const renderDiv = document.getElementById('task-desc-render');
+    if (!renderDiv || !text) return false;
+
+    const tryFind = (needle) => {
+        needle = needle.toLowerCase();
+        if (!needle) return null;
+        const walker = document.createTreeWalker(renderDiv, NodeFilter.SHOW_TEXT, null, false);
+        let node;
+        while ((node = walker.nextNode())) {
+            const idx = node.nodeValue.toLowerCase().indexOf(needle);
+            if (idx !== -1) {
+                const range = new Range();
+                range.setStart(node, idx);
+                range.setEnd(node, idx + needle.length);
+                return range;
+            }
+        }
+        return null;
+    };
+
+    const words = String(text).trim().split(/\s+/);
+    let range = tryFind(String(text).trim());
+    if (!range && words.length > 5) range = tryFind(words.slice(0, 5).join(' '));
+    if (!range && words.length > 1) range = tryFind(words[0]);
+    if (!range) return false;
+
+    if (window.CSS && CSS.highlights) {
+        CSS.highlights.set('doe-fragment', new Highlight(range));
+        setTimeout(() => { try { CSS.highlights.delete('doe-fragment'); } catch (e) {} }, 3000);
+    }
+    const el = range.startContainer.parentElement;
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return true;
+}
+
+// Ждёт открытия карточки (после navigateToEntityGlobal) и подсвечивает фрагмент.
+function highlightFragmentWhenReady(taskId, text, attempts = 25) {
+    const modal = document.getElementById('task-modal');
+    const tick = (left) => {
+        if (left <= 0) return;
+        const ready = modal && modal.classList.contains('show')
+            && parseInt(modal.dataset.taskId) === parseInt(taskId)
+            && document.getElementById('task-desc-render')
+            && document.getElementById('task-desc-render').textContent.trim() !== '';
+        if (ready && highlightDescriptionFragment(text)) return;
+        setTimeout(() => tick(left - 1), 200);
+    };
+    tick(attempts);
+}
+
+// ============================================================
+// 📄 Кастомный PDF-ридер на PDF.js (тот же движок, что в Obsidian).
+// Библиотека скачивается один раз в локальный кэш (~/.doe/vendor),
+// дальше работает офлайн. Если недоступна — нативный фолбэк WebView.
+// ============================================================
+
+let _pdfjsLoadPromise = null;
+function loadPdfJs() {
+    if (window.pdfjsLib) return Promise.resolve(true);
+    if (_pdfjsLoadPromise) return _pdfjsLoadPromise;
+    _pdfjsLoadPromise = (async () => {
+        try {
+            const st = await fetch(`${API_BASE}/system/ensure-pdfjs`, { method: 'POST' }).then(r => r.json());
+            if (!st.ready) throw new Error('PDF.js not available');
+            await new Promise((resolve, reject) => {
+                const s = document.createElement('script');
+                s.src = '/vendor/pdfjs/pdf.min.js';
+                s.onload = resolve;
+                s.onerror = () => reject(new Error('script load failed'));
+                document.head.appendChild(s);
+            });
+            if (!window.pdfjsLib) throw new Error('pdfjsLib missing');
+            pdfjsLib.GlobalWorkerOptions.workerSrc = '/vendor/pdfjs/pdf.worker.min.js';
+            return true;
+        } catch (e) {
+            console.warn('[PDF.js]', e.message || e);
+            _pdfjsLoadPromise = null; // позволит повторить попытку позже
+            return false;
+        }
+    })();
+    return _pdfjsLoadPromise;
+}
+
+// Реестр открытых документов — освобождаем память, когда host-элемент
+// исчезает из DOM (перерисовка описания, закрытие оверлея).
+const _doePdfDocs = new Set();
+function _cleanupPdfDocs() {
+    for (const entry of Array.from(_doePdfDocs)) {
+        if (!entry.el.isConnected) {
+            try { entry.doc.destroy(); } catch (e) {}
+            _doePdfDocs.delete(entry);
+        }
+    }
+}
+
+async function createDoePdfViewer(container, src, initialPage = 1) {
+    const L = (ru, en) => ((typeof currentLang !== 'undefined' && currentLang === 'en') ? en : ru);
+    container.innerHTML = `<div class="doe-pdfv-msg">${L('Загрузка PDF…', 'Loading PDF…')}</div>`;
+
+    const ok = await loadPdfJs();
+    if (!ok) {
+        // Офлайн при первом использовании — нативный просмотрщик WebView
+        container.innerHTML = `<iframe class="doe-pdf-native" src="${src}${initialPage > 1 ? '#page=' + initialPage : ''}" title="PDF"></iframe>`;
+        return null;
+    }
+
+    let doc;
+    try {
+        doc = await pdfjsLib.getDocument({ url: src }).promise;
+    } catch (e) {
+        container.innerHTML = `<div class="doe-pdfv-msg">${L('Не удалось открыть PDF', 'Failed to open PDF')}</div>`;
+        return null;
+    }
+    _doePdfDocs.add({ el: container, doc });
+
+    container.classList.add('doe-pdfv');
+    container.innerHTML = `
+        <div class="doe-pdfv-toolbar">
+            <button data-act="prev" title="${L('Предыдущая страница', 'Previous page')}">‹</button>
+            <span class="doe-pdfv-pageinfo"><input class="doe-pdfv-pagenum" type="text" inputmode="numeric" value="1"><span class="doe-pdfv-pagecount">/ ${doc.numPages}</span></span>
+            <button data-act="next" title="${L('Следующая страница', 'Next page')}">›</button>
+            <span class="doe-pdfv-sep"></span>
+            <button data-act="zoomout" title="−">−</button>
+            <span class="doe-pdfv-zoomlabel">100%</span>
+            <button data-act="zoomin" title="+">+</button>
+            <button data-act="fit" title="${L('По ширине', 'Fit width')}">⛶</button>
+            <span class="doe-pdfv-spacer"></span>
+            <button data-act="open" title="${L('Открыть в системном приложении', 'Open in system app')}">↗</button>
+        </div>
+        <div class="doe-pdfv-scroll"></div>`;
+
+    const scroll = container.querySelector('.doe-pdfv-scroll');
+    const pageInput = container.querySelector('.doe-pdfv-pagenum');
+    const zoomLabel = container.querySelector('.doe-pdfv-zoomlabel');
+
+    const firstPage = await doc.getPage(1);
+    const baseVp = firstPage.getViewport({ scale: 1 });
+    const fitScale = () => Math.max(0.2, (scroll.clientWidth - 20) / baseVp.width);
+
+    let scale = fitScale();
+    let fitMode = true;
+    const pages = [];
+
+    for (let i = 1; i <= doc.numPages; i++) {
+        const el = document.createElement('div');
+        el.className = 'doe-pdfv-page';
+        el.dataset.page = i;
+        el.style.width = Math.floor(baseVp.width * scale) + 'px';
+        el.style.height = Math.floor(baseVp.height * scale) + 'px';
+        scroll.appendChild(el);
+        pages.push({ el, num: i, renderedScale: 0, rendering: false, vpRatio: baseVp.height / baseVp.width });
+    }
+
+    const dpr = () => Math.min(window.devicePixelRatio || 1, 3);
+
+    async function renderPage(p) {
+        if (p.rendering || p.renderedScale === scale) return;
+        p.rendering = true;
+        try {
+            const page = await doc.getPage(p.num);
+            const targetScale = scale; // фиксируем на время рендера
+            const vp = page.getViewport({ scale: targetScale });
+            const k = dpr();
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.floor(vp.width * k);
+            canvas.height = Math.floor(vp.height * k);
+            canvas.style.width = Math.floor(vp.width) + 'px';
+            canvas.style.height = Math.floor(vp.height) + 'px';
+            await page.render({
+                canvasContext: canvas.getContext('2d'),
+                viewport: vp,
+                transform: k !== 1 ? [k, 0, 0, k, 0, 0] : null
+            }).promise;
+
+            // Текстовый слой — выделение и копирование текста, как в Obsidian
+            let textLayer = null;
+            try {
+                const tc = await page.getTextContent();
+                textLayer = document.createElement('div');
+                textLayer.className = 'textLayer';
+                textLayer.style.setProperty('--scale-factor', vp.scale);
+                await pdfjsLib.renderTextLayer({ textContentSource: tc, container: textLayer, viewport: vp }).promise;
+            } catch (e) { textLayer = null; }
+
+            p.el.style.width = Math.floor(vp.width) + 'px';
+            p.el.style.height = Math.floor(vp.height) + 'px';
+            p.el.innerHTML = '';
+            p.el.appendChild(canvas);
+            if (textLayer) p.el.appendChild(textLayer);
+            p.vpRatio = vp.height / vp.width;
+            p.renderedScale = targetScale;
+        } catch (e) {
+            console.warn('[PDF.js] page render failed:', e);
+        } finally {
+            p.rendering = false;
+            // масштаб успел смениться — перерендерим актуальным
+            if (p.renderedScale !== scale && p.el.isConnected && isPageVisible(p)) renderPage(p);
+        }
+    }
+
+    const isPageVisible = (p) => {
+        const r = p.el.getBoundingClientRect();
+        const s = scroll.getBoundingClientRect();
+        return r.bottom > s.top - 600 && r.top < s.bottom + 600;
+    };
+
+    const io = new IntersectionObserver((entries) => {
+        for (const en of entries) {
+            if (en.isIntersecting) renderPage(pages[+en.target.dataset.page - 1]);
+        }
+    }, { root: scroll, rootMargin: '600px' });
+    pages.forEach(p => io.observe(p.el));
+
+    let rerenderTimer = null;
+    const setScale = (newScale, keepFit = false) => {
+        newScale = Math.min(6, Math.max(0.2, newScale));
+        if (!keepFit) fitMode = false;
+        const ratio = newScale / scale;
+        scale = newScale;
+        zoomLabel.textContent = Math.round(scale / fitScale() * 100) + '%';
+        // мгновенный визуальный отклик — CSS-растяжение, чёткий перерендер следом
+        for (const p of pages) {
+            const wNow = parseFloat(p.el.style.width) * ratio;
+            p.el.style.width = Math.floor(wNow) + 'px';
+            p.el.style.height = Math.floor(wNow * p.vpRatio) + 'px';
+            const c = p.el.querySelector('canvas');
+            if (c) { c.style.width = '100%'; c.style.height = '100%'; }
+            const tl = p.el.querySelector('.textLayer');
+            if (tl) tl.style.setProperty('--scale-factor', scale);
+        }
+        clearTimeout(rerenderTimer);
+        rerenderTimer = setTimeout(() => {
+            pages.forEach(p => { if (isPageVisible(p)) renderPage(p); });
+        }, 180);
+    };
+
+    const currentPage = () => {
+        const sTop = scroll.getBoundingClientRect().top;
+        for (const p of pages) {
+            if (p.el.getBoundingClientRect().bottom > sTop + 40) return p.num;
+        }
+        return doc.numPages;
+    };
+    const gotoPage = (n) => {
+        n = Math.min(doc.numPages, Math.max(1, n));
+        pages[n - 1].el.scrollIntoView({ block: 'start' });
+        pageInput.value = n;
+    };
+
+    scroll.addEventListener('scroll', () => {
+        if (document.activeElement !== pageInput) pageInput.value = currentPage();
+    }, { passive: true });
+
+    container.querySelector('.doe-pdfv-toolbar').addEventListener('click', (e) => {
+        const btn = e.target.closest('button');
+        if (!btn) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const act = btn.dataset.act;
+        if (act === 'prev') gotoPage(currentPage() - 1);
+        else if (act === 'next') gotoPage(currentPage() + 1);
+        else if (act === 'zoomin') setScale(scale * 1.2);
+        else if (act === 'zoomout') setScale(scale / 1.2);
+        else if (act === 'fit') { fitMode = true; setScale(fitScale(), true); }
+        else if (act === 'open') {
+            if (src.startsWith('/doe/')) {
+                fetch(`${API_BASE}/system/open-file`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ path: decodeURIComponent(src.slice(1)) }) });
+            } else {
+                fetch(`${API_BASE}/system/open-link`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: decodeURIComponent(src.replace(/^\/localfile/, '')) }) });
+            }
+        }
+    });
+
+    pageInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); gotoPage(parseInt(pageInput.value) || 1); pageInput.blur(); }
+        e.stopPropagation();
+    });
+
+    // Зум внутри ридера: Ctrl+колесо (Windows) — pinch на трекпаде macOS
+    // приходит как жест (см. ниже). Не даём событию уйти в зум заметки.
+    scroll.addEventListener('wheel', (e) => {
+        if (!e.ctrlKey) return;
+        e.preventDefault();
+        e.stopPropagation();
+        setScale(scale * (e.deltaY < 0 ? 1.1 : 1 / 1.1));
+    }, { passive: false });
+    let gestureStartScale = null;
+    scroll.addEventListener('gesturestart', (e) => { e.preventDefault(); e.stopPropagation(); gestureStartScale = scale; });
+    scroll.addEventListener('gesturechange', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (gestureStartScale) setScale(gestureStartScale * e.scale);
+    });
+    scroll.addEventListener('gestureend', (e) => { e.stopPropagation(); gestureStartScale = null; });
+
+    // Пересчёт "по ширине" при изменении размеров контейнера
+    if (window.ResizeObserver) {
+        const ro = new ResizeObserver(() => {
+            if (fitMode && scroll.isConnected && scroll.clientWidth > 0) setScale(fitScale(), true);
+        });
+        ro.observe(scroll);
+    }
+
+    zoomLabel.textContent = '100%';
+    if (initialPage > 1) {
+        // даём страницам построиться, затем прыгаем
+        requestAnimationFrame(() => gotoPage(initialPage));
+    }
+    return { doc, gotoPage };
+}
+
+// Инициализация встроенных PDF в отрендеренном описании
+function enhancePdfEmbeds(container) {
+    _cleanupPdfDocs();
+    if (!container || !container.querySelectorAll) return;
+    container.querySelectorAll('.doe-pdf-host:not(.doe-pdfv-inited)').forEach(el => {
+        el.classList.add('doe-pdfv-inited');
+        createDoePdfViewer(el, el.dataset.pdfSrc, parseInt(el.dataset.pdfPage) || 1);
+    });
 }
 
 function initLocalSearchLogic() {

@@ -187,8 +187,8 @@ html, body {
     -o-user-drag: none;
     margin: 0;
     padding: 0;
-    height: 100vh;
-    width: 100vw;
+    height: 100%;
+    width: 100%;
 
     background-color: var(--bg-canvas);
 }
@@ -314,7 +314,7 @@ body {
 	    top: 0;
 	    left: 0;
 	    width: 100vw;
-	    height: 100vh;
+	    height: 100%;
 	    pointer-events: none; /* Абсолютно прозрачно для кликов */
 	    z-index: 2147483647;  /* Поверх ВСЕГО, включая модалки и всплывашки */
 	    
@@ -9878,3 +9878,246 @@ body:has(.modal-overlay.show) .card-inline-trigger {
     box-shadow: var(--shadow-menu);
 }
 .space-viewport.drop-hover .space-drop-hint { opacity: 1; }
+
+/* ============================================================
+   📖 Obsidian-совместимый Markdown: callouts, подсветка, сноски,
+   вики-ссылки. Цвета подобраны под палитру Doe (обе темы).
+   ============================================================ */
+
+.markdown-body mark {
+    background: rgba(255, 208, 0, 0.35);
+    color: inherit;
+    border-radius: 3px;
+    padding: 0 2px;
+}
+[data-theme="dark"] .markdown-body mark {
+    background: rgba(255, 208, 0, 0.25);
+}
+
+/* --- Callouts --- */
+.callout {
+    --callout-color: 68, 138, 255;
+    border-radius: 10px;
+    border-left: 3px solid rgb(var(--callout-color));
+    background: rgba(var(--callout-color), 0.07);
+    padding: 10px 14px;
+    margin: 10px 0;
+    overflow: hidden;
+}
+.callout .callout-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    color: rgb(var(--callout-color));
+    line-height: 1.4;
+}
+.callout .callout-icon { flex-shrink: 0; font-style: normal; }
+.callout .callout-content { margin-top: 6px; }
+.callout .callout-content > *:first-child { margin-top: 0; }
+.callout .callout-content > *:last-child { margin-bottom: 0; }
+
+/* Сворачиваемые callout'ы (details/summary) */
+details.callout > summary { cursor: pointer; list-style: none; }
+details.callout > summary::-webkit-details-marker { display: none; }
+details.callout .callout-fold {
+    margin-left: auto;
+    transition: transform 0.2s ease;
+    transform: rotate(90deg);
+    opacity: 0.6;
+}
+details.callout:not([open]) .callout-fold { transform: rotate(0deg); }
+
+/* Палитра типов (в духе Obsidian, приглушено под эстетику Doe) */
+.callout-note     { --callout-color: 74, 90, 72; }      /* brand-pine */
+.callout-abstract { --callout-color: 0, 150, 136; }
+.callout-info     { --callout-color: 2, 122, 255; }
+.callout-todo     { --callout-color: 2, 122, 255; }
+.callout-tip      { --callout-color: 0, 150, 136; }
+.callout-success  { --callout-color: 68, 148, 86; }
+.callout-question { --callout-color: 224, 146, 0; }
+.callout-warning  { --callout-color: 224, 146, 0; }
+.callout-failure  { --callout-color: 211, 76, 62; }
+.callout-danger   { --callout-color: 211, 76, 62; }
+.callout-bug      { --callout-color: 211, 76, 62; }
+.callout-example  { --callout-color: 120, 82, 238; }
+.callout-quote    { --callout-color: 130, 138, 128; }   /* text-secondary */
+
+[data-theme="dark"] .callout { background: rgba(var(--callout-color), 0.12); }
+[data-theme="dark"] .callout-note { --callout-color: 137, 160, 133; }
+
+/* --- Сноски --- */
+.doe-footnote-ref a {
+    text-decoration: none;
+    font-weight: 600;
+    color: var(--brand-pine);
+    padding: 0 2px;
+}
+[data-theme="dark"] .doe-footnote-ref a { color: var(--success-done); }
+.doe-footnotes {
+    margin-top: 24px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-light);
+    font-size: 0.9em;
+    color: var(--text-secondary);
+}
+.doe-footnotes ol { margin: 0; padding-left: 20px; }
+.doe-footnotes li { margin: 4px 0; }
+.doe-footnotes li > p { display: inline; margin: 0; }
+.doe-footnote-backref {
+    margin-left: 6px;
+    text-decoration: none;
+    color: var(--brand-pine);
+}
+[data-theme="dark"] .doe-footnote-backref { color: var(--success-done); }
+
+/* --- Вики-ссылки на заметки [[...]] --- */
+.doe-wikilink {
+    color: var(--brand-pine);
+    text-decoration: none;
+    border-bottom: 1px dashed rgba(74, 90, 72, 0.45);
+    cursor: pointer;
+}
+.doe-wikilink:hover { border-bottom-style: solid; }
+[data-theme="dark"] .doe-wikilink {
+    color: var(--success-done);
+    border-bottom-color: rgba(137, 160, 133, 0.5);
+}
+
+/* ============================================================
+   🎬 Медиа-встраивания: PDF, видео, аудио, YouTube + подсветка
+   фрагментов и чекбоксы задач (- [ ]) в описании.
+   ============================================================ */
+
+.doe-pdf-embed {
+    display: block;
+    border: 1px solid var(--border-light);
+    border-radius: 12px;
+    background: var(--surface-card);
+    margin: 8px 0;
+    max-width: 100%;
+}
+
+.doe-video-embed {
+    display: block;
+    max-width: 100%;
+    border-radius: 12px;
+    margin: 8px 0;
+    background: #000;
+    outline: none;
+}
+
+.doe-audio-embed {
+    display: block;
+    width: 100%;
+    max-width: 480px;
+    margin: 8px 0;
+}
+
+.doe-media-embed.doe-youtube-embed {
+    display: block;
+    position: relative;
+    width: 100%;
+    max-width: 720px;
+    aspect-ratio: 16 / 9;
+    margin: 8px 0;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #000;
+}
+.doe-media-embed.doe-youtube-embed iframe {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+}
+
+/* --- Встроенный просмотрщик PDF (ссылки с #page=N) --- */
+#doe-pdf-overlay { display: none; position: fixed; inset: 0; z-index: 9000; }
+#doe-pdf-overlay.show { display: block; }
+#doe-pdf-overlay .doe-pdf-overlay-backdrop {
+    position: absolute; inset: 0;
+    background: rgba(20, 24, 20, 0.55);
+    backdrop-filter: blur(4px);
+}
+#doe-pdf-overlay .doe-pdf-overlay-panel {
+    position: absolute; inset: 4vh 6vw;
+    background: var(--surface-card);
+    border-radius: 16px;
+    box-shadow: var(--shadow-menu);
+    overflow: hidden;
+}
+#doe-pdf-overlay .doe-pdf-overlay-panel iframe {
+    width: 100%; height: 100%; border: 0;
+}
+#doe-pdf-overlay .doe-pdf-overlay-close {
+    position: absolute; top: 10px; right: 10px; z-index: 2;
+    width: 32px; height: 32px;
+    border: none; border-radius: 50%;
+    background: rgba(0, 0, 0, 0.45); color: #fff;
+    font-size: 14px; cursor: pointer;
+    transition: background 0.2s;
+}
+#doe-pdf-overlay .doe-pdf-overlay-close:hover { background: rgba(0, 0, 0, 0.7); }
+
+/* --- Подсветка фрагмента по ссылке doe://task/ID#text=... --- */
+::highlight(doe-fragment) {
+    background-color: rgba(255, 208, 0, 0.45);
+    color: var(--text-primary);
+}
+[data-theme="dark"] ::highlight(doe-fragment) {
+    background-color: rgba(255, 208, 0, 0.3);
+    color: #FFFFFF;
+}
+
+/* --- Чекбоксы задач Obsidian (- [ ] / - [x]) в описании --- */
+.markdown-body li:has(> input[type="checkbox"]) {
+    list-style: none;
+    margin-left: -20px;
+}
+.markdown-body li > input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    margin: 0 8px -3px 0;
+    border: 1.5px solid var(--text-secondary);
+    border-radius: 5px;
+    background: var(--surface-card);
+    cursor: pointer;
+    position: relative;
+    transition: background 0.15s ease, border-color 0.15s ease;
+    vertical-align: baseline;
+}
+.markdown-body li > input[type="checkbox"]:hover {
+    border-color: var(--brand-pine);
+}
+.markdown-body li > input[type="checkbox"]:checked {
+    background: var(--brand-pine);
+    border-color: var(--brand-pine);
+}
+.markdown-body li > input[type="checkbox"]:checked::after {
+    content: '';
+    position: absolute;
+    left: 4.5px;
+    top: 1.5px;
+    width: 4px;
+    height: 8px;
+    border: solid #fff;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+/* Завершённый пункт — приглушаем и зачёркиваем, как в Obsidian */
+.markdown-body li:has(> input[type="checkbox"]:checked) {
+    color: var(--text-secondary);
+    text-decoration: line-through;
+    text-decoration-color: rgba(130, 138, 128, 0.5);
+}
+[data-theme="dark"] .markdown-body li > input[type="checkbox"]:checked {
+    background: var(--success-done);
+    border-color: var(--success-done);
+}
+[data-theme="dark"] .markdown-body li > input[type="checkbox"]:checked::after {
+    border-color: #1E231E;
+}
