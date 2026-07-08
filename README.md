@@ -43,37 +43,69 @@
 
 <table>
 <tr>
-  <td width="50%">
+  <td width="50%" valign="top">
 
 ### 🔒 100% Local
 All data is stored in a vault folder on your computer. Inside — Obsidian-compatible files (.md with YAML frontmatter) and a hidden SQLite index. Want to put the vault in iCloud and sync between Macs? Go ahead. A USB stick? Works too. Nobody but you has access.
 
+  </td>
+  <td width="50%" valign="top">
+
+### 📝 Markdown Editor
+Full-featured editor with live preview, collapsible headings, syntax highlighting (Prism.js), math (KaTeX), and drag-and-drop attachments.
+
+  </td>
+</tr>
+<tr>
+  <td width="50%" valign="top">
+
 ### 🎨 Aesthetics in Everything
 Dark and light themes, custom fonts, smooth animations, thoughtful typography. The board looks as good as it works.
+
+  </td>
+  <td width="50%" valign="top">
+
+### 🔗 Task Links
+Many-to-many relationships: parent, child, dependent tasks. The relationship graph is visualized with D3.js.
+
+  </td>
+</tr>
+<tr>
+  <td width="50%" valign="top">
 
 ### 🧠 Local AI
 Built-in AI assistant powered by **Gemma 4** — fully offline with Apple Silicon acceleration. Discuss tasks, search the board, create cards, remember facts between sessions.
 
+  </td>
+  <td width="50%" valign="top">
+
+### 🔁 Automations
+Recurring cards on schedule (daily, weekly…), auto-sort columns, auto-cleanup of old tasks.
+
+  </td>
+</tr>
+<tr>
+  <td width="50%" valign="top">
+
 ### ⏱️ Built-in Time Tracker
 Start a timer on a task — time is written to the database. The calendar shows your daily breakdown. Statistics sum up your week.
+
+  </td>
+  <td width="50%" valign="top">
+
+### 📊 Priorities
+9-factor importance model: value, success chance, background burden, process pain, drag, reporting need, proactivity, serenity, harm.
+
+  </td>
+</tr>
+<tr>
+  <td width="50%" valign="top">
 
 ### 🔐 Vault Encryption
 Password-protect your entire vault with **AES-256-GCM + scrypt**. Even if someone gets your files — they're useless without the password. Optionally unlock with **Touch ID** on macOS. Your data, your rules.
 
   </td>
-  <td width="50%">
-
-### 📝 Markdown Editor
-Full-featured editor with live preview, collapsible headings, syntax highlighting (Prism.js), math (KaTeX), and drag-and-drop attachments.
-
-### 🔗 Task Links
-Many-to-many relationships: parent, child, dependent tasks. The relationship graph is visualized with D3.js.
-
-### 🔁 Automations
-Recurring cards on schedule (daily, weekly…), auto-sort columns, auto-cleanup of old tasks.
-
-### 📊 Priorities
-9-factor importance model: value, success chance, background burden, process pain, drag, reporting need, proactivity, serenity, harm.
+  <td width="50%" valign="top">
 
 ### 🌍 Russian & English
 Full UI localization in two languages. Switch on the fly.
