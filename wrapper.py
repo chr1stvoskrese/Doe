@@ -3,6 +3,9 @@ import subprocess
 import os
 import time
 import json
+
+if sys.platform.startswith('linux'):
+    os.environ['WEBKIT_DISABLE_COMPOSITING_MODE'] = '1'
 import urllib.request
 import sqlite3
 import threading
@@ -2323,7 +2326,7 @@ class WindowAPI:
             easy_drag=False,
             background_color=bg_color,
             text_select=True,
-            hidden=True,
+            hidden=(not sys.platform.startswith('linux')),
             js_api=WindowAPI()
         )
         try:
@@ -2359,7 +2362,7 @@ class WindowAPI:
             easy_drag=False,
             background_color=bg_color,
             text_select=True,
-            hidden=True,
+            hidden=(not sys.platform.startswith('linux')),
             js_api=WindowAPI()
         )
 
@@ -2656,7 +2659,7 @@ if __name__ == '__main__':
             easy_drag=False,     
             background_color=bg_color, 
             text_select=True,
-            hidden=True,            
+            hidden=(not sys.platform.startswith('linux')),            
             js_api=WindowAPI()      
         )
         bind_resize_event(window)
