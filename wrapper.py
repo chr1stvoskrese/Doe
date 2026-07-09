@@ -1614,11 +1614,14 @@ class WindowAPI:
         чтобы одинаково обслуживать текст и бинарь)."""
         import base64 as _b64
         import json as _json
+        import threading as _thr
+        print(f"[Bridge] → {method} {path} (thread={_thr.current_thread().name})", flush=True)
         try:
             body = _b64.b64decode(body_b64) if body_b64 else b""
             hdrs = {str(k): str(v) for k, v in (headers or {}).items()}
             resp = DATA_LOOP.request(method, path, hdrs, body)
             content = resp.content or b""
+            print(f"[Bridge] ← {method} {path} -> {resp.status_code} ({len(content)}b)", flush=True)
             return {
                 "status": resp.status_code,
                 "headers": {k: v for k, v in resp.headers.items()},
@@ -1626,6 +1629,7 @@ class WindowAPI:
             }
         except Exception as e:
             import traceback
+            print(f"[Bridge] ✗ {method} {path} FAILED: {e}", flush=True)
             traceback.print_exc()
             payload = _json.dumps({"detail": str(e)}).encode("utf-8")
             return {
@@ -2536,6 +2540,8 @@ class WindowAPI:
 
     def open_main_window(self):
         """Порождает новое окно приложения и убивает ВСЕ старые окна (включая окно выбора хранилища)"""
+        import threading as _thr
+        print(f"[Window] open_main_window() called (thread={_thr.current_thread().name})", flush=True)
         old_windows = list(webview.windows)
 
         t_w, t_h, t_x, t_y = get_safe_geometry()
@@ -2546,9 +2552,11 @@ class WindowAPI:
             _scale = _win32_monitor_dpi_scale(t_x, t_y, t_w, t_h)
             c_w, c_h = max(800, round(t_w / _scale)), max(600, round(t_h / _scale))
 
+        _board_url = runtime_index_url('board')
+        print(f"[Window] board url ready: {_board_url} — creating window…", flush=True)
         new_win = webview.create_window(
             title=MAIN_WINDOW_TITLE,
-            url=runtime_index_url('board'),
+            url=_board_url,
             width=c_w,
             height=c_h,
             x=t_x,
@@ -2562,6 +2570,7 @@ class WindowAPI:
             hidden=(not sys.platform.startswith('linux')),
             js_api=WindowAPI()
         )
+        print(f"[Window] create_window returned (new board window). Scheduling old-window cleanup.", flush=True)
         try:
             bind_resize_event(new_win)
             if sys.platform == 'win32' and t_x is not None:
