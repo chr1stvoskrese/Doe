@@ -7,8 +7,10 @@ const API_BASE = '/api/v1';
 // 🔒 БЕЗ СЕТЕВОГО СЕРВЕРА: окно грузится по file://. Отсюда — база каталога
 // frontend/ (для воркеров) и корень вложений (для file://-URL картинок).
 // ============================================================================
-// Директория текущего документа (…/frontend/) с завершающим слэшем.
-window.__DOE_FRONTEND_BASE = location.href.replace(/[^/]*(?:\?.*)?(?:#.*)?$/, '');
+// Каталог frontend/ с завершающим слэшем. wrapper.py инжектит точный путь
+// (рантайм-html лежит НЕ в frontend/, а base href указывает на бандл),
+// поэтому предпочитаем уже заданное значение, иначе — из текущего URL.
+window.__DOE_FRONTEND_BASE = window.__DOE_FRONTEND_BASE || location.href.replace(/[^/]*(?:\?.*)?(?:#.*)?$/, '');
 window.__DOE_ATTACH = window.__DOE_ATTACH || '';   // attachments_dir (было /doe/)
 window.__DOE_VAULT = window.__DOE_VAULT || '';     // активное хранилище
 self.__DOE_ATTACH = window.__DOE_ATTACH;

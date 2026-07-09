@@ -25,10 +25,6 @@ dist/
 # Временный allowlist расширений (пишется build.py на время сборки)
 feature_flags.json
 
-# Рантайм-версии index.html с инъекцией темы (пишутся wrapper.py при старте)
-frontend/.doe_runtime_board.html
-frontend/.doe_runtime_vault.html
-
 # IDEs (VSCode, PyCharm)
 .vscode/
 .idea/
