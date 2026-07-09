@@ -975,10 +975,26 @@ from src.core.config import get_ui_settings
 # — без сокета, порта и CORS. Это устраняет поверхность атаки (открытый порт).
 # ============================================================================
 
+def _runtime_dir() -> Path:
+    """Перезаписываемый каталог для рантайм-index.html.
+    ВАЖНО: в упакованном приложении каталог frontend/ лежит внутри .app/.exe
+    и доступен только для чтения (а на macOS ещё и подписан — любая запись
+    рвёт подпись). Поэтому рантайм-файл пишем в домашний каталог пользователя,
+    а ассеты резолвим через <base href> на read-only frontend/."""
+    import tempfile
+    d = Path.home() / '.doe_runtime'
+    try:
+        d.mkdir(exist_ok=True)
+        return d
+    except Exception:
+        return Path(tempfile.gettempdir())
+
+
 def runtime_index_url(mode: str = 'board') -> str:
-    """Собирает index.html с инъекцией темы/языка/режима, кладёт рядом с
-    ассетами в frontend/ (чтобы относительные ссылки резолвились по file://)
-    и возвращает file://-URL. mode: 'board' | 'vault'."""
+    """Собирает index.html с инъекцией темы/языка/режима и <base href> на
+    каталог frontend/ (чтобы относительные ассеты грузились из read-only
+    бандла), пишет результат в перезаписываемый каталог и возвращает
+    file://-URL. mode: 'board' | 'vault'."""
     settings = get_ui_settings()
     # 🔐 theme/lang подставляются в инлайновый <script>/<style> ниже. Значения
     # берутся из ~/.doe_config.json; произвольная строка (напр. с "</script>…")
@@ -994,12 +1010,23 @@ def runtime_index_url(mode: str = 'board') -> str:
     with open(frontend_path / 'index.html', 'r', encoding='utf-8') as f:
         html = f.read()
     launch_mode = 'vault' if mode == 'vault' else 'board'
-    # Инъекция БАЗОВОГО фона в <head> — гарантирует нужный цвет вьюпорта ещё
-    # до загрузки CSS (тот же приём, что был в main.py:serve_index).
+
+    # База для ВСЕХ относительных ассетов — реальный (read-only) каталог frontend/.
+    fdir = frontend_path.resolve().as_uri()
+    if not fdir.endswith('/'):
+        fdir += '/'
+
+    # <base> ДОЛЖЕН стоять в начале <head>, до первого <link>/<script>,
+    # иначе ранние ассеты успевают срезолвиться от URL самого файла.
+    html = html.replace('<head>', f'<head>\n    <base href="{fdir}">', 1)
+
+    # Инъекция БАЗОВОГО фона в конец <head> — гарантирует нужный цвет вьюпорта
+    # ещё до загрузки CSS (тот же приём, что был в main.py:serve_index).
     inject = (
         f'<style id="doe-bg-lock">html, body {{ background-color: {bg} !important; }}</style>'
         '<script>'
         f'window.__doeLaunchMode = "{launch_mode}";'
+        f'window.__DOE_FRONTEND_BASE = "{fdir}";'
         'window.addEventListener("DOMContentLoaded", function(){ setTimeout(function(){ var e=document.getElementById("doe-bg-lock"); if(e) e.remove(); }, 50); });'
         f'if ("{theme}" === "dark") document.documentElement.setAttribute("data-theme", "dark");'
         f'try {{ localStorage.setItem("doe-theme", "{theme}"); localStorage.setItem("doe-lang", "{lang}"); }} catch(e) {{}}'
@@ -1007,7 +1034,8 @@ def runtime_index_url(mode: str = 'board') -> str:
         '</head>'
     )
     html = html.replace('</head>', inject, 1)
-    out = frontend_path / ('.doe_runtime_vault.html' if launch_mode == 'vault' else '.doe_runtime_board.html')
+
+    out = _runtime_dir() / ('doe_runtime_vault.html' if launch_mode == 'vault' else 'doe_runtime_board.html')
     with open(out, 'w', encoding='utf-8') as f:
         f.write(html)
     url = out.resolve().as_uri()
