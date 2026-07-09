@@ -3,33 +3,34 @@ import os
 import time
 from pathlib import Path
 
-from fastapi import WebSocket
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
 from src.core import fs_store
 
 
-class ConnectionManager:
-    def __init__(self):
-        self.active_connections: list[WebSocket] = []
+# 🔒 Без сетевого сервера: раньше об изменениях БД фронт узнавал по WebSocket
+# (/system/ws). Теперь Python пушит событие напрямую в окно через evaluate_js.
+# Хук регистрирует wrapper.py (push_db_updated). Здесь — только точка входа.
+_push_hook = None
 
-    async def connect(self, websocket: WebSocket):
-        await websocket.accept()
-        self.active_connections.append(websocket)
 
-    def disconnect(self, websocket: WebSocket):
-        if websocket in self.active_connections:
-            self.active_connections.remove(websocket)
+def set_push_hook(fn):
+    """Регистрирует колбэк, который доставляет событие `db_updated` во фронт
+    (в wrapper.py — evaluate_js('window.__doeOnDbUpdated && ...'))."""
+    global _push_hook
+    _push_hook = fn
 
-    async def broadcast(self, message: str):
-        for connection in self.active_connections:
-            try:
-                await connection.send_text(message)
-            except Exception:
-                pass
 
-ws_manager = ConnectionManager()
+def notify_db_updated():
+    """Сообщает фронту, что БД изменилась извне (замена WebSocket-broadcast)."""
+    hook = _push_hook
+    if hook is None:
+        return
+    try:
+        hook()
+    except Exception:
+        pass
 
 
 class BoardChangeHandler(FileSystemEventHandler):
@@ -104,7 +105,7 @@ class BoardChangeHandler(FileSystemEventHandler):
         if now - self.last_db_trigger > 1.5:
             self.last_db_trigger = now
             if self.loop and self.loop.is_running():
-                asyncio.run_coroutine_threadsafe(ws_manager.broadcast("db_updated"), self.loop)
+                self.loop.call_soon_threadsafe(notify_db_updated)
 
     # --- Отложенная пересинхронизация (debounce) --------------------------
     def _schedule_resync(self):
@@ -131,7 +132,7 @@ class BoardChangeHandler(FileSystemEventHandler):
                 try:
                     changed = await fs_store.resync()
                     if changed:
-                        await ws_manager.broadcast("db_updated")
+                        notify_db_updated()
                         print("[Sync] External changes imported from vault files")
                 except Exception as e:
                     print(f"[Sync] External resync failed: {e}")

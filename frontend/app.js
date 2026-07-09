@@ -2,6 +2,32 @@
 
 let state = { columns: [], workspaces: [], activeWorkspaceId: null };
 const API_BASE = '/api/v1';
+
+// ============================================================================
+// 🔒 БЕЗ СЕТЕВОГО СЕРВЕРА: окно грузится по file://. Отсюда — база каталога
+// frontend/ (для воркеров) и корень вложений (для file://-URL картинок).
+// ============================================================================
+// Директория текущего документа (…/frontend/) с завершающим слэшем.
+window.__DOE_FRONTEND_BASE = location.href.replace(/[^/]*(?:\?.*)?(?:#.*)?$/, '');
+window.__DOE_ATTACH = window.__DOE_ATTACH || '';   // attachments_dir (было /doe/)
+window.__DOE_VAULT = window.__DOE_VAULT || '';     // активное хранилище
+self.__DOE_ATTACH = window.__DOE_ATTACH;
+
+// Подгружает абсолютные корни вложений из моста. Вызывается при старте (и при
+// каждой перезагрузке окна — т.е. и после смены vault, которая навигирует окно).
+async function doeLoadAssetRoots() {
+    try {
+        if (typeof _bridgeReady === 'function') { await _bridgeReady(); }
+        if (window.pywebview && window.pywebview.api && window.pywebview.api.get_asset_roots) {
+            const r = await window.pywebview.api.get_asset_roots();
+            if (r) {
+                window.__DOE_ATTACH = r.attachments_dir || '';
+                window.__DOE_VAULT = r.vault_dir || '';
+                self.__DOE_ATTACH = window.__DOE_ATTACH;
+            }
+        }
+    } catch (e) { console.warn('[Assets] get_asset_roots failed', e); }
+}
 window.prioritySettings = { 
     show_always: false,
     t_low: 40, t_mid: 70, 
@@ -887,11 +913,16 @@ const markdownCallbacks = {};
 function initMarkdownWorker() {
     if (markdownWorker) return;
     
+    // 🔒 Без сервера воркер грузит библиотеки по абсолютным file://-путям из
+    // каталога frontend/, а KaTeX теперь локальный (не CDN). Корень вложений
+    // прокидываем в воркер снимком self.__DOE_ATTACH (для resolveMarkdownAssetSrc).
+    const _fb = window.__DOE_FRONTEND_BASE || '';
     const workerCode = `
+        self.__DOE_ATTACH = ${JSON.stringify(window.__DOE_ATTACH || '')};
         // Загружаем библиотеки парсинга напрямую в поток
         self.importScripts(
-            location.origin + '/static/marked.min.js',
-            'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js'
+            ${JSON.stringify(_fb + 'marked.min.js')},
+            ${JSON.stringify(_fb + 'katex.min.js')}
         );
 
         function escapeHtml(text) {
@@ -8676,7 +8707,7 @@ function initTaskDescriptionLogic() {
                 // PDF со страницей ([цитата](doe/файл.pdf#page=5)) — открываем
                 // встроенный просмотрщик сразу на нужном месте
                 if (hashIdx !== -1 && decodeURIComponent(filePart).toLowerCase().endsWith('.pdf')) {
-                    openPdfOverlay('/' + filePart + cleanHref.slice(hashIdx));
+                    openPdfOverlay(filePart + cleanHref.slice(hashIdx));
                     return;
                 }
                 fetch(`${API_BASE}/system/open-file`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({path: decodeURIComponent(filePart)}) });
@@ -8715,7 +8746,7 @@ function initTaskDescriptionLogic() {
             }
             // Абсолютный путь на PDF со страницей — встроенный просмотрщик
             if (/^\//.test(href) && /\.pdf#/i.test(href)) {
-                openPdfOverlay('/localfile' + href);
+                openPdfOverlay(href);
                 return;
             }
             fetch(`${API_BASE}/system/open-link`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({url: href}) })
@@ -9430,24 +9461,19 @@ async function replaceBrokenAttachment(att, newData) {
 //      постоянная память. XHR вместо fetch ради события прогресса.
 // ============================================================
 
-function uploadFileStreaming(file, name, onProgress) {
-    return new Promise((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        xhr.open('PUT', `${API_BASE}/system/upload-stream?name=${encodeURIComponent(name || file.name || 'file')}`);
-        xhr.responseType = 'json';
-        if (xhr.upload && onProgress) {
-            xhr.upload.onprogress = (e) => {
-                if (e.lengthComputable) onProgress(Math.min(99, Math.round(e.loaded / e.total * 100)));
-            };
-        }
-        xhr.onload = () => {
-            if (xhr.status >= 200 && xhr.status < 300 && xhr.response) resolve(xhr.response);
-            else reject(new Error(`Upload failed (HTTP ${xhr.status})`));
-        };
-        xhr.onerror = () => reject(new Error('Network error during upload'));
-        xhr.onabort = () => reject(new Error('Upload aborted'));
-        xhr.send(file);
-    });
+async function uploadFileStreaming(file, name, onProgress) {
+    // 🔒 Без сетевого сервера файл уходит через мост window.pywebview.api
+    // (fetch-шим сериализует бинарное тело в base64). Гранулярный прогресс
+    // XHR (xhr.upload.onprogress) недоступен — показываем приблизительный.
+    if (onProgress) onProgress(30);
+    const res = await fetch(
+        `${API_BASE}/system/upload-stream?name=${encodeURIComponent(name || file.name || 'file')}`,
+        { method: 'PUT', body: file }
+    );
+    if (!res.ok) throw new Error(`Upload failed (HTTP ${res.status})`);
+    const data = await res.json();
+    if (onProgress) onProgress(100);
+    return data;
 }
 
 async function attachByNativePath(absPath, onProgress) {
@@ -9737,7 +9763,9 @@ async function showVaultScreen() {
     if (window.pywebview && window.pywebview.api && window.pywebview.api.open_vault_window) {
         window.pywebview.api.open_vault_window();
     } else {
-        window.location.href = "/app?mode=vault";
+        // 🔒 Без сервера прямого URL /app нет — окно всегда пересоздаёт мост.
+        // Этот фолбэк недостижим в упакованном приложении (мост всегда есть).
+        window.location.reload();
     }
 }
 
@@ -10648,7 +10676,8 @@ async function transitionToApp() {
     if (window.pywebview && window.pywebview.api && window.pywebview.api.open_main_window) {
         window.pywebview.api.open_main_window();
     } else {
-        window.location.href = "/app";
+        // 🔒 Без сервера прямого URL /app нет; мост всегда пересоздаёт окно.
+        window.location.reload();
     }
 }
 
@@ -12873,18 +12902,29 @@ document.addEventListener('click', async (e) => {
 // превью карточек — синтаксис рендерится одинаково везде.
 // ============================================================
 
-// Превращает путь из Markdown в src для <img> / <video>:
-//   doe/файл          → /doe/файл            (вложение хранилища)
-//   относительный     → /doe/относительный   (заметки из Obsidian-вольта)
-//   /абсолютный, C:\  → /localfile/...        (ссылка без копирования)
-//   http(s), data:    → как есть
+// Превращает путь из Markdown в src для <img> / <video>.
+// 🔒 Без сетевого сервера окно грузится по file://, поэтому вложения тоже
+// адресуются абсолютными file://-URL (а не /doe/… и /localfile/…):
+//   doe/файл, относительный → file://<attachments_dir>/файл (вложение хранилища)
+//   /абсолютный, C:\        → file://<абсолютный путь>       (ссылка без копирования)
+//   http(s), data:, file:   → как есть
+// Функция самодостаточна: её исходник через .toString() внедряется и в
+// web-worker превью, где корень вложений приходит через self.__DOE_ATTACH.
 function resolveMarkdownAssetSrc(url) {
-    if (/^(https?:|data:|blob:)/i.test(url)) return url;
-    let u = String(url).replace(/^file:\/\//i, '');
-    if (/^[A-Za-z]:[\\/]/.test(u)) return '/localfile/' + u.replace(/\\/g, '/');
-    if (u.startsWith('/')) return '/localfile' + u;
-    if (u.startsWith('doe/')) return '/' + u;
-    return '/doe/' + u;
+    if (/^(https?:|data:|blob:|file:)/i.test(url)) return url;
+    function _fu(p) {
+        p = String(p).replace(/\\/g, '/');
+        if (/^[A-Za-z]:\//.test(p)) p = '/' + p;      // C:/… → /C:/…
+        else if (p.charAt(0) !== '/') p = '/' + p;
+        return 'file://' + encodeURI(p).replace(/#/g, '%23').replace(/\?/g, '%3F');
+    }
+    var attach = (typeof self !== 'undefined' && self.__DOE_ATTACH) ? String(self.__DOE_ATTACH) : '';
+    var u = String(url);
+    if (/^[A-Za-z]:[\\/]/.test(u)) return _fu(u);     // C:\… абсолютный
+    if (u.charAt(0) === '/') return _fu(u);            // /абсолютный
+    if (u.indexOf('doe/') === 0) u = u.slice(4);       // вложение хранилища
+    if (!attach) return url;                            // корень ещё не загружен
+    return _fu(attach.replace(/[\/]+$/, '') + '/' + u);
 }
 
 // Распознаёт ссылки YouTube (watch, youtu.be, shorts, live, embed) и
@@ -13215,8 +13255,10 @@ function openPdfOverlay(src) {
         }, true);
     }
     const hashIdx = src.indexOf('#');
-    const cleanSrc = hashIdx === -1 ? src : src.slice(0, hashIdx);
+    const rawSrc = hashIdx === -1 ? src : src.slice(0, hashIdx);
     const pageM = hashIdx === -1 ? null : src.slice(hashIdx).match(/page=(\d+)/);
+    // 🔒 Без сервера PDF грузится по file:// — резолвим путь как и картинки.
+    const cleanSrc = resolveMarkdownAssetSrc(rawSrc);
     const host = ov.querySelector('.doe-pdf-overlay-host');
     host.innerHTML = '';
     ov.classList.add('show');
@@ -13300,15 +13342,26 @@ function loadPdfJs() {
         try {
             const st = await fetch(`${API_BASE}/system/ensure-pdfjs`, { method: 'POST' }).then(r => r.json());
             if (!st.ready) throw new Error('PDF.js not available');
+            // 🔒 Без сервера грузим PDF.js по file:// из локального кэша.
+            let pdfBase = '';
+            if (window.pywebview && window.pywebview.api && window.pywebview.api.get_pdfjs_dir) {
+                const dir = await window.pywebview.api.get_pdfjs_dir();
+                if (dir) {
+                    let p = String(dir).replace(/\\/g, '/');
+                    if (/^[A-Za-z]:\//.test(p)) p = '/' + p; else if (p.charAt(0) !== '/') p = '/' + p;
+                    pdfBase = 'file://' + encodeURI(p).replace(/#/g, '%23').replace(/\?/g, '%3F') + '/';
+                }
+            }
+            if (!pdfBase) throw new Error('PDF.js dir unavailable');
             await new Promise((resolve, reject) => {
                 const s = document.createElement('script');
-                s.src = '/vendor/pdfjs/pdf.min.js';
+                s.src = pdfBase + 'pdf.min.js';
                 s.onload = resolve;
                 s.onerror = () => reject(new Error('script load failed'));
                 document.head.appendChild(s);
             });
             if (!window.pdfjsLib) throw new Error('pdfjsLib missing');
-            pdfjsLib.GlobalWorkerOptions.workerSrc = '/vendor/pdfjs/pdf.worker.min.js';
+            pdfjsLib.GlobalWorkerOptions.workerSrc = pdfBase + 'pdf.worker.min.js';
             return true;
         } catch (e) {
             console.warn('[PDF.js]', e.message || e);
@@ -13501,10 +13554,15 @@ async function createDoePdfViewer(container, src, initialPage = 1) {
         else if (act === 'zoomout') setScale(scale / 1.2);
         else if (act === 'fit') { fitMode = true; setScale(fitScale(), true); }
         else if (act === 'open') {
-            if (src.startsWith('/doe/')) {
-                fetch(`${API_BASE}/system/open-file`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ path: decodeURIComponent(src.slice(1)) }) });
+            // 🔒 src теперь file://… — открываем нативно через мост; http/data — как ссылку.
+            if (/^file:\/\//i.test(src)) {
+                let p = src.replace(/^file:\/\//i, '').split('#')[0];
+                try { p = decodeURIComponent(p); } catch (e) {}
+                if (window.pywebview && window.pywebview.api && window.pywebview.api.open_local_path) {
+                    window.pywebview.api.open_local_path(p);
+                }
             } else {
-                fetch(`${API_BASE}/system/open-link`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: decodeURIComponent(src.replace(/^\/localfile/, '')) }) });
+                fetch(`${API_BASE}/system/open-link`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: src }) });
             }
         }
     });
@@ -15116,50 +15174,111 @@ window.deleteAutomation = async (id) => {
     }
 };
 
+// ============================================================================
+// 🔒 МОСТ К БЭКЕНДУ ВМЕСТО HTTP-СЕРВЕРА
+// Раньше фронт ходил на http://127.0.0.1:8000/api/v1/*. Теперь сетевого сервера
+// нет: все запросы к /api/v1/* уходят в window.pywebview.api.api_request, где
+// то же самое ASGI-приложение выполняется in-process (без сокета/порта/CORS).
+// Мы перехватываем window.fetch, чтобы НЕ переписывать ~130 мест вызова.
+// ============================================================================
 const originalFetch = window.fetch;
 window._lastLocalEdit = 0;
-window.fetch = async function(...args) {
-    const url = args[0] || '';
-    const options = args[1] || {};
-    const method = options.method || 'GET';
-    
-    if (method !== 'GET' && typeof url === 'string' && url.includes('/api/v1/')) {
-        window._lastLocalEdit = Date.now();
+
+function _u8ToB64(u8) {
+    let s = '';
+    const chunk = 0x8000;
+    for (let i = 0; i < u8.length; i += chunk) {
+        s += String.fromCharCode.apply(null, u8.subarray(i, i + chunk));
     }
-    return originalFetch.apply(this, args);
+    return btoa(s);
+}
+function _b64ToU8(b64) {
+    const bin = atob(b64 || '');
+    const u8 = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+    return u8;
+}
+async function _bridgeReady() {
+    for (let i = 0; i < 400; i++) {
+        if (window.pywebview && window.pywebview.api && window.pywebview.api.api_request) return true;
+        await new Promise(r => setTimeout(r, 25));
+    }
+    return false;
+}
+
+window.fetch = async function(input, init) {
+    const options = init || (typeof input === 'object' && input) || {};
+    let url = (typeof input === 'string') ? input : (input && input.url) || '';
+    const method = String(options.method || (typeof input === 'object' && input && input.method) || 'GET').toUpperCase();
+
+    // Через мост уходят только наши API-вызовы. Всё остальное (ассеты по file://)
+    // отдаём штатному fetch.
+    if (typeof url === 'string' && url.includes('/api/v1/')) {
+        if (method !== 'GET') window._lastLocalEdit = Date.now();
+
+        const path = url.slice(url.indexOf('/api/v1/'));  // отбрасываем любой origin
+
+        // Заголовки + сериализация тела штатным Request: он корректно соберёт
+        // JSON / x-www-form-urlencoded / multipart (с boundary) и т.п.
+        const headers = {};
+        try { new Headers(options.headers || {}).forEach((v, k) => { headers[k] = v; }); } catch (e) {}
+        let bodyB64 = null;
+        if (options.body != null && method !== 'GET' && method !== 'HEAD') {
+            try {
+                const probe = new Request('http://doe.local/x', {
+                    method: 'POST', headers: options.headers || {}, body: options.body,
+                });
+                const ct = probe.headers.get('content-type');
+                if (ct) headers['content-type'] = ct;  // важно для multipart boundary
+                const buf = await probe.arrayBuffer();
+                bodyB64 = _u8ToB64(new Uint8Array(buf));
+            } catch (e) {
+                if (typeof options.body === 'string') {
+                    bodyB64 = _u8ToB64(new TextEncoder().encode(options.body));
+                }
+            }
+        }
+
+        if (!(await _bridgeReady())) {
+            return new Response(JSON.stringify({ detail: 'bridge_not_ready' }),
+                { status: 503, headers: { 'content-type': 'application/json' } });
+        }
+
+        const res = await window.pywebview.api.api_request(method, path, headers, bodyB64);
+        const status = (res && res.status) || 500;
+        const respHeaders = (res && res.headers) || {};
+        const bytes = _b64ToU8(res && res.body_b64);
+        // Response запрещает тело для null-body статусов (204/205/304).
+        const noBody = (status === 204 || status === 205 || status === 304);
+        return new Response(noBody ? null : bytes, { status, headers: respHeaders });
+    }
+
+    return originalFetch.call(this, input, init);
 };
 
 function initCloudSync() {
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//127.0.0.1:8000/api/v1/system/ws`;
-    const ws = new WebSocket(wsUrl);
-    
-    ws.onmessage = (event) => {
-        if (event.data === "db_updated") {
-            if (Date.now() - window._lastLocalEdit < 2500) return;
-            
-            if (typeof isDragging !== 'undefined' && isDragging) return;
-            if (document.querySelector('.is-renaming')) return;
-            if (document.querySelector('.card-entering:not(.is-exiting)')) return;
-            if (document.querySelector('.column-entering:not(.is-exiting)')) return;
-            
-            const activeEl = document.activeElement;
-            if (activeEl && (activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'INPUT')) {
-                return;
-            }
+    // 🔒 Замена WebSocket: Python при внешнем изменении БД (watcher) вызывает
+    // window.__doeOnDbUpdated() через evaluate_js (см. wrapper.push_db_updated).
+    window.__doeOnDbUpdated = function() {
+        if (Date.now() - window._lastLocalEdit < 2500) return;
 
-            console.log("[iCloud Sync] Обнаружено внешнее изменение файла БД. Перерисовываем UI...");
-            
-            if (document.getElementById('vault-screen').classList.contains('hidden')) {
-                refreshBoard();
-            } else {
-                renderVaultHistory();
-            }
+        if (typeof isDragging !== 'undefined' && isDragging) return;
+        if (document.querySelector('.is-renaming')) return;
+        if (document.querySelector('.card-entering:not(.is-exiting)')) return;
+        if (document.querySelector('.column-entering:not(.is-exiting)')) return;
+
+        const activeEl = document.activeElement;
+        if (activeEl && (activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'INPUT')) {
+            return;
         }
-    };
 
-    ws.onclose = () => {
-        setTimeout(initCloudSync, 3000);
+        console.log("[Sync] Обнаружено внешнее изменение файла БД. Перерисовываем UI...");
+
+        if (document.getElementById('vault-screen').classList.contains('hidden')) {
+            refreshBoard();
+        } else {
+            renderVaultHistory();
+        }
     };
 }
 
@@ -15170,6 +15289,8 @@ function initCloudSync() {
     initTaskModalDragAndResize();
     initGlobalSearch();
     initCloudSync();
+    // 🔒 Абсолютные корни вложений для file://-URL картинок (до рендера доски).
+    await doeLoadAssetRoots();
 
     document.addEventListener('keydown', (e) => {
         if ((e.metaKey || e.ctrlKey) && e.key === '\\') {
@@ -15188,7 +15309,7 @@ function initCloudSync() {
         }
 
         const urlParams = new URLSearchParams(window.location.search);
-        const isVaultMode = urlParams.get('mode') === 'vault';
+        const isVaultMode = urlParams.get('mode') === 'vault' || window.__doeLaunchMode === 'vault';
 
         // ⚡️ Холодный старт: сервер отвечает мгновенно, а инициализация БД
         // (миграции большого хранилища) идёт в фоне. Окно уже видно —
@@ -16275,7 +16396,7 @@ async function applyColumnSort(columnId, criteria, dir) {
 (function setupWindowsChrome() {
     if (!document.documentElement.classList.contains('win-os')) return;
 
-    const isVault = new URLSearchParams(location.search).get('mode') === 'vault';
+    const isVault = new URLSearchParams(location.search).get('mode') === 'vault' || window.__doeLaunchMode === 'vault';
     const api = () => (window.pywebview && window.pywebview.api) || null;
 
     const style = document.createElement('style');

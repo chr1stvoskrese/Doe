@@ -220,8 +220,7 @@ python build.py
 | **Фронтенд** | Vanilla JS (~17k строк) · CSS (~10k строк) · space.js (~1.7k) |
 | **Хранилище** | SQLite (+aiosqlite) **и** Obsidian-совместимое файловое хранилище (FS Store v2) |
 | **Редактор** | CodeMirror · Marked.js · Prism.js · KaTeX |
-| **Синхронизация** | WebSocket · watchdog |
-| **iOS** | Нативное SwiftUI-приложение (iPad/iPhone) |
+| **Синхронизация** | push через мост pywebview · watchdog |
 
 ---
 
@@ -333,7 +332,6 @@ frontend/
 ├── app.js           # вся логика (~17k строк)
 ├── styles.css       # стили (~10k строк)
 └── space.js         # расширение «Пространство» (~1.7k строк)
-iOS/                 # нативное SwiftUI-приложение (iPad/iPhone)
 wrapper.py           # точка входа, менеджмент окна
 main.py              # FastAPI-приложение
 notify_worker.py     # фоновый воркер уведомлений
@@ -341,7 +339,6 @@ build.py             # кросс-платформенный сборщик
 rewrite.py           # AI-рефакторинг через git
 gather_context.py    # сбор контекста кода для AI-диалогов
 dev_stats.py         # статистика разработки
-run_ios.py           # сборка и запуск iOS-версии
 make_dmg.sh          # сборка DMG-образов
 ```
 
