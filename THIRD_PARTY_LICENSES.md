@@ -68,7 +68,7 @@ impose GPL obligations on Doe's own code.
 | marked | Markdown rendering | MIT |
 | Prism.js | Syntax highlighting | MIT |
 | CodeMirror | Code editor | MIT |
-| KaTeX | Math rendering (loaded from jsDelivr CDN) | MIT |
+| KaTeX | Math rendering (vendored locally in `frontend/`, incl. `fonts/`) | MIT |
 
 ---
 

@@ -1,5 +1,4 @@
 fastapi
-uvicorn[standard]
 sqlalchemy
 aiosqlite
 pydantic
@@ -10,7 +9,6 @@ pyperclip
 pywebview
 pyinstaller
 watchdog
-websockets
 pyyaml
 huggingface-hub
 llama-cpp-python; sys_platform == "darwin" and platform_machine == "arm64"

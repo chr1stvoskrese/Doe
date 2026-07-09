@@ -1,11 +1,8 @@
-from contextlib import asynccontextmanager
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, HTMLResponse
 from src.core.config import get_ui_settings
 from pathlib import Path
-import uvicorn
 import sys
 from src.api.v1 import columns, tasks, system, workspaces 
 from src.db.database import init_dev_database, close_database
@@ -17,77 +14,64 @@ from src.core.watcher import vault_observer # <-- ИМПОРТ
 
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    import asyncio
+# 🔒 БЕЗ СЕТЕВОГО СЕРВЕРА: приложение больше не поднимает uvicorn/сокет.
+# FastAPI-`app` используется как in-process ASGI-библиотека — фронтенд вызывает
+# эндпоинты через мост `window.pywebview.api.api_request` (см. wrapper.py).
+# Поэтому lifespan заменён на явные startup()/shutdown(), которые дёргает
+# DataLoopThread из wrapper.py на своём asyncio-цикле. Так же убраны CORS
+# (нет origin'ов вообще) и uvicorn.
+
+async def startup():
+    """Инициализация хранилища. Вызывается как фоновая задача на loop'е
+    DataLoopThread, чтобы окно появлялось мгновенно и показывало прогресс,
+    а фронтенд ждал /system/startup-status."""
     from src.core.config import get_active_vault
     from src.db.database import startup_state
-
-    # ⚡️ МГНОВЕННЫЙ СТАРТ СЕРВЕРА: инициализация хранилища (миграции большой
-    # БД могут занимать секунды) выполняется в ФОНОВОЙ задаче. Сервер начинает
-    # отвечать сразу → окно приложения появляется немедленно и показывает
-    # прогресс, а не висит невидимым. Фронтенд ждёт /system/startup-status.
-    async def _startup_init():
-        try:
-            vault_path = get_active_vault()
-
-            # 🔐 init_dev_database возвращает None, если хранилище защищено
-            # паролем (ждём разблокировки), невалидно или отсутствует.
-            initialized = None
-            if vault_path and Path(vault_path).exists():
-                initialized = await init_dev_database()
-
-            if initialized is not None:
-                print(f"✅ База данных инициализирована в: {vault_path}")
-                from src.db.database import get_session_factory
-                from src.core.config import get_ui_settings
-                exts = get_ui_settings().get("extensions", {})
-                if exts.get("automations", True):
-                    from src.services.automation_service import start_scheduler
-                    start_scheduler(get_session_factory())
-                startup_state["state"] = "ready"
-            else:
-                print("⚠️ Хранилище не выбрано, защищено паролем или удалено. Ждем действий пользователя.")
-                startup_state["state"] = "no_vault"
-        except Exception as e:
-            print(f"❌ Ошибка инициализации хранилища: {e}")
-            import traceback
-            traceback.print_exc()
-            startup_state["state"] = "error"
-
-    init_task = asyncio.create_task(_startup_init())
-
-    yield
-
-    # Штатное завершение (общий путь для всех состояний)
-    if not init_task.done():
-        init_task.cancel()
     try:
-        await asyncio.gather(init_task, return_exceptions=True)
-    except Exception:
-        pass
+        vault_path = get_active_vault()
 
+        # 🔐 init_dev_database возвращает None, если хранилище защищено
+        # паролем (ждём разблокировки), невалидно или отсутствует.
+        initialized = None
+        if vault_path and Path(vault_path).exists():
+            initialized = await init_dev_database()
+
+        if initialized is not None:
+            print(f"✅ База данных инициализирована в: {vault_path}")
+            from src.db.database import get_session_factory
+            from src.core.config import get_ui_settings
+            exts = get_ui_settings().get("extensions", {})
+            if exts.get("automations", True):
+                from src.services.automation_service import start_scheduler
+                start_scheduler(get_session_factory())
+            startup_state["state"] = "ready"
+        else:
+            print("⚠️ Хранилище не выбрано, защищено паролем или удалено. Ждем действий пользователя.")
+            startup_state["state"] = "no_vault"
+    except Exception as e:
+        print(f"❌ Ошибка инициализации хранилища: {e}")
+        import traceback
+        traceback.print_exc()
+        startup_state["state"] = "error"
+
+
+async def shutdown():
+    """Штатное завершение: гасим scheduler/watcher, закрываем БД и шифруем
+    защищённое хранилище (ключ сессии ещё в памяти)."""
+    from src.core.config import get_active_vault
     from src.services.automation_service import stop_scheduler
     stop_scheduler()
     vault_observer.stop()  # <-- ГЛУШИМ WATCHER
     await close_database()
-    # 🔐 Штатное завершение: шифруем защищённое хранилище (ключ сессии ещё в памяти)
     try:
         from src.db.database import lock_vault_files
         await lock_vault_files(get_active_vault())
     except Exception as e:
         print(f"[Security] Lock on shutdown failed: {e}")
-    print("🛑 Сервер останавливается...")
+    print("🛑 Приложение завершает работу...")
 
-app = FastAPI(title="Doe API", version="0.1.0", lifespan=lifespan)
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+app = FastAPI(title="Doe API", version="0.1.0")
 
 @app.get("/doe/{file_path:path}")
 async def serve_attachment(file_path: str):
@@ -230,12 +214,3 @@ async def serve_index():
 @app.get("/")
 async def root():
     return {"message": "Doe Kanban API is running"}
-
-if __name__ == "__main__":
-    # reload=False — без дочернего процесса atexit-очистка LLM (Metal)
-    # отрабатывает корректно, без SIGBUS от ggml_metal_device_free.
-    try:
-        uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=False)
-    except KeyboardInterrupt:
-        pass
-    print("\n👋 Завершение работы.")

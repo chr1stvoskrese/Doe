@@ -1,7 +1,6 @@
-from fastapi import APIRouter, HTTPException, status, UploadFile, File, Depends, WebSocket, WebSocketDisconnect, Request
+from fastapi import APIRouter, HTTPException, status, UploadFile, File, Depends, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.core.watcher import ws_manager  # <-- ДОБАВИТЬ ЭТО
 from src.db.database import get_session # Добавили
 from src.services.task_service import cleanup_orphaned_attachments # Добавили
 from pydantic import BaseModel
@@ -299,8 +298,15 @@ async def switch_vault_endpoint(req: SwitchVaultRequest):
                     # перенавигируем уже существующее окно Vault Selector на доску и подгоняем
                     # размер/заголовок. Это работает на всех платформах одинаково и не зависит
                     # от window lifecycle.
-                    target_url = 'http://127.0.0.1:8000/app'
-                    
+                    # 🔒 Без сетевого сервера окно грузится из локального файла
+                    # (file://). Собираем актуальный board-URL через wrapper.
+                    import sys as _sys_nav
+                    _wrapper = _sys_nav.modules.get('wrapper') or _sys_nav.modules.get('__main__')
+                    if _wrapper and hasattr(_wrapper, 'runtime_index_url'):
+                        target_url = _wrapper.runtime_index_url('board')
+                    else:
+                        target_url = 'about:blank'
+
                     if webview.windows:
                         target_window = webview.windows[0]
                         try:
@@ -2373,18 +2379,11 @@ async def get_calendar_events(db: AsyncSession = Depends(get_session)):
     return events
 
 # ==========================================
-# WEBSOCKET ДЛЯ ICLOUD SYNC
+# СИНХРОНИЗАЦИЯ ICLOUD / OBSIDIAN
 # ==========================================
-@router.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
-    """Канал связи с фронтендом для передачи эвентов от ОС (iCloud Sync)"""
-    await ws_manager.connect(websocket)
-    try:
-        while True:
-            # Просто держим соединение живым
-            await websocket.receive_text()
-    except WebSocketDisconnect:
-        ws_manager.disconnect(websocket)
+# 🔒 Раньше здесь был WebSocket /ws. Без сетевого сервера уведомление о внешних
+# изменениях БД доставляется напрямую в окно через evaluate_js — см.
+# src/core/watcher.py (notify_db_updated / set_push_hook) и wrapper.py.
 
 import ctypes
 from ctypes import wintypes

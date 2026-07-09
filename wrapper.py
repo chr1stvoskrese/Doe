@@ -105,19 +105,10 @@ if len(sys.argv) >= 8 and sys.argv[1] == "--worker":
 
     remove_self_from_config()
 
-    payload = json.dumps({"task_id": int(task_id), "vault_path": vault_path}).encode('utf-8')
-
-    def send_highlight_request():
-        try:
-            req = urllib.request.Request(
-                "http://127.0.0.1:8000/api/v1/system/highlight-task",
-                data=payload,
-                headers={'Content-Type': 'application/json'}
-            )
-            urllib.request.urlopen(req, timeout=1.0)
-            return True
-        except Exception:
-            return False
+    # 🔒 Без сетевого сервера: подсветку задачи в уже запущенном инстансе
+    # доставляем ТОЛЬКО через файловый сигнал write_pending_highlight() —
+    # запущенный инстанс подхватывает его поллингом /system/pending-highlights.
+    # Активацию окна делает ОС (`open -a` на macOS / запуск exe на Windows).
 
     def write_pending_highlight():
         if config_file.exists():
@@ -154,10 +145,8 @@ if len(sys.argv) >= 8 and sys.argv[1] == "--worker":
         class NotificationDelegate(NSObject):
             def userNotificationCenter_didActivateNotification_(self, center, notification):
                 write_pending_highlight()
-                if not send_highlight_request():
-                    subprocess.Popen(['open', '-n', '-a', str(Path(sys.executable).parent.parent.parent)])
-                else:
-                    subprocess.Popen(['open', '-a', str(Path(sys.executable).parent.parent.parent)])
+                # `open -a` активирует уже запущенный инстанс либо запускает новый.
+                subprocess.Popen(['open', '-a', str(Path(sys.executable).parent.parent.parent)])
                 global_state["keep_running"] = False
                 
             def userNotificationCenter_shouldPresentNotification_(self, center, notification): 
@@ -237,8 +226,7 @@ if len(sys.argv) >= 8 and sys.argv[1] == "--worker":
             if msg == WM_TRAYMSG:
                 if lparam == NIN_BALLOONUSERCLICK:
                     write_pending_highlight()
-                    if not send_highlight_request():
-                        subprocess.Popen([doe_exe_path])
+                    subprocess.Popen([doe_exe_path])
                     nid = NOTIFYICONDATAW(); nid.cbSize = ctypes.sizeof(NOTIFYICONDATAW); nid.hWnd = hwnd; nid.uID = 1
                     ctypes.windll.shell32.Shell_NotifyIconW(NIM_DELETE, ctypes.byref(nid))
                     ctypes.windll.user32.PostQuitMessage(0)
@@ -429,47 +417,32 @@ if sys.platform == 'darwin':
                     
                 vault_dir = os.path.dirname(clean_path)
                 
-                # Универсальная проверка: жив ли уже наш сервер (наш процесс или дубль)
-                server_running = False
-                try:
-                    urllib.request.urlopen(f"http://127.0.0.1:{PORT}/", timeout=0.5)
-                    server_running = True
-                except Exception:
-                    pass
-                
-                if server_running:
-                    # Сервер уже запущен — единый путь через HTTP-эндпоинт.
-                    # Эндпоинт /vault/switch:
-                    #   • переключит БД через switch_vault() (внутри обновится vault_history)
-                    #   • сам решит что делать с окнами (vault-селектор / Kanban)
-                    #   • для same-vault просто поднимет существующее окно
-                    # Этот же эндпоинт уже годами работает для Windows file-association.
-                    print(f"[System] 🚀 Forwarding vault switch via HTTP: {vault_dir}")
-                    
+                # 🔒 Без сетевого сервера: AppleEvent приходит В уже запущенный
+                # инстанс (LaunchServices маршрутизирует 'odoc'/openURLs сюда).
+                # Наличие окон == мы работающий инстанс с UI.
+                import webview
+                if webview.windows:
+                    # Переключаем vault ПРЯМО в процессе через in-process ASGI
+                    # (эндпоинт /vault/switch сам обновит БД, историю и окна).
+                    print(f"[System] 🚀 Forwarding vault switch in-process: {vault_dir}")
+
                     import threading
                     def _fire_switch():
                         try:
-                            req = urllib.request.Request(
-                                f"http://127.0.0.1:{PORT}/api/v1/system/vault/switch",
-                                data=_json.dumps({"new_path": vault_dir, "trigger_ui": True}).encode('utf-8'),
-                                headers={'Content-Type': 'application/json'}
+                            DATA_LOOP.request(
+                                'POST', '/api/v1/system/vault/switch',
+                                {'content-type': 'application/json'},
+                                _json.dumps({"new_path": vault_dir, "trigger_ui": True}).encode('utf-8'),
                             )
-                            urllib.request.urlopen(req, timeout=10.0)
                         except Exception as e:
-                            print(f"[System] HTTP forward failed: {e}")
+                            print(f"[System] In-process vault switch failed: {e}")
                             traceback.print_exc()
-                    # HTTP кидаем в фон, чтобы не блокировать AppKit-поток (никаких beach-ball).
+                    # В фон, чтобы не блокировать AppKit-поток (никаких beach-ball).
                     threading.Thread(target=_fire_switch, daemon=True).start()
-                    
-                    # Если у нас нет своих окон — мы дубль-процесс, нужно завершиться,
-                    # чтобы в macOS Dock не висела вторая иконка приложения.
-                    import webview
-                    if not webview.windows:
-                        threading.Timer(0.5, lambda: os._exit(0)).start()
                     return True
                 else:
-                    # Сервер ещё не поднят — холодный запуск.
-                    # Просто запоминаем путь, чтобы init_dev_database() инициализировал нужную БД.
+                    # Окон ещё нет — холодный запуск. Просто запоминаем путь,
+                    # чтобы init_dev_database() инициализировал нужную БД.
                     from src.core.config import set_active_vault
                     set_active_vault(vault_dir)
                     print(f"[System] 🆕 Cold launch with vault: {vault_dir}")
@@ -684,10 +657,7 @@ if sys.platform == 'darwin':
                         except Exception:
                             pass
                         try:
-                            st = globals().get('server_thread')
-                            if st is not None:
-                                st.stop()
-                                st.join(timeout=0.5)
+                            DATA_LOOP.shutdown()
                         except Exception:
                             pass
                         import time as _time
@@ -987,18 +957,163 @@ sys.excepthook = global_exception_handler
 print("[System] Importing libraries...")
 import multiprocessing
 import threading
-import urllib.request
 import webview
-import uvicorn
 import subprocess  # Для macOS 'open'
 import os          # Для Windows 'os.startfile'
+import asyncio
 
 print("[System] Loading FastAPI core...")
-from main import app
+from main import app, startup as _app_startup, shutdown as _app_shutdown, frontend_path
 from src.core.config import get_ui_settings
 
-PORT = 8000
-URL = f"http://127.0.0.1:{PORT}/app"
+# ============================================================================
+# 🔒 БЕЗ СЕТЕВОГО СЕРВЕРА
+# Раньше здесь поднимался uvicorn на http://127.0.0.1:8000, а окно грузило
+# `/app` по HTTP. Теперь окно грузится из локального файла (file://), а фронт
+# общается с бэкендом через мост `window.pywebview.api.api_request`, который
+# гоняет то же самое ASGI-приложение `app` in-process через httpx.ASGITransport
+# — без сокета, порта и CORS. Это устраняет поверхность атаки (открытый порт).
+# ============================================================================
+
+def runtime_index_url(mode: str = 'board') -> str:
+    """Собирает index.html с инъекцией темы/языка/режима, кладёт рядом с
+    ассетами в frontend/ (чтобы относительные ссылки резолвились по file://)
+    и возвращает file://-URL. mode: 'board' | 'vault'."""
+    settings = get_ui_settings()
+    theme = settings.get('theme', 'light')
+    lang = settings.get('language', 'ru')
+    bg = '#161815' if theme == 'dark' else '#F4F3EF'
+    with open(frontend_path / 'index.html', 'r', encoding='utf-8') as f:
+        html = f.read()
+    launch_mode = 'vault' if mode == 'vault' else 'board'
+    # Инъекция БАЗОВОГО фона в <head> — гарантирует нужный цвет вьюпорта ещё
+    # до загрузки CSS (тот же приём, что был в main.py:serve_index).
+    inject = (
+        f'<style id="doe-bg-lock">html, body {{ background-color: {bg} !important; }}</style>'
+        '<script>'
+        f'window.__doeLaunchMode = "{launch_mode}";'
+        'window.addEventListener("DOMContentLoaded", function(){ setTimeout(function(){ var e=document.getElementById("doe-bg-lock"); if(e) e.remove(); }, 50); });'
+        f'if ("{theme}" === "dark") document.documentElement.setAttribute("data-theme", "dark");'
+        f'try {{ localStorage.setItem("doe-theme", "{theme}"); localStorage.setItem("doe-lang", "{lang}"); }} catch(e) {{}}'
+        '</script>'
+        '</head>'
+    )
+    html = html.replace('</head>', inject, 1)
+    out = frontend_path / ('.doe_runtime_vault.html' if launch_mode == 'vault' else '.doe_runtime_board.html')
+    with open(out, 'w', encoding='utf-8') as f:
+        f.write(html)
+    url = out.resolve().as_uri()
+    if launch_mode == 'vault':
+        url += '?mode=vault'
+    return url
+
+
+class _AsgiResponse:
+    """Лёгкий контейнер ответа ASGI (аналог httpx.Response, но без зависимости)."""
+    __slots__ = ('status_code', 'headers', 'content')
+
+    def __init__(self, status_code, headers, content):
+        self.status_code = status_code
+        self.headers = headers  # dict[str, str]
+        self.content = content  # bytes
+
+
+async def _call_asgi(asgi_app, method, path, headers, body):
+    """Вызывает ASGI-приложение НАПРЯМУЮ, без сети/сокета/HTTP-стека.
+    Полностью офлайн: строим http-scope, гоняем receive/send, собираем ответ."""
+    import urllib.parse as _uparse
+    raw_path, _, query = path.partition('?')
+    scope = {
+        'type': 'http',
+        'asgi': {'version': '3.0', 'spec_version': '2.3'},
+        'http_version': '1.1',
+        'method': str(method).upper(),
+        'scheme': 'http',
+        'path': _uparse.unquote(raw_path),
+        'raw_path': raw_path.encode('utf-8'),
+        'query_string': query.encode('utf-8'),
+        'root_path': '',
+        'headers': [
+            (str(k).lower().encode('latin-1'), str(v).encode('latin-1'))
+            for k, v in (headers or {}).items()
+        ],
+        'client': ('127.0.0.1', 0),
+        'server': ('doe.local', 80),
+    }
+
+    _sent = {'done': False}
+
+    async def receive():
+        if not _sent['done']:
+            _sent['done'] = True
+            return {'type': 'http.request', 'body': body or b'', 'more_body': False}
+        return {'type': 'http.disconnect'}
+
+    result = {'status': 500, 'headers': [], 'body': bytearray()}
+
+    async def send(message):
+        t = message['type']
+        if t == 'http.response.start':
+            result['status'] = message['status']
+            result['headers'] = message.get('headers', []) or []
+        elif t == 'http.response.body':
+            result['body'].extend(message.get('body', b'') or b'')
+
+    await asgi_app(scope, receive, send)
+    hdrs = {k.decode('latin-1'): v.decode('latin-1') for k, v in result['headers']}
+    return _AsgiResponse(result['status'], hdrs, bytes(result['body']))
+
+
+class DataLoop:
+    """Единый asyncio-цикл в фоновом потоке — заменяет uvicorn-сервер.
+    Запросы фронта (/api/v1/...) маршрутизируются в in-process `app` через
+    прямой вызов ASGI, БЕЗ сети/сокета/порта."""
+
+    def __init__(self):
+        self.loop = asyncio.new_event_loop()
+        self._ready = threading.Event()
+        self.thread = threading.Thread(target=self._run, daemon=True, name='doe-data-loop')
+
+    def _run(self):
+        asyncio.set_event_loop(self.loop)
+        # Инициализация хранилища в фоне — окно появляется мгновенно, а фронт
+        # ждёт готовности через /system/startup-status.
+        self.loop.create_task(_app_startup())
+        self._ready.set()
+        self.loop.run_forever()
+
+    def start(self):
+        self.thread.start()
+        self._ready.wait(timeout=10)
+
+    def request(self, method, path, headers, body):
+        """Синхронный вызов ASGI-приложения из потока pywebview."""
+        fut = asyncio.run_coroutine_threadsafe(
+            _call_asgi(app, method, path, headers, body), self.loop)
+        return fut.result(timeout=300)
+
+    def shutdown(self):
+        try:
+            fut = asyncio.run_coroutine_threadsafe(_app_shutdown(), self.loop)
+            fut.result(timeout=5)
+        except Exception:
+            pass
+
+
+DATA_LOOP = DataLoop()
+
+
+def push_db_updated():
+    """Замена WebSocket-события `db_updated`: пушим уведомление о внешнем
+    изменении БД во все окна через evaluate_js (см. src/core/watcher.py)."""
+    try:
+        for w in list(webview.windows):
+            try:
+                w.evaluate_js('window.__doeOnDbUpdated && window.__doeOnDbUpdated()')
+            except Exception:
+                pass
+    except Exception:
+        pass
 
 print("[Settings] Reading configuration...")
 settings = get_ui_settings()
@@ -1414,10 +1529,10 @@ def _lock_vault_before_exit():
     """
     Штатное завершение приложения: закрываем БД и шифруем защищённое хранилище.
 
-    Делаем это через HTTP-эндпоинт /vault/lock — он выполняется в event loop'е
-    uvicorn и корректно закрывает SQLite (WAL checkpoint) перед шифрованием.
-    Вызов идемпотентен (страхуемся флагом) и безопасен: если пароль не установлен
-    или ключа сессии нет — эндпоинт мгновенно отвечает no-op.
+    Делаем это через эндпоинт /vault/lock, но БЕЗ сети — вызываем его на том же
+    asyncio-цикле (DATA_LOOP), где живёт БД, чтобы корректно закрыть SQLite
+    (WAL checkpoint) перед шифрованием. Вызов идемпотентен (страхуемся флагом)
+    и безопасен: если пароль не установлен или ключа сессии нет — no-op.
 
     При аварийном завершении (kill -9, краш) этот код не выполняется —
     шифрование не происходит (осознанное поведение: данные не теряются,
@@ -1437,15 +1552,11 @@ def _lock_vault_before_exit():
             return
 
         print("[Security] 🔒 Locking protected vault before exit...")
-        import urllib.request
-        req = urllib.request.Request(
-            f"http://127.0.0.1:{PORT}/api/v1/system/vault/lock",
-            data=b"{}",
-            headers={"Content-Type": "application/json"},
-            method="POST",
+        resp = DATA_LOOP.request(
+            "POST", "/api/v1/system/vault/lock",
+            {"content-type": "application/json"}, b"{}",
         )
-        with urllib.request.urlopen(req, timeout=180) as resp:
-            print(f"[Security] ✅ Vault locked on exit (HTTP {resp.status})")
+        print(f"[Security] ✅ Vault locked on exit (status {resp.status_code})")
     except Exception as e:
         # Не блокируем выход: в худшем случае файлы останутся расшифрованными,
         # но пароль при следующем входе будет запрошен в любом случае.
@@ -1454,6 +1565,66 @@ def _lock_vault_before_exit():
 
 # --- ЗАМЕНИТЕ КЛАСС WindowAPI в wrapper.py на этот ---
 class WindowAPI:
+    # ------------------------------------------------------------------
+    # 🌉 Мост данных: замена HTTP-сервера. Фронтенд шлёт сюда все запросы,
+    # которые раньше уходили в fetch('/api/v1/...'). Метод прогоняет их через
+    # in-process ASGI-приложение (без сети) и возвращает ответ фронту.
+    # ------------------------------------------------------------------
+    def api_request(self, method, path, headers=None, body_b64=None):
+        """Единая точка входа фронта к бэкенду вместо HTTP.
+        method — 'GET'/'POST'/... ; path — '/api/v1/...'(+query);
+        headers — dict; body_b64 — base64 тела запроса или None.
+        Возвращает {status, headers, body_b64} (тело всегда base64,
+        чтобы одинаково обслуживать текст и бинарь)."""
+        import base64 as _b64
+        import json as _json
+        try:
+            body = _b64.b64decode(body_b64) if body_b64 else b""
+            hdrs = {str(k): str(v) for k, v in (headers or {}).items()}
+            resp = DATA_LOOP.request(method, path, hdrs, body)
+            content = resp.content or b""
+            return {
+                "status": resp.status_code,
+                "headers": {k: v for k, v in resp.headers.items()},
+                "body_b64": _b64.b64encode(content).decode("ascii"),
+            }
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            payload = _json.dumps({"detail": str(e)}).encode("utf-8")
+            return {
+                "status": 500,
+                "headers": {"content-type": "application/json"},
+                "body_b64": _b64.b64encode(payload).decode("ascii"),
+            }
+
+    def get_asset_roots(self):
+        """Абсолютные корни для резолвинга вложений в file://-URL:
+        attachments_dir — папка вложений (было /doe/...),
+        vault_dir — активное хранилище. Фронт кэширует и обновляет при смене
+        vault. Используется в resolveMarkdownAssetSrc (app.js)."""
+        try:
+            from src.core.config import get_attachments_dir, get_active_vault
+            attach = get_attachments_dir()
+            vault = get_active_vault()
+            return {
+                "attachments_dir": str(attach) if attach else "",
+                "vault_dir": str(vault) if vault else "",
+            }
+        except Exception as e:
+            print(f"[Bridge] get_asset_roots failed: {e}")
+            return {"attachments_dir": "", "vault_dir": ""}
+
+    def get_pdfjs_dir(self):
+        """Абсолютный путь к локально закэшированному PDF.js (file://-загрузка
+        воркера/скрипта). Файлы кладёт эндпоинт /system/ensure-pdfjs."""
+        try:
+            from src.api.v1.system import get_pdfjs_dir as _gp
+            return str(_gp())
+        except Exception as e:
+            print(f"[Bridge] get_pdfjs_dir failed: {e}")
+            return ""
+
     def force_close(self):
         """Вызывается из JS для завершения работы приложения."""
         import os
@@ -2315,7 +2486,7 @@ class WindowAPI:
 
         new_win = webview.create_window(
             title=MAIN_WINDOW_TITLE,
-            url=URL,
+            url=runtime_index_url('board'),
             width=c_w,
             height=c_h,
             x=t_x,
@@ -2353,7 +2524,7 @@ class WindowAPI:
         old_windows = list(webview.windows)
         webview.create_window(
             title='Doe — Select Vault',
-            url=f"{URL}?mode=vault",
+            url=runtime_index_url('vault'),
             width=760,
             height=680,
             min_size=(760, 680),
@@ -2376,34 +2547,6 @@ class WindowAPI:
                     pass
         threading.Timer(0.4, _kill_old).start()
 
-class APIServerThread(threading.Thread):
-    def __init__(self):
-        super().__init__(daemon=True)
-        print(f"[Uvicorn] Initializing web server on port {PORT}...")
-        config = uvicorn.Config(
-            app, 
-            host="127.0.0.1", 
-            port=PORT, 
-            # PERF: access-лог писал строку + flush на диск при КАЖДОМ запросе.
-            # Фронтенд поллит API каждую секунду => постоянная запись в папку vault
-            # (плюс лишние события для watchdog и churn для iCloud).
-            log_level="warning",
-            access_log=False
-        )
-        self.server = uvicorn.Server(config)
-
-    def run(self):
-        print("[Uvicorn] Server thread started.")
-        try:
-            self.server.run()
-        except Exception as e:
-            print(f"[Uvicorn] CRITICAL SERVER ERROR: {e}")
-            traceback.print_exc()
-
-    def stop(self):
-        print("[Uvicorn] Stop command received for the server...")
-        self.server.should_exit = True
-
 if __name__ == '__main__':
     multiprocessing.freeze_support()
     print("[System] Starting main thread...")
@@ -2425,30 +2568,14 @@ if __name__ == '__main__':
         file_arg = sys.argv[1]
         if file_arg.endswith(".db.doe") and os.path.exists(file_arg):
             vault_dir = os.path.dirname(os.path.abspath(file_arg))
-            
-            # Проверяем, запущен ли уже сервер (первый процесс)
-            server_running = False
-            try:
-                import urllib.request
-                import json as _json
-                req = urllib.request.Request(
-                    f"http://127.0.0.1:{PORT}/api/v1/system/vault/switch",
-                    data=_json.dumps({"new_path": vault_dir, "trigger_ui": True}).encode('utf-8'),
-                    headers={'Content-Type': 'application/json'}
-                )
-                urllib.request.urlopen(req, timeout=2)
-                server_running = True
-            except Exception:
-                pass
-                
-            if server_running:
-                print(f"[System] Passed vault to existing instance. Exiting.")
-                import os
-                os._exit(0) # Убиваем второй процесс, первый процесс всё сделает сам
-            else:
-                from src.core.config import set_active_vault
-                set_active_vault(vault_dir)
-                print(f"[System] 🚀 Launched from file association. Active vault set to: {vault_dir}")
+
+            # 🔒 Без сетевого сервера передать vault другому процессу по HTTP
+            # больше нельзя. На macOS запущенный инстанс ловит файл через
+            # AppleEvent (_doe_handle_vault_path). В остальных случаях просто
+            # запоминаем vault и запускаемся штатно с нужной БД.
+            from src.core.config import set_active_vault
+            set_active_vault(vault_dir)
+            print(f"[System] 🚀 Launched from file association. Active vault set to: {vault_dir}")
 
     # ФИКС ИКОНКИ И РЕЕСТРА ДЛЯ WINDOWS
     if sys.platform == 'win32':
@@ -2484,26 +2611,21 @@ if __name__ == '__main__':
         except Exception as e:
             print(f"[System] Failed to register file association in Windows Registry: {e}")
 
-    server_thread = None
-
     import signal
     import threading
-    
+
     def force_quit():
         print("\n[System] 🛑 Завершение работы по CTRL+C...")
-        # При жестком выходе не пытаемся выгружать LLM вручную, 
+        # При жестком выходе не пытаемся выгружать LLM вручную,
         # так как это провоцирует SIGABRT/SIGBUS.
         # os._exit(0) ниже гарантирует, что деструкторы не будут вызваны,
         # а ОС сама безопасно очистит память.
-        
-        global server_thread
-        if server_thread is not None:
-            try:
-                server_thread.stop()
-                server_thread.join(timeout=0.5)
-            except Exception:
-                pass
-                
+
+        try:
+            DATA_LOOP.shutdown()
+        except Exception:
+            pass
+
         time.sleep(0.2)
         try:
             sys.stdout.flush(); sys.stderr.flush()
@@ -2587,25 +2709,18 @@ if __name__ == '__main__':
         ctypes.windll.kernel32.SetConsoleCtrlHandler(_ctrl_handler, True)
 
     try:
-        server_thread = APIServerThread()
-        server_thread.start()
+        # 🔒 Вместо uvicorn-сервера — единый asyncio-цикл с in-process ASGI.
+        # Инициализация БД идёт в фоне (см. DataLoop._run → _app_startup),
+        # окно появляется мгновенно, фронт ждёт /system/startup-status.
+        DATA_LOOP.start()
+        print("[Main] ✅ In-process data loop started (no network server).")
 
-        print("[Main] Waiting for server readiness (5 seconds timeout)...")
-        timeout = 5.0
-        start_time = time.time()
-        server_ready = False
-        
-        while time.time() - start_time < timeout:
-            try:
-                urllib.request.urlopen(f"http://127.0.0.1:{PORT}/")
-                server_ready = True
-                print(f"[Main] ✅ Server successfully responded on port {PORT}!")
-                break
-            except Exception:
-                time.sleep(0.05)
-
-        if not server_ready:
-            print("[Main] ❌ WARNING: Server did not respond within 5 seconds. Port might be in use or DB is broken.")
+        # Push-уведомления о внешних изменениях БД (замена WebSocket).
+        try:
+            from src.core import watcher as _watcher
+            _watcher.set_push_hook(push_db_updated)
+        except Exception as _wh_e:
+            print(f"[Main] Failed to register db-update push hook: {_wh_e}")
 
         print("[WebView] Creating invisible browser window...")
         _dump_geometry_diagnostics()
@@ -2635,7 +2750,7 @@ if __name__ == '__main__':
         else:
             t_w, t_h, t_x, t_y = 760, 680, None, None
 
-        start_url = URL if is_configured else f"{URL}?mode=vault"
+        start_url = runtime_index_url('board' if is_configured else 'vault')
         start_w = t_w
         start_h = t_h
         if sys.platform == 'win32' and is_configured and t_x is not None:
@@ -2731,10 +2846,11 @@ if __name__ == '__main__':
                 pass
             print("[System] Window closed. Shutting down.")
             _lock_vault_before_exit() # 🔐 шифруем защищённое хранилище (идемпотентно)
-            if server_thread:
-                server_thread.stop()
-                server_thread.join(timeout=0.2)
-            print("[System] Server stopped. Exiting.")
+            try:
+                DATA_LOOP.shutdown()
+            except Exception:
+                pass
+            print("[System] Data loop stopped. Exiting.")
             try:
                 sys.stdout.flush(); sys.stderr.flush()  # PERF: добиваем буфер лога (os._exit обходит atexit)
             except Exception:
