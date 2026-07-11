@@ -37,7 +37,7 @@ def ru_plural(n: int, one: str, few: str, many: str) -> str:
 
 # Что считаем кодом: собственные исходники проекта.
 # Вендорные бандлы (*.min.js / *.min.css) не считаются — это чужой код.
-CODE_EXTS = {".py", ".js", ".css", ".html", ".sh", ".swift", ".ini", ".mako", ".command"}
+CODE_EXTS = {".py", ".js", ".css", ".html", ".sh", ".ini", ".mako", ".command"}
 
 
 def count_code_lines() -> int:

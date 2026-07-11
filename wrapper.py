@@ -1614,14 +1614,19 @@ class WindowAPI:
         чтобы одинаково обслуживать текст и бинарь)."""
         import base64 as _b64
         import json as _json
-        import threading as _thr
-        print(f"[Bridge] → {method} {path} (thread={_thr.current_thread().name})", flush=True)
+        # PERF: фронтенд поллит API ежесекундно, а stdout пишется в лог-файл
+        # в папке vault с flush на каждую строку. Поэтому пер-запросный лог
+        # моста включается только явно: DOE_DEBUG=1 (ошибки логируются всегда).
+        _dbg = os.environ.get("DOE_DEBUG")
+        if _dbg:
+            print(f"[Bridge] → {method} {path}", flush=True)
         try:
             body = _b64.b64decode(body_b64) if body_b64 else b""
             hdrs = {str(k): str(v) for k, v in (headers or {}).items()}
             resp = DATA_LOOP.request(method, path, hdrs, body)
             content = resp.content or b""
-            print(f"[Bridge] ← {method} {path} -> {resp.status_code} ({len(content)}b)", flush=True)
+            if _dbg:
+                print(f"[Bridge] ← {method} {path} -> {resp.status_code} ({len(content)}b)", flush=True)
             return {
                 "status": resp.status_code,
                 "headers": {k: v for k, v in resp.headers.items()},

@@ -41,9 +41,8 @@ Apache-2.0 license text (reproduced at the bottom of this file).
 
 | Component | Purpose | License |
 |---|---|---|
-| FastAPI | HTTP API framework | MIT |
+| FastAPI | API framework (in-process ASGI) | MIT |
 | Starlette | ASGI toolkit (via FastAPI) | BSD-3-Clause |
-| Uvicorn | ASGI server | BSD-3-Clause |
 | Pydantic | Data validation | MIT |
 | SQLAlchemy | ORM / SQL toolkit | MIT |
 | Alembic | Database migrations | MIT |
@@ -51,7 +50,6 @@ Apache-2.0 license text (reproduced at the bottom of this file).
 | greenlet | Lightweight coroutines | MIT |
 | pywebview | Native window / webview host | BSD-3-Clause |
 | watchdog | Filesystem watching | Apache-2.0 |
-| websockets | WebSocket transport | BSD-3-Clause |
 | python-multipart | Multipart form parsing | Apache-2.0 |
 | pyperclip | Clipboard access | BSD-3-Clause |
 | cryptography | Encryption primitives | Apache-2.0 OR BSD-3-Clause |
@@ -125,6 +123,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-BSD-3-Clause components (Uvicorn, Starlette, pywebview, websockets, pyperclip,
-NumPy) are distributed under the standard 3-clause BSD license; see each
-project for its copyright line and full text.
+BSD-3-Clause components (Starlette, pywebview, pyperclip, NumPy) are
+distributed under the standard 3-clause BSD license; see each project for its
+copyright line and full text.

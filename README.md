@@ -172,19 +172,20 @@ python build.py
 
 ## 🧱 Architecture
 
+No local server, no open ports: the UI talks to the backend through the
+`window.pywebview.api` bridge, and the FastAPI app runs **in-process** as a
+plain ASGI library. Zero network attack surface, fully offline.
+
 ```
 ┌──────────────────────────────────────────────┐
 │          Desktop Window (pywebview)          │
 │  ┌────────────────────────────────────────┐  │
 │  │    index.html · app.js · styles.css    │  │
-│  │     Vanilla JS · Fetch · WebSocket     │  │
+│  │   Vanilla JS · fetch() → bridge shim   │  │
 │  └────────────────────┬───────────────────┘  │
-│                       │ localhost:8000       │
-└───────────────────────┼──────────────────────┘
-                        │
-┌───────────────────────┼──────────────────────┐
-│           FastAPI Server (uvicorn)           │
+│                       │ window.pywebview.api │
 │  ┌────────────────────┴───────────────────┐  │
+│  │   In-process ASGI (FastAPI, no socket) │  │
 │  │  /api/v1/columns                       │  │
 │  │  /api/v1/tasks          CRUD + move    │  │
 │  │  /api/v1/workspaces                    │  │
@@ -193,7 +194,6 @@ python build.py
 │  │  /api/v1/automations                   │  │
 │  │  /api/v1/memory       spaced repetition│  │
 │  └────────────────────┬───────────────────┘  │
-│                       │                      │
 │  ┌────────────────────┴───────────────────┐  │
 │  │  SQLAlchemy 2.0 (async) + aiosqlite    │  │
 │  │  Alembic migrations                    │  │
@@ -211,7 +211,7 @@ python build.py
 
 | Layer | Technology |
 |---|---|
-| **Runtime** | Python 3.12 · FastAPI 0.115 · Uvicorn |
+| **Runtime** | Python 3.12 · FastAPI (in-process ASGI, no network server) |
 | **Database** | SQLite (aiosqlite) · SQLAlchemy 2.0 (async) |
 | **Migrations** | Alembic |
 | **Desktop** | pywebview (native OS WebView) |
@@ -332,13 +332,14 @@ frontend/
 ├── app.js           # all logic (~17k lines)
 ├── styles.css       # styles (~10k lines)
 └── space.js         # «Space» extension (~1.7k lines)
-wrapper.py           # entry point, window management
-main.py              # FastAPI application
+tools/
+├── rewrite.py       # AI-powered refactoring via git
+├── gather_context.py# code context collector for AI dialogues
+└── dev_stats.py     # development statistics
+wrapper.py           # entry point: window management + pywebview bridge
+main.py              # FastAPI application (in-process ASGI)
 notify_worker.py     # background notification worker
 build.py             # cross-platform builder
-rewrite.py           # AI-powered refactoring via git
-gather_context.py    # code context collector for AI dialogues
-dev_stats.py         # development statistics
 make_dmg.sh          # DMG image builder
 ```
 
