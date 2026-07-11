@@ -15,6 +15,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows-lightgrey" alt="Platform">
   <img src="https://img.shields.io/badge/version-v1-blue" alt="Version">
+  <a href="https://github.com/chr1stvoskrese/Doe/actions/workflows/tests.yml"><img src="https://github.com/chr1stvoskrese/Doe/actions/workflows/tests.yml/badge.svg" alt="Tests"></a>
   <img src="https://img.shields.io/badge/python-3.12-3776ab?logo=python&logoColor=white" alt="Python 3.12">
   <img src="https://img.shields.io/badge/frontend-vanilla%20JS-f7df1e?logo=javascript&logoColor=black" alt="Vanilla JS">
   <img src="https://img.shields.io/badge/backend-FastAPI-009688?logo=fastapi&logoColor=white" alt="FastAPI">
@@ -348,6 +349,12 @@ python build.py
 alembic revision --autogenerate -m "описание"
 alembic upgrade head
 alembic downgrade -1
+```
+
+```bash
+# Тесты (модули чистой логики; зависимости приложения не нужны)
+pip install -r requirements-dev.txt
+python -m pytest -q
 ```
 
 ```
