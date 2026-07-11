@@ -69,7 +69,7 @@
 <tr>
   <td width="50%" valign="top">
 
-**🧠 Local AI** — Built-in AI assistant powered by **Gemma 4** — fully offline with Apple Silicon acceleration. Discuss tasks, search the board, create cards, remember facts between sessions.
+**🧠 Local AI** `🚧 beta` — Built-in AI assistant powered by **Gemma 4** — fully offline with Apple Silicon acceleration. Discuss tasks, search the board, create cards, remember facts between sessions.
 
   </td>
   <td width="50%" valign="top">
@@ -109,8 +109,37 @@
 ## 🖼 Screenshots
 
 <p align="center">
-  <em>Screenshots coming soon. In the meantime — run it and see for yourself.</em>
+  <em>Screenshots coming soon.</em>
 </p>
+
+<!--
+  Gallery template — ready to go. Add the four images to assets/screenshots/
+  (see assets/screenshots/README.md for the exact filenames), then delete
+  these comment markers to publish the grid.
+
+<table>
+<tr>
+  <td width="50%" valign="top">
+    <img src="assets/screenshots/board.png" alt="Kanban board">
+    <p align="center"><sub>Kanban board — dark theme</sub></p>
+  </td>
+  <td width="50%" valign="top">
+    <img src="assets/screenshots/card.png" alt="Task card with Markdown editor">
+    <p align="center"><sub>Task card — Markdown editor with live preview</sub></p>
+  </td>
+</tr>
+<tr>
+  <td width="50%" valign="top">
+    <img src="assets/screenshots/graph.png" alt="Task relationship graph">
+    <p align="center"><sub>Task relationship graph (D3.js)</sub></p>
+  </td>
+  <td width="50%" valign="top">
+    <img src="assets/screenshots/stats.png" alt="Weekly statistics">
+    <p align="center"><sub>Weekly statistics &amp; time tracking</sub></p>
+  </td>
+</tr>
+</table>
+-->
 
 ---
 
@@ -260,19 +289,21 @@ python build.py
 | **Reminders** | System notifications on schedule |
 | **Graph** | Task relationship visualization (D3.js force-directed graph) |
 | **Statistics** | Weekly analytics: trends, top tasks, daily breakdown |
-| **AI Assistant** | Local LLM: chat, search, task creation, memory |
+| **AI Assistant** `🚧 beta` | Local LLM: chat, search, task creation, memory |
 | **Automations** | Recurring cards, auto-sort, auto-cleanup |
 | **Deadlines** | Overdue and upcoming deadlines |
 | **Priorities** | Color labels and emoji for priorities |
 | **Export** | Export cards to Markdown |
 | **Tabs** | Switch between workspaces |
-| **Space** | Infinite vector canvas (DoeSpace): drawing, text, connections |
+| **Space** `🚧 beta` | Infinite vector canvas (DoeSpace): drawing, text, connections |
 | **Memory** | Spaced repetition (SRS, SM-2 algorithm) for facts and notes |
 
 </details>
 
 <details>
-<summary><strong>🤖 AI Assistant</strong></summary>
+<summary><strong>🤖 AI Assistant</strong> · 🚧 beta</summary>
+
+> **In active development.** The assistant is functional but still being polished — behaviour, tool coverage, and the model line-up may change.
 
 Runs **fully offline** — local **Gemma 4** (Google), Apple Silicon with Metal acceleration and flash-attention (macOS arm64). Models are downloaded via HuggingFace:
 
@@ -344,6 +375,15 @@ dev_stats.py         # development statistics
 run_ios.py           # build and run iOS version
 make_dmg.sh          # DMG image builder
 ```
+
+---
+
+## 🚧 Roadmap
+
+- **Local AI assistant** — polishing tool coverage, streaming responses, and broader model support
+- **Space (infinite canvas)** — richer drawing tools and inline card embedding
+- **Screenshots & demo GIFs** in this README
+- **Automated tests & CI** for the API layer
 
 ---
 
