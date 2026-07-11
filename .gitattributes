@@ -1,0 +1,26 @@
+# Exclude vendored third-party libraries from GitHub's language statistics
+# so the repo reflects first-party code, not bundled minified assets.
+frontend/codemirror.min.js  linguist-vendored
+frontend/codemirror.min.css linguist-vendored
+frontend/prism.min.js       linguist-vendored
+frontend/prism.min.css      linguist-vendored
+frontend/marked.min.js      linguist-vendored
+
+# Treat generated/minified files as non-diffable in review
+*.min.js  -diff
+*.min.css -diff
+
+# Normalize line endings
+* text=auto
+*.py    text
+*.js    text
+*.css   text
+*.html  text
+*.swift text
+*.sh    text eol=lf
+*.command text eol=lf
+
+# Binary assets
+*.png   binary
+*.ico   binary
+*.icns  binary

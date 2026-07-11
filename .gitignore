@@ -20,7 +20,20 @@ Desktop.ini
 # PyInstaller Build Folders
 build/
 dist/
+dist-intel/
 *.spec
+
+# Xcode (iOS)
+xcuserdata/
+*.xcuserstate
+DerivedData/
+*.xcworkspace/xcuserdata/
+
+# FUSE filesystem artifacts
+.fuse_hidden*
+
+# Packaged source snapshots
+doe_source.zip
 
 # Временный allowlist расширений (пишется build.py на время сборки)
 feature_flags.json
