@@ -3,7 +3,8 @@
 </p>
 
 <p align="center">
-  <a href="README.md"><strong>🇬🇧 English</strong></a>
+  <a href="README.md"><img alt="English" src="https://img.shields.io/badge/%F0%9F%87%AC%F0%9F%87%A7%20English-8b949e?style=for-the-badge"></a>
+  <a href="README_RU.md"><img alt="Русский" src="https://img.shields.io/badge/%F0%9F%87%B7%F0%9F%87%BA%20%D0%A0%D1%83%D1%81%D1%81%D0%BA%D0%B8%D0%B9-0969da?style=for-the-badge"></a>
 </p>
 
 <h1 align="center">Doe</h1>
