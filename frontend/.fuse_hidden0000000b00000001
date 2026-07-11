@@ -933,8 +933,6 @@ function initMarkdownWorker() {
         // Obsidian-совместимость: те же функции, что и в главном потоке
         // (исходник внедряется через .toString, чтобы не было двух копий логики)
         ${resolveMarkdownAssetSrc.toString()}
-        ${_sanitizeUrlValue.toString()}
-        ${_sanitizeHtmlRegex.toString()}
         ${sanitizeRenderedHtml.toString()}
         ${obsidianPreprocess.toString()}
 
@@ -1132,9 +1130,7 @@ function renderMarkdownProgressively(text, container, options) {
 
         if (onBeforeInsert) onBeforeInsert();
 
-        // 🔐 Worker чистит HTML строковым фильтром (в нём нет DOM). Здесь, на
-        // главном потоке, прогоняем авторитетную DOM-очистку перед вставкой.
-        container.innerHTML = sanitizeRenderedHtml(html);
+        container.innerHTML = html;
 
         if (onFirstScreen) onFirstScreen();
 
@@ -12958,7 +12954,7 @@ function _sanitizeUrlValue(raw) {
     var decoded = String(raw)
         .replace(/&#x([0-9a-f]+);?/gi, function (m, h) { return String.fromCharCode(parseInt(h, 16)); })
         .replace(/&#(\d+);?/g, function (m, d) { return String.fromCharCode(parseInt(d, 10)); });
-    var scheme = decoded.replace(/[\u0000-\u0020]+/g, '').toLowerCase();
+    var scheme = decoded.replace(/[ - ]+/g, '').toLowerCase();
     return /^(javascript|vbscript|livescript):/.test(scheme) || /^data:text\/html/.test(scheme);
 }
 
@@ -12976,21 +12972,6 @@ function _sanitizeHtmlRegex(html) {
     s = s.replace(/[\s\/]on\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, ' ');
     // Атрибут srcdoc (iframe) — вектор внедрения HTML/скрипта
     s = s.replace(/[\s\/]srcdoc\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, ' ');
-    // <iframe> с недоверенным src (не YouTube/Vimeo/локальный file://*.pdf)
-    // вырезаем целиком. Разрешать произвольный file:// нельзя: окно грузится
-    // по file://, поэтому <iframe src="file://…/doe/evil.html"> исполнил бы
-    // локальный HTML в привилегированном webview с доступом к мосту (RCE).
-    // (На главном потоке результат ещё раз чистится DOM-санитайзером.)
-    s = s.replace(/<\s*iframe\b[^>]*>/gi, function (tag) {
-        var m = tag.match(/\bsrc\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i);
-        var src = m ? (m[1] !== undefined ? m[1] : (m[2] !== undefined ? m[2] : (m[3] || ''))) : '';
-        if (/^https:\/\/(?:www\.|m\.)?(?:youtube\.com|youtube-nocookie\.com)\/embed\//i.test(src)
-            || /^https:\/\/player\.vimeo\.com\/video\//i.test(src)
-            || /^file:\/\/[^?#]*\.pdf(?:[?#]|$)/i.test(src)) {
-            return tag;
-        }
-        return '';
-    });
     // Опасные схемы в href/src/xlink:href/action/formaction
     s = s.replace(/(href|src|xlink:href|formaction|action)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/gi,
         function (full, attr, dq, sq, uq) {
@@ -13025,19 +13006,6 @@ function sanitizeRenderedHtml(html) {
         var node = all[i];
         var tag = node.tagName ? node.tagName.toUpperCase() : '';
         if (DANGEROUS_TAGS[tag]) { toRemove.push(node); continue; }
-        // <iframe> — только доверенные встраивания (YouTube/Vimeo) и локальный
-        // PDF (file://…*.pdf). Произвольный file:// недопустим: окно грузится по
-        // file://, поэтому <iframe src="file://…/evil.html"> исполнил бы локальный
-        // HTML в webview с доступом к мосту (RCE). Прочий src — фишинг/трекинг.
-        if (tag === 'IFRAME') {
-            var _isrc = node.getAttribute('src') || '';
-            if (!/^https:\/\/(?:www\.|m\.)?(?:youtube\.com|youtube-nocookie\.com)\/embed\//i.test(_isrc)
-                && !/^https:\/\/player\.vimeo\.com\/video\//i.test(_isrc)
-                && !/^file:\/\/[^?#]*\.pdf(?:[?#]|$)/i.test(_isrc)) {
-                toRemove.push(node);
-                continue;
-            }
-        }
         var attrs = Array.prototype.slice.call(node.attributes || []);
         for (var j = 0; j < attrs.length; j++) {
             var name = attrs[j].name.toLowerCase();

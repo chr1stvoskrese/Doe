@@ -82,7 +82,17 @@ async def serve_attachment(file_path: str):
     """
     attachments_dir = get_attachments_dir()
     full_path = attachments_dir / file_path
-    
+
+    # 🔐 Защита от path traversal: раздаём только файлы ВНУТРИ папки вложений,
+    # иначе ссылка вида /doe/../../secret позволила бы прочитать любой файл.
+    try:
+        base_r = attachments_dir.resolve()
+        target_r = full_path.resolve()
+        if not (target_r == base_r or base_r in target_r.parents):
+            return Response(status_code=403)
+    except Exception:
+        return Response(status_code=403)
+
     if full_path.exists() and full_path.is_file():
         return FileResponse(full_path)
     return Response(status_code=404)
@@ -102,6 +112,19 @@ async def serve_local_file(file_path: str):
     if not _re.match(r"^[A-Za-z]:[\\/]", fp) and not fp.startswith("/"):
         fp = "/" + fp
     p = Path(fp)
+    # 🔐 Этот эндпоинт раздаёт файл по абсолютному пути через мост, что раньше
+    # было примитивом чтения ЛЮБОГО файла ОС. Он нужен только для рендера
+    # медиа, прикреплённых ссылкой на оригинал (изображения/видео/аудио/pdf),
+    # поэтому ограничиваем набор расширений — остальное недоступно.
+    _MEDIA_EXTS = {
+        ".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".svg", ".ico",
+        ".avif", ".apng", ".tif", ".tiff", ".heic", ".heif",
+        ".mp4", ".webm", ".ogg", ".ogv", ".mov", ".m4v", ".mkv",
+        ".mp3", ".wav", ".m4a", ".aac", ".flac", ".opus",
+        ".pdf",
+    }
+    if p.suffix.lower() not in _MEDIA_EXTS:
+        return Response(status_code=403)
     if p.is_absolute() and p.exists() and p.is_file():
         return FileResponse(p)
     return Response(status_code=404)
@@ -179,9 +202,17 @@ def _get_index_html() -> str:
 @app.get("/app", response_class=HTMLResponse)
 async def serve_index():
     settings = get_ui_settings()
+    # 🔐 theme/lang подставляются в инлайновый <script>/<style> ниже. Значения
+    # приходят из ~/.doe_config.json; произвольная строка (напр. содержащая
+    # "</script>…") означала бы внедрение кода в привилегированный WebView.
+    # Поэтому жёстко приводим к известному набору токенов (whitelist).
     theme = settings.get("theme", "light")
+    if theme not in ("light", "dark"):
+        theme = "light"
     lang = settings.get("language", "ru")
-    
+    if lang not in ("ru", "en"):
+        lang = "ru"
+
     # Тот самый цвет из wrapper.py и CSS
     bg_color = '#161815' if theme == 'dark' else '#F4F3EF'
     

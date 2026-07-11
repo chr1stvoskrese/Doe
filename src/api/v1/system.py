@@ -978,6 +978,54 @@ def _safe_attachment_name(raw_name: str) -> str:
     return name
 
 
+def _is_within_dir(base: Path, target: Path) -> bool:
+    """True, если target (после resolve) лежит внутри base. Защита от
+    path traversal (../) при склейке пользовательского имени с папкой."""
+    try:
+        base_r = base.resolve()
+        target_r = target.resolve()
+        return target_r == base_r or base_r in target_r.parents
+    except Exception:
+        return False
+
+
+# 🔐 Расширения, которые ОС может автоматически ИСПОЛНИТЬ при «открытии».
+# Ссылка/вложение из недоверенного хранилища (импорт, общий vault, ответ ИИ)
+# не должна одним кликом запускать код. Документы (pdf, docx, изображения…)
+# по-прежнему открываются штатно.
+_DANGEROUS_EXEC_EXTS = {
+    # macOS
+    ".app", ".command", ".tool", ".terminal", ".scpt", ".scptd",
+    ".applescript", ".workflow", ".action", ".appref-ms",
+    ".pkg", ".mpkg", ".webloc", ".mobileconfig",
+    # Windows
+    ".exe", ".bat", ".cmd", ".com", ".msi", ".msp", ".scr", ".pif",
+    ".ps1", ".psm1", ".vbs", ".vbe", ".wsf", ".wsh", ".hta", ".cpl",
+    ".jse", ".lnk", ".reg", ".inf", ".gadget", ".msc",
+    ".settingcontent-ms", ".url", ".scf", ".xll", ".ws", ".job",
+    ".chm", ".hlp", ".ps1xml", ".vbscript",
+    ".msh", ".msh1", ".msh2", ".mshxml", ".msh1xml", ".msh2xml",
+    # cross-platform / *nix
+    ".sh", ".bash", ".zsh", ".run", ".desktop", ".jar", ".apk",
+    ".appimage",
+}
+
+
+def _is_dangerous_executable(path: Path) -> bool:
+    """True, если путь указывает на исполняемый/скриптовый тип, автозапуск
+    которого через `open`/`startfile`/`xdg-open` эквивалентен выполнению кода."""
+    try:
+        # ОС (особенно Windows) отбрасывает завершающие точки и пробелы в имени,
+        # поэтому "evil.exe." или "evil.exe " исполнились бы как .exe, обойдя
+        # проверку суффикса. Нормализуем имя перед извлечением расширения.
+        name = path.name.rstrip(" .\t\r\n")
+        suffix = ("." + name.rsplit(".", 1)[1].lower()) if "." in name else ""
+        return suffix in _DANGEROUS_EXEC_EXTS
+    except Exception:
+        # Не смогли определить тип — безопаснее отказать в открытии.
+        return True
+
+
 def _unique_attachment_path(name: str) -> Path:
     """Свободный путь в папке вложений (добавляет _1, _2… при коллизии)."""
     attachments_dir = get_attachments_dir()
@@ -1300,11 +1348,20 @@ class OpenFileReq(BaseModel):
 async def open_file_endpoint(req: OpenFileReq):
     # Очищаем префикс приложения и убираем ведущие слэши, чтобы Path / filename работал корректно
     filename = req.path.replace("doe/", "", 1).lstrip("/")
-    abs_path = get_attachments_dir() / filename
-    
+    att_dir = get_attachments_dir()
+    abs_path = att_dir / filename
+
+    # 🔐 Защита от path traversal: открываем только файлы ВНУТРИ папки вложений.
+    if not _is_within_dir(att_dir, abs_path):
+        raise HTTPException(status_code=403, detail="Access denied")
+
     if not abs_path.exists():
         raise HTTPException(status_code=404, detail="File not found")
-        
+
+    # 🔐 Не запускаем исполняемые типы одним кликом (см. _is_dangerous_executable).
+    if _is_dangerous_executable(abs_path):
+        raise HTTPException(status_code=403, detail="Executable files are not opened for safety")
+
     try:
         if sys.platform == 'darwin':
             # На macOS команда 'open' запускает файл в приложении по умолчанию для данного типа
@@ -1353,8 +1410,14 @@ async def open_link_endpoint(req: OpenLinkReq):
         # Если ссылка указывает на внутреннее вложение нашего сервера (например, http://127.0.0.1:8000/doe/file.pdf),
         # перенаправляем ее на открытие локального файла в нативной системной читалке
         if "/doe/" in target:
-            filename = target.split("/doe/")[-1].lstrip("/")
-            abs_path = get_attachments_dir() / filename
+            filename = unquote(target.split("/doe/")[-1].lstrip("/"))
+            att_dir = get_attachments_dir()
+            abs_path = att_dir / filename
+            # 🔐 Защита от path traversal для внутренних вложений
+            if not _is_within_dir(att_dir, abs_path):
+                raise HTTPException(status_code=403, detail="Access denied")
+            if _is_dangerous_executable(abs_path):
+                raise HTTPException(status_code=403, detail="Executable files are not opened for safety")
             if abs_path.exists() and abs_path.is_file():
                 if sys.platform == 'darwin':
                     subprocess.call(['open', str(abs_path)])
@@ -1417,6 +1480,11 @@ async def open_link_endpoint(req: OpenLinkReq):
         if not final_path.exists():
             print(f"[System] Path does not exist: {final_path}")
             return {"success": False, "error": "File not found"}
+
+        # 🔐 Ссылка из заметки не должна одним кликом запускать приложение/скрипт.
+        if _is_dangerous_executable(final_path):
+            print(f"[System] Refused to launch executable via link: {final_path}")
+            return {"success": False, "error": "Executable files are not opened for safety"}
 
         if sys.platform == 'darwin':
             # macOS: команда open идеально справляется и с файлами, и с папками
@@ -1655,10 +1723,13 @@ async def delete_file_endpoint(req: DeleteFileReq):
     clean_rel_path = unquote(req.path)
     filename = clean_rel_path.replace("doe/", "", 1)
     
-    # Защита от выхода за пределы папки (path traversal)
+    # Защита от выхода за пределы папки (path traversal).
+    # Используем _is_within_dir (resolve + вложенность) вместо строкового
+    # startswith: последний обходится «соседним» каталогом-префиксом
+    # (…/attachments_evil startswith …/attachments).
     abs_path = (att_dir / filename).resolve()
-    
-    if not str(abs_path).startswith(str(att_dir.resolve())):
+
+    if not _is_within_dir(att_dir, abs_path):
         raise HTTPException(status_code=403, detail="Access denied")
 
     try:
