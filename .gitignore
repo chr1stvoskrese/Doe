@@ -22,7 +22,8 @@ build/
 dist/
 *.spec
 
-# Временный allowlist расширений (пишется build.py на время сборки)
+# Артефакты сборки (пересоздаются build.py)
+doe_source.zip
 feature_flags.json
 
 # IDEs (VSCode, PyCharm)
