@@ -406,7 +406,18 @@
 
     function renderMd(text) {
         const raw = text || '';
-        try { if (window.marked) return marked.parse(raw, { breaks: true }); } catch (e) {}
+        try {
+            if (window.marked) {
+                var html = marked.parse(raw, { breaks: true });
+                // 🔐 БЕЗОПАСНОСТЬ: marked отдаёт HTML как есть (raw HTML в заметке
+                // проходит насквозь). Без очистки текст элемента «Пространства»
+                // с `<img src=x onerror=...>`/`<script>` выполнил бы код в WebView,
+                // а через мост window.pywebview — нативные операции. Прогоняем
+                // через тот же DOM-санитайзер, что и описания карточек (app.js).
+                if (typeof sanitizeRenderedHtml === 'function') return sanitizeRenderedHtml(html);
+                return escapeHtml(raw).replace(/\n/g, '<br>');
+            }
+        } catch (e) {}
         return escapeHtml(raw).replace(/\n/g, '<br>');
     }
 

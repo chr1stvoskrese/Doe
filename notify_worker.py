@@ -303,7 +303,11 @@ def main():
             import base64
             safe_title = title.replace("'", "''").replace("\n", "`n")
             safe_message = message.replace("'", "''").replace("\n", "`n")
-            icon_ps = f"$notify.Icon = New-Object System.Drawing.Icon('{icon_path}');" if os.path.exists(icon_path) else "$notify.Icon = [System.Drawing.SystemIcons]::Information;"
+            # 🔐 Экранируем и пути тоже: если папка установки/хранилища содержит
+            # апостроф, неэкранированное значение разорвало бы строку PowerShell.
+            safe_icon_path = str(icon_path).replace("'", "''")
+            safe_doe_exe_path = str(doe_exe_path).replace("'", "''")
+            icon_ps = f"$notify.Icon = New-Object System.Drawing.Icon('{safe_icon_path}');" if os.path.exists(icon_path) else "$notify.Icon = [System.Drawing.SystemIcons]::Information;"
             ps_payload = payload.decode('utf-8').replace("'", "''")
             ps_script = f'''
             Add-Type -AssemblyName System.Windows.Forms;
@@ -316,12 +320,12 @@ def main():
                 $configPath = Join-Path $env:USERPROFILE ".doe_config.json"
                 if (Test-Path $configPath) {{
                     $json = Get-Content -Path $configPath -Raw | ConvertFrom-Json
-                    $ph = @{{ task_id = {task_id}; vault_path = '{vault_path.replace("'", "''")}' }}
+                    $ph = @{{ task_id = {int(task_id)}; vault_path = '{vault_path.replace("'", "''")}' }}
                     $json.pending_highlight = $ph
                     [System.IO.File]::WriteAllText($configPath, ($json | ConvertTo-Json -Depth 10))
                 }}
                 try {{ Invoke-WebRequest -Uri 'http://127.0.0.1:8000/api/v1/system/highlight-task' -Method POST -Body '{ps_payload}' -ContentType 'application/json' -UseBasicParsing | Out-Null }} catch {{ 
-                    if (Test-Path '{doe_exe_path}') {{ Start-Process '{doe_exe_path}' }} else {{ Start-Process "Doe.exe" -ErrorAction SilentlyContinue }}
+                    if (Test-Path '{safe_doe_exe_path}') {{ Start-Process '{safe_doe_exe_path}' }} else {{ Start-Process "Doe.exe" -ErrorAction SilentlyContinue }}
                 }}
                 $notify.Visible = $False;
                 [System.Windows.Forms.Application]::ExitThread();

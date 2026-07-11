@@ -980,8 +980,16 @@ def runtime_index_url(mode: str = 'board') -> str:
     ассетами в frontend/ (чтобы относительные ссылки резолвились по file://)
     и возвращает file://-URL. mode: 'board' | 'vault'."""
     settings = get_ui_settings()
+    # 🔐 theme/lang подставляются в инлайновый <script>/<style> ниже. Значения
+    # берутся из ~/.doe_config.json; произвольная строка (напр. с "</script>…")
+    # означала бы внедрение кода в привилегированный WebView (окно на file://).
+    # Жёстко приводим к известному набору токенов (whitelist).
     theme = settings.get('theme', 'light')
+    if theme not in ('light', 'dark'):
+        theme = 'light'
     lang = settings.get('language', 'ru')
+    if lang not in ('ru', 'en'):
+        lang = 'ru'
     bg = '#161815' if theme == 'dark' else '#F4F3EF'
     with open(frontend_path / 'index.html', 'r', encoding='utf-8') as f:
         html = f.read()
@@ -2247,6 +2255,23 @@ class WindowAPI:
             return result[0]
         return None
     
+    # 🔐 Исполняемые/скриптовые расширения, автозапуск которых через
+    # open/startfile/xdg-open эквивалентен выполнению кода. Не открываем их
+    # одним кликом из (потенциально недоверенной) ссылки в заметке.
+    _DANGEROUS_EXEC_EXTS = {
+        ".app", ".command", ".tool", ".terminal", ".scpt", ".scptd",
+        ".applescript", ".workflow", ".action", ".appref-ms",
+        ".pkg", ".mpkg", ".webloc", ".mobileconfig",
+        ".exe", ".bat", ".cmd", ".com", ".msi", ".msp", ".scr", ".pif",
+        ".ps1", ".psm1", ".vbs", ".vbe", ".wsf", ".wsh", ".hta", ".cpl",
+        ".jse", ".lnk", ".reg", ".inf", ".gadget", ".msc",
+        ".settingcontent-ms", ".url", ".scf", ".xll", ".ws", ".job",
+        ".chm", ".hlp", ".ps1xml", ".vbscript",
+        ".msh", ".msh1", ".msh2", ".mshxml", ".msh1xml", ".msh2xml",
+        ".sh", ".bash", ".zsh", ".run", ".desktop", ".jar", ".apk",
+        ".appimage",
+    }
+
     def open_local_path(self, path):
         """Открывает файл или папку в стандартном приложении ОС"""
         print(f"[System] Attempting to open path: {path}")
@@ -2254,7 +2279,16 @@ class WindowAPI:
             clean_path = path.replace('file://', '')
             import urllib.parse
             clean_path = urllib.parse.unquote(clean_path)
-            
+
+            # 🔐 Не запускаем исполняемые типы одним кликом. ОС (особенно Windows)
+            # отбрасывает завершающие точки/пробелы в имени, поэтому "evil.exe."
+            # обошёл бы splitext — нормализуем имя перед извлечением расширения.
+            _norm_name = os.path.basename(clean_path).rstrip(" .\t\r\n")
+            _ext = ("." + _norm_name.rsplit(".", 1)[1].lower()) if "." in _norm_name else ""
+            if _ext in self._DANGEROUS_EXEC_EXTS:
+                print(f"[System] Refused to launch executable: {clean_path}")
+                return False
+
             if sys.platform == 'darwin':
                 subprocess.call(['open', clean_path])
             elif sys.platform == 'win32':

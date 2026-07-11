@@ -3,6 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 🔐 Content-Security-Policy (defense-in-depth поверх санитайзера заметок).
+         Окно грузится по file://, поэтому CSP задаётся через <meta> и должен идти
+         в самом начале <head> — до подключения стилей/скриптов ниже, иначе они не
+         будут им управляться. Скрипты приложения вынесены в отдельные файлы, но в
+         разметке остаются инлайновые обработчики (onclick и т.п.), поэтому в
+         script-src сохранён 'unsafe-inline' (снятие требует переписать обработчики
+         на addEventListener). Жёстко закрыты вторичные векторы: object/embed,
+         перехват относительных URL через <base>, произвольные <iframe>, отправка
+         форм. frame-src повторяет whitelist санитайзера (YouTube/Vimeo + локальный
+         file:// для PDF). Ресурсные директивы разрешают file://, data:, blob: и
+         https:, чтобы не сломать шрифты, картинки, медиа и веб-воркеры. -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' file:; script-src 'self' file: 'unsafe-inline' 'unsafe-eval'; style-src 'self' file: 'unsafe-inline'; img-src 'self' file: data: blob: https:; media-src 'self' file: data: blob: https:; font-src 'self' file: data:; connect-src 'self' file: data: blob:; worker-src 'self' blob: file:; child-src 'self' blob: file:; frame-src https://www.youtube.com https://www.youtube-nocookie.com https://m.youtube.com https://player.vimeo.com file:; object-src 'none'; base-uri 'none'; form-action 'none'">
     <title>Doe — Aesthetic Kanban</title>
     <link rel="stylesheet" href="styles.css?v=searchfix">
     <link rel="stylesheet" href="prism.min.css">
