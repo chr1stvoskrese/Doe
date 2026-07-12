@@ -1,53 +1,66 @@
+# ============================================================
 # Python
-venv/
+# ============================================================
 __pycache__/
 *.py[cod]
 *.so
 .Python
-.env
-*.log
-
-# Test / coverage caches
+venv/
+venv-intel/
+*.egg-info/
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
 .coverage
 htmlcov/
 
-# Database
+# ============================================================
+# Сборка (всё пересоздаётся build.py / make_dmg.sh)
+# ============================================================
+build/
+build-intel/
+dist/
+dist-intel/
+Doe.app/
+*.spec
+doe_source.zip
+feature_flags.json
+version.txt
+*.dmg
+.doe-tmp.dmg
+
+# ============================================================
+# Базы данных и их временные файлы
+# ============================================================
 *.db
 *.db.doe
 *.sqlite3
+*.db-journal
+*.db-wal
+*.db-shm
+board_dev.db
 
-# Mac & Windows OS Files
+# ============================================================
+# Логи и секреты
+# ============================================================
+*.log
+*.log.doe.txt
+.log.doe.txt
+.env
+
+# ============================================================
+# Файлы ОС и файловых систем
+# ============================================================
 .DS_Store
+._*
 Thumbs.db
 Desktop.ini
-
-# PyInstaller Build Folders
-build/
-dist/
-dist-intel/
-*.spec
-
-# FUSE filesystem artifacts
 .fuse_hidden*
 
-# Packaged source snapshots
-doe_source.zip
-
-# Временный allowlist расширений (пишется build.py на время сборки)
-feature_flags.json
-
-# Рантайм-версии index.html с инъекцией темы (пишутся wrapper.py при старте)
-frontend/.doe_runtime_board.html
-frontend/.doe_runtime_vault.html
-
-# IDEs (VSCode, PyCharm)
+# ============================================================
+# Редакторы и инструменты
+# ============================================================
 .vscode/
 .idea/
 *.swp
-
-board_dev.db
-
-# Doe Logs
-*.log.doe.txt
-.log.doe.txt
+.claude/
