@@ -871,6 +871,25 @@
     let drag = null;
     let moveRaf = null;
     let spaceHeld = false;
+    let capturedPointerId = null;
+
+    // 🛡 Безопасный захват указателя. В WebKit (нативный WebView macOS)
+    // setPointerCapture может бросить DOMException, в отличие от Chromium —
+    // раньше это могло срывать рисование/перетаскивание в собранном .app.
+    function capturePointer(e) {
+        try {
+            capturePointer(e);
+            capturedPointerId = e.pointerId;
+        } catch (_) {
+            capturedPointerId = null; // без capture pointermove всё равно приходит на viewport
+        }
+    }
+    function releasePointer() {
+        if (capturedPointerId != null) {
+            try { viewport.releasePointerCapture(capturedPointerId); } catch (_) {}
+            capturedPointerId = null;
+        }
+    }
 
     function ensureMarqueeEl() {
         if (!marqueeEl) {
@@ -890,7 +909,7 @@
     function onPointerDown(e) {
         if (e.button === 1 || (e.button === 0 && (e.altKey || spaceHeld))) {
             drag = { kind: 'pan', sx: e.clientX, sy: e.clientY, vx: S.view.x, vy: S.view.y };
-            viewport.setPointerCapture(e.pointerId); return;
+            capturePointer(e); return;
         }
         if (e.button !== 0) return;
 
@@ -900,12 +919,12 @@
             S.items.push(it);
             drag = { kind: 'draw', item: it };
             renderStroke(it);
-            viewport.setPointerCapture(e.pointerId); return;
+            capturePointer(e); return;
         }
 
         if (S.tool === 'eraser') {
             drag = { kind: 'erase' };
-            viewport.setPointerCapture(e.pointerId); eraseAt(e.clientX, e.clientY); return;
+            capturePointer(e); eraseAt(e.clientX, e.clientY); return;
         }
 
         if (S.tool === 'text') {
@@ -927,7 +946,7 @@
             S.items.push(it);
             drag = { kind: 'draw-shape', item: it, ax: w.x, ay: w.y };
             renderShape(it);
-            viewport.setPointerCapture(e.pointerId); return;
+            capturePointer(e); return;
         }
 
         const resizeEl = e.target.closest('[data-role="resize"]');
@@ -957,7 +976,7 @@
                 for (const [px, py] of it.points) { if (px < minX) minX = px; if (py < minY) minY = py; }
                 drag.ptsMinX = minX === Infinity ? r.x : minX; drag.ptsMinY = minY === Infinity ? r.y : minY;
             }
-            viewport.setPointerCapture(e.pointerId); return;
+            capturePointer(e); return;
         }
 
         // Контрол встроенной карточки (меню, кнопки, чекбоксы) — не двигаем/не выделяем эмбед,
@@ -979,14 +998,14 @@
                 select(it.id);
                 drag = { kind: 'move', item: it, sx: e.clientX, sy: e.clientY, x0: it.x, y0: it.y, moved: false, wasSelected: wasSel };
             }
-            viewport.setPointerCapture(e.pointerId); e.stopPropagation(); return;
+            capturePointer(e); e.stopPropagation(); return;
         }
 
         if (strokeEl) {
             const it = getItem(strokeEl.dataset.id);
             select(it.id);
             drag = { kind: 'move-stroke', item: it, sx: e.clientX, sy: e.clientY, pts0: it.points.map(p => [p[0], p[1]]), moved: false };
-            viewport.setPointerCapture(e.pointerId); return;
+            capturePointer(e); return;
         }
 
         if (shapeEl) {
@@ -1002,7 +1021,7 @@
                 select(it.id);
                 drag = { kind: 'move', item: it, sx: e.clientX, sy: e.clientY, x0: it.x, y0: it.y, moved: false, wasSelected: false };
             }
-            viewport.setPointerCapture(e.pointerId); return;
+            capturePointer(e); return;
         }
 
         if (connEl) { select(connEl.dataset.id); return; }
@@ -1013,13 +1032,13 @@
         if (S.tool === 'select') {
             const w = toWorld(e.clientX, e.clientY);
             drag = { kind: 'marquee', sx: e.clientX, sy: e.clientY, wx0: w.x, wy0: w.y, rect: null };
-            viewport.setPointerCapture(e.pointerId);
+            capturePointer(e);
             return;
         }
 
         select(null);
         drag = { kind: 'pan', sx: e.clientX, sy: e.clientY, vx: S.view.x, vy: S.view.y };
-        viewport.setPointerCapture(e.pointerId);
+        capturePointer(e);
     }
 
     function handlePointerMove(e) {
@@ -1129,6 +1148,7 @@
 
     function onPointerUp(e) {
         if (moveRaf) cancelAnimationFrame(moveRaf);
+        releasePointer();
         if (!drag) return;
         const d = drag; drag = null;
 
@@ -1619,7 +1639,7 @@
     }
 
     async function openSpace() {
-        const view = $('space-view'); S.open = true; view.classList.add('show'); setTrafficLights(true);
+        const view = $('space-view'); S.open = true; view.classList.add('show'); document.body.classList.add('space-open'); setTrafficLights(true);
         const titleEl = document.querySelector('.space-title span'); if (titleEl) titleEl.textContent = t('space.title') || titleEl.textContent;
         if (!S.loaded) await loadSpace(); for (const k in boardCache) delete boardCache[k];
         renderSpaceTabs();
@@ -1627,7 +1647,7 @@
     }
 
     function closeSpace() {
-        if (!S.open) return; S.open = false; $('space-view').classList.remove('show'); setTrafficLights(true); closeAttachPop(); closeColorPop(); $('space-shape-pop')?.classList.remove('show'); saveNow();
+        if (!S.open) return; S.open = false; $('space-view').classList.remove('show'); document.body.classList.remove('space-open'); setTrafficLights(true); closeAttachPop(); closeColorPop(); $('space-shape-pop')?.classList.remove('show'); saveNow();
     }
 
     function init() {

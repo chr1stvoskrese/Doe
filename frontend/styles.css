@@ -9863,6 +9863,12 @@ body:has(.modal-overlay.show) .card-inline-trigger {
 }
 .space-tabs::-webkit-scrollbar { display: none; }
 .space-view:not(.show) .space-tabs { display: none; }
+
+/* 🛡 Пока открыто Пространство, скрываем плавающий заголовок приложения:
+   он висел НАД холстом (z-index 9999999 > 500000) и на macOS нёс
+   -webkit-app-region: drag — эта полоса перехватывала мышь как перетаскивание
+   окна прямо поверх области рисования. В полноэкранном холсте он не нужен. */
+body.space-open .app-global-title { display: none !important; }
 /* В Space вкладки переключаются кликом (без нативного drag вкладок) */
 .space-tabs .board-tab { cursor: pointer; -webkit-user-drag: none; }
 .space-tabs .board-tab.active { background: var(--surface-card); }
