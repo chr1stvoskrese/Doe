@@ -44,6 +44,12 @@ HIDDEN_BASE = [
     # 🔒 Без сетевого сервера: uvicorn/websockets больше не нужны — фронт ходит
     # в in-process ASGI-приложение через мост window.pywebview.api (см. wrapper.py).
     "aiosqlite", "watchdog",
+    # ⚠️ alembic/env.py исполняется в рантайме из данных бандла и делает
+    # `from logging.config import fileConfig`. PyInstaller не видит этот импорт
+    # статически (раньше logging.config транзитивно тянул uvicorn) — без него
+    # миграции падают в собранном приложении: "No module named 'logging.config'"
+    # и хранилище не открывается.
+    "logging.config",
 ]
 # Базовый набор для macOS (без ИИ-зависимостей).
 HIDDEN_MAC_BASE = HIDDEN_BASE + ["webview.platforms.cocoa", "jinja2"]

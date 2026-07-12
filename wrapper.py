@@ -2559,13 +2559,18 @@ class WindowAPI:
 
         if windows:
             win = windows[0]
-            print(f"[Window] reusing existing window → navigating to board (no destroy)", flush=True)
-            try:
-                win.load_url(_board_url)
-            except Exception as e:
-                print(f"[Window] load_url failed: {e}", flush=True)
+            print(f"[Window] reusing existing window → navigating to board (deferred, no destroy)", flush=True)
 
             def _apply_board_chrome():
+                # 🔧 Навигируем ПЕРВЫМ делом внутри отложенного колбэка. Навигация
+                # (load_url) затирает реестр return-callback'ов pywebview на текущей
+                # странице, поэтому её нельзя выполнять синхронно в js_api-методе —
+                # иначе доставка возвращаемого значения ЭТОГО вызова падает с
+                # TypeError (window.pywebview._returnValuesCallbacks[...] is undefined).
+                try:
+                    win.load_url(_board_url)
+                except Exception as e:
+                    print(f"[Window] load_url failed: {e}", flush=True)
                 # Окно селектора было маленьким/нересайзабельным — возвращаем
                 # размеры доски и нативную возможность ресайза/разворота.
                 try:
@@ -2618,14 +2623,22 @@ class WindowAPI:
                     pass
                 print("[Window] board ready in reused window.", flush=True)
 
-            if sys.platform == 'darwin':
-                try:
-                    from Foundation import NSOperationQueue
-                    NSOperationQueue.mainQueue().addOperationWithBlock_(_apply_board_chrome)
-                except Exception:
-                    threading.Timer(0.05, _apply_board_chrome).start()
-            else:
-                threading.Timer(0.05, _apply_board_chrome).start()
+            def _schedule_board():
+                # На macOS выполняем на main-thread (UI + AppKit требуют этого).
+                if sys.platform == 'darwin':
+                    try:
+                        from Foundation import NSOperationQueue
+                        NSOperationQueue.mainQueue().addOperationWithBlock_(_apply_board_chrome)
+                        return
+                    except Exception:
+                        pass
+                _apply_board_chrome()
+
+            # 🔧 Небольшая задержка перед навигацией: даём мосту pywebview
+            # доставить возвращаемое значение ЭТОГО вызова на текущую страницу
+            # ДО того, как load_url навигирует её на доску и обнулит реестр
+            # callback'ов. Устраняет JavascriptException в Thread-*(_call).
+            threading.Timer(0.15, _schedule_board).start()
             return
 
         # --- Холодный путь: окон нет вообще — создаём окно доски ---
@@ -2668,13 +2681,16 @@ class WindowAPI:
 
         if windows:
             win = windows[0]
-            print(f"[Window] reusing existing window → navigating to vault selector (no destroy)", flush=True)
-            try:
-                win.load_url(_vault_url)
-            except Exception as e:
-                print(f"[Window] load_url failed: {e}", flush=True)
+            print(f"[Window] reusing existing window → navigating to vault selector (deferred, no destroy)", flush=True)
 
             def _apply_vault_chrome():
+                # 🔧 Навигируем ПЕРВЫМ делом (см. пояснение в open_main_window):
+                # синхронный load_url в js_api-методе рвёт доставку возвращаемого
+                # значения этого вызова на текущей странице.
+                try:
+                    win.load_url(_vault_url)
+                except Exception as e:
+                    print(f"[Window] load_url failed: {e}", flush=True)
                 try:
                     win.set_title('Doe — Select Vault')
                 except Exception:
@@ -2689,14 +2705,19 @@ class WindowAPI:
                 except Exception:
                     pass
 
-            if sys.platform == 'darwin':
-                try:
-                    from Foundation import NSOperationQueue
-                    NSOperationQueue.mainQueue().addOperationWithBlock_(_apply_vault_chrome)
-                except Exception:
-                    threading.Timer(0.05, _apply_vault_chrome).start()
-            else:
-                threading.Timer(0.05, _apply_vault_chrome).start()
+            def _schedule_vault():
+                if sys.platform == 'darwin':
+                    try:
+                        from Foundation import NSOperationQueue
+                        NSOperationQueue.mainQueue().addOperationWithBlock_(_apply_vault_chrome)
+                        return
+                    except Exception:
+                        pass
+                _apply_vault_chrome()
+
+            # 🔧 Задержка перед навигацией — мост pywebview успевает вернуть
+            # значение этого вызова до обнуления реестра callback'ов навигацией.
+            threading.Timer(0.15, _schedule_vault).start()
             return
 
         # --- Холодный путь: окон нет — создаём окно селектора ---
