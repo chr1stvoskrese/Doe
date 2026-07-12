@@ -203,31 +203,31 @@ python build.py
 
 ## 🧱 Архитектура
 
+Без локального сервера и открытых портов: UI общается с бэкендом через мост
+`window.pywebview.api`, а FastAPI-приложение работает **in-process** как
+обычная ASGI-библиотека. Нулевая сетевая поверхность атаки, полностью офлайн.
+
 ```
 ┌──────────────────────────────────────────────┐
 │          Desktop Window (pywebview)          │
 │  ┌────────────────────────────────────────┐  │
 │  │    index.html · app.js · styles.css    │  │
-│  │   Vanilla JS · window.pywebview.api    │  │
+│  │   Vanilla JS · fetch() → мост-шим      │  │
 │  └────────────────────┬───────────────────┘  │
-│                       │ pywebview bridge     │
-└───────────────────────┼──────────────────────┘
-                        │
-┌───────────────────────┼──────────────────────┐
-│        FastAPI ASGI core (in-process)        │
+│                       │ window.pywebview.api │
 │  ┌────────────────────┴───────────────────┐  │
+│  │  In-process ASGI (FastAPI, без сокета) │  │
 │  │  /api/v1/columns                       │  │
 │  │  /api/v1/tasks          CRUD + move    │  │
 │  │  /api/v1/workspaces                    │  │
-│  │  /api/v1/system     vault/settings     │  │
-│  │  /api/v1/ai            local LLM       │  │
+│  │  /api/v1/system     vault/настройки    │  │
+│  │  /api/v1/ai         локальный LLM      │  │
 │  │  /api/v1/automations                   │  │
-│  │  /api/v1/memory       spaced repetition│  │
+│  │  /api/v1/memory     интервальные повт. │  │
 │  └────────────────────┬───────────────────┘  │
-│                       │                      │
 │  ┌────────────────────┴───────────────────┐  │
 │  │  SQLAlchemy 2.0 (async) + aiosqlite    │  │
-│  │  Alembic migrations                    │  │
+│  │  Миграции Alembic                      │  │
 │  └────────────────────┬───────────────────┘  │
 └───────────────────────┼──────────────────────┘
                         │
@@ -371,13 +371,14 @@ frontend/
 ├── app.js           # вся логика (~17k строк)
 ├── styles.css       # стили (~10k строк)
 └── space.js         # расширение «Пространство» (~1.7k строк)
-wrapper.py           # точка входа, менеджмент окна
+tools/
+├── rewrite.py       # AI-рефакторинг через git
+├── gather_context.py# сбор контекста кода для AI-диалогов
+└── dev_stats.py     # статистика разработки
+wrapper.py           # точка входа: окно + мост pywebview
 main.py              # FastAPI-приложение (in-process ASGI, без сетевого сервера)
 notify_worker.py     # фоновый воркер уведомлений
 build.py             # кросс-платформенный сборщик
-rewrite.py           # AI-рефакторинг через git
-gather_context.py    # сбор контекста кода для AI-диалогов
-dev_stats.py         # статистика разработки
 make_dmg.sh          # сборка DMG-образов
 ```
 

@@ -975,10 +975,26 @@ from src.core.config import get_ui_settings
 # — без сокета, порта и CORS. Это устраняет поверхность атаки (открытый порт).
 # ============================================================================
 
+def _runtime_dir() -> Path:
+    """Перезаписываемый каталог для рантайм-index.html.
+    ВАЖНО: в упакованном приложении каталог frontend/ лежит внутри .app/.exe
+    и доступен только для чтения (а на macOS ещё и подписан — любая запись
+    рвёт подпись). Поэтому рантайм-файл пишем в домашний каталог пользователя,
+    а ассеты резолвим через <base href> на read-only frontend/."""
+    import tempfile
+    d = Path.home() / '.doe_runtime'
+    try:
+        d.mkdir(exist_ok=True)
+        return d
+    except Exception:
+        return Path(tempfile.gettempdir())
+
+
 def runtime_index_url(mode: str = 'board') -> str:
-    """Собирает index.html с инъекцией темы/языка/режима, кладёт рядом с
-    ассетами в frontend/ (чтобы относительные ссылки резолвились по file://)
-    и возвращает file://-URL. mode: 'board' | 'vault'."""
+    """Собирает index.html с инъекцией темы/языка/режима и <base href> на
+    каталог frontend/ (чтобы относительные ассеты грузились из read-only
+    бандла), пишет результат в перезаписываемый каталог и возвращает
+    file://-URL. mode: 'board' | 'vault'."""
     settings = get_ui_settings()
     # 🔐 theme/lang подставляются в инлайновый <script>/<style> ниже. Значения
     # берутся из ~/.doe_config.json; произвольная строка (напр. с "</script>…")
@@ -994,12 +1010,23 @@ def runtime_index_url(mode: str = 'board') -> str:
     with open(frontend_path / 'index.html', 'r', encoding='utf-8') as f:
         html = f.read()
     launch_mode = 'vault' if mode == 'vault' else 'board'
-    # Инъекция БАЗОВОГО фона в <head> — гарантирует нужный цвет вьюпорта ещё
-    # до загрузки CSS (тот же приём, что был в main.py:serve_index).
+
+    # База для ВСЕХ относительных ассетов — реальный (read-only) каталог frontend/.
+    fdir = frontend_path.resolve().as_uri()
+    if not fdir.endswith('/'):
+        fdir += '/'
+
+    # <base> ДОЛЖЕН стоять в начале <head>, до первого <link>/<script>,
+    # иначе ранние ассеты успевают срезолвиться от URL самого файла.
+    html = html.replace('<head>', f'<head>\n    <base href="{fdir}">', 1)
+
+    # Инъекция БАЗОВОГО фона в конец <head> — гарантирует нужный цвет вьюпорта
+    # ещё до загрузки CSS (тот же приём, что был в main.py:serve_index).
     inject = (
         f'<style id="doe-bg-lock">html, body {{ background-color: {bg} !important; }}</style>'
         '<script>'
         f'window.__doeLaunchMode = "{launch_mode}";'
+        f'window.__DOE_FRONTEND_BASE = "{fdir}";'
         'window.addEventListener("DOMContentLoaded", function(){ setTimeout(function(){ var e=document.getElementById("doe-bg-lock"); if(e) e.remove(); }, 50); });'
         f'if ("{theme}" === "dark") document.documentElement.setAttribute("data-theme", "dark");'
         f'try {{ localStorage.setItem("doe-theme", "{theme}"); localStorage.setItem("doe-lang", "{lang}"); }} catch(e) {{}}'
@@ -1007,7 +1034,8 @@ def runtime_index_url(mode: str = 'board') -> str:
         '</head>'
     )
     html = html.replace('</head>', inject, 1)
-    out = frontend_path / ('.doe_runtime_vault.html' if launch_mode == 'vault' else '.doe_runtime_board.html')
+
+    out = _runtime_dir() / ('doe_runtime_vault.html' if launch_mode == 'vault' else 'doe_runtime_board.html')
     with open(out, 'w', encoding='utf-8') as f:
         f.write(html)
     url = out.resolve().as_uri()
@@ -1586,11 +1614,19 @@ class WindowAPI:
         чтобы одинаково обслуживать текст и бинарь)."""
         import base64 as _b64
         import json as _json
+        # PERF: фронтенд поллит API ежесекундно, а stdout пишется в лог-файл
+        # в папке vault с flush на каждую строку. Поэтому пер-запросный лог
+        # моста включается только явно: DOE_DEBUG=1 (ошибки логируются всегда).
+        _dbg = os.environ.get("DOE_DEBUG")
+        if _dbg:
+            print(f"[Bridge] → {method} {path}", flush=True)
         try:
             body = _b64.b64decode(body_b64) if body_b64 else b""
             hdrs = {str(k): str(v) for k, v in (headers or {}).items()}
             resp = DATA_LOOP.request(method, path, hdrs, body)
             content = resp.content or b""
+            if _dbg:
+                print(f"[Bridge] ← {method} {path} -> {resp.status_code} ({len(content)}b)", flush=True)
             return {
                 "status": resp.status_code,
                 "headers": {k: v for k, v in resp.headers.items()},
@@ -1598,6 +1634,7 @@ class WindowAPI:
             }
         except Exception as e:
             import traceback
+            print(f"[Bridge] ✗ {method} {path} FAILED: {e}", flush=True)
             traceback.print_exc()
             payload = _json.dumps({"detail": str(e)}).encode("utf-8")
             return {
@@ -2507,20 +2544,99 @@ class WindowAPI:
                 print(f"[WebView] Windows UI Sync failed: {e}")
 
     def open_main_window(self):
-        """Порождает новое окно приложения и убивает ВСЕ старые окна (включая окно выбора хранилища)"""
-        old_windows = list(webview.windows)
+        """Показывает окно доски. 🔧 Чтобы НЕ рвать мост pywebview (он роутит
+        ответы api_request через окно 'master'), ПЕРЕИСПОЛЬЗУЕМ существующее
+        окно — навигируем его на доску (load_url) вместо create+destroy.
+        Раньше данные доски шли по HTTP и уничтожение master было безвредным;
+        теперь ВСЁ идёт через мост, поэтому убийство master вешает доску.
+        Новое окно создаём только если окон нет вообще (холодный путь)."""
+        import threading as _thr
+        print(f"[Window] open_main_window() called (thread={_thr.current_thread().name})", flush=True)
 
+        windows = list(webview.windows)
         t_w, t_h, t_x, t_y = get_safe_geometry()
+        _board_url = runtime_index_url('board')
+
+        if windows:
+            win = windows[0]
+            print(f"[Window] reusing existing window → navigating to board (no destroy)", flush=True)
+            try:
+                win.load_url(_board_url)
+            except Exception as e:
+                print(f"[Window] load_url failed: {e}", flush=True)
+
+            def _apply_board_chrome():
+                # Окно селектора было маленьким/нересайзабельным — возвращаем
+                # размеры доски и нативную возможность ресайза/разворота.
+                try:
+                    win.set_title(MAIN_WINDOW_TITLE)
+                except Exception:
+                    pass
+                try:
+                    win.resize(max(800, t_w), max(600, t_h))
+                except Exception:
+                    pass
+                try:
+                    if sys.platform == 'darwin':
+                        import AppKit
+                        for w in AppKit.NSApp.windows():
+                            if w.canBecomeKeyWindow():
+                                w.setStyleMask_(w.styleMask() | 8 | 4)  # Resizable|Miniaturizable
+                                zb = w.standardWindowButton_(2)
+                                if zb is not None:
+                                    zb.setEnabled_(True)
+                                mb = w.standardWindowButton_(1)
+                                if mb is not None:
+                                    mb.setEnabled_(True)
+                    elif sys.platform == 'win32':
+                        import ctypes
+                        try:
+                            from webview.platforms.winforms import BrowserView
+                            from System.Drawing import Size
+                            bv = BrowserView.instances.get(win.uid)
+                            if bv:
+                                bv.MinimumSize = Size(800, 600)
+                                bv.MaximumSize = Size(0, 0)
+                        except Exception:
+                            pass
+                        hwnd = ctypes.windll.user32.FindWindowW(None, MAIN_WINDOW_TITLE) \
+                            or ctypes.windll.user32.FindWindowW(None, 'Doe — Select Vault')
+                        if hwnd:
+                            style = ctypes.windll.user32.GetWindowLongW(hwnd, -16)
+                            ctypes.windll.user32.SetWindowLongW(hwnd, -16, style | 0x00040000 | 0x00010000 | 0x00020000)
+                            ctypes.windll.user32.SetWindowPos(hwnd, 0, 0, 0, 0, 0, 0x27)
+                except Exception as e:
+                    print(f"[Window] chrome restore failed: {e}", flush=True)
+                try:
+                    win.show()
+                    win.restore()
+                except Exception:
+                    pass
+                try:
+                    bind_resize_event(win)
+                except Exception:
+                    pass
+                print("[Window] board ready in reused window.", flush=True)
+
+            if sys.platform == 'darwin':
+                try:
+                    from Foundation import NSOperationQueue
+                    NSOperationQueue.mainQueue().addOperationWithBlock_(_apply_board_chrome)
+                except Exception:
+                    threading.Timer(0.05, _apply_board_chrome).start()
+            else:
+                threading.Timer(0.05, _apply_board_chrome).start()
+            return
+
+        # --- Холодный путь: окон нет вообще — создаём окно доски ---
         c_w, c_h = t_w, t_h
         if sys.platform == 'win32' and t_x is not None:
-            # WinForms (AutoScaleMode.Dpi) умножит размер на DPI-масштаб монитора —
-            # делим заранее, чтобы итог совпал с целевым физическим размером
             _scale = _win32_monitor_dpi_scale(t_x, t_y, t_w, t_h)
             c_w, c_h = max(800, round(t_w / _scale)), max(600, round(t_h / _scale))
-
+        print(f"[Window] no existing window — creating board window…", flush=True)
         new_win = webview.create_window(
             title=MAIN_WINDOW_TITLE,
-            url=runtime_index_url('board'),
+            url=_board_url,
             width=c_w,
             height=c_h,
             x=t_x,
@@ -2541,24 +2657,52 @@ class WindowAPI:
         except Exception:
             pass
 
-        # Отложенное уничтожение старых окон. Если убить их прямо здесь, мост
-        # pywebview (util._call) попытается вернуть результат этого вызова в уже
-        # удалённое окно 'master' через evaluate_js → KeyError: 'master'.
-        # Даём вызову завершить round-trip, потом чистим окна.
-        def _kill_old():
-            for w in old_windows:
+    def open_vault_window(self):
+        """Показывает окно выбора хранилища. 🔧 Как и open_main_window,
+        переиспользуем существующее окно (навигация на vault-режим) вместо
+        create+destroy, чтобы не рвать мост pywebview ('master')."""
+        import threading as _thr
+        print(f"[Window] open_vault_window() called (thread={_thr.current_thread().name})", flush=True)
+        windows = list(webview.windows)
+        _vault_url = runtime_index_url('vault')
+
+        if windows:
+            win = windows[0]
+            print(f"[Window] reusing existing window → navigating to vault selector (no destroy)", flush=True)
+            try:
+                win.load_url(_vault_url)
+            except Exception as e:
+                print(f"[Window] load_url failed: {e}", flush=True)
+
+            def _apply_vault_chrome():
                 try:
-                    w.destroy()
+                    win.set_title('Doe — Select Vault')
                 except Exception:
                     pass
-        threading.Timer(0.4, _kill_old).start()
+                try:
+                    win.resize(760, 680)
+                except Exception:
+                    pass
+                try:
+                    win.show()
+                    win.restore()
+                except Exception:
+                    pass
 
-    def open_vault_window(self):
-        """Порождает маленькое окно выбора хранилища и убивает ВСЕ основные окна"""
-        old_windows = list(webview.windows)
+            if sys.platform == 'darwin':
+                try:
+                    from Foundation import NSOperationQueue
+                    NSOperationQueue.mainQueue().addOperationWithBlock_(_apply_vault_chrome)
+                except Exception:
+                    threading.Timer(0.05, _apply_vault_chrome).start()
+            else:
+                threading.Timer(0.05, _apply_vault_chrome).start()
+            return
+
+        # --- Холодный путь: окон нет — создаём окно селектора ---
         webview.create_window(
             title='Doe — Select Vault',
-            url=runtime_index_url('vault'),
+            url=_vault_url,
             width=760,
             height=680,
             min_size=(760, 680),
@@ -2570,16 +2714,6 @@ class WindowAPI:
             hidden=(not sys.platform.startswith('linux')),
             js_api=WindowAPI()
         )
-
-        # См. комментарий в open_main_window: отложенный destroy, иначе
-        # evaluate_js моста попадёт в уже мёртвое окно → KeyError: 'master'.
-        def _kill_old():
-            for w in old_windows:
-                try:
-                    w.destroy()
-                except Exception:
-                    pass
-        threading.Timer(0.4, _kill_old).start()
 
 if __name__ == '__main__':
     multiprocessing.freeze_support()

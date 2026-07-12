@@ -203,19 +203,20 @@ python build.py
 
 ## 🧱 Architecture
 
+No local server, no open ports: the UI talks to the backend through the
+`window.pywebview.api` bridge, and the FastAPI app runs **in-process** as a
+plain ASGI library. Zero network attack surface, fully offline.
+
 ```
 ┌──────────────────────────────────────────────┐
 │          Desktop Window (pywebview)          │
 │  ┌────────────────────────────────────────┐  │
 │  │    index.html · app.js · styles.css    │  │
-│  │   Vanilla JS · window.pywebview.api    │  │
+│  │   Vanilla JS · fetch() → bridge shim   │  │
 │  └────────────────────┬───────────────────┘  │
-│                       │ pywebview bridge     │
-└───────────────────────┼──────────────────────┘
-                        │
-┌───────────────────────┼──────────────────────┐
-│        FastAPI ASGI core (in-process)        │
+│                       │ window.pywebview.api │
 │  ┌────────────────────┴───────────────────┐  │
+│  │   In-process ASGI (FastAPI, no socket) │  │
 │  │  /api/v1/columns                       │  │
 │  │  /api/v1/tasks          CRUD + move    │  │
 │  │  /api/v1/workspaces                    │  │
@@ -224,7 +225,6 @@ python build.py
 │  │  /api/v1/automations                   │  │
 │  │  /api/v1/memory       spaced repetition│  │
 │  └────────────────────┬───────────────────┘  │
-│                       │                      │
 │  ┌────────────────────┴───────────────────┐  │
 │  │  SQLAlchemy 2.0 (async) + aiosqlite    │  │
 │  │  Alembic migrations                    │  │
@@ -371,13 +371,14 @@ frontend/
 ├── app.js           # all logic (~17k lines)
 ├── styles.css       # styles (~10k lines)
 └── space.js         # «Space» extension (~1.7k lines)
-wrapper.py           # entry point, window management
+tools/
+├── rewrite.py       # AI-powered refactoring via git
+├── gather_context.py# code context collector for AI dialogues
+└── dev_stats.py     # development statistics
+wrapper.py           # entry point: window management + pywebview bridge
 main.py              # FastAPI app (in-process ASGI, no network server)
 notify_worker.py     # background notification worker
 build.py             # cross-platform builder
-rewrite.py           # AI-powered refactoring via git
-gather_context.py    # code context collector for AI dialogues
-dev_stats.py         # development statistics
 make_dmg.sh          # DMG image builder
 ```
 
