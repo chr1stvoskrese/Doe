@@ -404,6 +404,76 @@
         return d;
     }
 
+    // ===== Контур заливки штриха =====
+    // Пользователь редко замыкает контур идеально: обычно линия пересекает сама
+    // себя чуть раньше конца, и за точкой пересечения торчат "хвосты". Заливать
+    // нужно ТОЛЬКО замкнутую петлю (от самопересечения до самопересечения),
+    // а не путь, тупо замкнутый Z от последней точки к первой — иначе хвосты
+    // становятся частью контура и заливаются лишние области.
+
+    function segIntersect(ax, ay, bx, by, cx, cy, dx, dy) {
+        const d1x = bx - ax, d1y = by - ay, d2x = dx - cx, d2y = dy - cy;
+        const den = d1x * d2y - d1y * d2x;
+        if (!den) return null;
+        const t = ((cx - ax) * d2y - (cy - ay) * d2x) / den;
+        const u = ((cx - ax) * d1y - (cy - ay) * d1x) / den;
+        if (t < 0 || t > 1 || u < 0 || u > 1) return null;
+        return [ax + t * d1x, ay + t * d1y];
+    }
+
+    function polyArea(p) {
+        let s = 0;
+        for (let i = 0; i < p.length; i++) {
+            const a = p[i], b = p[(i + 1) % p.length];
+            s += a[0] * b[1] - b[0] * a[1];
+        }
+        return s / 2;
+    }
+
+    function pointInPoly(x, y, p) {
+        let inside = false;
+        for (let i = 0, j = p.length - 1; i < p.length; j = i++) {
+            const xi = p[i][0], yi = p[i][1], xj = p[j][0], yj = p[j][1];
+            if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) inside = !inside;
+        }
+        return inside;
+    }
+
+    // Извлекает замкнутую петлю штриха: ищет самопересечения ломаной и возвращает
+    // точки петли между ними (хвосты до/после отбрасываются). Из всех петель
+    // берётся самая большая по площади. Нет самопересечений — вся ломаная
+    // (неявное замыкание последняя→первая, как раньше).
+    function strokeLoopPoints(pts) {
+        const n = pts.length;
+        if (n < 4) return pts;
+        let best = null, bestArea = 0;
+        for (let i = 0; i < n - 2; i++) {
+            for (let j = i + 2; j < n - 1; j++) {
+                const X = segIntersect(pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1],
+                                       pts[j][0], pts[j][1], pts[j + 1][0], pts[j + 1][1]);
+                if (!X) continue;
+                const loop = [X, ...pts.slice(i + 1, j + 1)];
+                if (loop.length < 3) continue;
+                const area = Math.abs(polyArea(loop));
+                if (area > bestArea) { bestArea = area; best = loop; }
+            }
+        }
+        return best || pts;
+    }
+
+    // Кэш петель: точки штриха заменяются целиком при перемещении/масштабе
+    // (новый массив) и дополняются push'ем при рисовании (меняется length) —
+    // обе ситуации инвалидируют кэш.
+    const _strokeLoopCache = new WeakMap();
+    function getStrokeLoop(it) {
+        const pts = it.points;
+        const c = _strokeLoopCache.get(pts);
+        if (c && c.n === pts.length) return c.loop;
+        const loop = strokeLoopPoints(pts);
+        _strokeLoopCache.set(pts, { n: pts.length, loop });
+        return loop;
+    }
+
     function renderMd(text) {
         const raw = text || '';
         try {
@@ -497,12 +567,27 @@
             p.classList.add('space-stroke');
             strokeLayer.appendChild(p);
         }
-        // Замкнутая заливка: если у штриха есть fill, замыкаем контур (Z) и заливаем.
-        p.setAttribute('d', smoothPathFast(it.points) + (it.fill ? ' Z' : ''));
+        // Линия штриха рисуется целиком (с хвостами), но НЕ заливается сама:
+        // заливка — отдельный path по замкнутой петле (см. strokeLoopPoints),
+        // подложенный под линию. Так хвосты за точкой самопересечения видны,
+        // но в контур заливки не входят.
+        p.setAttribute('d', smoothPathFast(it.points));
         p.setAttribute('stroke', it.color || S.penColor);
         p.setAttribute('stroke-width', it.width || 3);
-        p.style.fill = it.fill || 'none'; // inline перебивает CSS fill:none
+        p.style.fill = 'none';
         p.classList.toggle('selected', S.selectedIds.includes(it.id));
+
+        let f = strokeLayer.querySelector(`path[data-fill-id="${it.id}"]`);
+        if (it.fill) {
+            if (!f) {
+                f = svgEl('path', { 'data-fill-id': it.id, stroke: 'none' });
+                strokeLayer.insertBefore(f, p);
+            }
+            f.setAttribute('d', smoothPathFast(getStrokeLoop(it)) + ' Z');
+            f.style.fill = it.fill;
+        } else if (f) {
+            f.remove();
+        }
     }
 
     function renderNode(it) {
@@ -830,8 +915,9 @@
         S.items = S.items.filter(i => i.id !== id);
         S.items = S.items.filter(i => !(i.type === 'connector' && (i.from === id || i.to === id)));
         strokeLayer.querySelector(`path[data-id="${id}"]`)?.remove();
+        strokeLayer.querySelector(`path[data-fill-id="${id}"]`)?.remove();
         shapeLayer.querySelector(`path[data-id="${id}"]`)?.remove();
-        
+
         if (S.selectedId === id) S.selectedId = null;
         S.selectedIds = S.selectedIds.filter(x => x !== id);
         renderConnectors(); renderSelectionUI(); markDirty();
@@ -1210,6 +1296,8 @@
         const kill = (it, layer) => {
             const el = layer.querySelector(`path[data-id="${it.id}"]`);
             if (el) { el.style.transition = 'opacity 0.15s'; el.style.opacity = '0'; setTimeout(() => el.remove(), 150); }
+            const fl = layer.querySelector(`path[data-fill-id="${it.id}"]`);
+            if (fl) { fl.style.transition = 'opacity 0.15s'; fl.style.opacity = '0'; setTimeout(() => fl.remove(), 150); }
             S.items = S.items.filter(x => x.id !== it.id && !(x.type === 'connector' && (x.from === it.id || x.to === it.id)));
             removed = true;
         };
@@ -1411,7 +1499,9 @@
             const it = getItem(id);
             if (!it) return;
             if (it.type === 'stroke') {
-                parts.push(`<path d="${smoothPathFast(it.points)}${it.fill ? ' Z' : ''}" fill="${it.fill || 'none'}" stroke="${svgEscape(it.color || S.penColor)}" stroke-width="${it.width || 3}" stroke-linecap="round" stroke-linejoin="round"/>`);
+                // Заливка — отдельным путём по замкнутой петле (как в renderStroke)
+                if (it.fill) parts.push(`<path d="${smoothPathFast(getStrokeLoop(it))} Z" fill="${svgEscape(it.fill)}" stroke="none"/>`);
+                parts.push(`<path d="${smoothPathFast(it.points)}" fill="none" stroke="${svgEscape(it.color || S.penColor)}" stroke-width="${it.width || 3}" stroke-linecap="round" stroke-linejoin="round"/>`);
             } else if (it.type === 'shape') {
                 const closed = isClosedShape(it);
                 const marker = it.shape === 'arrow' ? ' marker-end="url(#sv-arrowhead)"' : '';
@@ -1589,23 +1679,55 @@
 
     // Инструмент «Заливка» (как ведро в Paint): клик по замкнутой области заливает её текущим цветом,
     // Alt+клик — убирает заливку.
+    // Для штрихов попадание проверяется по ЗАМКНУТОЙ ПЕТЛЕ (см. strokeLoopPoints),
+    // а не по неявно замкнутому пути — хвосты за самопересечением ни в контур,
+    // ни в область попадания не входят. Из всех контуров, содержащих точку клика,
+    // выбирается самый маленький по площади (клик внутри маленького контура поверх
+    // большого заливает маленький, а не большой).
     function fillAt(cx, cy, clear) {
         const w = toWorld(cx, cy), pt = (typeof DOMPoint !== 'undefined') ? new DOMPoint(w.x, w.y) : null;
+        let inside = null, insideArea = Infinity;   // точка внутри замкнутого контура
+        let onEdge = null, onEdgeArea = Infinity;   // точка на самой линии (запасной вариант)
         for (let i = S.items.length - 1; i >= 0; i--) {
             const it = S.items[i];
-            let el = null;
-            if (it.type === 'shape' && isClosedShape(it)) el = shapeLayer.querySelector(`path[data-id="${it.id}"]`);
-            else if (it.type === 'stroke') el = strokeLayer.querySelector(`path[data-id="${it.id}"]`);
-            if (!el) continue;
-            let hit = false;
-            try { hit = pt && el.isPointInFill ? el.isPointInFill(pt) : false; } catch (e) { hit = false; }
-            if (!hit && el.isPointInStroke) { try { hit = el.isPointInStroke(pt); } catch (e) {} }
-            if (hit) {
-                it.fill = clear ? null : S.penColor;
-                (it.type === 'shape' ? renderShape : renderStroke)(it);
-                commitSpaceState(); markDirty();
-                return true;
+            if (it.type === 'stroke') {
+                const loop = getStrokeLoop(it);
+                if (loop.length < 3) continue;
+                const area = Math.max(1, Math.abs(polyArea(loop)));
+                if (pointInPoly(w.x, w.y, loop)) {
+                    if (area < insideArea) { inside = it; insideArea = area; }
+                } else {
+                    // клик точно по линии петли (с допуском на толщину штриха)
+                    const thr = Math.max((it.width || 3) / 2 + 2, 3);
+                    for (let k = 0; k < loop.length && !(onEdge === it); k++) {
+                        const a = loop[k], b = loop[(k + 1) % loop.length];
+                        if (distToSeg(w.x, w.y, a[0], a[1], b[0], b[1]) <= thr && area < onEdgeArea) {
+                            onEdge = it; onEdgeArea = area;
+                        }
+                    }
+                }
+            } else if (it.type === 'shape' && isClosedShape(it) && pt) {
+                const el = shapeLayer.querySelector(`path[data-id="${it.id}"]`);
+                if (!el) continue;
+                let area = Infinity;
+                try { const b = el.getBBox(); area = Math.max(1, b.width * b.height); } catch (e) {}
+                let inFill = false;
+                try { inFill = el.isPointInFill ? el.isPointInFill(pt) : false; } catch (e) {}
+                if (inFill) {
+                    if (area < insideArea) { inside = it; insideArea = area; }
+                } else if (el.isPointInStroke) {
+                    let onStroke = false;
+                    try { onStroke = el.isPointInStroke(pt); } catch (e) {}
+                    if (onStroke && area < onEdgeArea) { onEdge = it; onEdgeArea = area; }
+                }
             }
+        }
+        const target = inside || onEdge;
+        if (target) {
+            target.fill = clear ? null : S.penColor;
+            (target.type === 'shape' ? renderShape : renderStroke)(target);
+            commitSpaceState(); markDirty();
+            return true;
         }
         return false;
     }
