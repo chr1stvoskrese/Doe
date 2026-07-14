@@ -471,20 +471,55 @@ async def switch_vault_endpoint(req: SwitchVaultRequest):
 class CreateVaultRequest(BaseModel):
     parent_path: str
     name: str
+    # Формат данных нового хранилища: "files" (папки+markdown, по умолчанию)
+    # или "db" (один файл .db.doe).
+    storage_format: Optional[str] = "files"
 
 @router.post("/vault/create", response_model=VaultResponse)
 async def create_vault_endpoint(req: CreateVaultRequest):
     if not req.parent_path or not req.name:
         return VaultResponse(canceled=True)
-        
+
+    from src.db.database import STORAGE_FILES, STORAGE_DB
+    storage_mode = req.storage_format if req.storage_format in (STORAGE_FILES, STORAGE_DB) else STORAGE_FILES
+
     # Склеиваем родительскую папку (например, ~/Documents) и имя хранилища (DoeProject)
     new_path = os.path.join(req.parent_path, req.name)
-    
+
     # switch_vault автоматически создаст нужную папку с помощью exist_ok=True
-    await switch_vault(new_path)
-    
+    await switch_vault(new_path, storage_mode)
+
     name = Path(new_path).resolve().name
     return VaultResponse(name=name, path=new_path, canceled=False)
+
+
+# ============================================================
+#  Формат представления данных хранилища (папки ↔ один файл)
+# ============================================================
+class StorageFormatRequest(BaseModel):
+    mode: str  # "files" | "db"
+
+
+@router.get("/vault/storage-format")
+async def get_storage_format_endpoint():
+    """Текущий формат активного хранилища."""
+    from src.db.database import detect_storage_mode, get_storage_mode
+    vault = get_active_vault()
+    if not vault:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="NO_ACTIVE_VAULT")
+    return {"mode": get_storage_mode() or detect_storage_mode(vault)}
+
+
+@router.post("/vault/storage-format")
+async def set_storage_format_endpoint(req: StorageFormatRequest):
+    """Конвертирует активное хранилище в целевой формат (в обе стороны)."""
+    from src.db.database import convert_vault_storage, STORAGE_FILES, STORAGE_DB
+    if req.mode not in (STORAGE_FILES, STORAGE_DB):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="INVALID_MODE")
+    try:
+        return await convert_vault_storage(req.mode)
+    except RuntimeError as e:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
 
 
 # ============================================================

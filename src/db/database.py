@@ -55,67 +55,131 @@ def _is_backup_file(p: Path) -> bool:
 # хранилищ (vault picker, notify_worker, wrapper) продолжает работать.
 INDEX_DB_NAME = ".doe.index.db.doe"
 
+# ============================================================
+#  Режимы представления данных хранилища
+# ============================================================
+# STORAGE_FILES ("files") — формат v2: папки/.md — источник правды,
+#   SQLite живёт скрытым индексом .doe.index.db.doe. Признак — маркер
+#   .doe.board.json в корне хранилища.
+# STORAGE_DB ("db") — вся доска в одном видимом файле <Имя>.db.doe,
+#   папки/markdown не материализуются. Признак — отсутствие маркера.
+STORAGE_FILES = "files"
+STORAGE_DB = "db"
 
-def _resolve_db_path(vault_path: str) -> Path:
+# Режим текущего ОТКРЫТОГО хранилища (выставляется в init_database)
+_storage_mode: str | None = None
+
+
+def detect_storage_mode(vault_path: str) -> str:
+    """Определяет режим хранилища по маркеру .doe.board.json."""
+    return STORAGE_FILES if fs_store.has_board_marker(vault_path) else STORAGE_DB
+
+
+def get_storage_mode() -> str | None:
+    """Режим текущего открытого хранилища (None, если БД закрыта)."""
+    return _storage_mode
+
+
+def _visible_db_path(vault_dir: Path) -> Path:
+    """Путь к видимому одиночному файлу БД: <ИмяХранилища>.db.doe."""
+    return vault_dir / f"{vault_dir.resolve().name}.db.doe"
+
+
+def _move_db_with_sidecars(src: Path, dst: Path) -> Path:
+    """Переименовывает файл БД вместе с -wal/-shm. Возвращает итоговый путь."""
+    try:
+        for sfx in ("-wal", "-shm"):
+            side = Path(str(src) + sfx)
+            if side.exists():
+                side.rename(Path(str(dst) + sfx))
+        src.rename(dst)
+        print(f"[Database] 🔄 DB file moved: {src.name} -> {dst.name}")
+        return dst
+    except Exception as e:
+        print(f"[Database] ❌ Failed to move DB file ({src.name} -> {dst.name}): {e}")
+        return src  # Фолбэк на исходный файл, если нет прав
+
+
+def _resolve_db_path(vault_path: str, storage_mode: str | None = None) -> Path:
     """
-    Возвращает путь к рабочему файлу БД (скрытому индексу) для данного хранилища.
-    Старые видимые файлы БД бесшовно переносятся на роль скрытого индекса:
-    источником правды для доски становятся папки и .md-файлы (формат v2).
+    Возвращает путь к рабочему файлу БД для данного хранилища.
+
+    В режиме STORAGE_FILES (v2) БД живёт скрытым индексом .doe.index.db.doe;
+    старые видимые файлы БД бесшовно переносятся на роль скрытого индекса.
+    В режиме STORAGE_DB БД — видимый одиночный файл <Имя>.db.doe; скрытый
+    индекс (после конвертации из v2) переименовывается в видимый файл.
     """
     vault_dir = Path(vault_path)
     index_db = vault_dir / INDEX_DB_NAME
+    mode = storage_mode or detect_storage_mode(vault_path)
 
-    # 0. Новый формат: скрытый индекс уже существует
+    def _newest(files):
+        return max(files, key=lambda p: p.stat().st_mtime)
+
+    # Видимые рабочие БД *.db.doe (не бэкапы, не скрытый индекс, не мусор macOS)
+    visible = [f for f in vault_dir.glob("*.db.doe")
+               if not _is_backup_file(f) and not f.name.startswith("._") and f.name != INDEX_DB_NAME]
+
+    if mode == STORAGE_DB:
+        target = _visible_db_path(vault_dir)
+        # 1. Видимый файл уже есть — работаем с ним как есть
+        if visible:
+            return _newest(visible)
+        # 2. Остался скрытый индекс (конвертация из формата папок) — делаем видимым
+        if index_db.exists():
+            return _move_db_with_sidecars(index_db, target)
+        # 3. Совсем старые форматы — принимаем под каноничным видимым именем
+        for pattern, extra_filter in (("*.doe.db", None), ("*.db", "legacy")):
+            cands = [f for f in vault_dir.glob(pattern) if not f.name.startswith("._")]
+            if extra_filter == "legacy":
+                cands = [f for f in cands if not f.name.endswith(".db.doe")
+                         and not f.name.endswith(".backup.db") and not f.name.endswith(".doe.db")]
+            if cands:
+                return _move_db_with_sidecars(_newest(cands), target)
+        # 4. Файлов нет (создание нового хранилища в режиме одного файла)
+        print(f"[Database] No existing DB found. Targeting new single file: {target.name}")
+        return target
+
+    # --- Режим STORAGE_FILES (v2): скрытый индекс ---
+    # 0. Скрытый индекс уже существует
     if index_db.exists():
         return index_db
 
     def _adopt(old_db: Path) -> Path:
         """Перенос старой БД на роль скрытого индекса (вместе с -wal/-shm)."""
-        try:
-            for sfx in ("-wal", "-shm"):
-                side = Path(str(old_db) + sfx)
-                if side.exists():
-                    side.rename(Path(str(index_db) + sfx))
-            old_db.rename(index_db)
-            print(f"[Database] 🔄 Migrated DB to hidden index: {old_db.name} -> {INDEX_DB_NAME}")
-            return index_db
-        except Exception as e:
-            print(f"[Database] ❌ Failed to migrate DB to hidden index: {e}")
-            return old_db  # Фолбэк на старый файл, если нет прав
+        return _move_db_with_sidecars(old_db, index_db)
 
     # 1. Рабочая БД старого формата *.db.doe
-    candidates = [f for f in vault_dir.glob("*.db.doe")
-                  if not _is_backup_file(f) and not f.name.startswith("._") and f.name != INDEX_DB_NAME]
-    if candidates:
-        return _adopt(max(candidates, key=lambda p: p.stat().st_mtime))
+    if visible:
+        return _adopt(_newest(visible))
 
     # 2. Совсем старый формат .doe.db
     doe_db_candidates = [f for f in vault_dir.glob("*.doe.db") if not f.name.startswith("._")]
     if doe_db_candidates:
-        return _adopt(max(doe_db_candidates, key=lambda p: p.stat().st_mtime))
+        return _adopt(_newest(doe_db_candidates))
 
     # 3. Легаси .db (не backup)
     legacy_candidates = [f for f in vault_dir.glob("*.db") if not f.name.endswith(".db.doe") and not f.name.endswith(".backup.db") and not f.name.endswith(".doe.db") and not f.name.startswith("._")]
     if legacy_candidates:
-        return _adopt(max(legacy_candidates, key=lambda p: p.stat().st_mtime))
+        return _adopt(_newest(legacy_candidates))
 
     # 4. Файлов нет (создание абсолютно нового хранилища)
     print(f"[Database] No existing DB found. Targeting new index file: {INDEX_DB_NAME}")
     return index_db
 
 
-def get_database_url(vault_path: str) -> str:
-    db_file = _resolve_db_path(vault_path)
+def get_database_url(vault_path: str, storage_mode: str | None = None) -> str:
+    db_file = _resolve_db_path(vault_path, storage_mode)
     # SQLite-URL с абсолютным путём корректно работает с пробелами и кириллицей.
     # POSIX-разделители безопасны и на Windows.
     return f"sqlite+aiosqlite:///{db_file.as_posix()}"
 
 
-def run_migrations(vault_path: str):
+def run_migrations(vault_path: str, storage_mode: str | None = None):
     alembic_ini_path = BASE_DIR / "alembic.ini"
     alembic_scripts_path = BASE_DIR / "alembic"
 
-    db_file = _resolve_db_path(vault_path)
+    db_file = _resolve_db_path(vault_path, storage_mode)
     backup_file = _backup_filename(db_file)
 
     # === АВАРИЙНЫЙ БЭКАП ===
@@ -155,15 +219,21 @@ def run_migrations(vault_path: str):
         except Exception as e:
             print(f"[Database] Could not remove safety backup: {e}")
 
-async def init_database(vault_path: str):
-    global _engine, _session_factory
-    
+async def init_database(vault_path: str, storage_mode: str | None = None):
+    global _engine, _session_factory, _storage_mode
+
+    # 0. Режим представления данных: явный (создание/конвертация) или по маркеру.
+    # Фиксируем ДО первых обращений к _resolve_db_path — он от режима зависит.
+    mode = storage_mode or detect_storage_mode(vault_path)
+    _storage_mode = mode
+    print(f"[Database] Storage mode: {mode} ({'папки+markdown' if mode == STORAGE_FILES else 'один файл .db.doe'})")
+
     # 1. ЗАПУСКАЕМ МИГРАЦИИ ДО ИНИЦИАЛИЗАЦИИ
     # Выполняем в отдельном потоке, чтобы не блокировать async loop
-    await asyncio.to_thread(run_migrations, vault_path)
+    await asyncio.to_thread(run_migrations, vault_path, mode)
 
     # 2. Инициализируем async движок приложения
-    database_url = get_database_url(vault_path)
+    database_url = get_database_url(vault_path, mode)
     _engine = create_async_engine(database_url, echo=False)
     
     # Регистрируем кастомную SQL-функцию LOWER_RU для регистронезависимого поиска
@@ -181,13 +251,16 @@ async def init_database(vault_path: str):
     # 📁 ФАЙЛОВОЕ ХРАНИЛИЩЕ (формат v2): активируем сквозную запись в .md/папки
     # и пересобираем индекс из файлов — папки и .md-файлы являются источником
     # правды для вкладок/колонок/карточек (полная совместимость с Obsidian).
-    fs_store.init(vault_path, _session_factory, _engine)
-    try:
-        async with _session_factory() as session:
-            await fs_store.reconcile(session)
-    except Exception as e:
-        # Ошибка синхронизации не должна блокировать открытие хранилища
-        print(f"[Database] ⚠️ FS reconcile failed (non-fatal): {e}")
+    # В режиме одного файла (STORAGE_DB) файловое зеркало не активируется:
+    # источник правды — сама SQLite-БД.
+    if mode == STORAGE_FILES:
+        fs_store.init(vault_path, _session_factory, _engine)
+        try:
+            async with _session_factory() as session:
+                await fs_store.reconcile(session)
+        except Exception as e:
+            # Ошибка синхронизации не должна блокировать открытие хранилища
+            print(f"[Database] ⚠️ FS reconcile failed (non-fatal): {e}")
 
     # ⚠️ ВАЖНО: планировщик автоматизаций здесь НЕ запускаем. Его первый тик
     # выполняется в отдельном потоке со своим event loop и, стартуя параллельно
@@ -229,11 +302,13 @@ async def init_database(vault_path: str):
     # 📁 Материализуем доску в файлы: после миграции со старого db.doe это
     # создаст всю структуру папок/.md; при обычном открытии — дешёвый no-op
     # (файлы перезаписываются только при реальном изменении содержимого).
-    try:
-        async with _session_factory() as session:
-            await fs_store.export_all(session)
-    except Exception as e:
-        print(f"[Database] ⚠️ FS export failed (non-fatal): {e}")
+    # В режиме одного файла ничего не материализуем и маркер не пишем.
+    if mode == STORAGE_FILES:
+        try:
+            async with _session_factory() as session:
+                await fs_store.export_all(session)
+        except Exception as e:
+            print(f"[Database] ⚠️ FS export failed (non-fatal): {e}")
 
     # Запускаем системного "слушателя" папки (iCloud Sync + правки из Obsidian).
     # Строго ПОСЛЕ export_all, чтобы не ловить шквал собственных событий.
@@ -258,7 +333,8 @@ def is_database_open() -> bool:
     return _session_factory is not None
 
 async def close_database():
-    global _engine, _session_factory
+    global _engine, _session_factory, _storage_mode
+    _storage_mode = None
 
     # 📁 Дописываем на диск все накопленные изменения файлового хранилища,
     # пока фабрика сессий ещё жива (иначе последние правки не попадут в .md).
@@ -326,7 +402,7 @@ async def init_dev_database():
     await init_database(str(dev_vault))
     return dev_vault
 
-async def switch_vault(new_vault_path: str):
+async def switch_vault(new_vault_path: str, storage_mode: str | None = None):
     global _engine
 
     # 🔐 Целевое защищённое хранилище нельзя открыть без ключа сессии
@@ -346,7 +422,7 @@ async def switch_vault(new_vault_path: str):
         await lock_vault_files(old_vault)
 
     Path(new_vault_path).mkdir(parents=True, exist_ok=True)
-    await init_database(new_vault_path)
+    await init_database(new_vault_path, storage_mode)
     set_active_vault(new_vault_path)
     startup_state["state"] = "ready"
 
@@ -359,6 +435,82 @@ async def switch_vault(new_vault_path: str):
             start_scheduler(get_session_factory())
     except Exception as e:
         print(f"[Automation] Scheduler start failed (non-fatal): {e}")
+
+
+async def convert_vault_storage(target_mode: str) -> dict:
+    """
+    Меняет представление данных АКТИВНОГО хранилища:
+      files → db : структура папок/.md и маркер удаляются, скрытый индекс
+                   становится видимым одиночным файлом <Имя>.db.doe.
+                   Данные не теряются: индекс и есть рабочая БД, файлы —
+                   её зеркало. Вложения (папка doe/) не трогаются.
+      db → files : видимый файл принимается на роль скрытого индекса,
+                   export_all материализует папки/.md и пишет маркер
+                   (штатный путь миграции старого формата).
+    Возвращает {"mode": ..., "changed": bool}.
+    """
+    if target_mode not in (STORAGE_FILES, STORAGE_DB):
+        raise ValueError(f"Unknown storage mode: {target_mode}")
+
+    vault_path = get_active_vault()
+    if not vault_path or not is_database_open():
+        raise RuntimeError("NO_ACTIVE_VAULT")
+
+    current = _storage_mode or detect_storage_mode(vault_path)
+    if target_mode == current:
+        return {"mode": current, "changed": False}
+
+    vault_dir = Path(vault_path)
+    print(f"[Database] 🔄 Converting vault storage: {current} → {target_mode} ({vault_path})")
+
+    # Останавливаем watcher и закрываем БД (close_database дожимает очередь
+    # fs_store на диск и делает WAL-checkpoint — данные целиком в файле БД).
+    try:
+        vault_observer.stop()
+    except Exception:
+        pass
+    await close_database()
+
+    if target_mode == STORAGE_DB:
+        index_db = vault_dir / INDEX_DB_NAME
+        visible_db = [f for f in vault_dir.glob("*.db.doe")
+                      if not _is_backup_file(f) and not f.name.startswith("._") and f.name != INDEX_DB_NAME]
+        # 🛡 Страховка: удалять файловую структуру можно только когда данные
+        # гарантированно есть в БД (скрытый индекс или уже видимый файл).
+        if not index_db.exists() and not visible_db:
+            await init_database(str(vault_dir), STORAGE_FILES)
+            raise RuntimeError("INDEX_DB_MISSING")
+
+        # Удаляем маркер и ТОЛЬКО папки досок (те, что содержат .doe.json).
+        # Папка вложений doe/, логи и любые посторонние файлы не трогаются.
+        try:
+            (vault_dir / fs_store.MARKER_NAME).unlink()
+        except OSError:
+            pass
+        for child in vault_dir.iterdir():
+            if (child.is_dir()
+                    and child.name not in ("doe", "__pycache__")
+                    and (child / fs_store.FOLDER_META_NAME).exists()):
+                shutil.rmtree(child, ignore_errors=True)
+                print(f"[Database] 🧹 Removed board folder: {child.name}")
+
+    # Переоткрываем хранилище в целевом режиме:
+    #  db    → _resolve_db_path переименует скрытый индекс в видимый файл;
+    #  files → примет видимый файл как индекс, export_all создаст папки+маркер.
+    await init_database(str(vault_dir), target_mode)
+    startup_state["state"] = "ready"
+
+    # Планировщик автоматизаций — как в switch_vault, строго после init.
+    try:
+        exts = get_ui_settings().get("extensions", {})
+        if exts.get("automations", True):
+            from src.services.automation_service import start_scheduler
+            start_scheduler(get_session_factory())
+    except Exception as e:
+        print(f"[Automation] Scheduler start failed (non-fatal): {e}")
+
+    print(f"[Database] ✅ Vault storage converted to '{target_mode}'")
+    return {"mode": target_mode, "changed": True}
 
 
 async def lock_vault_files(vault_path: str) -> dict:

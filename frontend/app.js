@@ -61,6 +61,7 @@ const translations = {
             delete: 'Удалить', clear: 'Очистить', open: 'Открыть', 
             deleteCard: 'Удалить карточку', clearTimer: 'Очистить таймер',
             exportCard: 'Экспорт в Markdown', moveCard: 'Переместить...', attachmentsSettings: 'Хранилище вложений', fontSettings: 'Шрифт',
+            storageFormat: 'Формат данных',
             exportJson: 'Экспорт в JSON', importJson: 'Импорт из JSON',
             copyCardLink: 'Скопировать ссылку', dueDate: 'Установить дедлайн', clearDueDate: 'Очистить дедлайн', notify: 'Напомнить',
             reminders: 'Активные напоминания', remindersEmpty: 'Нет активных напоминаний', extensions: 'Расширения',
@@ -112,6 +113,20 @@ const translations = {
             attExternalTitle: 'Внешняя папка',
             attSelectBtn: 'Выбрать папку...',
             attWarning: 'При использовании внешней папки файлы не будут копироваться на флешку автоматически при переносе хранилища.',
+            storageTitle: 'Формат данных',
+            storageFilesTitle: 'Папки и заметки',
+            storageFilesDesc: 'Каждая карточка — Markdown-файл. Совместимо с Obsidian',
+            storageDbTitle: 'Один файл',
+            storageDbDesc: 'Вся доска — в одном файле .db.doe',
+            storageCurrentBadge: 'Текущий',
+            storageHintFiles: 'Данные хранятся папками и Markdown-заметками — их можно открывать в Obsidian и других редакторах.',
+            storageHintDb: 'Вся доска хранится в одном компактном файле — удобно переносить и синхронизировать.',
+            storageWarnToDb: 'Папки и .md-файлы доски будут заменены одним файлом .db.doe. Все карточки и вложения сохранятся.',
+            storageWarnToFiles: 'Файл .db.doe развернётся в структуру папок с Markdown-заметками (совместимо с Obsidian). Все данные сохранятся.',
+            storageConvertBtn: 'Конвертировать',
+            storageConverting: 'Конвертация хранилища...',
+            storageDone: 'Формат хранилища изменён',
+            storageError: 'Не удалось изменить формат хранилища',
             exportTitle: 'Экспорт карточки', exportIncludeAtt: 'Экспортировать с вложениями', exportIncludeCode: 'Экспортировать кодовую базу проекта', btnExport: 'Экспортировать',
             moveTitle: 'Перемещение карточки', moveSelectCol: 'Вкладка и колонка', btnMove: 'Переместить',
             detachTitle: 'Отвязать карточку?', detachDesc: 'Эта карточка привязана к нескольким карточкам.',
@@ -177,6 +192,11 @@ const translations = {
             createPrompt: 'Введите название и выберите папку, где оно будет сохранено',
             namePlaceholder: 'Название нового хранилища...',
             selectFolder: 'Выбрать местоположение',
+            formatLabel: 'Формат данных',
+            formatFiles: 'Папки и заметки',
+            formatFilesHint: 'Markdown, совместимо с Obsidian',
+            formatDb: 'Один файл',
+            formatDbHint: 'Вся доска в одном .db.doe',
             errorInvalid: 'Папка не содержит данных Doe',
             recent: 'История хранилищ',
             recentEmpty: 'Ранее открытые хранилища появятся здесь'
@@ -340,6 +360,7 @@ const translations = {
             delete: 'Delete', clear: 'Clear', open: 'Open', 
             deleteCard: 'Delete card', clearTimer: 'Clear timer',
             exportCard: 'Export to Markdown', moveCard: 'Move...', attachmentsSettings: 'Attachments Storage', fontSettings: 'Font',
+            storageFormat: 'Data Format',
             exportJson: 'Export to JSON', importJson: 'Import from JSON',
             copyCardLink: 'Copy link', dueDate: 'Set deadline', clearDueDate: 'Clear deadline', notify: 'Remind me',
             reminders: 'Active Reminders', remindersEmpty: 'No active reminders', extensions: 'Extensions',
@@ -391,6 +412,20 @@ const translations = {
             attExternalTitle: 'External folder',
             attSelectBtn: 'Choose folder...',
             attWarning: 'When using an external folder, files will not copy automatically if you move the vault to a USB drive.',
+            storageTitle: 'Data Format',
+            storageFilesTitle: 'Folders & notes',
+            storageFilesDesc: 'Every card is a Markdown file. Obsidian-compatible',
+            storageDbTitle: 'Single file',
+            storageDbDesc: 'The whole board lives in one .db.doe file',
+            storageCurrentBadge: 'Current',
+            storageHintFiles: 'Data is stored as folders and Markdown notes — open them in Obsidian or any editor.',
+            storageHintDb: 'The whole board is stored in one compact file — easy to move and sync.',
+            storageWarnToDb: 'Board folders and .md files will be replaced by a single .db.doe file. All cards and attachments are preserved.',
+            storageWarnToFiles: 'The .db.doe file will unfold into folders with Markdown notes (Obsidian-compatible). All data is preserved.',
+            storageConvertBtn: 'Convert',
+            storageConverting: 'Converting vault...',
+            storageDone: 'Vault format changed',
+            storageError: 'Failed to change vault format',
             exportTitle: 'Export Card', exportIncludeAtt: 'Export with attachments', exportIncludeCode: 'Export project codebase', btnExport: 'Export',
             moveTitle: 'Move Card', moveSelectCol: 'Tab and Column', btnMove: 'Move',
             detachTitle: 'Detach card?', detachDesc: 'This card is attached to multiple cards.',
@@ -453,6 +488,11 @@ const translations = {
             createPrompt: 'Enter a name and choose where to save your new vault',
             namePlaceholder: 'New vault name...',
             selectFolder: 'Browse location',
+            formatLabel: 'Data format',
+            formatFiles: 'Folders & notes',
+            formatFilesHint: 'Markdown, Obsidian-compatible',
+            formatDb: 'Single file',
+            formatDbHint: 'Whole board in one .db.doe',
             errorInvalid: 'Folder is not a valid Doe Vault',
             recent: 'Recent Vaults',
             recentEmpty: 'Previously opened vaults will appear here'
@@ -2336,6 +2376,34 @@ async function refreshBoard(scrollToActive = false, newTabId = null) {
     }
 }
 
+function trackCardFormIntoView(cardList, formCard, duration = 200) {
+    // Покадрово держит раскрывающуюся форму в видимой области списка на время
+    // её CSS-анимации (120ms). Скроллим мгновенно и ровно на столько, на сколько
+    // форма "выросла" за кадр — визуально это одно плавное движение, без рывков
+    // конкурирующих smooth-прокруток. scroll-behavior временно отключаем, иначе
+    // CSS `smooth` превратил бы каждый покадровый сдвиг в отдельную анимацию.
+    if (!cardList || !formCard) return;
+    const prevBehavior = cardList.style.scrollBehavior;
+    cardList.style.scrollBehavior = 'auto';
+    const t0 = performance.now();
+    const step = () => {
+        if (!formCard.isConnected || formCard.classList.contains('is-exiting')) {
+            cardList.style.scrollBehavior = prevBehavior;
+            return;
+        }
+        const listRect = cardList.getBoundingClientRect();
+        const formRect = formCard.getBoundingClientRect();
+        const delta = formRect.bottom - (listRect.bottom - 8);
+        if (delta > 0) cardList.scrollTop += delta;
+        if (performance.now() - t0 < duration) {
+            requestAnimationFrame(step);
+        } else {
+            cardList.style.scrollBehavior = prevBehavior;
+        }
+    };
+    requestAnimationFrame(step);
+}
+
 function createCardFormElement() {
     const card = document.createElement('div');
     card.className = 'card card-entering';
@@ -2374,6 +2442,9 @@ async function onAddCardInline(plusBtn) {
     requestAnimationFrame(() => {
         requestAnimationFrame(() => {
             formCard.classList.add('entered');
+            // Форма может раскрыться за нижней границей видимой области колонки
+            // (автоскролл от focus() не срабатывает: в момент фокуса высота ещё 0).
+            trackCardFormIntoView(columnEl.querySelector('.card-list'), formCard);
         });
     });
 
@@ -2581,7 +2652,9 @@ async function onAddTask(columnId) {
     requestAnimationFrame(() => {
         requestAnimationFrame(() => {
             formCard.classList.add('entered');
-            cardList.scrollTo({ top: cardList.scrollHeight, behavior: 'smooth' });
+            // Держим форму в кадре на протяжении анимации раскрытия —
+            // одно плавное движение вместо конкурирующих smooth-прокруток.
+            trackCardFormIntoView(cardList, formCard);
         });
     });
 
@@ -5812,6 +5885,10 @@ document.addEventListener('click', async (e) => {
                 }
                 document.getElementById('att-settings-modal').classList.add('show');
             }).catch(console.error);
+            closeAllDropdowns();
+        }
+        else if (action === 'storage-format') {
+            window.openStorageFormatModal();
             closeAllDropdowns();
         }
         else if (action === 'security-settings') {
@@ -10809,6 +10886,18 @@ window.cancelVaultCreate = () => {
     if (nameInput) {
         nameInput.value = '';
     }
+
+    // Сбрасываем выбор формата на значение по умолчанию
+    window.selectVaultFormat('files');
+};
+
+// 🗂 Выбранный формат данных нового хранилища: "files" (по умолчанию) | "db"
+let _newVaultFormat = 'files';
+
+window.selectVaultFormat = (mode) => {
+    _newVaultFormat = mode === 'db' ? 'db' : 'files';
+    document.getElementById('vault-format-files')?.classList.toggle('active', _newVaultFormat === 'files');
+    document.getElementById('vault-format-db')?.classList.toggle('active', _newVaultFormat === 'db');
 };
 
 window.confirmVaultCreate = async () => {
@@ -10832,7 +10921,7 @@ window.confirmVaultCreate = async () => {
         const res = await fetch(`${API_BASE}/system/vault/create`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ parent_path: parentPath, name: vaultName })
+            body: JSON.stringify({ parent_path: parentPath, name: vaultName, storage_format: _newVaultFormat })
         });
 
         if (!res.ok) throw new Error('Ошибка создания хранилища');
@@ -11110,10 +11199,89 @@ window.resetAttFolder = async () => {
         document.getElementById('att-path-display').textContent = t('modals.attSelectBtn');
         document.getElementById('setting-item-external').classList.remove('active');
         document.getElementById('setting-item-local').classList.add('active');
-    } catch (e) { 
-        console.error(e); 
+    } catch (e) {
+        console.error(e);
     } finally {
         document.getElementById('setting-item-local').style.opacity = '1';
+    }
+};
+
+// ============================================================
+// 🗂 Формат представления данных хранилища (папки ↔ один файл)
+// ============================================================
+let _storageFormatCurrent = null;   // режим активного хранилища ("files"|"db")
+let _storageFormatSelected = null;  // выбранный в модалке режим
+
+function _renderStorageFormatModal() {
+    const rowFiles = document.getElementById('storage-fmt-files');
+    const rowDb = document.getElementById('storage-fmt-db');
+    const hint = document.getElementById('storage-format-hint');
+    const btn = document.getElementById('storage-convert-btn');
+    if (!rowFiles || !rowDb) return;
+
+    rowFiles.classList.toggle('active', _storageFormatSelected === 'files');
+    rowDb.classList.toggle('active', _storageFormatSelected === 'db');
+
+    const changed = _storageFormatSelected !== _storageFormatCurrent;
+    if (changed) {
+        hint.textContent = _storageFormatSelected === 'db'
+            ? t('modals.storageWarnToDb')
+            : t('modals.storageWarnToFiles');
+    } else {
+        hint.textContent = _storageFormatSelected === 'db'
+            ? t('modals.storageHintDb')
+            : t('modals.storageHintFiles');
+    }
+    btn.style.display = changed ? 'block' : 'none';
+}
+
+window.openStorageFormatModal = async () => {
+    try {
+        const res = await fetch(`${API_BASE}/system/vault/storage-format`);
+        if (!res.ok) throw new Error('storage-format fetch failed');
+        const data = await res.json();
+        _storageFormatCurrent = data.mode === 'db' ? 'db' : 'files';
+        _storageFormatSelected = _storageFormatCurrent;
+        _renderStorageFormatModal();
+        document.getElementById('storage-format-modal').classList.add('show');
+    } catch (e) {
+        console.error(e);
+        window.showToast(t('alerts.error'), t('modals.storageError'), true);
+    }
+};
+
+window.selectStorageFormat = (mode) => {
+    _storageFormatSelected = mode === 'db' ? 'db' : 'files';
+    _renderStorageFormatModal();
+};
+
+window.confirmStorageConvert = async () => {
+    if (_storageFormatSelected === _storageFormatCurrent) return;
+    const btn = document.getElementById('storage-convert-btn');
+    btn.disabled = true;
+    document.getElementById('storage-format-modal').classList.remove('show');
+
+    // Полноэкранный оверлей: конвертация закрывает и переоткрывает БД
+    window.showVaultOpeningOverlay();
+    const overlayTitle = document.getElementById('vault-lock-overlay-title');
+    if (overlayTitle) overlayTitle.textContent = t('modals.storageConverting');
+
+    try {
+        const res = await fetch(`${API_BASE}/system/vault/storage-format`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ mode: _storageFormatSelected })
+        });
+        if (!res.ok) throw new Error(`convert failed: ${res.status}`);
+        // Доска переоткрыта бэкендом в новом формате — перезагружаем страницу,
+        // чтобы фронт стартовал с чистого состояния (id сущностей сохраняются).
+        window.location.reload();
+    } catch (e) {
+        console.error(e);
+        window.hideVaultOverlay();
+        window.showToast(t('alerts.error'), t('modals.storageError'), true);
+    } finally {
+        btn.disabled = false;
     }
 };
 

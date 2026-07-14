@@ -1472,6 +1472,61 @@ def get_safe_geometry():
         return w, h, None, None
 
 
+def bind_macos_fullscreen_input_fix(win):
+    """macOS: фикс смещения hover/кликов после нативного fullscreen.
+
+    У frameless-окна pywebview ставит NSFullSizeContentViewWindowMask, а WKWebView
+    делает contentView окна. При входе/выходе из нативного полноэкранного режима
+    (toggleFullScreen_) AppKit перестраивает иерархию окна, и WKWebView периодически
+    не пересчитывает кэшированную геометрию (позицию в окне + tracking areas) —
+    хит-тестинг мыши съезжает по вертикали на высоту titlebar (~28px): hover и клики
+    срабатывают выше реального положения курсора.
+
+    Лечение: после завершения перехода принудительно "дёргаем" фрейм contentView
+    (на 1px и сразу обратно, в одном тике runloop — визуально незаметно). Это
+    заставляет WebKit пересобрать координатные преобразования и tracking areas.
+    pywebview генерирует events.maximized в windowDidEnterFullScreen и
+    events.restored в windowDidExitFullScreen — подписываемся на оба."""
+    if sys.platform != 'darwin':
+        return
+
+    def _resync(*_a):
+        try:
+            from PyObjCTools import AppHelper
+        except Exception:
+            return
+
+        def _nudge():
+            try:
+                import AppKit
+                nswin = getattr(win, 'native', None)
+                if nswin is None:
+                    return
+                cv = nswin.contentView()
+                if cv is None:
+                    return
+                f = cv.frame()
+                if f.size.width < 2 or f.size.height < 2:
+                    return
+                cv.setFrame_(AppKit.NSMakeRect(
+                    f.origin.x, f.origin.y, f.size.width, f.size.height - 1))
+                cv.setFrame_(f)
+            except Exception as e:
+                print(f"[FullscreenFix] resync error: {e}")
+
+        # Сразу после уведомления + контрольный проход после полного завершения
+        # анимации перехода (именно "поздние" случаи давали периодичность бага).
+        AppHelper.callAfter(_nudge)
+        threading.Timer(0.4, lambda: AppHelper.callAfter(_nudge)).start()
+
+    for _ev_name in ('maximized', 'restored'):
+        try:
+            _ev = getattr(win.events, _ev_name)
+            _ev += _resync
+        except Exception:
+            pass
+
+
 _resize_timer = None
 def bind_resize_event(win):
     """Дебаунс-сохранение геометрии окна (размер + позиция) через 1с после остановки мыши.
@@ -2665,6 +2720,7 @@ class WindowAPI:
         )
         try:
             bind_resize_event(new_win)
+            bind_macos_fullscreen_input_fix(new_win)
             if sys.platform == 'win32' and t_x is not None:
                 bind_geometry_enforcement(new_win, (t_x, t_y, t_w, t_h))
         except Exception:
@@ -2967,6 +3023,7 @@ if __name__ == '__main__':
             js_api=WindowAPI()      
         )
         bind_resize_event(window)
+        bind_macos_fullscreen_input_fix(window)
         if sys.platform == 'win32' and is_configured and t_x is not None:
             bind_geometry_enforcement(window, (t_x, t_y, t_w, t_h))
         
