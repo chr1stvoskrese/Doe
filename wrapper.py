@@ -1372,21 +1372,34 @@ def _win32_monitor_dpi_scale(x, y, w, h):
     return 1.0
 
 def _win32_hwnd_for(win):
-    """HWND конкретного окна pywebview: сначала точно по uid через внутренности
-    winforms-бэкенда (надёжно при пересоздании окон с одинаковым заголовком),
-    затем фолбэк по заголовку."""
+    """HWND конкретного окна pywebview: сначала нативная форма (pywebview ≥5
+    кладёт BrowserForm в window.native), затем по uid через внутренности
+    winforms-бэкенда, затем фолбэк по заголовку (включая окно селектора)."""
+    try:
+        native = getattr(win, 'native', None)
+        if native is not None and hasattr(native, 'Handle'):
+            return int(native.Handle.ToInt64())
+    except Exception as e:
+        print(f"[WinCtl] native.Handle failed: {e}")
     try:
         from webview.platforms.winforms import BrowserView
         bv = BrowserView.instances.get(win.uid)
         if bv is not None:
             return int(bv.Handle.ToInt64())
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"[WinCtl] BrowserView.instances lookup failed: {e}")
     try:
         import ctypes
-        hwnd = ctypes.windll.user32.FindWindowW(None, MAIN_WINDOW_TITLE)
-        return hwnd or None
-    except Exception:
+        for title in (getattr(win, 'title', None), MAIN_WINDOW_TITLE, 'Doe — Select Vault'):
+            if not title:
+                continue
+            hwnd = ctypes.windll.user32.FindWindowW(None, title)
+            if hwnd:
+                return hwnd
+        print("[WinCtl] ⚠️ HWND not found (native/instances/title all failed)")
+        return None
+    except Exception as e:
+        print(f"[WinCtl] FindWindowW failed: {e}")
         return None
 
 def _win32_get_rect(hwnd):
@@ -1919,7 +1932,17 @@ class WindowAPI:
             AppHelper.callAfter(_minimize)
         else:
             if webview.windows:
-                webview.windows[-1].minimize()
+                try:
+                    webview.windows[-1].minimize()
+                except Exception as e:
+                    print(f"[WinCtl] pywebview minimize failed ({e}) — using ShowWindow fallback")
+                    try:
+                        import ctypes
+                        hwnd = self._win_hwnd()
+                        if hwnd:
+                            ctypes.windll.user32.ShowWindow(hwnd, 6)  # SW_MINIMIZE
+                    except Exception as e2:
+                        print(f"[WinCtl] ShowWindow minimize failed: {e2}")
 
     def _win_hwnd(self):
         """100% надёжное получение HWND текущего окна из внутренностей WinForms."""
@@ -1927,16 +1950,7 @@ class WindowAPI:
         if sys.platform != 'win32' or not webview.windows:
             return None
         win = webview.windows[-1]
-        hwnd = None
-        try:
-            from webview.platforms.winforms import BrowserView
-            bv = BrowserView.instances.get(win.uid)
-            if bv is not None:
-                hwnd = int(bv.Handle.ToInt64())
-        except Exception:
-            pass
-        if not hwnd:
-            hwnd = _win32_hwnd_for(win)
+        hwnd = _win32_hwnd_for(win)
         # Страховка: поднимаемся до top-level окна (GA_ROOT = 2). Нативные
         # WM_NCLBUTTONDOWN (drag/resize/Aero Snap) работают только с ним.
         if hwnd:
@@ -1947,63 +1961,75 @@ class WindowAPI:
                     hwnd = root
             except Exception:
                 pass
+        else:
+            print("[WinCtl] ⚠️ _win_hwnd: HWND unresolved — window controls will not work")
         return hwnd
+
+    def _win_ui_invoke(self, fn):
+        """Выполняет fn на UI-потоке WinForms (BeginInvoke), если возможно.
+        Критично для ReleaseCapture: он снимает захват мыши только у потока,
+        владеющего окном — вызов из потока моста pywebview ничего не снимает.
+        Возвращает True, если удалось запланировать; False — вызывающий код
+        выполняет fn сам (старое поведение)."""
+        try:
+            from webview.platforms.winforms import BrowserView
+            win = webview.windows[-1] if webview.windows else None
+            bv = BrowserView.instances.get(win.uid) if win else None
+            if bv is None:
+                return False
+            from System import Action
+            bv.BeginInvoke(Action(fn))
+            return True
+        except Exception as e:
+            print(f"[WinCtl] UI-thread invoke unavailable ({e}) — running inline")
+            return False
+
+    def _win_nc_hit(self, hittest, label):
+        """Общий нативный жест WM_NCLBUTTONDOWN (drag: HTCAPTION=2, resize: HT*).
+
+        ReleaseCapture обязан выполняться на UI-потоке WinForms: он снимает
+        захват мыши только у потока, владеющего окном. Раньше вызов шёл из
+        потока моста pywebview — захват не снимался, и на Windows окно не
+        перетаскивалось/не ресайзилось."""
+        import sys
+        if sys.platform != 'win32':
+            return False
+        import ctypes
+
+        hwnd = self._win_hwnd()
+        if not hwnd:
+            print(f"[WinCtl] {label}: no HWND — ignored")
+            return False
+
+        self._win_maximized = False
+
+        def _do():
+            try:
+                # 1. Отбираем захват мыши у Chromium (действует на поток окна)
+                ctypes.windll.user32.ReleaseCapture()
+                # 2. Координаты курсора для ядра Windows
+                class POINT(ctypes.Structure):
+                    _fields_ = [("x", ctypes.c_long), ("y", ctypes.c_long)]
+                pt = POINT()
+                ctypes.windll.user32.GetCursorPos(ctypes.byref(pt))
+                lparam = ((pt.y & 0xFFFF) << 16) | (pt.x & 0xFFFF)
+                # 3. Нативный жест ядра (Aero Snap, плавный ресайз DWM)
+                WM_NCLBUTTONDOWN = 0x00A1
+                ctypes.windll.user32.PostMessageW(hwnd, WM_NCLBUTTONDOWN, int(hittest), lparam)
+            except Exception as e:
+                print(f"[WinCtl] {label} failed: {e}")
+
+        if not self._win_ui_invoke(_do):
+            _do()  # фолбэк: прежнее поведение (из потока моста)
+        return True
 
     def start_window_drag(self):
         """Бесшовное нативное перетаскивание заголовочной рамки."""
-        import sys
-        if sys.platform != 'win32':
-            return False
-        import ctypes
-        
-        hwnd = self._win_hwnd()
-        if not hwnd:
-            return False
-            
-        self._win_maximized = False
-        
-        # 1. КРИТИЧНО: Принудительно отбираем захват мыши у Chromium
-        ctypes.windll.user32.ReleaseCapture()
-        
-        # 2. Получаем координаты курсора для ядра Windows
-        class POINT(ctypes.Structure):
-            _fields_ = [("x", ctypes.c_long), ("y", ctypes.c_long)]
-        pt = POINT()
-        ctypes.windll.user32.GetCursorPos(ctypes.byref(pt))
-        lparam = ((pt.y & 0xFFFF) << 16) | (pt.x & 0xFFFF)
-        
-        # 3. Начинаем нативный Drag, вызывающий Aero Snap (HTCAPTION = 2)
-        WM_NCLBUTTONDOWN = 0x00A1
-        ctypes.windll.user32.PostMessageW(hwnd, WM_NCLBUTTONDOWN, 2, lparam)
-        return True
+        return self._win_nc_hit(2, 'drag')  # HTCAPTION
 
     def start_window_resize(self, ht):
         """Плавный нативный ресайз за любые края окна."""
-        import sys
-        if sys.platform != 'win32':
-            return False
-        import ctypes
-        
-        hwnd = self._win_hwnd()
-        if not hwnd:
-            return False
-            
-        self._win_maximized = False
-        
-        # 1. КРИТИЧНО: Принудительно отбираем захват мыши у Chromium
-        ctypes.windll.user32.ReleaseCapture()
-        
-        # 2. Получаем координаты курсора для ядра Windows
-        class POINT(ctypes.Structure):
-            _fields_ = [("x", ctypes.c_long), ("y", ctypes.c_long)]
-        pt = POINT()
-        ctypes.windll.user32.GetCursorPos(ctypes.byref(pt))
-        lparam = ((pt.y & 0xFFFF) << 16) | (pt.x & 0xFFFF)
-        
-        # 3. Начинаем нативный ресайз ядром DWM (без подергиваний)
-        WM_NCLBUTTONDOWN = 0x00A1
-        ctypes.windll.user32.PostMessageW(hwnd, WM_NCLBUTTONDOWN, int(ht), lparam)
-        return True
+        return self._win_nc_hit(int(ht), 'resize')
 
     def _win_rect(self, hwnd):
         import ctypes
