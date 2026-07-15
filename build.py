@@ -14,7 +14,7 @@
 Расширение «ai» дополнительно управляет бандлингом llama_cpp (только arm64).
 
 Неинтерактивно (для CI):
-    python build.py --target {arm64|intel|both|windows}
+    python build.py --target {arm64|intel|both|windows|linux}
     python build.py --target arm64 --features search,calendar,ai   # только эти
     python build.py --target arm64 --disable ai,statistics         # все, кроме этих
 """
@@ -694,7 +694,7 @@ def interactive(preset_features=None):
 def main():
     os.chdir(ROOT)
     ap = argparse.ArgumentParser(description="Единый сборщик Doe.")
-    ap.add_argument("--target", choices=["arm64", "intel", "both", "windows"],
+    ap.add_argument("--target", choices=["arm64", "intel", "both", "windows", "linux"],
                     help="Собрать без интерактивного меню.")
     ap.add_argument("--features", metavar="LIST",
                     help="Список расширений через запятую — включить ТОЛЬКО их, "
@@ -718,6 +718,9 @@ def main():
             return 1
         if args.target == "windows" and not WIN:
             log("❌ Windows-сборку можно делать только на Windows.")
+            return 1
+        if args.target == "linux" and not LINUX:
+            log("❌ Linux-сборку можно делать только на Linux.")
             return 1
         available = features_from_cli(args)
         summarize_features(available)

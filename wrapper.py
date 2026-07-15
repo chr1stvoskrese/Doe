@@ -1201,6 +1201,90 @@ def _trigger_macos_hardware_haptic():
 
 MAIN_WINDOW_TITLE = 'Doe (demo)'
 
+# ============================================================
+#  🛟 Гарантия видимости окна (Windows/macOS)
+# ============================================================
+# Окно создаётся скрытым (hidden=True) и показывается ФРОНТЕНДОМ через
+# window.pywebview.api.reveal_window(), когда интерфейс готов. Если фронтенд
+# не загрузился (нет WebView2 Runtime → откат в MSHTML, ошибка JS, сбой
+# моста) — reveal никогда не приходит, и процесс живёт с невидимым окном:
+# для пользователя «приложение не запускается». Страховка ниже принудительно
+# показывает окно, если фронтенд не отчитался за отведённое время.
+_reveal_state = {"revealed": False}
+
+def start_reveal_failsafe(win, timeout=12.0):
+    """Показывает окно принудительно, если фронтенд не вызвал reveal_window."""
+    if sys.platform.startswith('linux'):
+        return  # на Linux окно создаётся видимым (hidden=False)
+
+    def _check():
+        if _reveal_state["revealed"]:
+            return
+        print(f"[WebView] ⚠️ Frontend did not call reveal_window within {timeout:.0f}s — "
+              "showing window anyway (failsafe). Check the log for JS/bridge errors.")
+        try:
+            win.show()
+        except Exception as e:
+            print(f"[WebView] Failsafe show failed: {e}")
+
+    import threading as _thr
+    t = _thr.Timer(timeout, _check)
+    t.daemon = True
+    t.start()
+
+
+def _show_fatal_error_win(message):
+    """Windows: собранное приложение (--windowed) не имеет консоли — фатальная
+    ошибка иначе полностью невидима для пользователя. Показываем MessageBox
+    с путём к логу."""
+    if sys.platform != 'win32':
+        return
+    try:
+        import ctypes
+        log_path = str(_global_log_path or (Path.home() / '.log.doe.txt'))
+        ctypes.windll.user32.MessageBoxW(
+            0,
+            f"{message}\n\nПодробности в логе:\n{log_path}",
+            "Doe — ошибка запуска",
+            0x10,  # MB_ICONERROR
+        )
+    except Exception:
+        pass
+
+
+def _win32_check_webview2():
+    """Проверяет наличие Microsoft Edge WebView2 Runtime (та же логика реестра,
+    что у pywebview). Без него pywebview молча откатывается в MSHTML (IE11),
+    где современный фронтенд не выполняется — окно никогда не появится."""
+    if sys.platform != 'win32':
+        return True
+    try:
+        import winreg
+        guids = (
+            '{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}',  # runtime
+            '{2CD8A007-E189-409D-A2C8-9AF4EF3C72AA}',  # beta
+            '{0D50BFEC-CD6A-4F9A-964C-C7416E3ACB10}',  # dev
+            '{65C35B14-6C1D-4122-AC46-7148CC9D6497}',  # canary
+        )
+        prefixes = (
+            r'SOFTWARE\Microsoft\EdgeUpdate\Clients',
+            r'SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients',
+        )
+        for root in (winreg.HKEY_CURRENT_USER, winreg.HKEY_LOCAL_MACHINE):
+            for prefix in prefixes:
+                for guid in guids:
+                    try:
+                        with winreg.OpenKey(root, prefix + '\\' + guid) as key:
+                            pv, _ = winreg.QueryValueEx(key, 'pv')
+                            if pv and pv != '0.0.0.0':
+                                return True
+                    except OSError:
+                        continue
+    except Exception:
+        return True  # не смогли проверить — не блокируем запуск
+    return False
+
+
 def _dump_geometry_diagnostics():
     """Однократный дамп DPI-состояния и карты мониторов в лог (Windows)."""
     if sys.platform != 'win32':
@@ -2418,6 +2502,7 @@ class WindowAPI:
 
     def reveal_window(self):
         print("[WebView] Signal received from JS: Interface is ready, showing window.")
+        _reveal_state["revealed"] = True
         if not webview.windows:
             return
         
@@ -2721,6 +2806,7 @@ class WindowAPI:
         try:
             bind_resize_event(new_win)
             bind_macos_fullscreen_input_fix(new_win)
+            start_reveal_failsafe(new_win)
             if sys.platform == 'win32' and t_x is not None:
                 bind_geometry_enforcement(new_win, (t_x, t_y, t_w, t_h))
         except Exception:
@@ -2777,7 +2863,7 @@ class WindowAPI:
             return
 
         # --- Холодный путь: окон нет — создаём окно селектора ---
-        webview.create_window(
+        new_win = webview.create_window(
             title='Doe — Select Vault',
             url=_vault_url,
             width=760,
@@ -2791,6 +2877,10 @@ class WindowAPI:
             hidden=(not sys.platform.startswith('linux')),
             js_api=WindowAPI()
         )
+        try:
+            start_reveal_failsafe(new_win)
+        except Exception:
+            pass
 
 if __name__ == '__main__':
     multiprocessing.freeze_support()
@@ -2825,6 +2915,24 @@ if __name__ == '__main__':
     # ФИКС ИКОНКИ И РЕЕСТРА ДЛЯ WINDOWS
     if sys.platform == 'win32':
         import ctypes
+
+        # WebView2 Runtime обязателен: без него pywebview откатывается в MSHTML
+        # (IE11) и фронтенд молча не загружается — окно никогда не появляется.
+        if not _win32_check_webview2():
+            print("[System] ❌ Microsoft Edge WebView2 Runtime not found — UI cannot start.")
+            try:
+                ctypes.windll.user32.MessageBoxW(
+                    0,
+                    "Для работы Doe необходим Microsoft Edge WebView2 Runtime.\n\n"
+                    "Установите его с официальной страницы:\n"
+                    "https://developer.microsoft.com/microsoft-edge/webview2/\n\n"
+                    "После установки запустите Doe снова.",
+                    "Doe — требуется WebView2",
+                    0x30,  # MB_ICONWARNING
+                )
+            except Exception:
+                pass
+
         try:
             app_id = 'doe.aesthetic.kanban.app.1'
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(app_id)
@@ -3024,9 +3132,10 @@ if __name__ == '__main__':
         )
         bind_resize_event(window)
         bind_macos_fullscreen_input_fix(window)
+        start_reveal_failsafe(window)
         if sys.platform == 'win32' and is_configured and t_x is not None:
             bind_geometry_enforcement(window, (t_x, t_y, t_w, t_h))
-        
+
         try:
             print("[WebView] Starting GUI engine...")
             
@@ -3083,6 +3192,7 @@ if __name__ == '__main__':
         except Exception as e:
             print("[Main] WebView crashed:")
             traceback.print_exc()
+            _show_fatal_error_win(f"Не удалось запустить окно приложения:\n{e}")
         finally:
             # Чистим LLM при штатном закрытии окна
             try:
@@ -3106,4 +3216,5 @@ if __name__ == '__main__':
     except Exception as e:
         print("[Main] FATAL ERROR IN MAIN BLOCK:")
         traceback.print_exc()
+        _show_fatal_error_win(f"Критическая ошибка при запуске:\n{e}")
         sys.exit(1)

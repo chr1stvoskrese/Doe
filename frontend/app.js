@@ -7229,6 +7229,10 @@ const checkApi = () => {
         setTimeout(checkApi, 50);
     }
 };
+// Поллинг-фолбэк: показ окна не должен зависеть от единственного события
+// pywebviewready — если оно потеряно/пришло раньше подписки, окно останется
+// невидимым навсегда (особенно критично на Windows, где окно создаётся hidden).
+checkApi();
 
 function initHeadingFolding(container, foldedHeadings = []) {
     const headings = container.querySelectorAll('h1, h2, h3, h4, h5, h6');
