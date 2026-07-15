@@ -1686,7 +1686,18 @@ def bind_resize_event(win):
                     x, y = win.x, win.y
                 except Exception:
                     x, y = None, None
-            # Защита: не сохраняем размеры маленького окна выбора хранилищ
+            # Защита: не сохраняем размеры окна выбора хранилищ.
+            # На Windows размеры окна приходят в ФИЗИЧЕСКИХ пикселях
+            # (760x680 при 150% DPI = 1140x1020), из-за чего проверка по
+            # размеру пропускала селектор в конфиг и портила сохранённую
+            # геометрию доски. Надёжный признак — текущий URL (окно
+            # переиспользуется навигацией между селектором и доской).
+            if sys.platform == 'win32':
+                try:
+                    if 'doe_runtime_vault' in str(win.get_current_url() or ''):
+                        return
+                except Exception:
+                    pass
             if w <= 760 and h <= 680:
                 return
             from src.core.config import set_vault_geometry, get_active_vault
@@ -2029,6 +2040,14 @@ class WindowAPI:
 
         def _do():
             try:
+                # 0. ⚠️ КРИТИЧНО: жест начинаем ТОЛЬКО если левая кнопка всё ещё
+                # зажата. pointerdown мог быть обычным кликом — к моменту
+                # BeginInvoke кнопка уже отпущена, и WM_NCLBUTTONDOWN тогда
+                # вгоняет окно в модальный move-цикл БЕЗ кнопки: окно «липнет»
+                # к курсору, UI-поток WinForms виснет в цикле, а все Invoke
+                # (load_url/resize/show) намертво блокируются — «зависло».
+                if not (ctypes.windll.user32.GetAsyncKeyState(0x01) & 0x8000):
+                    return
                 # 1. Отбираем захват мыши у Chromium (действует на поток окна)
                 ctypes.windll.user32.ReleaseCapture()
                 # 2. Координаты курсора для ядра Windows
