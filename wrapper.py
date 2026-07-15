@@ -962,6 +962,30 @@ import subprocess  # Для macOS 'open'
 import os          # Для Windows 'os.startfile'
 import asyncio
 
+# ============================================================================
+# 🤫 Гашение штатной гонки моста pywebview при навигации.
+# Смена страницы (load_url при переключении vault ↔ доска) стирает реестр
+# window.pywebview._returnValuesCallbacks текущей страницы. Ответы запросов,
+# «летевших» в этот момент (поллинг /startup-status и т.п.), доставлять уже
+# некому — поток-доставщик pywebview (Thread-N (_call)) падает с шумным
+# трейсбеком JavascriptException «_returnValuesCallbacks[...] is not a
+# function». Сам запрос при этом давно выполнен, страница-получатель мертва —
+# терять нечего. Сворачиваем этот конкретный случай в одну строку лога.
+_orig_threading_excepthook = threading.excepthook
+
+def _quiet_bridge_excepthook(args):
+    try:
+        from webview.errors import JavascriptException
+        if (args.exc_type is JavascriptException
+                and '_returnValuesCallbacks' in str(args.exc_value)):
+            print("[Bridge] ℹ️ return value dropped — page navigated before delivery (harmless)")
+            return
+    except Exception:
+        pass
+    _orig_threading_excepthook(args)
+
+threading.excepthook = _quiet_bridge_excepthook
+
 print("[System] Loading FastAPI core...")
 from main import app, startup as _app_startup, shutdown as _app_shutdown, frontend_path
 from src.core.config import get_ui_settings
@@ -2451,8 +2475,13 @@ class WindowAPI:
             return None
             
         window = webview.windows[0]
+        # pywebview ≥6: константы диалогов переехали в enum FileDialog,
+        # старый webview.FOLDER_DIALOG печатает deprecation-warning.
+        _folder = getattr(getattr(webview, 'FileDialog', None), 'FOLDER', None)
+        if _folder is None:
+            _folder = webview.FOLDER_DIALOG
         result = window.create_file_dialog(
-            dialog_type=webview.FOLDER_DIALOG,
+            dialog_type=_folder,
             allow_multiple=False
         )
         
