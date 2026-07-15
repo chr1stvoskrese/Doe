@@ -9845,7 +9845,7 @@ async function showVaultScreen() {
 
     // ⚠️ Класс vault-mode здесь НЕ добавляем: окно доски видно ещё всё время
     // шифрования и ~0.4с до подмены окном селектора — зелёная кнопка пропадала
-    // бы раньше времени. Селектор открывается свежей страницей (?mode=vault),
+    // бы раньше времени. Селектор открывается свежей страницей (__doeLaunchMode='vault'),
     // которая сама скрывает зелёную кнопку при инициализации.
     if (window.pywebview && window.pywebview.api && window.pywebview.api.open_vault_window) {
         window.pywebview.api.open_vault_window();

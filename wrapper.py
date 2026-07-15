@@ -1038,10 +1038,13 @@ def runtime_index_url(mode: str = 'board') -> str:
     out = _runtime_dir() / ('doe_runtime_vault.html' if launch_mode == 'vault' else 'doe_runtime_board.html')
     with open(out, 'w', encoding='utf-8') as f:
         f.write(html)
-    url = out.resolve().as_uri()
-    if launch_mode == 'vault':
-        url += '?mode=vault'
-    return url
+    # ⚠️ БЕЗ query-строки (?mode=vault): на Windows URL проходит через .NET
+    # System.Uri (WebView2), а в .NET Framework file://-URI не поддерживает
+    # query — «?mode=vault» становится частью имени файла, WebView2 пытается
+    # открыть несуществующий «...html?mode=vault», страница не грузится и окно
+    # (создаваемое скрытым) никогда не показывается. Режим и так запечён в HTML
+    # (window.__doeLaunchMode) и различим по имени файла.
+    return out.resolve().as_uri()
 
 
 class _AsgiResponse:
@@ -2585,8 +2588,11 @@ class WindowAPI:
                     # Разделяем логику: окно выбора хранилищ не должно менять размеры.
                     # Определяем по URL (надёжно), title — фолбэк на случай ошибки.
                     try:
-                        _cur_url = window.get_current_url() or ''
-                        is_resizable = 'mode=vault' not in _cur_url
+                        # str(): edgechromium может вернуть .NET Uri, а не строку.
+                        # Режим определяем по имени рантайм-файла — query-строки
+                        # в file://-URL больше нет (см. runtime_index_url).
+                        _cur_url = str(window.get_current_url() or '')
+                        is_resizable = 'doe_runtime_vault' not in _cur_url
                     except Exception:
                         is_resizable = "Select Vault" not in window.title
 
