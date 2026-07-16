@@ -10,7 +10,7 @@
 <h1 align="center">Doe</h1>
 
 <p align="center">
-  <strong>Aesthetic. Local-first. Kanban sanctuary.</strong>
+  <strong>Aesthetic. Local-first. Kanban sanctuary</strong>
 </p>
 
 <p align="center">
