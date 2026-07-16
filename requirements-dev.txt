@@ -1,5 +1,0 @@
-# Development / test dependencies.
-# The current test suite covers pure-logic modules (e.g. the spaced-repetition
-# scheduler) and needs nothing from the app's runtime requirements, so this file
-# stays intentionally light and installs fast in CI.
-pytest>=7
