@@ -17,6 +17,7 @@ from src.schemas.task import (
     TaskExportReq,
     TaskSetTimeReq,
     TaskNotifyReq,
+    TaskRestoreReq,
 )
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
@@ -45,8 +46,8 @@ async def update_task(task_id: int, task_in: TaskUpdate, db: AsyncSession = Depe
 @router.delete("/{task_id}", status_code=status.HTTP_200_OK)
 async def delete_task(task_id: int, db: AsyncSession = Depends(get_session)):
     try:
-        deleted_ids = await task_service.delete_task(db, task_id)
-        return {"deleted_ids": deleted_ids}
+        result = await task_service.delete_task(db, task_id)
+        return result
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
@@ -149,3 +150,10 @@ async def get_task_paths_endpoint(task_id: int, db: AsyncSession = Depends(get_s
         return await task_service.get_task_paths(db, task_id)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/restore", response_model=TaskResponse)
+async def restore_task_endpoint(req: TaskRestoreReq, db: AsyncSession = Depends(get_session)):
+    try:
+        return await task_service.restore_task_full(db, req)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))

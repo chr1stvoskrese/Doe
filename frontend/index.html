@@ -243,14 +243,6 @@
             <span class="bell-badge" id="memory-badge" style="display: none;"></span>
         </button>
 
-        <button class="icon-btn" id="space-trigger" aria-label="Space">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="3" width="18" height="18" rx="3"></rect>
-                <path d="M7 15c1.4-3 2.8-4.4 4.2-4.4 1.4 0 1.9 1.9 3.1 1.9 1.1 0 1.6-1.1 2.7-3"></path>
-                <circle cx="8" cy="8" r="1.2" fill="currentColor" stroke="none"></circle>
-            </svg>
-        </button>
-
         <div class="search-wrapper" id="global-search-wrapper">
             <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
             <input type="text" id="global-search-input" class="search-input" data-i18n="searchPlaceholder" placeholder="Поиск..." autocomplete="off" spellcheck="false">
@@ -1233,16 +1225,6 @@
                     </label>
                 </div>
 
-                <div class="setting-row" style="cursor: default;">
-                    <div class="setting-text-box">
-                        <div class="setting-title" data-i18n="modals.extSpace">Пространство</div>
-                    </div>
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="ext-toggle-space" onchange="toggleExtension('space', this.checked)">
-                        <span class="toggle-slider"></span>
-                    </label>
-                </div>
-
                 <div class="setting-row" id="ai-settings-row" style="display: none; justify-content: center; background: transparent; border: none;">
                     <button class="confirm-btn cancel-btn" onclick="openAiSettingsModal()" style="font-size: 12px; padding: 6px 12px;" data-i18n="ai.setupBtn">✨ Настроить ИИ-ассистента</button>
                 </div>
@@ -1869,7 +1851,6 @@
 <script src="prism.min.js"></script>
 <script src="marked.min.js"></script>
 <script src="app.js?v=priority"></script>
-<script src="space.js?v=1"></script>
 
 </body>
 </html>

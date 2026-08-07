@@ -70,6 +70,7 @@ _loop: Optional[asyncio.AbstractEventLoop] = None
 
 _suspended = 0                   # >0 → хуки не собирают изменения (идёт reconcile/export_all)
 _fs_lock = asyncio.Lock()        # сериализация reconcile/export/flush
+_reconcile_ok = False            # успешна ли синхронизация БД с файлами
 
 # Реестр путей: ("ws"|"col"|"task", id) -> Path
 _registry: dict[tuple, Path] = {}
@@ -443,7 +444,15 @@ async def export_all(session) -> None:
     """Материализует ВСЮ доску из БД в файлы (идемпотентно, без лишних записей)."""
     if _vault is None:
         return
-    global _suspended
+        
+    global _suspended, _reconcile_ok
+    # 🔥 ФИКС РАЗМНОЖЕНИЯ ПАПОК: Запрещаем материализацию базы, если хранилище
+    # заблокировано или не до конца расшифровано. Если этого не сделать,
+    # пустой _registry создаст дубликаты папок с суффиксом " (2)".
+    if not _reconcile_ok:
+        print("[FSStore] ⚠️ Skipping export_all: vault is locked or reconcile failed")
+        return
+
     _suspended += 1
     try:
         ws_rows = (
@@ -575,14 +584,16 @@ async def reconcile(session) -> bool:
     """Синхронизирует БД со структурой папок. True, если синхронизация выполнена."""
     if _vault is None:
         return False
-    global _suspended
+    global _suspended, _reconcile_ok
     async with _fs_lock:
         _suspended += 1
         try:
             snapshot = _scan_vault()
             if snapshot is None:
+                _reconcile_ok = False
                 return False
             await _apply_snapshot(session, snapshot)
+            _reconcile_ok = True
             return True
         finally:
             _suspended -= 1
@@ -739,10 +750,17 @@ async def _apply_snapshot(session, snapshot: dict) -> None:
     all_tasks = {t.id: t for t in db_task.values() if t.id in seen_task}
     for task, _ in pending_parents:
         all_tasks[task.id] = task
+    from sqlalchemy.orm.attributes import instance_state
     for task, parents_fm in pending_parents:
         wanted = sorted({int(p) for p in parents_fm
                          if isinstance(p, (int, float)) and int(p) in all_tasks and int(p) != task.id})
-        current = sorted(p.id for p in task.parents)
+        
+        # Безопасно проверяем, загружены ли parents, чтобы не поймать MissingGreenlet
+        if 'parents' in instance_state(task).dict:
+            current = sorted(p.id for p in task.parents)
+        else:
+            current = []
+            
         if wanted != current:
             task.parents = [all_tasks[i] for i in wanted]
 
@@ -832,6 +850,12 @@ async def _flush_pending() -> None:
     if _vault is None or _session_factory is None:
         return
     async with _fs_lock:
+        # 🔥 Защита фонового воркера от дублирования файлов
+        if not _reconcile_ok:
+            _pending_del.clear()
+            _pending_up.clear()
+            return
+
         dels = list(_pending_del)
         ups = list(_pending_up)
         _pending_del.clear()
@@ -918,7 +942,7 @@ async def _worker() -> None:
 # ============================================================
 def init(vault_path: str, session_factory, engine) -> None:
     """Активирует файловое хранилище для vault'а. Вызывается из init_database."""
-    global _vault, _session_factory, _sync_engine, _loop, _pending_event, _worker_task
+    global _vault, _session_factory, _sync_engine, _loop, _pending_event, _worker_task, _reconcile_ok
     _vault = Path(vault_path)
     _session_factory = session_factory
     _sync_engine = engine.sync_engine
@@ -926,6 +950,7 @@ def init(vault_path: str, session_factory, engine) -> None:
     _pending_up.clear()
     _pending_del.clear()
     _self_writes.clear()
+    _reconcile_ok = False
     try:
         _loop = asyncio.get_running_loop()
     except RuntimeError:

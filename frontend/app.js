@@ -724,13 +724,12 @@ window.resetCustomFont = async () => {
 };
 
 window.applyExtensionsUI = (exts, available) => {
-    if (!exts) exts = { search: true, calendar: true, reminders: true, graph: true, tabs: true, deadlines: true, export: true, priority: true, ai: true, automations: true, statistics: true, memory: true, space: true };
+    if (!exts) exts = { search: true, calendar: true, reminders: true, graph: true, tabs: true, deadlines: true, export: true, priority: true, ai: true, automations: true, statistics: true, memory: true };
     if (exts.memory === undefined) exts.memory = true;
-    if (exts.space === undefined) exts.space = true;
 
     // Allowlist расширений, запечённый в сборку (build.py -> feature_flags.json).
     // Массив = доступны только эти расширения; null/undefined = доступны все.
-    const ALL_EXT_KEYS = ['search','calendar','reminders','graph','tabs','deadlines','export','priority','ai','automations','statistics','memory','space'];
+    const ALL_EXT_KEYS = ['search','calendar','reminders','graph','tabs','deadlines','export','priority','ai','automations','statistics','memory'];
     if (Array.isArray(available)) window.__extAvailable = available;
     const avail = Array.isArray(window.__extAvailable) ? window.__extAvailable : null;
     if (avail) {
@@ -768,13 +767,6 @@ window.applyExtensionsUI = (exts, available) => {
     const tMemory = document.getElementById('ext-toggle-memory');
     if (tMemory) tMemory.checked = exts.memory;
     if (window.DoeMemory) window.DoeMemory.setEnabled(exts.memory);
-
-    const spaceBtn = document.getElementById('space-trigger');
-    if (spaceBtn) spaceBtn.style.display = exts.space ? '' : 'none';
-    const tSpace = document.getElementById('ext-toggle-space');
-    if (tSpace) tSpace.checked = exts.space;
-    // Если Space выключили при открытом холсте — закрываем его
-    if (!exts.space && window.DoeSpace) window.DoeSpace.close();
 
     const notifyMenuItem = document.querySelector('.menu-item[data-action="notify-card"]');
     if (notifyMenuItem) {
@@ -1050,45 +1042,6 @@ function initMarkdownWorker() {
             delete markdownCallbacks[id];
         }
     };
-}
-
-// Статичные векторы из Пространства: вставленный ![](doe/space-vec-*.svg) получает
-// прозрачную кнопку возврата (квадрат+стрелка) в правом верхнем углу при наведении.
-function enhanceSpaceVectors(container) {
-    if (!container || !container.querySelectorAll) return;
-    const imgs = container.querySelectorAll('img[src*="space-vec-"]');
-    imgs.forEach(img => {
-        const wrap = img.closest('.image-resizer-wrapper') || img.parentElement;
-        if (!wrap || wrap.querySelector('.space-vec-btn')) return;
-        wrap.classList.add('space-vec');
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'space-vec-btn';
-        btn.title = (typeof t === 'function' ? t('space.openInSpace') : 'Открыть в Пространстве');
-        btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"></path><path d="M10 14L21 3"></path><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"></path></svg>';
-        const src = img.getAttribute('src');
-        btn.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); openVectorInSpace(src); });
-        wrap.appendChild(btn);
-    });
-}
-
-async function openVectorInSpace(src) {
-    let spaceId = null, bbox = null;
-    try {
-        const res = await fetch(src);
-        const txt = await res.text();
-        const doc = new DOMParser().parseFromString(txt, 'image/svg+xml');
-        const svg = doc.querySelector('svg');
-        if (svg) {
-            spaceId = svg.getAttribute('data-space-id') || null;
-            const vb = (svg.getAttribute('viewBox') || '').split(/[\s,]+/).map(Number).filter(n => !isNaN(n));
-            if (vb.length === 4) bbox = { minX: vb[0], minY: vb[1], w: vb[2], h: vb[3] };
-        }
-    } catch (e) {}
-    try {
-        if (window.DoeSpace && typeof window.DoeSpace.openToVector === 'function') window.DoeSpace.openToVector(spaceId, bbox);
-        else if (window.DoeSpace) window.DoeSpace.open();
-    } catch (e) {}
 }
 
 function renderMarkdownProgressively(text, container, options) {
@@ -1881,8 +1834,6 @@ function renderBoard() {
         adjustCollapsedColumnWidths();
         clampExpandedTitles();
         if (window.updateBoardScrollbar) window.updateBoardScrollbar();
-        // 🌌 Space: живые встраивания отражают актуальное состояние доски
-        if (window.DoeSpace && window.DoeSpace.refreshEmbeds) window.DoeSpace.refreshEmbeds();
     });
 }
 
@@ -2322,9 +2273,6 @@ async function refreshBoard(scrollToActive = false, newTabId = null) {
             : await fetchColumns(state.activeWorkspaceId);
         state.columns = columns.map(col => ({ ...col, collapsed: col.collapsed || false }));
         renderBoard();
-
-        // Держим встроенные в Space карточки/колонки/вкладки в актуальном состоянии
-        try { if (window.__spaceRefreshEmbeds) window.__spaceRefreshEmbeds(); } catch (e) {}
 
         const calModal = document.getElementById('calendar-modal');
         if (calModal && calModal.classList.contains('show') && Calendar.syncData) {
@@ -5408,6 +5356,9 @@ document.addEventListener('click', async (e) => {
 
             deleteTask(taskId).then(data => {
                 const deletedIds = data.deleted_ids || [];
+                const snapshot = data.snapshot;
+                if (snapshot) pushBoardAction({ type: 'DELETE_CARD', taskData: snapshot });
+
                 deletedIds.forEach(id => {
                     if (id === taskId) return;
                     const boardCard = document.querySelector(`.card[data-card-id="${id}"]`);
@@ -5608,6 +5559,8 @@ document.addEventListener('click', async (e) => {
                     
                     deleteTask(taskId).then(data => {
                         const deletedIds = data.deleted_ids || [];
+                        const snapshot = data.snapshot;
+                        if (snapshot) pushBoardAction({ type: 'DELETE_CARD', taskData: snapshot });
                         
                         deletedIds.forEach(id => {
                             if (id === taskId) return;
@@ -7330,6 +7283,7 @@ function enhanceUploadChips(container) {
     };
 
     lb.addEventListener('click', close);
+    
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && lb.classList.contains('show')) {
             e.preventDefault();
@@ -7700,6 +7654,9 @@ async function onAddSubtask() {
         }
 
         const title = stripDoeTaskLinks(rawTitle);
+        
+        // 🔥 ФИКС: Защита от создания пустого имени после вырезания ссылок
+        if (!title) { cancel(); return; }
 
         if (title.length > 1000) {
             if (!formItem.querySelector('.card-error-hint')) {
@@ -7724,10 +7681,10 @@ async function onAddSubtask() {
             const res = await fetch(`${API_BASE}/tasks/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ title, column_id: columnId, parent_ids: [parentId] })
+                body: JSON.stringify({ title: title, column_id: columnId, parent_ids: [parentId] })
             });
 
-            if (!res.ok) throw new Error();
+            if (!res.ok) throw new Error("Create subtask failed");
             const newSub = await res.json();
             
             bumpModalUpdatedDate();
@@ -7750,8 +7707,20 @@ async function onAddSubtask() {
 
             setTimeout(() => realSub.classList.remove('subtask-birth', 'born'), 500);
             document.getElementById('subtasks-count').textContent = parseInt(document.getElementById('subtasks-count').textContent) + 1;
+            
+            // 🔥 ФИКС: Добавляем созданную подзадачу локально в стейт до перерендера
+            for (let col of state.columns) {
+                let pTask = col.tasks.find(t => t.id === parentId);
+                if (pTask) {
+                    if (!pTask.subtasks) pTask.subtasks = [];
+                    pTask.subtasks.push(newSub);
+                    break;
+                }
+            }
+            
             refreshBoard();
         } catch (err) {
+            console.error(err);
             isResolved = false;
             input.disabled = false;
             formItem.classList.add('is-error');
@@ -7869,36 +7838,36 @@ function bindSubtaskEvents(el, sub, parentTaskOrId, parentMode = 'default') {
         }, 250);
 
         try {
-            if (parents.length > 1) {
-                const newParentIds = parents.filter(id => id !== parentId);
-                await updateTask(sub.id, { parent_ids: newParentIds });
-                
-                bumpModalUpdatedDate();
-                sub.parent_ids = newParentIds;
-                refreshBoard();
-            } else {
-                const data = await deleteTask(sub.id);
-                
-                bumpModalUpdatedDate();
-                
-                const deletedIds = data.deleted_ids || [];
-                
-                deletedIds.forEach(id => {
-                    const boardCard = document.querySelector(`.card[data-card-id="${id}"]`);
-                    if (boardCard) {
-                        animateCardDeletion(boardCard);
-                    }
+                if (parents.length > 1) {
+                    const newParentIds = parents.filter(id => id !== parentId);
+                    await updateTask(sub.id, { parent_ids: newParentIds });
+                    bumpModalUpdatedDate();
+                    sub.parent_ids = newParentIds;
+                    refreshBoard();
+                } else {
+                    const data = await deleteTask(sub.id);
+                    const snapshot = data.snapshot;
+                    if (snapshot) pushBoardAction({ type: 'DELETE_CARD', taskData: snapshot });
+
+                    bumpModalUpdatedDate();
+                    const deletedIds = data.deleted_ids || [];
                     
-                    for (let col of state.columns) {
-                        const taskIndex = col.tasks.findIndex(t => t.id === id);
-                        if (taskIndex !== -1) col.tasks.splice(taskIndex, 1);
-                    }
-                });
-                refreshBoard(); 
+                    deletedIds.forEach(id => {
+                        const boardCard = document.querySelector(`.card[data-card-id="${id}"]`);
+                        if (boardCard) {
+                            animateCardDeletion(boardCard);
+                        }
+                        
+                        for (let col of state.columns) {
+                            const taskIndex = col.tasks.findIndex(t => t.id === id);
+                            if (taskIndex !== -1) col.tasks.splice(taskIndex, 1);
+                        }
+                    });
+                    refreshBoard(); 
+                }
+            } catch(err) {
+                console.error("Ошибка при удалении пункта:", err);
             }
-        } catch(err) {
-            console.error("Ошибка при удалении пункта:", err);
-        }
     };
 
     el.querySelector('.subtask-open-btn').onclick = (e) => {
@@ -15409,11 +15378,210 @@ function initCloudSync() {
     // 🔒 Абсолютные корни вложений для file://-URL картинок (до рендера доски).
     await doeLoadAssetRoots();
 
+    // ============================================================
+    // ↩️ Стек отмены и повтора действий на доске (Undo / Redo)
+    // ============================================================
+    window.boardUndoStack = [];
+    window.boardRedoStack = [];
+
+    function pushBoardAction(action) {
+        window.boardUndoStack.push(action);
+        if (window.boardUndoStack.length > 30) window.boardUndoStack.shift();
+        window.boardRedoStack = []; // Сбрасываем повтор при новом действии
+    }
+
+    async function undoBoardAction() {
+        if (!window.boardUndoStack.length) return;
+        const action = window.boardUndoStack.pop();
+        window.boardRedoStack.push(action);
+
+        try {
+            if (action.type === 'DELETE_CARD') {
+                const res = await fetch(`${API_BASE}/tasks/restore`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(action.taskData)
+                });
+                if (res.ok) {
+                    const restored = await res.json();
+                    action.restoredTaskId = restored.id;
+                    await refreshBoard();
+                    
+                    // Если в момент отмены открыта модалка карточки — подтягиваем свежее состояние
+                    const modal = document.getElementById('task-modal');
+                    if (modal && modal.classList.contains('show')) {
+                        const openTaskId = parseInt(modal.dataset.taskId);
+                        if (openTaskId) {
+                            loadTaskIntoModal(openTaskId, false);
+                        }
+                    }
+
+                    showToast(currentLang === 'ru' ? 'Отмена' : 'Undo', `${currentLang === 'ru' ? 'Восстановлена карточка' : 'Restored card'} «${stripMarkdownToPlain(restored.title)}»`);
+                }
+            } else if (action.type === 'CREATE_CARD') {
+                const targetId = action.restoredTaskId || action.taskId;
+                await fetch(`${API_BASE}/tasks/${targetId}`, { method: 'DELETE' });
+                await refreshBoard();
+                showToast(currentLang === 'ru' ? 'Отмена' : 'Undo', currentLang === 'ru' ? 'Создание карточки отменено' : 'Card creation undone');
+            }
+        } catch (e) {
+            console.error('Undo error:', e);
+            showToast(t('alerts.error'), 'Не удалось отменить действие', true);
+        }
+    }
+
+    async function redoBoardAction() {
+        if (!window.boardRedoStack.length) return;
+        const action = window.boardRedoStack.pop();
+        window.boardUndoStack.push(action);
+
+        try {
+            if (action.type === 'DELETE_CARD') {
+                const targetId = action.restoredTaskId || action.taskData.id;
+                if (targetId) {
+                    await fetch(`${API_BASE}/tasks/${targetId}`, { method: 'DELETE' });
+                    await refreshBoard();
+                    showToast(currentLang === 'ru' ? 'Повтор' : 'Redo', currentLang === 'ru' ? 'Карточка снова удалена' : 'Card deleted again');
+                }
+            } else if (action.type === 'CREATE_CARD') {
+                const res = await fetch(`${API_BASE}/tasks/restore`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(action.taskData)
+                });
+                if (res.ok) {
+                    const restored = await res.json();
+                    action.restoredTaskId = restored.id;
+                    await refreshBoard();
+                    showToast(currentLang === 'ru' ? 'Повтор' : 'Redo', `${currentLang === 'ru' ? 'Восстановлена карточка' : 'Restored card'} «${stripMarkdownToPlain(restored.title)}»`);
+                }
+            }
+        } catch (e) {
+            console.error('Redo error:', e);
+            showToast(t('alerts.error'), 'Не удалось повторить действие', true);
+        }
+    }
+
     document.addEventListener('keydown', (e) => {
         if ((e.metaKey || e.ctrlKey) && e.key === '\\') {
             e.preventDefault();
             const hbBtn = document.querySelector('.hb-separator');
             if (hbBtn) hbBtn.click();
+        }
+
+        // Перехват Cmd+Z / Ctrl+Z и Cmd+Y / Ctrl+Y / Shift+Cmd+Z (с поддержкой русской раскладки Я/Н)
+        const keyLower = (e.key || '').toLowerCase();
+        const isZ = keyLower === 'z' || keyLower === 'я' || e.code === 'KeyZ';
+        const isY = keyLower === 'y' || keyLower === 'н' || e.code === 'KeyY';
+        const mod = e.metaKey || e.ctrlKey;
+
+        if (mod && (isZ || isY)) {
+            const active = document.activeElement;
+            const isEditingText = active && (
+                active.tagName === 'INPUT' ||
+                active.tagName === 'TEXTAREA' ||
+                active.isContentEditable ||
+                active.closest('.CodeMirror') ||
+                active.closest('.is-renaming') ||
+                active.closest('.card-entering') ||
+                active.closest('.column-entering') ||
+                active.closest('.ai-msg-edit')
+            );
+
+            // Если фокус не находится в текстовом поле ввода — выполняем отмену карточки
+            if (!isEditingText) {
+                if (isZ && !e.shiftKey) {
+                    e.preventDefault();
+                    undoBoardAction();
+                } else if (isY || (isZ && e.shiftKey)) {
+                    e.preventDefault();
+                    redoBoardAction();
+                }
+            }
+        }
+    });
+
+    // ============================================================
+// ⌨️ Быстрое удаление карточки по Delete / Backspace при наведении
+// ============================================================
+document.addEventListener('keydown', async (e) => {
+    if (e.key !== 'Delete' && e.key !== 'Backspace') return;
+
+    // 1. Игнорируем, если открыто любое модальное окно или Space (бесконечный холст)
+    if (document.querySelector('.modal-overlay.show, .space-view.show')) return;
+
+    // 2. Игнорируем, если происходит перетаскивание элементов
+    if (typeof isDragging !== 'undefined' && isDragging) return;
+
+    // 3. Игнорируем, если фокус находится в любом текстовом поле ввода
+    const active = document.activeElement;
+    const isEditing = active && (
+        active.tagName === 'INPUT' ||
+        active.tagName === 'TEXTAREA' ||
+        active.isContentEditable ||
+        active.closest('.CodeMirror') ||
+        active.closest('.is-renaming') ||
+        active.closest('.card-entering') ||
+        active.closest('.column-entering')
+    );
+    if (isEditing) return;
+
+    // 4. Мгновенное удаление карточки под курсором (нативный :hover)
+    const targetCard = document.querySelector('.card:hover:not(.card-drag-clone):not(.card-entering)');
+    if (targetCard && document.body.contains(targetCard)) {
+        const taskId = parseInt(targetCard.dataset.cardId);
+        if (!taskId || isNaN(taskId)) return;
+
+        e.preventDefault();
+        const cardToDelete = targetCard;
+
+            closeAllDropdowns();
+
+            // Запускаем плавное анимационное исчезновение
+            animateCardDeletion(cardToDelete);
+
+            for (let col of state.columns) {
+                col.tasks = col.tasks.filter(t => t.id !== taskId);
+                col.tasks.forEach(parentTask => {
+                    if (parentTask.subtasks) {
+                        const originalLength = parentTask.subtasks.length;
+                        parentTask.subtasks = parentTask.subtasks.filter(s => s.id !== taskId);
+                        if (parentTask.subtasks.length !== originalLength) {
+                            const parentCardEl = document.querySelector(`.card[data-card-id="${parentTask.id}"]`);
+                            if (parentCardEl) updateCardAppearance(parentCardEl, parentTask, col.mode);
+                        }
+                    }
+                });
+            }
+
+            deleteTask(taskId).then(data => {
+                const deletedIds = data.deleted_ids || [];
+                const snapshot = data.snapshot;
+                if (snapshot) pushBoardAction({ type: 'DELETE_CARD', taskData: snapshot });
+
+                deletedIds.forEach(id => {
+                    if (id === taskId) return;
+                    const boardCard = document.querySelector(`.card[data-card-id="${id}"]`);
+                    if (boardCard) animateCardDeletion(boardCard);
+
+                    for (let col of state.columns) {
+                        col.tasks = col.tasks.filter(t => t.id !== id);
+                        col.tasks.forEach(parentTask => {
+                            if (parentTask.subtasks) {
+                                const originalLength = parentTask.subtasks.length;
+                                parentTask.subtasks = parentTask.subtasks.filter(s => s.id !== id);
+                                if (parentTask.subtasks.length !== originalLength) {
+                                    const parentCardEl = document.querySelector(`.card[data-card-id="${parentTask.id}"]`);
+                                    if (parentCardEl) updateCardAppearance(parentCardEl, parentTask, col.mode);
+                                }
+                            }
+                        });
+                    }
+                });
+            }).catch(err => {
+                console.error("Ошибка при удалении карточки:", err);
+                refreshBoard();
+            });
         }
     });
 

@@ -175,6 +175,10 @@ async def init_database(vault_path: str):
         def lower_ru(s):
             return s.lower() if s is not None else None
         dbapi_conn.create_function("LOWER_RU", 1, lower_ru, deterministic=True)
+        # 🛡 ВКЛЮЧАЕМ FOREIGN KEYS (Каскадное удаление связей графа)
+        cursor = dbapi_conn.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON;")
+        cursor.close()
     
     _session_factory = async_sessionmaker(_engine, class_=AsyncSession, expire_on_commit=False)
 
@@ -200,6 +204,11 @@ async def init_database(vault_path: str):
 
     from .models import WorkspaceModel, ColumnModel, ColumnMode
     async with _session_factory() as session:
+        # 🧹 Очищаем базу от возможных "осиротевших" связей (возникших до фикса PRAGMA foreign_keys)
+        from sqlalchemy import text
+        await session.execute(text("DELETE FROM task_relations WHERE child_id NOT IN (SELECT id FROM tasks) OR parent_id NOT IN (SELECT id FROM tasks)"))
+        await session.commit()
+
         # 3. Дефолтное наполнение, если база абсолютно пустая
         # (reconcile выше уже импортировал структуру из файлов, если она есть)
         result = await session.execute(select(WorkspaceModel).limit(1))
@@ -260,8 +269,6 @@ def is_database_open() -> bool:
 async def close_database():
     global _engine, _session_factory
 
-    # 📁 Дописываем на диск все накопленные изменения файлового хранилища,
-    # пока фабрика сессий ещё жива (иначе последние правки не попадут в .md).
     try:
         await fs_store.shutdown()
     except Exception as e:
@@ -272,10 +279,14 @@ async def close_database():
         if _session_factory:
             try:
                 async with _session_factory() as session:
+                    # 🧹 Очищаем осиротевшие вложения ТОЛЬКО при закрытии хранилища
+                    from src.services.task_service import cleanup_orphaned_attachments
+                    await cleanup_orphaned_attachments(session)
+
                     await session.execute(text("PRAGMA wal_checkpoint(TRUNCATE)"))
                     await session.commit()
             except Exception as e:
-                print(f"[Database] WAL Checkpoint failed: {e}")
+                print(f"[Database] WAL Checkpoint / Cleanup failed: {e}")
         
         await _engine.dispose()
         _engine = None

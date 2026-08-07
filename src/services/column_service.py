@@ -219,4 +219,3 @@ async def clear_column_tasks(db: AsyncSession, column_id: int) -> None:
         await db.delete(task)
         
     await db.commit()
-    await cleanup_orphaned_attachments(db)

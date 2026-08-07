@@ -302,40 +302,49 @@ async def get_task_paths(db: AsyncSession, task_id: int) -> list[list[dict]]:
     await dfs(task_id, [])
     return paths
 
-async def delete_task(db: AsyncSession, task_id: int) -> list[int]:
-    result = await db.execute(
+from sqlalchemy import select, delete as sql_delete
+
+async def _get_full_task_snapshot(db: AsyncSession, task_id: int, visited: set = None) -> dict | None:
+    """Рекурсивно формирует полный снимок задачи и её подзадач для Undo/Redo."""
+    if visited is None:
+        visited = set()
+    if task_id in visited:
+        return None
+    visited.add(task_id)
+
+    res = await db.execute(
         select(TaskModel)
-        .options(selectinload(TaskModel.parents))
+        .options(selectinload(TaskModel.subtasks), selectinload(TaskModel.parents))
         .where(TaskModel.id == task_id)
     )
-    task = result.scalar_one_or_none()
+    task = res.scalar_one_or_none()
     if not task:
-        raise ValueError("Задача не найдена")
+        return None
 
-    # Собираем все ID (самой задачи и всех её потомков) ДО удаления
-    deleted_ids = await _get_all_child_ids(db, task_id)
+    snapshot = {
+        "id": task.id,
+        "title": task.title,
+        "description": task.description,
+        "column_id": task.column_id,
+        "position": task.position,
+        "completed_at": task.completed_at.isoformat() + "Z" if task.completed_at else None,
+        "due_date": task.due_date.isoformat() + "Z" if task.due_date else None,
+        "priority": task.priority,
+        "priority_data": task.priority_data,
+        "is_visible_on_board": task.is_visible_on_board,
+        "attachments_order": task.attachments_order or [],
+        "folded_headings": task.folded_headings or [],
+        "parent_ids": [p.id for p in task.parents],
+        "subtasks_data": []
+    }
+    
+    for sub in task.subtasks:
+        sub_snap = await _get_full_task_snapshot(db, sub.id, visited)
+        if sub_snap:
+            snapshot["subtasks_data"].append(sub_snap)
+            
+    return snapshot
 
-    from src.core.config import remove_reminders_for_task, get_active_vault
-
-    # Каскад в БД автоматически уничтожит все подзадачи
-    await db.delete(task)
-    
-    # Обновляем даты всех родителей при удалении подзадачи
-    for p in task.parents:
-        p.updated_at = datetime.utcnow()
-
-    await db.commit()
-    
-    # Убиваем системные напоминания для удаляемых задач
-    for d_id in deleted_ids:
-        remove_reminders_for_task(d_id)
-    
-    # 🧹 Вызываем сборщик мусора. Он автоматически удалит с диска все файлы,
-    # которые были привязаны к удаленной карточке и ВСЕМ её подзадачам,
-    # так как их описания были уничтожены в БД.
-    await cleanup_orphaned_attachments(db)
-    
-    return deleted_ids
 
 async def move_task(db: AsyncSession, task_id: int, target_column_id: int) -> TaskModel:
     result = await db.execute(
@@ -457,6 +466,109 @@ async def reorder_tasks(db: AsyncSession, ordered_ids: list[int]) -> None:
             await trigger_sort_for_column(db, col_id)
     except Exception as e:
         print(f"[Automation] Hook error in reorder_tasks: {e}")
+
+
+async def delete_task(db: AsyncSession, task_id: int) -> dict:
+    result = await db.execute(
+        select(TaskModel)
+        .options(selectinload(TaskModel.parents))
+        .where(TaskModel.id == task_id)
+    )
+    task = result.scalar_one_or_none()
+    if not task:
+        raise ValueError("Задача не найдена")
+
+    # Формируем полный снимок иерархии ДО удаления записей из БД
+    snapshot = await _get_full_task_snapshot(db, task_id)
+
+    # Собираем все ID (самой задачи и всех её потомков) ДО удаления
+    deleted_ids = await _get_all_child_ids(db, task_id)
+
+    from src.core.config import remove_reminders_for_task
+    from src.db.models import MemoryItemModel
+
+    # Явно удаляем сессии таймера и элементы памяти перед удалением карточек,
+    # чтобы предотвратить нарушение ограничений внешних ключей (Foreign Key Constraint) в SQLite
+    await db.execute(
+        sql_delete(TimerSessionModel).where(TimerSessionModel.task_id.in_(deleted_ids))
+    )
+    await db.execute(
+        sql_delete(MemoryItemModel).where(MemoryItemModel.task_id.in_(deleted_ids))
+    )
+
+    # Гарантированно удаляем из таблицы tasks саму карточку и все её подзадачи
+    await db.execute(
+        sql_delete(TaskModel).where(TaskModel.id.in_(deleted_ids))
+    )
+    
+    # Обновляем даты всех родителей (если удалялась подзадача)
+    for p in task.parents:
+        p.updated_at = datetime.utcnow()
+        db.add(p) # Помечаем родителя измененным
+
+    await db.commit()
+    
+    # Убиваем системные напоминания для удаляемых задач
+    for d_id in deleted_ids:
+        remove_reminders_for_task(d_id)
+    
+    # Возвращаем и список удаленных ID, и полный снимок для отмены
+    return {"deleted_ids": deleted_ids, "snapshot": snapshot}
+
+
+async def restore_task_full(db: AsyncSession, req) -> TaskModel:
+    """Восстанавливает карточку и её структуру подзадач из снимка Undo."""
+    # Проверяем существование колонки, в которой была удалена карточка
+    col_res = await db.execute(select(ColumnModel).where(ColumnModel.id == req.column_id))
+    col = col_res.scalar_one_or_none()
+    target_column_id = req.column_id
+    if not col:
+        first_col_res = await db.execute(select(ColumnModel).order_by(ColumnModel.position).limit(1))
+        first_col = first_col_res.scalar_one_or_none()
+        if first_col:
+            target_column_id = first_col.id
+
+    db_task = TaskModel(
+        title=req.title,
+        description=req.description,
+        column_id=target_column_id,
+        position=req.position if req.position is not None else 1.0,
+        completed_at=req.completed_at,
+        due_date=req.due_date,
+        priority=req.priority,
+        priority_data=req.priority_data,
+        is_visible_on_board=bool(req.is_visible_on_board),
+        attachments_order=req.attachments_order or [],
+        folded_headings=req.folded_headings or [],
+    )
+    if req.parent_ids:
+        parents_res = await db.execute(select(TaskModel).where(TaskModel.id.in_(req.parent_ids)))
+        db_task.parents = parents_res.scalars().all()
+
+    db.add(db_task)
+    await db.commit()
+    await db.refresh(db_task)
+
+    # Рекурсивно восстанавливаем подзадачи
+    if req.subtasks_data:
+        from src.schemas.task import TaskRestoreReq
+        for sub_d in req.subtasks_data:
+            sub_req = TaskRestoreReq(**sub_d)
+            sub_req.parent_ids = [db_task.id]
+            await restore_task_full(db, sub_req)
+
+    await db.refresh(db_task, attribute_names=['timer_sessions', 'parents', 'subtasks'])
+    
+    # 🔥 ФИКС: Отрубаем ленивую загрузку для вложенных подзадач, 
+    # чтобы Pydantic не крашил приложение (MissingGreenlet)
+    from sqlalchemy.orm.attributes import set_committed_value
+    for sub in db_task.subtasks:
+        set_committed_value(sub, 'subtasks', [])
+        set_committed_value(sub, 'timer_sessions', []) # <--- Блокируем краш таймера
+        _calculate_task_time(sub)
+
+    _calculate_task_time(db_task)
+    return db_task
 
 async def clear_task_timer(db: AsyncSession, task_id: int) -> TaskModel:
     result = await db.execute(

@@ -127,3 +127,18 @@ class TaskReorder(BaseModel):
 
 
 TaskResponse.model_rebuild()
+
+class TaskRestoreReq(BaseModel):
+    title: str
+    column_id: int
+    description: Optional[str] = None
+    position: Optional[float] = None
+    completed_at: Optional[datetime] = None
+    due_date: Optional[datetime] = None
+    priority: Optional[float] = None
+    priority_data: Optional[dict] = None
+    is_visible_on_board: Optional[bool] = False
+    attachments_order: List[str] = []
+    folded_headings: List[str] = []
+    parent_ids: List[int] = []
+    subtasks_data: Optional[List[dict]] = None

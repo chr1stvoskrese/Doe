@@ -17,7 +17,7 @@ _config_cache = {"stat": None, "data": None}
 # (ext-toggle-<key>) и с EXTENSION_FEATURES в build.py.
 ALL_EXTENSION_KEYS = (
     "search", "calendar", "reminders", "graph", "tabs", "deadlines",
-    "export", "priority", "ai", "automations", "statistics", "memory", "space",
+    "export", "priority", "ai", "automations", "statistics", "memory",
 )
 
 _feature_flags_cache = {"loaded": False, "available": None}
@@ -156,7 +156,7 @@ def get_ui_settings() -> dict:
     data = _load_config()
     vault_path = get_active_vault()
     active_workspaces = data.get("active_workspaces", {})
-    default_extensions = {"search": True, "calendar": True, "reminders": True, "graph": True, "tabs": True, "deadlines": True, "export": True, "priority": True, "ai": True, "automations": True, "statistics": True, "memory": True, "space": True}
+    default_extensions = {"search": True, "calendar": True, "reminders": True, "graph": True, "tabs": True, "deadlines": True, "export": True, "priority": True, "ai": True, "automations": True, "statistics": True, "memory": True}
 
     # Дефолтные настройки запоминания (spaced repetition)
     default_memory = {
@@ -231,7 +231,7 @@ def set_ui_settings(
         available = _bundled_available_extensions()
         if available is not None:
             extensions = {k: v for k, v in extensions.items() if k in available}
-        current_exts = data.get("extensions", {"search": True, "calendar": True, "reminders": True, "graph": True, "tabs": True, "deadlines": True, "export": True, "priority": True, "ai": True, "automations": True, "statistics": True, "memory": True, "space": True})
+        current_exts = data.get("extensions", {"search": True, "calendar": True, "reminders": True, "graph": True, "tabs": True, "deadlines": True, "export": True, "priority": True, "ai": True, "automations": True, "statistics": True, "memory": True})
         current_exts.update(extensions)
         data["extensions"] = current_exts
     if memory_settings is not None:

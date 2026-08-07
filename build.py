@@ -69,7 +69,6 @@ EXTENSION_FEATURES = [
     ("automations", "Автоматизации"),
     ("statistics",  "Статистика"),
     ("memory",      "Запоминание"),
-    ("space",       "Пространство"),
 ]
 FEATURE_KEYS = [k for k, _ in EXTENSION_FEATURES]
 

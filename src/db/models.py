@@ -122,7 +122,7 @@ class TimerSessionModel(Base):
     __tablename__ = "timer_sessions"
 
     id = Column(Integer, primary_key=True, index=True)
-    task_id = Column(Integer, ForeignKey("tasks.id"), nullable=False)
+    task_id = Column(Integer, ForeignKey("tasks.id", ondelete="CASCADE"), nullable=False)
     start_time = Column(DateTime, nullable=False)
     end_time = Column(DateTime, nullable=True)
     is_active = Column(Boolean, default=True)
