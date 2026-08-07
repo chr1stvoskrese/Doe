@@ -2560,72 +2560,80 @@ class WindowAPI:
         if windows:
             win = windows[0]
             print(f"[Window] reusing existing window → navigating to board (no destroy)", flush=True)
-            try:
-                win.load_url(_board_url)
-            except Exception as e:
-                print(f"[Window] load_url failed: {e}", flush=True)
 
-            def _apply_board_chrome():
-                # Окно селектора было маленьким/нересайзабельным — возвращаем
-                # размеры доски и нативную возможность ресайза/разворота.
+            def _navigate_and_apply_chrome():
                 try:
-                    win.set_title(MAIN_WINDOW_TITLE)
-                except Exception:
-                    pass
-                try:
-                    win.resize(max(800, t_w), max(600, t_h))
-                except Exception:
-                    pass
-                try:
-                    if sys.platform == 'darwin':
-                        import AppKit
-                        for w in AppKit.NSApp.windows():
-                            if w.canBecomeKeyWindow():
-                                w.setStyleMask_(w.styleMask() | 8 | 4)  # Resizable|Miniaturizable
-                                zb = w.standardWindowButton_(2)
-                                if zb is not None:
-                                    zb.setEnabled_(True)
-                                mb = w.standardWindowButton_(1)
-                                if mb is not None:
-                                    mb.setEnabled_(True)
-                    elif sys.platform == 'win32':
-                        import ctypes
-                        try:
-                            from webview.platforms.winforms import BrowserView
-                            from System.Drawing import Size
-                            bv = BrowserView.instances.get(win.uid)
-                            if bv:
-                                bv.MinimumSize = Size(800, 600)
-                                bv.MaximumSize = Size(0, 0)
-                        except Exception:
-                            pass
-                        hwnd = ctypes.windll.user32.FindWindowW(None, MAIN_WINDOW_TITLE) \
-                            or ctypes.windll.user32.FindWindowW(None, 'Doe — Select Vault')
-                        if hwnd:
-                            style = ctypes.windll.user32.GetWindowLongW(hwnd, -16)
-                            ctypes.windll.user32.SetWindowLongW(hwnd, -16, style | 0x00040000 | 0x00010000 | 0x00020000)
-                            ctypes.windll.user32.SetWindowPos(hwnd, 0, 0, 0, 0, 0, 0x27)
+                    win.load_url(_board_url)
                 except Exception as e:
-                    print(f"[Window] chrome restore failed: {e}", flush=True)
-                try:
-                    win.show()
-                    win.restore()
-                except Exception:
-                    pass
-                try:
-                    bind_resize_event(win)
-                except Exception:
-                    pass
-                print("[Window] board ready in reused window.", flush=True)
+                    print(f"[Window] load_url failed: {e}", flush=True)
 
-            if sys.platform == 'darwin':
-                try:
-                    from Foundation import NSOperationQueue
-                    NSOperationQueue.mainQueue().addOperationWithBlock_(_apply_board_chrome)
-                except Exception:
-                    threading.Timer(0.05, _apply_board_chrome).start()
-            else:
-                threading.Timer(0.05, _apply_board_chrome).start()
+                def _apply_board_chrome():
+                    # Окно селектора было маленьким/нересайзабельным — возвращаем
+                    # размеры доски и нативную возможность ресайза/разворота.
+                    try:
+                        win.set_title(MAIN_WINDOW_TITLE)
+                    except Exception:
+                        pass
+                    try:
+                        win.resize(max(800, t_w), max(600, t_h))
+                    except Exception:
+                        pass
+                    try:
+                        if sys.platform == 'darwin':
+                            import AppKit
+                            for w in AppKit.NSApp.windows():
+                                if w.canBecomeKeyWindow():
+                                    w.setStyleMask_(w.styleMask() | 8 | 4)  # Resizable|Miniaturizable
+                                    zb = w.standardWindowButton_(2)
+                                    if zb is not None:
+                                        zb.setEnabled_(True)
+                                    mb = w.standardWindowButton_(1)
+                                    if mb is not None:
+                                        mb.setEnabled_(True)
+                        elif sys.platform == 'win32':
+                            import ctypes
+                            try:
+                                from webview.platforms.winforms import BrowserView
+                                from System.Drawing import Size
+                                bv = BrowserView.instances.get(win.uid)
+                                if bv:
+                                    bv.MinimumSize = Size(800, 600)
+                                    bv.MaximumSize = Size(0, 0)
+                            except Exception:
+                                pass
+                            hwnd = ctypes.windll.user32.FindWindowW(None, MAIN_WINDOW_TITLE) \
+                                or ctypes.windll.user32.FindWindowW(None, 'Doe — Select Vault')
+                            if hwnd:
+                                style = ctypes.windll.user32.GetWindowLongW(hwnd, -16)
+                                ctypes.windll.user32.SetWindowLongW(hwnd, -16, style | 0x00040000 | 0x00010000 | 0x00020000)
+                                ctypes.windll.user32.SetWindowPos(hwnd, 0, 0, 0, 0, 0, 0x27)
+                    except Exception as e:
+                        print(f"[Window] chrome restore failed: {e}", flush=True)
+                    try:
+                        win.show()
+                        win.restore()
+                    except Exception:
+                        pass
+                    try:
+                        bind_resize_event(win)
+                    except Exception:
+                        pass
+                    print("[Window] board ready in reused window.", flush=True)
+
+                if sys.platform == 'darwin':
+                    try:
+                        from Foundation import NSOperationQueue
+                        NSOperationQueue.mainQueue().addOperationWithBlock_(_apply_board_chrome)
+                    except Exception:
+                        _apply_board_chrome()
+                else:
+                    _apply_board_chrome()
+
+            # Даем 100мс на то, чтобы функция вернулась в JS, и Promise разрешился.
+            # Если сделать load_url мгновенно, старая JS-среда уничтожится,
+            # и pywebview выбросит TypeError: "window.pywebview._returnValuesCallbacks... is not a function"
+            import threading
+            threading.Timer(0.1, _navigate_and_apply_chrome).start()
             return
 
         # --- Холодный путь: окон нет вообще — создаём окно доски ---
@@ -2669,34 +2677,39 @@ class WindowAPI:
         if windows:
             win = windows[0]
             print(f"[Window] reusing existing window → navigating to vault selector (no destroy)", flush=True)
-            try:
-                win.load_url(_vault_url)
-            except Exception as e:
-                print(f"[Window] load_url failed: {e}", flush=True)
 
-            def _apply_vault_chrome():
+            def _navigate_and_apply_chrome():
                 try:
-                    win.set_title('Doe — Select Vault')
-                except Exception:
-                    pass
-                try:
-                    win.resize(760, 680)
-                except Exception:
-                    pass
-                try:
-                    win.show()
-                    win.restore()
-                except Exception:
-                    pass
+                    win.load_url(_vault_url)
+                except Exception as e:
+                    print(f"[Window] load_url failed: {e}", flush=True)
 
-            if sys.platform == 'darwin':
-                try:
-                    from Foundation import NSOperationQueue
-                    NSOperationQueue.mainQueue().addOperationWithBlock_(_apply_vault_chrome)
-                except Exception:
-                    threading.Timer(0.05, _apply_vault_chrome).start()
-            else:
-                threading.Timer(0.05, _apply_vault_chrome).start()
+                def _apply_vault_chrome():
+                    try:
+                        win.set_title('Doe — Select Vault')
+                    except Exception:
+                        pass
+                    try:
+                        win.resize(760, 680)
+                    except Exception:
+                        pass
+                    try:
+                        win.show()
+                        win.restore()
+                    except Exception:
+                        pass
+
+                if sys.platform == 'darwin':
+                    try:
+                        from Foundation import NSOperationQueue
+                        NSOperationQueue.mainQueue().addOperationWithBlock_(_apply_vault_chrome)
+                    except Exception:
+                        _apply_vault_chrome()
+                else:
+                    _apply_vault_chrome()
+
+            import threading
+            threading.Timer(0.1, _navigate_and_apply_chrome).start()
             return
 
         # --- Холодный путь: окон нет — создаём окно селектора ---

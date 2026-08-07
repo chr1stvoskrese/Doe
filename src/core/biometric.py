@@ -98,51 +98,6 @@ def _register_la_metadata():
     _metadata_registered = True
 
 
-def _evaluate_biometrics(prompt: str) -> tuple[bool, str]:
-    """
-    Системный диалог Touch ID через LAContext. Блокирует до ответа.
-    Возвращает (успех, код): 'ok' | 'fallback' (нажата «Use Password…») |
-    'cancel' (отмена) | 'failed' (отпечаток не совпал / блокировка).
-    """
-    if sys.platform != "darwin":
-        return False, "failed"
-    try:
-        import threading
-        _register_la_metadata()
-        LAContext = _load_la_context_class()
-        ctx = LAContext.alloc().init()
-        res = ctx.canEvaluatePolicy_error_(_LA_POLICY_BIOMETRICS, None)
-        ok = res[0] if isinstance(res, tuple) else res
-        if not ok:
-            return False, "failed"
-
-        done = threading.Event()
-        outcome = {"ok": False, "code": None}
-
-        def _reply(success, error):
-            outcome["ok"] = bool(success)
-            try:
-                outcome["code"] = int(error.code()) if (not success and error is not None) else None
-            except Exception:
-                outcome["code"] = None
-            done.set()
-
-        ctx.evaluatePolicy_localizedReason_reply_(_LA_POLICY_BIOMETRICS, prompt, _reply)
-        done.wait(180)
-
-        if outcome["ok"]:
-            return True, "ok"
-        # LAError: -2 userCancel, -3 userFallback («Use Password…»),
-        # -4 systemCancel, -9 appCancel
-        code = outcome["code"]
-        if code == -3:
-            return False, "fallback"
-        if code in (-2, -4, -9):
-            return False, "cancel"
-        return False, "failed"
-    except Exception as e:
-        print(f"[Biometric] evaluate failed: {e}")
-        return False, "failed"
 
 
 def is_available() -> bool:
@@ -223,6 +178,63 @@ def store_vault_key(vault_path: str, key: bytes) -> bool:
         print(f"[Biometric] store failed: {e}")
         return False
 
+def _evaluate_biometrics(prompt: str) -> tuple[bool, str]:
+    """
+    Системный диалог Touch ID через LAContext. Блокирует до ответа.
+    Возвращает (успех, код): 'ok' | 'fallback' (нажата «Use Password…») |
+    'cancel' (отмена) | 'failed' (отпечаток не совпал / блокировка).
+    """
+    if sys.platform != "darwin":
+        return False, "failed"
+    try:
+        import threading
+        from Foundation import NSOperationQueue
+        _register_la_metadata()
+        LAContext = _load_la_context_class()
+
+        done = threading.Event()
+        outcome = {"ok": False, "code": None}
+
+        def _reply(success, error):
+            outcome["ok"] = bool(success)
+            try:
+                outcome["code"] = int(error.code()) if (not success and error is not None) else None
+            except Exception:
+                outcome["code"] = None
+            done.set()
+
+        def _run():
+            try:
+                ctx = LAContext.alloc().init()
+                res = ctx.canEvaluatePolicy_error_(_LA_POLICY_BIOMETRICS, None)
+                ok = res[0] if isinstance(res, tuple) else res
+                if not ok:
+                    outcome["code"] = -1
+                    done.set()
+                    return
+                ctx.evaluatePolicy_localizedReason_reply_(_LA_POLICY_BIOMETRICS, prompt, _reply)
+            except Exception as e:
+                print(f"LAContext error: {e}")
+                outcome["code"] = -1
+                done.set()
+
+        # Вызываем строго на Main Thread для корректного отображения UI диалога
+        NSOperationQueue.mainQueue().addOperationWithBlock_(_run)
+        done.wait(180)
+
+        if outcome["ok"]:
+            return True, "ok"
+        # LAError: -2 userCancel, -3 userFallback («Use Password…»),
+        # -4 systemCancel, -9 appCancel
+        code = outcome["code"]
+        if code == -3:
+            return False, "fallback"
+        if code in (-2, -4, -9):
+            return False, "cancel"
+        return False, "failed"
+    except Exception as e:
+        print(f"[Biometric] evaluate failed: {e}")
+        return False, "failed"
 
 def get_vault_key(vault_path: str, prompt: str) -> tuple[bytes | None, str]:
     """
@@ -235,6 +247,8 @@ def get_vault_key(vault_path: str, prompt: str) -> tuple[bytes | None, str]:
         return None, "failed"
     try:
         import Security
+        import threading
+        from Foundation import NSOperationQueue
 
         account = _vault_account(vault_path)
 
@@ -247,16 +261,33 @@ def get_vault_key(vault_path: str, prompt: str) -> tuple[bytes | None, str]:
             Security.kSecReturnData: True,
             Security.kSecUseOperationPrompt: prompt,
         }
-        status, data = Security.SecItemCopyMatching(query, None)
+
+        done = threading.Event()
+        result = {"status": -1, "data": None}
+
+        def _fetch():
+            try:
+                st, dt = Security.SecItemCopyMatching(query, None)
+                result["status"] = st
+                result["data"] = dt
+            except Exception as e:
+                print(f"SecItemCopyMatching error: {e}")
+            finally:
+                done.set()
+
+        # Обязательно вызываем на Main Thread, иначе диалог Touch ID зависнет
+        NSOperationQueue.mainQueue().addOperationWithBlock_(_fetch)
+        done.wait(180)
+
+        status = result["status"]
+        data = result["data"]
+
         if status == 0 and data is not None:
             return bytes(data), "ok"
         if status == -128:  # errSecUserCanceled
             return None, "cancel"
 
-        # 2. Файл dev-фолбэка: сначала подтверждаем отпечаток сами (LAContext),
-        #    только затем читаем ключ. Без обращения к login keychain —
-        #    значит без системного диалога "wants to use your confidential
-        #    information" при каждом сканировании.
+        # 2. Файл dev-фолбэка: сначала подтверждаем отпечаток сами (LAContext)
         f = _fallback_key_file(vault_path)
         if f.exists():
             ok, code = _evaluate_biometrics(prompt)
@@ -274,7 +305,6 @@ def get_vault_key(vault_path: str, prompt: str) -> tuple[bytes | None, str]:
     except Exception as e:
         print(f"[Biometric] get failed: {e}")
         return None, "failed"
-
 
 def delete_vault_key(vault_path: str) -> None:
     if sys.platform != "darwin":

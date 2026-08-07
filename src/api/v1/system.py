@@ -30,6 +30,7 @@ from src.core.watcher import vault_observer
 
 from src.core import vault_crypto
 from src.core import attach_jobs
+from src.core import fs_store
 from src.db.database import lock_active_vault, is_database_open
 
 router = APIRouter(prefix="/system", tags=["system"])
@@ -205,6 +206,9 @@ async def get_vault():
         if f.is_file() and _is_vault_db_file(f.name) and "backup" not in f.name and not f.name.startswith("._")
     )
     if not has_db:
+        has_db = fs_store.has_board_marker(path)
+
+    if not has_db:
         return VaultResponse(
             name=None, path=None, canceled=False, already_active=False
         )
@@ -231,6 +235,9 @@ async def switch_vault_endpoint(req: SwitchVaultRequest):
         f for f in vault_dir.iterdir()
         if f.is_file() and _is_vault_db_file(f.name) and "backup" not in f.name and not f.name.startswith("._")
     )
+    if not has_db:
+        has_db = fs_store.has_board_marker(str(vault_dir))
+
     if not has_db:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="INVALID_VAULT")
     # -------------------------------------
@@ -575,6 +582,9 @@ async def unlock_vault_endpoint(req: VaultUnlockRequest):
             for f in vault_dir.iterdir()
         )
         if not has_db_now:
+            has_db_now = fs_store.has_board_marker(str(vault_dir))
+
+        if not has_db_now:
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="DECRYPT_FAILED")
 
     vault_crypto.set_session_key(req.path, key)
@@ -629,6 +639,9 @@ async def unlock_vault_biometric_endpoint(req: VaultPathRequest):
             f.is_file() and f.name.endswith(".db.doe") and "backup" not in f.name and not f.name.startswith("._")
             for f in vault_dir.iterdir()
         )
+        if not has_db_now:
+            has_db_now = fs_store.has_board_marker(str(vault_dir))
+
         if not has_db_now:
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="DECRYPT_FAILED")
 
@@ -1763,6 +1776,8 @@ async def get_vault_history_endpoint():
             if vault_dir.exists() and vault_dir.is_dir():
                 if any(f for f in vault_dir.iterdir() if f.is_file() and _is_vault_db_file(f.name) and "backup" not in f.name and not f.name.startswith("._")):
                     exists = True
+                elif fs_store.has_board_marker(str(vault_dir)):
+                    exists = True
 
             name = vault_dir.name
             result.append({
@@ -1789,7 +1804,8 @@ async def relink_vault_history_endpoint(req: RelinkHistoryReq):
     if not vault_dir.exists() or not vault_dir.is_dir():
         raise HTTPException(status_code=400, detail="INVALID_VAULT")
     if not any(f for f in vault_dir.iterdir() if f.is_file() and _is_vault_db_file(f.name) and "backup" not in f.name and not f.name.startswith("._")):
-        raise HTTPException(status_code=400, detail="INVALID_VAULT")
+        if not fs_store.has_board_marker(str(vault_dir)):
+            raise HTTPException(status_code=400, detail="INVALID_VAULT")
 
     from src.core.config import _load_config, _save_config
     data = _load_config()
