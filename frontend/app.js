@@ -10611,7 +10611,12 @@ async function renderVaultHistory() {
                         div.classList.remove('is-error');
                         renderVaultHistory();
                     }, 400);
-                }
+            } else {
+                window.hideVaultOverlay();
+                div.style.opacity = '1';
+                div.style.pointerEvents = 'auto';
+                if (window.showToast) window.showToast(t('alerts.error'), 'Не удалось открыть хранилище', true);
+            }
             } catch (err) {
                 console.error(err);
                 window.hideVaultOverlay();
@@ -10777,9 +10782,13 @@ window.handleVaultAction = async (actionType) => {
                         setTimeout(() => { if (!hint.classList.contains('visible')) hint.remove(); }, 200);
                     }, 2200);
                 }
+            } else {
+                window.hideVaultOverlay();
+                if (window.showToast) window.showToast(t('alerts.error'), 'Не удалось открыть хранилище', true);
             }
         } catch (err) {
             console.error("Vault selection error:", err);
+            window.hideVaultOverlay();
         }
     }
 };

@@ -41,9 +41,10 @@ ADD_DATA = [
 ]
 HIDDEN_BASE = [
     "src.api.v1.columns", "src.api.v1.tasks", "src.api.v1.system", "src.api.v1.workspaces",
+    "src.api.v1.ai", "src.api.v1.automations", "src.api.v1.memory",
     # 🔒 Без сетевого сервера: uvicorn/websockets больше не нужны — фронт ходит
     # в in-process ASGI-приложение через мост window.pywebview.api (см. wrapper.py).
-    "aiosqlite", "watchdog",
+    "aiosqlite", "watchdog", "logging.config", "logging.handlers",
 ]
 # Базовый набор для macOS (без ИИ-зависимостей).
 HIDDEN_MAC_BASE = HIDDEN_BASE + ["webview.platforms.cocoa", "jinja2"]

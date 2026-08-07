@@ -4,7 +4,11 @@ import os
 # Добавляем корень проекта в пути, чтобы Python увидел папку src
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from logging.config import fileConfig
+try:
+    from logging.config import fileConfig
+except ImportError:
+    fileConfig = None
+
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 from alembic import context
@@ -18,8 +22,11 @@ config = context.config
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
-if config.config_file_name is not None:
-    fileConfig(config.config_file_name, disable_existing_loggers=False)
+if config.config_file_name is not None and fileConfig is not None:
+    try:
+        fileConfig(config.config_file_name, disable_existing_loggers=False)
+    except Exception:
+        pass
 
 # add your model's MetaData object here
 # for 'autogenerate' support

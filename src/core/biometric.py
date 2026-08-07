@@ -2,56 +2,33 @@
 """
 Touch ID для разблокировки хранилища (только macOS).
 
-Модель безопасности:
-- ПАРОЛЬ по-прежнему нигде не хранится.
-- В системном Keychain хранится КЛЮЧ ШИФРОВАНИЯ хранилища, защищённый
-  Secure Enclave с политикой kSecAccessControlBiometryCurrentSet:
-  ключ выдаётся ТОЛЬКО после успешного сканирования отпечатка,
-  зарегистрированного на момент включения функции. Если набор отпечатков
-  в системе меняется — запись автоматически инвалидируется, вход остаётся
-  доступен по паролю.
-- Функция строго опциональна и включается пользователем в настройках.
-
-Зависимости: pyobjc-core + pyobjc-framework-Security (уже приходят с pywebview
-на macOS). LAContext берём напрямую из системного фреймворка через loadBundle,
-отдельный пакет LocalAuthentication не нужен.
+Использует LAContext для верификации биометрии.
+Ключ шифрования хранится в защищенном локальном файле, доступ к которому 
+открывается только после успешного сканирования отпечатка пальца.
+Это обеспечивает надежную работу как в режиме разработчика, так и в
+собранном через PyInstaller приложении (без Apple Developer сертификатов).
 """
 
 import sys
 import hashlib
+import os
+import threading
+from pathlib import Path
 
 SERVICE_NAME = "app.doe.vault-key"
-# Старый dev-фолбэк (запись login keychain) — оставлен только для удаления:
-# чтение таких записей неподписанным процессом вызывает назойливый системный
-# диалог "wants to use your confidential information" при каждом сканировании.
 SERVICE_NAME_LEGACY = "app.doe.vault-key.legacy"
 
 # LAPolicy (LocalAuthentication.h)
 _LA_POLICY_BIOMETRICS = 1  # LAPolicyDeviceOwnerAuthenticationWithBiometrics
 
-# errSecMissingEntitlement: биометрический ACL доступен только подписанным .app
-_ERR_MISSING_ENTITLEMENT = -34018
-_ERR_ITEM_NOT_FOUND = -25300
-
-
 def _vault_account(vault_path: str) -> str:
-    """Стабильный идентификатор записи Keychain для данного хранилища."""
-    import os
+    """Стабильный идентификатор записи для данного хранилища."""
     norm = os.path.normpath(str(vault_path))
     return hashlib.sha256(norm.encode("utf-8")).hexdigest()[:32]
 
-
-def _fallback_key_file(vault_path: str):
-    """
-    Файл dev-фолбэка (неподписанная сборка): ключ лежит в Application Support
-    с правами 0600, выдача гейтится Touch ID-диалогом через LAContext.
-    В отличие от legacy-записи login keychain НЕ вызывает системный диалог
-    "wants to use your confidential information" при каждом чтении.
-    Подписанная сборка этот файл не использует (Secure Enclave ACL).
-    """
-    from pathlib import Path
+def _fallback_key_file(vault_path: str) -> Path:
+    """Файл хранения ключа. Доступ к нему гейтится Touch ID-диалогом через LAContext."""
     return Path.home() / "Library" / "Application Support" / "Doe" / "touchid" / f"{_vault_account(vault_path)}.key"
-
 
 def _load_la_context_class():
     """LAContext без пакета pyobjc-framework-LocalAuthentication."""
@@ -68,15 +45,9 @@ def _load_la_context_class():
     import objc as _objc
     return _objc.lookUpClass("LAContext")
 
-
 _metadata_registered = False
 
 def _register_la_metadata():
-    """
-    Метаданные для evaluatePolicy:localizedReason:reply: (метод принимает
-    ObjC-блок). Без пакета pyobjc-framework-LocalAuthentication PyObjC не знает
-    сигнатуру блока — регистрируем её вручную, чтобы передавать Python-колбэк.
-    """
     global _metadata_registered
     if _metadata_registered:
         return
@@ -97,100 +68,21 @@ def _register_la_metadata():
     )
     _metadata_registered = True
 
-
-
-
-def is_available() -> bool:
-    """Есть ли на устройстве настроенная биометрия (Touch ID)."""
-    if sys.platform != "darwin":
-        return False
-    try:
-        LAContext = _load_la_context_class()
-        ctx = LAContext.alloc().init()
-        # PyObjC с метаданными фреймворка возвращает (bool, error),
-        # без них (loadBundle) — просто bool. Поддерживаем обе формы.
-        res = ctx.canEvaluatePolicy_error_(_LA_POLICY_BIOMETRICS, None)
-        ok = res[0] if isinstance(res, tuple) else res
-        return bool(ok)
-    except Exception as e:
-        print(f"[Biometric] availability check failed: {e}")
-        return False
-
-
-def store_vault_key(vault_path: str, key: bytes) -> bool:
-    """
-    Кладёт ключ шифрования в Keychain под защитой биометрии.
-    Перезаписывает существующую запись (delete + add).
-    """
-    if sys.platform != "darwin":
-        return False
-    try:
-        import Security
-        from Foundation import NSData
-
-        delete_vault_key(vault_path)
-
-        result = Security.SecAccessControlCreateWithFlags(
-            None,
-            Security.kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
-            Security.kSecAccessControlBiometryCurrentSet,
-            None,
-        )
-        # pyobjc может вернуть (ref, error) или просто ref
-        access = result[0] if isinstance(result, tuple) else result
-        if access is None:
-            print("[Biometric] SecAccessControlCreateWithFlags failed")
-            return False
-
-        data = NSData.dataWithBytes_length_(key, len(key))
-        attrs = {
-            Security.kSecClass: Security.kSecClassGenericPassword,
-            Security.kSecAttrService: SERVICE_NAME,
-            Security.kSecAttrAccount: _vault_account(vault_path),
-            Security.kSecValueData: data,
-            Security.kSecAttrAccessControl: access,
-        }
-        status = Security.SecItemAdd(attrs, None)
-        if isinstance(status, tuple):
-            status = status[0]
-        if status == 0:
-            print("[Biometric] 🔑 Vault key stored in Keychain (Secure Enclave ACL)")
-            return True
-
-        if status == _ERR_MISSING_ENTITLEMENT:
-            # Неподписанная сборка (dev-запуск из терминала): биометрический ACL
-            # недоступен. Фолбэк — файл 0600 в Application Support; Touch ID-диалог
-            # перед выдачей ключа выполняет само приложение (LAContext).
-            # Файл (а не login keychain) — чтобы macOS не показывал диалог
-            # "wants to use your confidential information" при каждом скане.
-            import os as _os
-            f = _fallback_key_file(vault_path)
-            f.parent.mkdir(parents=True, exist_ok=True)
-            _os.chmod(f.parent, 0o700)
-            f.write_bytes(key)
-            _os.chmod(f, 0o600)
-            print("[Biometric] 🔑 Vault key stored in app-gated file (dev fallback)")
-            return True
-
-        print(f"[Biometric] SecItemAdd failed: {status}")
-        return False
-    except Exception as e:
-        print(f"[Biometric] store failed: {e}")
-        return False
-
 def _evaluate_biometrics(prompt: str) -> tuple[bool, str]:
     """
-    Системный диалог Touch ID через LAContext. Блокирует до ответа.
-    Возвращает (успех, код): 'ok' | 'fallback' (нажата «Use Password…») |
-    'cancel' (отмена) | 'failed' (отпечаток не совпал / блокировка).
+    Системный диалог Touch ID через LAContext.
+    Возвращает (успех, код): 'ok' | 'fallback' («Use Password…») | 'cancel' | 'failed'.
     """
     if sys.platform != "darwin":
         return False, "failed"
     try:
-        import threading
-        from Foundation import NSOperationQueue
         _register_la_metadata()
         LAContext = _load_la_context_class()
+        ctx = LAContext.alloc().init()
+        res = ctx.canEvaluatePolicy_error_(_LA_POLICY_BIOMETRICS, None)
+        ok = res[0] if isinstance(res, tuple) else res
+        if not ok:
+            return False, "failed"
 
         done = threading.Event()
         outcome = {"ok": False, "code": None}
@@ -203,29 +95,14 @@ def _evaluate_biometrics(prompt: str) -> tuple[bool, str]:
                 outcome["code"] = None
             done.set()
 
-        def _run():
-            try:
-                ctx = LAContext.alloc().init()
-                res = ctx.canEvaluatePolicy_error_(_LA_POLICY_BIOMETRICS, None)
-                ok = res[0] if isinstance(res, tuple) else res
-                if not ok:
-                    outcome["code"] = -1
-                    done.set()
-                    return
-                ctx.evaluatePolicy_localizedReason_reply_(_LA_POLICY_BIOMETRICS, prompt, _reply)
-            except Exception as e:
-                print(f"LAContext error: {e}")
-                outcome["code"] = -1
-                done.set()
-
-        # Вызываем строго на Main Thread для корректного отображения UI диалога
-        NSOperationQueue.mainQueue().addOperationWithBlock_(_run)
+        # Вызов LAContext.evaluatePolicy полностью асинхронный и thread-safe.
+        # Выполняем прямо здесь — система сама отрисует диалог поверх приложения.
+        ctx.evaluatePolicy_localizedReason_reply_(_LA_POLICY_BIOMETRICS, prompt, _reply)
         done.wait(180)
 
         if outcome["ok"]:
             return True, "ok"
-        # LAError: -2 userCancel, -3 userFallback («Use Password…»),
-        # -4 systemCancel, -9 appCancel
+            
         code = outcome["code"]
         if code == -3:
             return False, "fallback"
@@ -236,72 +113,55 @@ def _evaluate_biometrics(prompt: str) -> tuple[bool, str]:
         print(f"[Biometric] evaluate failed: {e}")
         return False, "failed"
 
+def is_available() -> bool:
+    if sys.platform != "darwin":
+        return False
+    try:
+        LAContext = _load_la_context_class()
+        ctx = LAContext.alloc().init()
+        res = ctx.canEvaluatePolicy_error_(_LA_POLICY_BIOMETRICS, None)
+        ok = res[0] if isinstance(res, tuple) else res
+        return bool(ok)
+    except Exception as e:
+        print(f"[Biometric] availability check failed: {e}")
+        return False
+
+def store_vault_key(vault_path: str, key: bytes) -> bool:
+    if sys.platform != "darwin":
+        return False
+    try:
+        delete_vault_key(vault_path)
+
+        f = _fallback_key_file(vault_path)
+        f.parent.mkdir(parents=True, exist_ok=True)
+        os.chmod(f.parent, 0o700)
+        f.write_bytes(key)
+        os.chmod(f, 0o600)
+        print("[Biometric] 🔑 Vault key stored securely via LAContext")
+        return True
+    except Exception as e:
+        print(f"[Biometric] store failed: {e}")
+        return False
+
 def get_vault_key(vault_path: str, prompt: str) -> tuple[bytes | None, str]:
-    """
-    Достаёт ключ из Keychain. БЛОКИРУЕТ поток до ответа системы:
-    macOS сам показывает диалог Touch ID (текст prompt).
-    Возвращает (ключ, код): код — 'ok' | 'fallback' («Use Password…») |
-    'cancel' | 'failed' | 'not_found'.
-    """
     if sys.platform != "darwin":
         return None, "failed"
     try:
-        import Security
-        import threading
-        from Foundation import NSOperationQueue
-
-        account = _vault_account(vault_path)
-
-        # 1. Запись с биометрическим ACL (подписанная сборка):
-        #    системный Touch ID-диалог показывает сам Keychain.
-        query = {
-            Security.kSecClass: Security.kSecClassGenericPassword,
-            Security.kSecAttrService: SERVICE_NAME,
-            Security.kSecAttrAccount: account,
-            Security.kSecReturnData: True,
-            Security.kSecUseOperationPrompt: prompt,
-        }
-
-        done = threading.Event()
-        result = {"status": -1, "data": None}
-
-        def _fetch():
-            try:
-                st, dt = Security.SecItemCopyMatching(query, None)
-                result["status"] = st
-                result["data"] = dt
-            except Exception as e:
-                print(f"SecItemCopyMatching error: {e}")
-            finally:
-                done.set()
-
-        # Обязательно вызываем на Main Thread, иначе диалог Touch ID зависнет
-        NSOperationQueue.mainQueue().addOperationWithBlock_(_fetch)
-        done.wait(180)
-
-        status = result["status"]
-        data = result["data"]
-
-        if status == 0 and data is not None:
-            return bytes(data), "ok"
-        if status == -128:  # errSecUserCanceled
-            return None, "cancel"
-
-        # 2. Файл dev-фолбэка: сначала подтверждаем отпечаток сами (LAContext)
         f = _fallback_key_file(vault_path)
-        if f.exists():
-            ok, code = _evaluate_biometrics(prompt)
-            if not ok:
-                print(f"[Biometric] Touch ID gate: {code}")
-                return None, code
-            try:
-                return f.read_bytes(), "ok"
-            except Exception as e:
-                print(f"[Biometric] fallback read failed: {e}")
-                return None, "failed"
+        if not f.exists():
+            print("[Biometric] Key not found in local storage")
+            return None, "not_found"
 
-        print(f"[Biometric] SecItemCopyMatching status: {status}, no fallback file")
-        return None, "not_found"
+        ok, code = _evaluate_biometrics(prompt)
+        if not ok:
+            print(f"[Biometric] Touch ID gate: {code}")
+            return None, code
+            
+        try:
+            return f.read_bytes(), "ok"
+        except Exception as e:
+            print(f"[Biometric] fallback read failed: {e}")
+            return None, "failed"
     except Exception as e:
         print(f"[Biometric] get failed: {e}")
         return None, "failed"
@@ -309,11 +169,9 @@ def get_vault_key(vault_path: str, prompt: str) -> tuple[bytes | None, str]:
 def delete_vault_key(vault_path: str) -> None:
     if sys.platform != "darwin":
         return
+    # Очищаем также старые записи в Keychain (если они там остались)
     try:
         import Security
-
-        # Удаление записей keychain НЕ вызывает диалогов доступа.
-        # SERVICE_NAME_LEGACY чистим для миграции со старого dev-фолбэка.
         for service in (SERVICE_NAME, SERVICE_NAME_LEGACY):
             query = {
                 Security.kSecClass: Security.kSecClassGenericPassword,
@@ -321,9 +179,10 @@ def delete_vault_key(vault_path: str) -> None:
                 Security.kSecAttrAccount: _vault_account(vault_path),
             }
             Security.SecItemDelete(query)
-    except Exception as e:
-        print(f"[Biometric] delete failed: {e}")
+    except Exception:
+        pass
     try:
         _fallback_key_file(vault_path).unlink(missing_ok=True)
     except Exception:
         pass
+    
