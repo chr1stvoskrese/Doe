@@ -24,8 +24,7 @@ html body .task-detail-body .description-wrapper {
     padding: 0 !important;
     position: relative;
     resize: none !important;
-    overflow-x: hidden;
-    overflow-y: hidden;
+    overflow: visible;
     border: 0 !important;
     background: transparent !important;
 }
@@ -233,26 +232,27 @@ html body .task-detail-body .markdown-body .image-resizer-wrapper img {
     border-radius: 8px;
 }
 
-/* The divider is a fixed 2px line whose center sits exactly on the wrapper's bottom edge. */
+/* The divider is thick and its visual center sits exactly on the wrapper's bottom edge. */
 html body .description-wrapper::after {
     content: "";
     position: absolute;
     left: 50%;
-    bottom: -1px;
+    bottom: 0;
     width: 72px;
-    height: 2px;
-    transform: translateX(-50%);
+    height: 4px;
+    transform: translate(-50%, 50%);
     border-radius: 999px;
     background: var(--text-secondary);
     opacity: .32;
-    pointer-events: none;
+    pointer-events: auto;
+    cursor: ns-resize;
     transition: width .18s ease, opacity .18s ease, box-shadow .18s ease;
     z-index: 20;
 }
 html body .description-wrapper.is-description-resize-hover::after,
 html body .description-wrapper.is-description-resizing::after {
     width: 94px;
-    height: 2px;
+    height: 4px;
     opacity: .72;
 }
 html body .description-wrapper.is-description-resize-hover,
