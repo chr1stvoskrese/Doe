@@ -91,3 +91,41 @@ html body .description-wrapper::-webkit-resizer {
 [data-theme="dark"] html body .description-wrapper::-webkit-resizer {
     background-image: url('data:image/svg+xml;utf8,<svg width="14" height="4" viewBox="0 0 14 4" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1.5 2H12.5" stroke="%238B9088" stroke-width="2.2" stroke-linecap="round"/></svg>') !important;
 }
+
+
+/* Centered description divider: visual end cue + drag handle. */
+html body .description-wrapper {
+    resize: none !important;
+    position: relative;
+    padding-bottom: 24px !important;
+}
+html body .description-wrapper::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: 9px;
+    width: 72px;
+    height: 2px;
+    transform: translateX(-50%);
+    border-radius: 999px;
+    background: var(--text-secondary);
+    opacity: .32;
+    pointer-events: none;
+    transition: width .18s ease, height .18s ease, opacity .18s ease, box-shadow .18s ease;
+    z-index: 20;
+}
+html body .description-wrapper.is-description-resize-hover::after,
+html body .description-wrapper.is-description-resizing::after {
+    width: 94px;
+    height: 3px;
+    opacity: .72;
+}
+html body .description-wrapper.is-description-resize-hoverj,
+html body .description-wrapper.is-description-resizing {
+    cursor: ns-resize !important;
+}
+
+html body .description-wrapper.is-description-resizing::after {
+    box-shadow: 0 1px 7px rgba(0,0,0,.14);
+}
+

@@ -7991,6 +7991,47 @@ function initTaskDescriptionLogic() {
     const descWrapper = document.querySelector('.description-wrapper');
     const modal = document.getElementById('task-modal');
 
+    if (descWrapper && !descWrapper.dataset.descriptionDividerBound) {
+        descWrapper.dataset.descriptionDividerBound = '1';
+        const ZONE = 24, MIN = 150;
+        let active = false, pid = null, sy = 0, sh = 0, oldCursor = '', oldSelect = '';
+        const inZone = e => e.clientY >= descWrapper.getBoundingClientRect().bottom - ZONE;
+        const clamp = h => {
+            const parent = descWrapper.closest('.task-detail-body');
+            const max = Math.max(MIN + 40, (parent?.clientHeight || window.innerHeight) - 96);
+            return Math.max(MIN, Math.min(h, max));
+        };
+        const stop = e => {
+            if (!active || (pid !== null && e?.pointerId !== pid)) return;
+            active = false; pid = null;
+            descWrapper.classList.remove('is-description-resize-hover', 'is-description-resizing');
+            document.body.style.cursor = oldCursor;
+            document.body.style.userSelect = oldSelect;
+        };
+        descWrapper.addEventListener('pointermove', e => {
+            if (active) {
+                if (pid !== null && e.pointerId !== pid) return;
+                e.preventDefault();
+                descWrapper.style.height = `${clamp(sh + e.clientY - sy)}px`;
+            } else {
+                descWrapper.classList.toggle('is-description-resize-hover', inZone(e));
+            }
+        });
+        descWrapper.addEventListener('pointerleave', () => { if (!active) descWrapper.classList.remove('is-description-resize-hover'); });
+        descWrapper.addEventListener('pointerdown', e => {
+            if (e.button !== 0 || !inZone(e)) return;
+            e.preventDefault(); e.stopPropagation();
+            active = true; pid = e.pointerId; sy = e.clientY; sh = descWrapper.getBoundingClientRect().height;
+            oldCursor = document.body.style.cursor; oldSelect = document.body.style.userSelect;
+            descWrapper.classList.add('is-description-resizing');
+            document.body.style.cursor = 'ns-resize'; document.body.style.userSelect = 'none';
+            try { descWrapper.setPointerCapture(e.pointerId); } catch (_) {}
+        });
+        descWrapper.addEventListener('pointerup', stop);
+        descWrapper.addEventListener('pointercancel', stop);
+        descWrapper.addEventListener('lostpointercapture', stop);
+    }
+
     let lastSavedValue = "";
 
     const toggleFormat = (cm, syntaxBefore, syntaxAfter) => {
