@@ -45,8 +45,6 @@ html body .task-detail-body .description-input {
     box-sizing: border-box !important;
 }
 
-/* Normal prose follows rendered Markdown semantics rather than source-file
-   whitespace. */
 html body .task-detail-body .markdown-body p,
 html body .task-detail-body .markdown-body li,
 html body .task-detail-body .markdown-body blockquote,
@@ -65,7 +63,6 @@ html body .task-detail-body .markdown-body > :first-child {
     margin-top: 0 !important;
 }
 
-/* Headings. */
 html body .task-detail-body .markdown-body h1,
 html body .task-detail-body .markdown-body h2,
 html body .task-detail-body .markdown-body h3,
@@ -85,7 +82,6 @@ html body .task-detail-body .markdown-body h4 { margin: 18px 0 7px !important; f
 html body .task-detail-body .markdown-body h5 { margin: 16px 0 6px !important; font-size: 14px !important; }
 html body .task-detail-body .markdown-body h6 { margin: 14px 0 6px !important; font-size: 12px !important; text-transform: uppercase; letter-spacing: .06em !important; color: var(--text-secondary) !important; }
 
-/* Paragraphs. */
 html body .task-detail-body .markdown-body p { margin: 0 0 12px !important; }
 html body .task-detail-body .markdown-body p:last-child { margin-bottom: 0 !important; }
 html body .task-detail-body .markdown-body h1 + p,
@@ -95,7 +91,6 @@ html body .task-detail-body .markdown-body h4 + p,
 html body .task-detail-body .markdown-body h5 + p,
 html body .task-detail-body .markdown-body h6 + p { margin-top: 0 !important; }
 
-/* Lists. */
 html body .task-detail-body .markdown-body ul,
 html body .task-detail-body .markdown-body ol {
     margin: 0 0 14px !important;
@@ -107,7 +102,6 @@ html body .task-detail-body .markdown-body li > ul,
 html body .task-detail-body .markdown-body li > ol { margin: 6px 0 4px !important; }
 html body .task-detail-body .markdown-body li::marker { color: var(--brand-pine) !important; }
 
-/* Quotes. */
 html body .task-detail-body .markdown-body blockquote {
     margin: 14px 0 16px !important;
     padding: 10px 14px !important;
@@ -120,7 +114,6 @@ html body .task-detail-body .markdown-body blockquote > :first-child { margin-to
 html body .task-detail-body .markdown-body blockquote > :last-child { margin-bottom: 0 !important; }
 html body .task-detail-body .markdown-body blockquote p { margin-bottom: 7px !important; }
 
-/* Tables. */
 html body .task-detail-body .markdown-body table {
     width: max-content;
     min-width: 100%;
@@ -141,7 +134,6 @@ html body .task-detail-body .markdown-body td {
 }
 html body .task-detail-body .markdown-body th { background: var(--brand-pale); font-weight: 600; }
 
-/* Inline and fenced code. */
 html body .task-detail-body .markdown-body code:not(pre code) {
     padding: 1px 5px !important;
     border-radius: 4px !important;
@@ -168,14 +160,12 @@ html body .task-detail-body .markdown-body pre code {
     line-height: 1.6 !important;
 }
 
-/* Horizontal rules. */
 html body .task-detail-body .markdown-body hr {
     margin: 20px 0 !important;
     border: 0 !important;
     border-top: 1px solid var(--border-light) !important;
 }
 
-/* Images: the paragraph owns the outside rhythm; image wrappers add none. */
 html body .task-detail-body .markdown-body .image-resizer-wrapper { margin: 0 !important; }
 html body .task-detail-body .markdown-body p:has(> .image-resizer-wrapper:only-child) {
     margin: 10px 0 16px !important;
@@ -185,7 +175,6 @@ html body .task-detail-body .markdown-body p:has(> .image-resizer-wrapper:only-c
 html body .task-detail-body .markdown-body p:has(> .image-resizer-wrapper:only-child):last-child { margin-bottom: 0 !important; }
 html body .task-detail-body .markdown-body .image-resizer-wrapper img { display: block !important; }
 
-/* Multiple adjacent images. */
 html body .task-detail-body .markdown-body p.image-row,
 html body .task-detail-body .markdown-body p.image-collage {
     margin: 10px 0 16px !important;
@@ -198,7 +187,6 @@ html body .task-detail-body .markdown-body p.image-collage:last-child { margin-b
 html body .task-detail-body .markdown-body p.image-row .image-resizer-wrapper,
 html body .task-detail-body .markdown-body p.image-collage .image-resizer-wrapper { margin: 0 !important; }
 
-/* Preserve the existing adaptive collage behavior. */
 html body .task-detail-body .markdown-body p.image-row {
     display: flex !important;
     flex-wrap: wrap;
@@ -231,7 +219,6 @@ html body .task-detail-body .markdown-body p.image-collage .image-resizer-wrappe
 }
 html body .task-detail-body .markdown-body p.image-collage .image-resize-handle { display: none !important; }
 
-/* Image resize handle for standalone images remains available. */
 html body .task-detail-body .markdown-body .image-resizer-wrapper {
     position: relative;
     display: inline-block;
@@ -246,43 +233,32 @@ html body .task-detail-body .markdown-body .image-resizer-wrapper img {
     border-radius: 8px;
 }
 
-/* Centered end-of-description divider; JS supplies the drag behavior. */
+/* The divider is a fixed 2px line whose center sits exactly on the wrapper's bottom edge. */
 html body .description-wrapper::after {
     content: "";
     position: absolute;
     left: 50%;
-    bottom: 0;
+    bottom: -1px;
     width: 72px;
     height: 2px;
-    transform: translate(-50%, 50%);
+    transform: translateX(-50%);
     border-radius: 999px;
     background: var(--text-secondary);
     opacity: .32;
     pointer-events: none;
-    transition: width .18s ease, height .18s ease, opacity .18s ease, box-shadow .18s ease;
+    transition: width .18s ease, opacity .18s ease, box-shadow .18s ease;
     z-index: 20;
 }
 html body .description-wrapper.is-description-resize-hover::after,
 html body .description-wrapper.is-description-resizing::after {
     width: 94px;
-    height: 3px;
+    height: 2px;
     opacity: .72;
 }
-
-/* The markdown layer also inherits the resize cursor while the pointer is in
-   the bottom drag zone, otherwise its `cursor:text` would win over the parent. */
 html body .description-wrapper.is-description-resize-hover,
-html body .description-wrapper.is-description-resizing,
-html body .description-wrapper.is-description-resize-hover .markdown-body,
-html body .description-wrapper.is-description-resizing .markdown-body,
-html body .description-wrapper.is-description-resize-hover .description-input,
-html body .description-wrapper.is-description-resizing .description-input {
-    cursor: ns-resize !important;
-}
-
+html body .description-wrapper.is-description-resizing { cursor: ns-resize !important; }
 html body .description-wrapper.is-description-resizing::after { box-shadow: 0 1px 7px rgba(0,0,0,.14); }
 
-/* Dark theme refinements. */
 [data-theme="dark"] html body .task-detail-body .markdown-body code:not(pre code) { background: rgba(255,255,255,.10); }
 [data-theme="dark"] html body .task-detail-body .markdown-body pre { background: rgba(137,160,133,.12) !important; }
 [data-theme="dark"] html body .task-detail-body .markdown-body th { background: rgba(137,160,133,.12); }
