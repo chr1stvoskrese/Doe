@@ -912,7 +912,7 @@ function initMarkdownWorker() {
     // прокидываем в воркер снимком self.__DOE_ATTACH (для resolveMarkdownAssetSrc).
     const _fb = window.__DOE_FRONTEND_BASE || '';
     const workerCode = `
-        self.__DOE_ATTACH = ${JSON.stringify(window.__DOE_ATTACH || '')};
+        self.__DOE_ATTACH = '';
         // Загружаем библиотеки парсинга напрямую в поток
         self.importScripts(
             ${JSON.stringify(_fb + 'marked.min.js')},
@@ -1026,7 +1026,8 @@ function initMarkdownWorker() {
 
         // Слушатель сообщений от главного потока
         self.onmessage = function(e) {
-            const { id, text } = e.data;
+            const { id, text, attach } = e.data;
+            self.__DOE_ATTACH = attach || '';
             const html = parseMarkdownWithMathWorker(text);
             self.postMessage({ id, html }); // Возвращаем готовый HTML
         };
@@ -1112,7 +1113,7 @@ function renderMarkdownProgressively(text, container, options) {
         });
     };
 
-    markdownWorker.postMessage({ id: currentId, text: text });
+    markdownWorker.postMessage({ id: currentId, text: text, attach: window.__DOE_ATTACH || '' });
 }
 
 function formatExactTime(seconds) {
