@@ -9584,6 +9584,26 @@ body:has(.modal-overlay.show) .card-inline-trigger {
 
 
 
+/* Collage images are sized automatically; manual resizing is disabled. */
+.markdown-body p.image-collage .image-resizer-wrapper {
+    outline: none !important;
+    border: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    cursor: zoom-in !important;
+}
+.markdown-body p.image-collage .image-resizer-wrapper img {
+    width: 100% !important;
+    height: auto !important;
+    max-width: 100%;
+    object-fit: contain !important;
+}
+.markdown-body p.image-collage .image-resize-handle {
+    display: none !important;
+}
+
 .markdown-body p.image-collage .image-resizer-wrapper.has-custom-size {
 
     width: auto;
