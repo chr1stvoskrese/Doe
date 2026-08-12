@@ -1,0 +1,30 @@
+/* Keep the Markdown stream scrollable beneath the card-title divider. */
+html body .task-detail-body .markdown-body {
+    position: relative;
+    overflow-y: auto !important;
+    overflow-x: visible !important;
+    padding-top: 14px !important;
+    scroll-padding-top: 14px !important;
+}
+
+/* The top strip stays over the scrolling content, so text/images disappear
+   underneath the divider instead of stopping before it. */
+html body .task-detail-body .markdown-body::before {
+    content: "";
+    position: sticky;
+    top: 0;
+    left: 0;
+    display: block;
+    width: 100%;
+    height: 14px;
+    margin: -14px 0 0;
+    background: var(--surface-card);
+    border-bottom: 1px solid var(--border-light);
+    box-sizing: border-box;
+    pointer-events: none;
+    z-index: 50;
+}
+
+[data-theme="dark"] html body .task-detail-body .markdown-body::before {
+    background: var(--surface-card);
+}
