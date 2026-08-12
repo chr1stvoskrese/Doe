@@ -1,0 +1,64 @@
+name: Apply image collage layout
+
+on:
+  push:
+    branches: [agent/image-collage]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/image-collage
+          fetch-depth: 0
+
+      - name: Patch image rendering
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          app = Path('frontend/app.js')
+          text = app.read_text(encoding='utf-8')
+
+          old = "            p.classList.toggle('image-row', onlyImages);"
+          new = """            p.classList.toggle('image-row', onlyImages);
+              // Без пустой строки подряд идущие изображения собираются в коллаж.
+              // Пустая строка создаёт отдельный <p>, поэтому такие изображения не объединяются.
+              p.classList.toggle('image-collage', onlyImages);"""
+          if old not in text:
+              raise SystemExit('image-row marker not found in app.js')
+          text = text.replace(old, new, 1)
+          text = text.replace(
+              '//  🖼 Соседние изображения (![]() на подряд идущих строках) — в один ряд',
+              '//  🖼 Соседние изображения (![]() без пустой строки) — в один коллаж',
+              1,
+          )
+          app.write_text(text, encoding='utf-8')
+
+          css = Path('frontend/styles.css')
+          text = css.read_text(encoding='utf-8')
+          anchor = '.markdown-body p.image-row .image-resizer-wrapper img {\n    width: 100%;\n    height: auto;\n}\n'
+          if anchor not in text:
+              raise SystemExit('image-row CSS anchor not found in styles.css')
+          block = '''\n/* ============================================================\n   🧩 Коллаж изображений: несколько ![]() без пустой строки\n   собираются в адаптивную сетку. Пустая строка разделяет коллажи.\n   ============================================================ */\n.markdown-body p.image-collage {\n    display: grid;\n    grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));\n    gap: 10px;\n    align-items: start;\n    line-height: 0;\n}\n\n.markdown-body p.image-collage .image-resizer-wrapper {\n    margin: 0;\n    min-width: 0;\n    max-width: 100%;\n    width: 100%;\n}\n\n.markdown-body p.image-collage .image-resizer-wrapper img {\n    width: 100%;\n    height: auto;\n    object-fit: contain;\n}\n\n.markdown-body p.image-collage .image-resizer-wrapper.has-custom-size {\n    width: auto;\n    justify-self: start;\n}\n'''
+          text = text.replace(anchor, anchor + block, 1)
+          css.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Validate syntax
+        run: node --check frontend/app.js
+
+      - name: Commit changes and remove workflow
+        shell: bash
+        run: |
+          rm -f .github/workflows/apply-image-collage.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add frontend/app.js frontend/styles.css .github/workflows/apply-image-collage.yml
+          git commit -m "feat: collect adjacent images into collages"
+          git push origin agent/image-collage
