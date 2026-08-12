@@ -26,39 +26,68 @@ jobs:
 
           app = Path('frontend/app.js')
           text = app.read_text(encoding='utf-8')
-
           old = "            p.classList.toggle('image-row', onlyImages);"
-          new = """            p.classList.toggle('image-row', onlyImages);
-              // Без пустой строки подряд идущие изображения собираются в коллаж.
-              // Пустая строка создаёт отдельный <p>, поэтому такие изображения не объединяются.
-              p.classList.toggle('image-collage', onlyImages);"""
+          new = old + "\n            // Без пустой строки подряд идущие изображения собираются в коллаж.\n            // Пустая строка создаёт отдельный <p>, поэтому такие изображения не объединяются.\n            p.classList.toggle('image-collage', onlyImages);"
           if old not in text:
               raise SystemExit('image-row marker not found in app.js')
           text = text.replace(old, new, 1)
-          text = text.replace(
-              '//  🖼 Соседние изображения (![]() на подряд идущих строках) — в один ряд',
-              '//  🖼 Соседние изображения (![]() без пустой строки) — в один коллаж',
-              1,
-          )
+          old_comment = '//  🖼 Соседние изображения (![]() на подряд идущих строках) — в один ряд'
+          new_comment = '//  🖼 Соседние изображения (![]() без пустой строки) — в один коллаж'
+          text = text.replace(old_comment, new_comment, 1)
           app.write_text(text, encoding='utf-8')
 
           css = Path('frontend/styles.css')
           text = css.read_text(encoding='utf-8')
-          anchor = '.markdown-body p.image-row .image-resizer-wrapper img {\n    width: 100%;\n    height: auto;\n}\n'
+          anchor = ".markdown-body p.image-row .image-resizer-wrapper img {\n    width: 100%;\n    height: auto;\n}\n"
           if anchor not in text:
               raise SystemExit('image-row CSS anchor not found in styles.css')
-          block = '''\n/* ============================================================\n   🧩 Коллаж изображений: несколько ![]() без пустой строки\n   собираются в адаптивную сетку. Пустая строка разделяет коллажи.\n   ============================================================ */\n.markdown-body p.image-collage {\n    display: grid;\n    grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));\n    gap: 10px;\n    align-items: start;\n    line-height: 0;\n}\n\n.markdown-body p.image-collage .image-resizer-wrapper {\n    margin: 0;\n    min-width: 0;\n    max-width: 100%;\n    width: 100%;\n}\n\n.markdown-body p.image-collage .image-resizer-wrapper img {\n    width: 100%;\n    height: auto;\n    object-fit: contain;\n}\n\n.markdown-body p.image-collage .image-resizer-wrapper.has-custom-size {\n    width: auto;\n    justify-self: start;\n}\n'''\n          text = text.replace(anchor, anchor + block, 1)\n          css.write_text(text, encoding='utf-8')\n          PY
+          block = """
+          /* ============================================================
+             🧩 Коллаж изображений: несколько ![]() без пустой строки
+             собираются в адаптивную сетку. Пустая строка разделяет коллажи.
+             ============================================================ */
+          .markdown-body p.image-collage {
+              display: grid;
+              grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
+              gap: 10px;
+              align-items: start;
+              line-height: 0;
+          }
+
+          .markdown-body p.image-collage .image-resizer-wrapper {
+              margin: 0;
+              min-width: 0;
+              max-width: 100%;
+              width: 100%;
+          }
+
+          .markdown-body p.image-collage .image-resizer-wrapper img {
+              width: 100%;
+              height: auto;
+              object-fit: contain;
+          }
+
+          .markdown-body p.image-collage .image-resizer-wrapper.has-custom-size {
+              width: auto;
+              justify-self: start;
+          }
+          """
+          block = '\n'.join(line[10:] if line.startswith('          ') else line for line in block.splitlines(True)) + '\n'
+          text = text.replace(anchor, anchor + block, 1)
+          css.write_text(text, encoding='utf-8')
+          PY
 
       - name: Validate syntax
         run: node --check frontend/app.js
 
       - name: Commit changes and remove workflow
-        if: github.event_name == 'push'
+        if: github.event_name == 'pull_request'
         shell: bash
         run: |
-          rm -f .github/workflows/apply-image-collage.yml
+          rm -f .github/workflows/apply-image-collage.yml .github/workflows/image-collage-trigger.yml
+          rm -f tmp-image-collage-note.txt tmp-image-collage-note-2.txt tmp-image-collage-note-3.txt tmp-image-collage-note-4.txt tmp-image-collage-note-5.txt
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add frontend/app.js frontend/styles.css .github/workflows/apply-image-collage.yml
+          git add frontend/app.js frontend/styles.css .github/workflows/apply-image-collage.yml .github/workflows/image-collage-trigger.yml tmp-image-collage-note.txt tmp-image-collage-note-2.txt tmp-image-collage-note-3.txt tmp-image-collage-note-4.txt tmp-image-collage-note-5.txt
           git commit -m "feat: collect adjacent images into collages"
           git push origin agent/image-collage
