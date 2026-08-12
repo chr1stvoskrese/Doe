@@ -1,3 +1,55 @@
-/* Intentionally empty.
-   The description scrolls with .task-detail-body itself so Markdown can pass
-   underneath the card-header divider without introducing a second scroll layer. */
+/* Two-level scrollbar geometry.
+   The description keeps its own Markdown scrollbar; the full card keeps its
+   outer scrollbar. Narrow the description viewport so the two tracks sit
+   side-by-side instead of the inner track overlaying content. */
+html body .task-detail-body {
+    --description-scrollbar-width: 6px;
+    --description-scrollbar-gap: 8px;
+}
+
+/* Leave the card's outer scrollbar at the far right. The description viewport
+   ends before it, creating a deliberate gap without changing left alignment. */
+html body .task-detail-body .description-wrapper {
+    width: calc(100% - var(--description-scrollbar-width) - var(--description-scrollbar-gap)) !important;
+    max-width: calc(100% - var(--description-scrollbar-width) - var(--description-scrollbar-gap)) !important;
+    align-self: flex-start;
+}
+
+/* The Markdown viewport owns the description scrollbar. */
+html body .task-detail-body .description-wrapper .markdown-body {
+    overflow-y: auto !important;
+    overflow-x: visible !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    scrollbar-gutter: stable;
+}
+
+/* Identical scrollbar dimensions for the description and the full card. */
+html body .task-detail-body::-webkit-scrollbar,
+html body .task-detail-body .description-wrapper .markdown-body::-webkit-scrollbar {
+    width: var(--description-scrollbar-width);
+    height: var(--description-scrollbar-width);
+}
+
+html body .task-detail-body::-webkit-scrollbar-track,
+html body .task-detail-body .description-wrapper .markdown-body::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 999px;
+}
+
+html body .task-detail-body::-webkit-scrollbar-thumb,
+html body .task-detail-body .description-wrapper .markdown-body::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 999px;
+}
+
+html body .task-detail-body::-webkit-scrollbar-thumb:hover,
+html body .task-detail-body .description-wrapper .markdown-body::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover);
+}
+
+html body .task-detail-body,
+html body .task-detail-body .description-wrapper .markdown-body {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) transparent;
+}
