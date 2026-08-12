@@ -7238,6 +7238,9 @@ function enhanceImageRows(container) {
                 (n.nodeType === 3 && !n.textContent.trim())
             );
             p.classList.toggle('image-row', onlyImages);
+            // Без пустой строки подряд идущие изображения собираются в коллаж.
+            // Пустая строка создаёт отдельный <p>, поэтому такие изображения не объединяются.
+            p.classList.toggle('image-collage', onlyImages);
     // Без пустой строки подряд идущие изображения собираются в коллаж.
     // Пустая строка создаёт отдельный <p>, поэтому такие изображения не объединяются.
     p.classList.toggle('image-collage', onlyImages);
