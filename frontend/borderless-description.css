@@ -126,3 +126,250 @@ html body .description-wrapper.is-description-resizing {
 html body .description-wrapper.is-description-resizing::after {
     box-shadow: 0 1px 7px rgba(0,0,0,.14);
 }
+
+/* ============================================================
+   Markdown rhythm
+   ------------------------------------------------------------
+   One spacing system for prose, headings, lists, media and code.
+   Keep Markdown readable without the random-looking gaps caused by
+   browser defaults, pre-wrap on normal text, and independent margins
+   on image wrappers.
+   ============================================================ */
+html body .task-detail-body .markdown-body {
+    font-size: 15px !important;
+    line-height: 1.55 !important;
+    white-space: normal !important;
+}
+
+/* Normal Markdown prose must follow Markdown semantics: a source newline
+   is not a visual line break unless marked rendered a <br>. */
+html body .task-detail-body .markdown-body p,
+html body .task-detail-body .markdown-body li,
+html body .task-detail-body .markdown-body blockquote,
+html body .task-detail-body .markdown-body h1,
+html body .task-detail-body .markdown-body h2,
+html body .task-detail-body .markdown-body h3,
+html body .task-detail-body .markdown-body h4,
+html body .task-detail-body .markdown-body h5,
+html body .task-detail-body .markdown-body h6 {
+    white-space: normal !important;
+}
+
+/* Headings: predictable hierarchy and vertical rhythm. */
+html body .task-detail-body .markdown-body h1,
+html body .task-detail-body .markdown-body h2,
+html body .task-detail-body .markdown-body h3,
+html body .task-detail-body .markdown-body h4,
+html body .task-detail-body .markdown-body h5,
+html body .task-detail-body .markdown-body h6 {
+    color: var(--text-primary) !important;
+    line-height: 1.25 !important;
+    letter-spacing: -0.02em !important;
+    font-weight: 600 !important;
+}
+
+html body .task-detail-body .markdown-body h1 {
+    margin: 28px 0 12px !important;
+    font-size: 25px !important;
+    font-weight: 700 !important;
+}
+html body .task-detail-body .markdown-body h2 {
+    margin: 24px 0 10px !important;
+    font-size: 21px !important;
+}
+html body .task-detail-body .markdown-body h3 {
+    margin: 20px 0 8px !important;
+    font-size: 18px !important;
+}
+html body .task-detail-body .markdown-body h4 {
+    margin: 18px 0 7px !important;
+    font-size: 16px !important;
+}
+html body .task-detail-body .markdown-body h5 {
+    margin: 16px 0 6px !important;
+    font-size: 14px !important;
+}
+html body .task-detail-body .markdown-body h6 {
+    margin: 14px 0 6px !important;
+    font-size: 12px !important;
+    text-transform: uppercase;
+    letter-spacing: 0.06em !important;
+    color: var(--text-secondary) !important;
+}
+
+html body .task-detail-body .markdown-body > :first-child,
+html body .task-detail-body .markdown-body > :first-child:is(h1, h2, h3, h4, h5, h6) {
+    margin-top: 0 !important;
+}
+
+/* Folded headings stay compact; open headings use the same rhythm as all
+   other headings. */
+html body .task-detail-body .markdown-body .foldable-heading.is-folded {
+    margin-top: 0 !important;
+    margin-bottom: 4px !important;
+}
+
+/* Paragraphs. */
+html body .task-detail-body .markdown-body p {
+    margin: 0 0 12px !important;
+}
+html body .task-detail-body .markdown-body p:last-child {
+    margin-bottom: 0 !important;
+}
+
+/* A paragraph immediately after a heading should not get an extra hidden
+   top gap from any browser/user-agent default. */
+html body .task-detail-body .markdown-body h1 + p,
+html body .task-detail-body .markdown-body h2 + p,
+html body .task-detail-body .markdown-body h3 + p,
+html body .task-detail-body .markdown-body h4 + p,
+html body .task-detail-body .markdown-body h5 + p,
+html body .task-detail-body .markdown-body h6 + p {
+    margin-top: 0 !important;
+}
+
+/* Lists. */
+html body .task-detail-body .markdown-body ul,
+html body .task-detail-body .markdown-body ol {
+    margin: 0 0 14px !important;
+    padding-left: 25px !important;
+}
+
+html body .task-detail-body .markdown-body li {
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: 1.55 !important;
+}
+
+html body .task-detail-body .markdown-body li + li {
+    margin-top: 4px !important;
+}
+
+html body .task-detail-body .markdown-body li > ul,
+html body .task-detail-body .markdown-body li > ol {
+    margin: 6px 0 4px !important;
+}
+
+html body .task-detail-body .markdown-body li > p {
+    margin: 0 0 6px !important;
+}
+
+html body .task-detail-body .markdown-body li::marker {
+    color: var(--brand-pine) !important;
+}
+
+/* Blockquotes. */
+html body .task-detail-body .markdown-body blockquote {
+    margin: 14px 0 16px !important;
+    padding: 10px 14px !important;
+    border-left: 3px solid var(--brand-pine) !important;
+    border-radius: 0 8px 8px 0 !important;
+    background: var(--brand-pale) !important;
+    color: var(--text-secondary) !important;
+}
+
+html body .task-detail-body .markdown-body blockquote > :first-child {
+    margin-top: 0 !important;
+}
+html body .task-detail-body .markdown-body blockquote > :last-child {
+    margin-bottom: 0 !important;
+}
+html body .task-detail-body .markdown-body blockquote p {
+    margin-bottom: 7px !important;
+}
+
+/* Tables. */
+html body .task-detail-body .markdown-body table {
+    width: max-content;
+    min-width: 100%;
+    max-width: 100%;
+    margin: 16px 0 18px !important;
+    border-collapse: collapse;
+    display: block;
+    overflow-x: auto;
+    font-size: 14px;
+    line-height: 1.45;
+}
+
+html body .task-detail-body .markdown-body th,
+html body .task-detail-body .markdown-body td {
+    padding: 7px 11px !important;
+    border: 1px solid var(--border-light) !important;
+    text-align: left;
+    vertical-align: top;
+}
+
+/* Inline code and emphasis should sit naturally inside a line of prose. */
+html body .task-detail-body .markdown-body code:not(pre code) {
+    padding: 1px 5px !important;
+    border-radius: 4px !important;
+    font-size: 0.88em !important;
+    line-height: 1.3 !important;
+}
+
+/* Code blocks have one consistent outer rhythm and no accidental inherited
+   paragraph spacing inside the block. */
+html body .task-detail-body .markdown-body pre {
+    margin: 16px 0 18px !important;
+    padding: 15px 18px !important;
+    border-radius: 12px !important;
+}
+
+html body .task-detail-body .markdown-body pre code {
+    margin: 0 !important;
+    line-height: 1.6 !important;
+}
+
+/* Horizontal rules. */
+html body .task-detail-body .markdown-body hr {
+    margin: 20px 0 !important;
+    border: 0 !important;
+    border-top: 1px solid var(--border-light) !important;
+}
+
+/* Images: the paragraph owns the vertical rhythm; the wrapper itself owns
+   no extra margin. This removes the classic doubled gap around photos. */
+html body .task-detail-body .markdown-body .image-resizer-wrapper {
+    margin: 0 !important;
+}
+
+html body .task-detail-body .markdown-body p:has(> .image-resizer-wrapper:only-child) {
+    margin: 10px 0 16px !important;
+    line-height: 0 !important;
+}
+
+html body .task-detail-body .markdown-body p:has(> .image-resizer-wrapper:only-child):first-child {
+    margin-top: 0 !important;
+}
+
+html body .task-detail-body .markdown-body p:has(> .image-resizer-wrapper:only-child):last-child {
+    margin-bottom: 0 !important;
+}
+
+/* Multi-image rows/collages use the same outer spacing as a standalone photo;
+   the grid/flex gap is purely internal. */
+html body .task-detail-body .markdown-body p.image-row,
+html body .task-detail-body .markdown-body p.image-collage {
+    margin: 10px 0 16px !important;
+}
+
+html body .task-detail-body .markdown-body p.image-row:first-child,
+html body .task-detail-body .markdown-body p.image-collage:first-child {
+    margin-top: 0 !important;
+}
+
+html body .task-detail-body .markdown-body p.image-row:last-child,
+html body .task-detail-body .markdown-body p.image-collage:last-child {
+    margin-bottom: 0 !important;
+}
+
+html body .task-detail-body .markdown-body p.image-row .image-resizer-wrapper,
+html body .task-detail-body .markdown-body p.image-collage .image-resizer-wrapper {
+    margin: 0 !important;
+}
+
+/* Keep the actual image display block-level so descenders/line boxes cannot
+   create phantom pixels under an image. */
+html body .task-detail-body .markdown-body .image-resizer-wrapper img {
+    display: block !important;
+}
