@@ -251,10 +251,10 @@ html body .description-wrapper::after {
     content: "";
     position: absolute;
     left: 50%;
-    bottom: 9px;
+    bottom: 0;
     width: 72px;
     height: 2px;
-    transform: translateX(-50%);
+    transform: translate(-50%, 50%);
     border-radius: 999px;
     background: var(--text-secondary);
     opacity: .32;
@@ -268,8 +268,18 @@ html body .description-wrapper.is-description-resizing::after {
     height: 3px;
     opacity: .72;
 }
+
+/* The markdown layer also inherits the resize cursor while the pointer is in
+   the bottom drag zone, otherwise its `cursor:text` would win over the parent. */
 html body .description-wrapper.is-description-resize-hover,
-html body .description-wrapper.is-description-resizing { cursor: ns-resize !important; }
+html body .description-wrapper.is-description-resizing,
+html body .description-wrapper.is-description-resize-hover .markdown-body,
+html body .description-wrapper.is-description-resizing .markdown-body,
+html body .description-wrapper.is-description-resize-hover .description-input,
+html body .description-wrapper.is-description-resizing .description-input {
+    cursor: ns-resize !important;
+}
+
 html body .description-wrapper.is-description-resizing::after { box-shadow: 0 1px 7px rgba(0,0,0,.14); }
 
 /* Dark theme refinements. */
