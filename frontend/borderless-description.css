@@ -25,6 +25,20 @@ html body .description-wrapper {
 /* Keep the content flowing naturally instead of looking like an inset card. */
 html body .task-detail-body .markdown-body {
     outline: none !important;
+    padding-top: 0 !important;
+    margin-top: 0 !important;
+}
+
+/* The first Markdown block should start immediately under the description header. */
+html body .task-detail-body .markdown-body > :first-child,
+html body .task-detail-body .markdown-body > p:first-child,
+html body .task-detail-body .markdown-body > p.image-collage:first-child {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+}
+
+html body .task-detail-body .description-wrapper {
+    padding-top: 0 !important;
 }
 
 html body .task-detail-body .description-input,
