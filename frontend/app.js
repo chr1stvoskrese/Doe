@@ -7241,6 +7241,15 @@ function enhanceImageRows(container) {
             // Без пустой строки подряд идущие изображения собираются в коллаж.
             // Пустая строка создаёт отдельный <p>, поэтому такие изображения не объединяются.
             p.classList.toggle('image-collage', onlyImages);
+            if (onlyImages) {
+                p.querySelectorAll('.image-resizer-wrapper').forEach(wrap => {
+                    wrap.classList.remove('has-custom-size', 'is-resizing');
+                    wrap.style.removeProperty('width');
+                    wrap.style.removeProperty('height');
+                    wrap.querySelector('.image-resize-handle')?.remove();
+                    delete wrap.dataset.justResized;
+                });
+            }
     // Без пустой строки подряд идущие изображения собираются в коллаж.
     // Пустая строка создаёт отдельный <p>, поэтому такие изображения не объединяются.
     p.classList.toggle('image-collage', onlyImages);
