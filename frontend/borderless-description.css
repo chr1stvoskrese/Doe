@@ -1,51 +1,54 @@
-/* Borderless card description: no visual container in view, subtle cue only while editing. */
+/* Borderless card description — view is part of the card, not a nested panel. */
 
-/* The visible description container itself must be completely transparent. */
-.description-wrapper,
-.description-wrapper:focus,
-.description-wrapper:hover,
-.description-wrapper:active {
-    border: 0 !important;
-    outline: 0 !important;
+/* The description itself must not paint a panel behind the Markdown. */
+html body .task-detail-body .markdown-body,
+html body .markdown-body,
+html body .markdown-body p,
+html body .markdown-body p.image-collage {
     background: transparent !important;
+    background-color: transparent !important;
+    border: 0 !important;
     box-shadow: none !important;
     border-radius: 0 !important;
 }
 
-/* Keep the native vertical resize affordance, but remove its framed chrome. */
-.description-wrapper::-webkit-resizer {
+/* Remove the visual frame/inner panel around the description. */
+html body .task-detail-body .description-wrapper,
+html body .description-wrapper {
     background: transparent !important;
-    background-image: none !important;
-}
-
-/* The rendered Markdown is also borderless. */
-.markdown-body,
-.markdown-body:focus,
-.markdown-body:hover {
+    background-color: transparent !important;
     border: 0 !important;
-    outline: 0 !important;
-    background: transparent !important;
     box-shadow: none !important;
+    border-radius: 0 !important;
 }
 
-/* Editing area: no permanent frame, only a very subtle focus cue. */
-.description-input {
+/* Keep the content flowing naturally instead of looking like an inset card. */
+html body .task-detail-body .markdown-body {
+    outline: none !important;
+}
+
+html body .task-detail-body .description-input,
+html body .description-input {
     border: 0 !important;
-    outline: 0 !important;
     background: transparent !important;
+    background-color: transparent !important;
     box-shadow: none !important;
+    outline: none !important;
 }
 
-.description-wrapper:has(.description-input:focus),
-.description-wrapper:has(.description-input:focus-visible) {
+/* No extra focus ring around the description panel. */
+html body .description-wrapper:focus-within {
     border: 0 !important;
-    outline: 0 !important;
-    background: transparent !important;
-    box-shadow: inset 0 0 0 1px rgba(74, 90, 72, 0.10) !important;
-    border-radius: 8px !important;
+    box-shadow: none !important;
+    outline: none !important;
 }
 
-[data-theme="dark"] .description-wrapper:has(.description-input:focus),
-[data-theme="dark"] .description-wrapper:has(.description-input:focus-visible) {
-    box-shadow: inset 0 0 0 1px rgba(137, 160, 133, 0.12) !important;
+[data-theme="dark"] html body .description-wrapper,
+[data-theme="dark"] html body .markdown-body,
+[data-theme="dark"] html body .markdown-body p,
+[data-theme="dark"] html body .markdown-body p.image-collage {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
 }
