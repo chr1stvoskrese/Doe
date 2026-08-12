@@ -2,7 +2,8 @@ name: Apply borderless description
 
 on:
   push:
-    branches: [agent/borderless-description-work]
+    branches:
+      - agent/borderless-description-work
 
 permissions:
   contents: write
@@ -15,51 +16,24 @@ jobs:
         with:
           ref: agent/borderless-description-work
           fetch-depth: 0
-
-      - name: Add borderless description styles
-        shell: bash
+      - name: Patch styles
         run: |
           cat >> frontend/styles.css <<'CSS'
 
-/* ============================================================
-   Description: borderless in view, subtle outline only while editing.
-   ============================================================ */
-.markdown-body {
-    border: 0 !important;
-    background: transparent !important;
-    box-shadow: none !important;
-}
-
-.description-input {
-    border: 1px solid transparent !important;
-    background: transparent !important;
-    box-shadow: none !important;
-    outline: none !important;
-}
-
-.description-input:focus,
-.description-input:focus-visible {
-    border-color: rgba(74, 90, 72, 0.16) !important;
-    box-shadow: 0 0 0 2px rgba(74, 90, 72, 0.05) !important;
-    outline: none !important;
-}
-
-[data-theme="dark"] .description-input:focus,
-[data-theme="dark"] .description-input:focus-visible {
-    border-color: rgba(137, 160, 133, 0.2) !important;
-    box-shadow: 0 0 0 2px rgba(137, 160, 133, 0.06) !important;
-}
+/* Borderless card description */
+.markdown-body { border: 0 !important; background: transparent !important; box-shadow: none !important; }
+.description-wrapper { border-color: transparent !important; background: transparent !important; box-shadow: none !important; }
+.description-wrapper:has(.description-input:focus) { border-color: transparent !important; box-shadow: 0 0 0 1px rgba(74, 90, 72, 0.08) !important; }
+[data-theme="dark"] .description-wrapper:has(.description-input:focus) { border-color: transparent !important; box-shadow: 0 0 0 1px rgba(137, 160, 133, 0.10) !important; }
+.description-input { border: 1px solid transparent !important; background: transparent !important; box-shadow: none !important; outline: none !important; }
 CSS
-
       - name: Validate JavaScript
         run: node --check frontend/app.js
-
-      - name: Commit and remove workflow
-        shell: bash
+      - name: Commit changes and remove workflow
         run: |
-          rm -f .github/workflows/apply-borderless-description.yml
+          rm -f .github/workflows/apply-borderless-description.yml frontend/.borderless-description-trigger
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add frontend/styles.css .github/workflows/apply-borderless-description.yml
+          git add frontend/styles.css .github/workflows/apply-borderless-description.yml frontend/.borderless-description-trigger
           git commit -m "style: make card descriptions borderless"
           git push origin agent/borderless-description-work
