@@ -16,24 +16,28 @@ jobs:
         with:
           ref: agent/borderless-description-work
           fetch-depth: 0
-      - name: Patch styles
+      - name: Install borderless stylesheet
         run: |
-          cat >> frontend/styles.css <<'CSS'
-
-/* Borderless card description */
-.markdown-body { border: 0 !important; background: transparent !important; box-shadow: none !important; }
-.description-wrapper { border-color: transparent !important; background: transparent !important; box-shadow: none !important; }
-.description-wrapper:has(.description-input:focus) { border-color: transparent !important; box-shadow: 0 0 0 1px rgba(74, 90, 72, 0.08) !important; }
-[data-theme="dark"] .description-wrapper:has(.description-input:focus) { border-color: transparent !important; box-shadow: 0 0 0 1px rgba(137, 160, 133, 0.10) !important; }
-.description-input { border: 1px solid transparent !important; background: transparent !important; box-shadow: none !important; outline: none !important; }
-CSS
+          test -f frontend/borderless-description.css
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('frontend/index.html')
+          text = path.read_text()
+          marker = '    <link rel="stylesheet" href="styles.css?v=searchfix">'
+          link = '    <link rel="stylesheet" href="styles.css?v=searchfix">\n    <link rel="stylesheet" href="borderless-description.css?v=1">'
+          if 'borderless-description.css?v=1' not in text:
+              if marker not in text:
+                  raise SystemExit('styles.css link not found')
+              text = text.replace(marker, link, 1)
+              path.write_text(text)
+          PY
       - name: Validate JavaScript
         run: node --check frontend/app.js
       - name: Commit changes and remove workflow
         run: |
-          rm -f .github/workflows/apply-borderless-description.yml frontend/.borderless-description-trigger
+          rm -f .github/workflows/apply-borderless-description.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add frontend/styles.css .github/workflows/apply-borderless-description.yml frontend/.borderless-description-trigger
+          git add frontend/index.html frontend/borderless-description.css .github/workflows/apply-borderless-description.yml
           git commit -m "style: make card descriptions borderless"
           git push origin agent/borderless-description-work
