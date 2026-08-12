@@ -9533,6 +9533,36 @@ body:has(.modal-overlay.show) .card-inline-trigger {
     height: auto;
 }
 
+/* ============================================================
+   🧩 Коллаж изображений: несколько ![]() без пустой строки
+   собираются в адаптивную сетку. Пустая строка разделяет коллажи.
+   ============================================================ */
+.markdown-body p.image-collage {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
+    gap: 10px;
+    align-items: start;
+    line-height: 0;
+}
+
+.markdown-body p.image-collage .image-resizer-wrapper {
+    margin: 0;
+    min-width: 0;
+    max-width: 100%;
+    width: 100%;
+}
+
+.markdown-body p.image-collage .image-resizer-wrapper img {
+    width: 100%;
+    height: auto;
+    object-fit: contain;
+}
+
+.markdown-body p.image-collage .image-resizer-wrapper.has-custom-size {
+    width: auto;
+    justify-self: start;
+}
+
 /* Курсор подсказывает, что изображение кликабельно */
 .image-resizer-wrapper {
     cursor: zoom-in;
