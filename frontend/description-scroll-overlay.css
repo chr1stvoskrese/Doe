@@ -1,7 +1,7 @@
 /* Two-level scrollbar geometry.
    The description keeps its own Markdown scrollbar; the full card keeps its
-   outer scrollbar. Narrow the description viewport so the two tracks sit
-   side-by-side instead of the inner track overlaying content. */
+   outer scrollbar. The description scrollbar lives in the reserved right
+   gutter instead of overlapping the Markdown text. */
 html body .task-detail-body {
     --description-scrollbar-width: 6px;
     --description-scrollbar-gap: 8px;
@@ -15,12 +15,16 @@ html body .task-detail-body .description-wrapper {
     align-self: flex-start;
 }
 
-/* The Markdown viewport owns the description scrollbar. */
+/* The Markdown owns the description scrollbar. Extend its scroll viewport into
+   the reserved right gutter and put that extension entirely inside padding so
+   the text width stays where it was while the scrollbar moves to the right. */
 html body .task-detail-body .description-wrapper .markdown-body {
     overflow-y: auto !important;
     overflow-x: visible !important;
-    width: 100% !important;
-    max-width: 100% !important;
+    width: calc(100% + var(--description-scrollbar-width) + var(--description-scrollbar-gap)) !important;
+    max-width: none !important;
+    padding-right: calc(var(--description-scrollbar-width) + var(--description-scrollbar-gap)) !important;
+    box-sizing: border-box !important;
     scrollbar-gutter: stable;
 }
 
