@@ -1,31 +1,51 @@
-/* Borderless card description: clean in view, subtle focus cue while editing. */
-.markdown-body {
+/* Borderless card description: no visual container in view, subtle cue only while editing. */
+
+/* The visible description container itself must be completely transparent. */
+.description-wrapper,
+.description-wrapper:focus,
+.description-wrapper:hover,
+.description-wrapper:active {
     border: 0 !important;
+    outline: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+}
+
+/* Keep the native vertical resize affordance, but remove its framed chrome. */
+.description-wrapper::-webkit-resizer {
+    background: transparent !important;
+    background-image: none !important;
+}
+
+/* The rendered Markdown is also borderless. */
+.markdown-body,
+.markdown-body:focus,
+.markdown-body:hover {
+    border: 0 !important;
+    outline: 0 !important;
     background: transparent !important;
     box-shadow: none !important;
 }
 
-.description-wrapper {
-    border-color: transparent !important;
+/* Editing area: no permanent frame, only a very subtle focus cue. */
+.description-input {
+    border: 0 !important;
+    outline: 0 !important;
     background: transparent !important;
     box-shadow: none !important;
 }
 
 .description-wrapper:has(.description-input:focus),
 .description-wrapper:has(.description-input:focus-visible) {
-    border-color: rgba(74, 90, 72, 0.16) !important;
-    box-shadow: 0 0 0 2px rgba(74, 90, 72, 0.05) !important;
+    border: 0 !important;
+    outline: 0 !important;
+    background: transparent !important;
+    box-shadow: inset 0 0 0 1px rgba(74, 90, 72, 0.10) !important;
+    border-radius: 8px !important;
 }
 
 [data-theme="dark"] .description-wrapper:has(.description-input:focus),
 [data-theme="dark"] .description-wrapper:has(.description-input:focus-visible) {
-    border-color: rgba(137, 160, 133, 0.20) !important;
-    box-shadow: 0 0 0 2px rgba(137, 160, 133, 0.06) !important;
-}
-
-.description-input {
-    border: none !important;
-    background: transparent !important;
-    box-shadow: none !important;
-    outline: none !important;
+    box-shadow: inset 0 0 0 1px rgba(137, 160, 133, 0.12) !important;
 }
