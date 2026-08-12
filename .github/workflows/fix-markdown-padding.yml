@@ -2,15 +2,13 @@ name: Normalize description content padding
 
 on:
   push:
-    branches:
-      - agent/borderless-description-work
+    branches: [agent/borderless-description-work]
 
 permissions:
   contents: write
 
 jobs:
   patch:
-    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -18,32 +16,19 @@ jobs:
           ref: agent/borderless-description-work
           fetch-depth: 0
 
-      - name: Patch Markdown padding
-        shell: bash
+      - name: Apply CSS override
         run: |
-          python3 - <<'PY'
-          from pathlib import Path
-
-          path = Path('frontend/borderless-description.css')
-          text = path.read_text(encoding='utf-8')
-          marker = '/* Description content inset normalization. */'
-
-          if marker not in text:
-              text = text.rstrip() + r'''
+          cat >> frontend/borderless-description.css <<'CSS'
 
 /* Description content inset normalization. */
 html body .task-detail-body .markdown-body,
 html body .task-detail-body .description-input {
-    /* The task-detail-body owns the horizontal alignment with the card title. */
     padding-left: 0 !important;
     padding-right: 0 !important;
-    /* Keep a deliberate breathing space below the header divider. */
     padding-top: 14px !important;
     padding-bottom: 24px !important;
 }
 
-/* The first Markdown block should start from that 14px rhythm, not flush
-   against the divider above it. */
 html body .task-detail-body .markdown-body > :first-child {
     margin-top: 0 !important;
 }
@@ -51,16 +36,13 @@ html body .task-detail-body .markdown-body > :first-child {
 html body .task-detail-body .description-input {
     padding-top: 14px !important;
 }
-'''
-              path.write_text(text.rstrip() + '\n', encoding='utf-8')
-          PY
+CSS
 
-      - name: Commit changes and remove workflow
-        shell: bash
+      - name: Commit patch and remove workflow
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add frontend/borderless-description.css .github/workflows/fix-markdown-padding.yml
+          git add frontend/borderless-description.css
           git commit -m "fix: align description content with card title"
           git rm .github/workflows/fix-markdown-padding.yml
           git commit -m "chore: remove temporary markdown padding workflow"
