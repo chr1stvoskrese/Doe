@@ -22,6 +22,13 @@ html body .description-wrapper {
     border-radius: 0 !important;
 }
 
+/* The description is the scrollable content area: let content start and
+   disappear exactly at the header divider instead of leaving an inset band. */
+html body .task-detail-body {
+    padding-top: 0 !important;
+    scroll-padding-top: 0 !important;
+}
+
 /* Keep the content flowing naturally instead of looking like an inset card. */
 html body .task-detail-body .markdown-body {
     outline: none !important;
