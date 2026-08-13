@@ -1,0 +1,70 @@
+name: Apply persistent image resize model
+
+on:
+  push:
+    branches: [agent/borderless-description-work]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/borderless-description-work
+          fetch-depth: 0
+
+      - name: Patch image resize persistence
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          app = Path('frontend/app.js')
+          text = app.read_text(encoding='utf-8')
+
+          old_anchor = """            const startHeight = wrapper.offsetHeight;\n            const aspectRatio = startWidth / startHeight;\n"""
+          new_anchor = """            const startHeight = wrapper.offsetHeight;\n            const aspectRatio = startWidth / startHeight;\n\n            // Keep the user's chosen size separate from the size currently\n            // visible inside a narrow description viewport.\n            const mdSource = unescapeHtml(wrapper.dataset.md || '');\n            const sizeMatch = mdSource.match(/\\{\\s*(\\d+(?:\\.\\d+)?)\\s*,\\s*(\\d+(?:\\.\\d+)?)\\s*\\}\\s*$/);\n            const storedWidth = sizeMatch ? Number(sizeMatch[1]) : startWidth;\n            const storedHeight = sizeMatch ? Number(sizeMatch[2]) : startHeight;\n            let desiredWidth = storedWidth;\n            let desiredHeight = storedHeight;\n"""
+          if old_anchor not in text:
+              raise SystemExit('resize anchor not found')
+          text = text.replace(old_anchor, new_anchor, 1)
+
+          old_move = """            const onMouseMove = (moveEvent) => {\n                let newWidth = Math.max(50, startWidth + (moveEvent.clientX - startX));\n                let newHeight = Math.max(50, startHeight + (moveEvent.clientY - startY));\n                \n                if (moveEvent.shiftKey) newHeight = newWidth / aspectRatio;\n                \n                wrapper.style.width = newWidth + 'px';\n                wrapper.style.height = newHeight + 'px';\n                applyTextExpansion();\n            };\n"""
+          new_move = """            const onMouseMove = (moveEvent) => {\n                desiredWidth = Math.max(50, storedWidth + (moveEvent.clientX - startX));\n                desiredHeight = Math.max(50, storedHeight + (moveEvent.clientY - startY));\n                \n                if (moveEvent.shiftKey) desiredHeight = desiredWidth / aspectRatio;\n\n                const wrapperRect = wrapper.getBoundingClientRect();\n                const viewportRect = renderDiv.getBoundingClientRect();\n                const availableWidth = Math.max(50, viewportRect.right - wrapperRect.left);\n                const availableHeight = Math.max(50, viewportRect.bottom - wrapperRect.top);\n\n                // Only the visual size is clamped. The desired size remains\n                // untouched so a later card expansion restores it.\n                const visibleWidth = Math.min(desiredWidth, availableWidth);\n                const visibleHeight = Math.min(desiredHeight, availableHeight);\n\n                wrapper.style.width = visibleWidth + 'px';\n                wrapper.style.height = visibleHeight + 'px';\n                applyTextExpansion();\n            };\n"""
+          if old_move not in text:
+              raise SystemExit('resize mousemove block not found')
+          text = text.replace(old_move, new_move, 1)
+
+          old_final = """                const finalWidth = Math.round(wrapper.offsetWidth);\n                const finalHeight = Math.round(wrapper.offsetHeight);\n"""
+          new_final = """                // Persist the user's requested size, not the temporarily\n                // clamped size currently visible in the description viewport.\n                const finalWidth = Math.round(desiredWidth);\n                const finalHeight = Math.round(desiredHeight);\n"""
+          if old_final not in text:
+              raise SystemExit('resize final-size block not found')
+          text = text.replace(old_final, new_final, 1)
+
+          app.write_text(text, encoding='utf-8')
+
+          css = Path('frontend/borderless-description.css')
+          css_text = css.read_text(encoding='utf-8')
+          doomed = """/* When the description gets narrower, the image follows it instead of keeping\n   an oversized inline width/height from a previous manual resize. */\nhtml body .task-detail-body .markdown-body .image-resizer-wrapper.has-custom-size {\n    height: auto !important;\n}\n\n"""
+          if doomed not in css_text:
+              raise SystemExit('custom-size auto-height block not found')
+          css_text = css_text.replace(doomed, "", 1)
+          css.write_text(css_text, encoding='utf-8')
+          PY
+
+          node --check frontend/app.js
+          git diff --check
+
+      - name: Commit and remove temporary workflow
+        shell: bash
+        run: |
+          rm -f .github/workflows/fix-persistent-image-size.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add frontend/app.js frontend/borderless-description.css .github/workflows/fix-persistent-image-size.yml
+          git diff --cached --check
+          git commit -m "fix: preserve image size across description resizing"
+          git push origin agent/borderless-description-work
