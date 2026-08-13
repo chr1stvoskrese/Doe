@@ -57,3 +57,34 @@ html body .task-detail-body .description-wrapper .markdown-body {
     scrollbar-width: thin;
     scrollbar-color: var(--scrollbar-thumb) transparent;
 }
+
+/* Restore the classic resize corner over the runtime loader's fallback glyph.
+   The extra :not(#...) specificity intentionally wins over the loader's
+   !important rules without changing the resize logic itself. */
+html body .task-detail-body .markdown-body .image-resize-handle.image-resize-handle:not(#__doe_resize_corner_override) {
+    background-image: none !important;
+    background-color: transparent !important;
+    width: 12px !important;
+    height: 12px !important;
+    right: -5px !important;
+    bottom: -5px !important;
+}
+
+html body .task-detail-body .markdown-body .image-resize-handle.image-resize-handle:not(#__doe_resize_corner_override)::before {
+    content: none !important;
+    display: none !important;
+}
+
+html body .task-detail-body .markdown-body .image-resize-handle.image-resize-handle:not(#__doe_resize_corner_override)::after {
+    content: '' !important;
+    position: absolute !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    display: block !important;
+    width: 9px !important;
+    height: 9px !important;
+    border-right: 2px solid var(--text-secondary) !important;
+    border-bottom: 2px solid var(--text-secondary) !important;
+    box-sizing: border-box !important;
+    transform: none !important;
+}
