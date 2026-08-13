@@ -1,0 +1,72 @@
+name: Fix floating image resize
+
+on:
+  push:
+    branches: [agent/borderless-description-work]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/borderless-description-work
+          fetch-depth: 0
+
+      - name: Patch image resize behavior
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          app = Path('frontend/app.js')
+          text = app.read_text(encoding='utf-8')
+
+          old = """            const onMouseMove = (moveEvent) => {\n                desiredWidth = Math.max(50, storedWidth + (moveEvent.clientX - startX));\n                desiredHeight = Math.max(50, storedHeight + (moveEvent.clientY - startY));\n                \n                if (moveEvent.shiftKey) desiredHeight = desiredWidth / aspectRatio;\n\n                const wrapperRect = wrapper.getBoundingClientRect();\n                const viewportRect = renderDiv.getBoundingClientRect();\n                const availableWidth = Math.max(50, viewportRect.right - wrapperRect.left);\n                const availableHeight = Math.max(50, viewportRect.bottom - wrapperRect.top);\n\n                // Only the visual size is clamped. The desired size remains\n                // untouched so a later card expansion restores it.\n                const visibleWidth = Math.min(desiredWidth, availableWidth);\n                const visibleHeight = Math.min(desiredHeight, availableHeight);\n\n                wrapper.style.width = visibleWidth + 'px';\n                wrapper.style.height = visibleHeight + 'px';\n                applyTextExpansion();\n            };"""
+
+          new = """            const imageResizeState = {\n                descriptionHeightBefore: descWrapper ? descWrapper.getBoundingClientRect().height : 0,\n                descriptionHeightExpanded: false\n            };\n\n            const onMouseMove = (moveEvent) => {\n                desiredWidth = Math.max(50, storedWidth + (moveEvent.clientX - startX));\n                desiredHeight = Math.max(50, storedHeight + (moveEvent.clientY - startY));\n\n                if (moveEvent.shiftKey) desiredHeight = desiredWidth / aspectRatio;\n\n                const wrapperRect = wrapper.getBoundingClientRect();\n                const viewportRect = renderDiv.getBoundingClientRect();\n                const availableWidth = Math.max(50, viewportRect.right - wrapperRect.left);\n\n                // Horizontal size is constrained by the live description viewport.\n                // Vertical size is NOT constrained by the current description height:\n                // the description itself grows to make room for the image.\n                const visibleWidth = Math.min(desiredWidth, availableWidth);\n                const visibleHeight = desiredHeight;\n\n                wrapper.style.width = visibleWidth + 'px';\n                wrapper.style.height = visibleHeight + 'px';\n\n                if (descWrapper) {\n                    const descRect = descWrapper.getBoundingClientRect();\n                    const imageBottom = wrapper.getBoundingClientRect().bottom;\n                    const requiredHeight = Math.max(0, imageBottom - descRect.top + 18);\n                    const currentHeight = descRect.height;\n                    if (requiredHeight > currentHeight) {\n                        descWrapper.style.height = `${requiredHeight}px`;\n                        imageResizeState.descriptionHeightExpanded = true;\n                    }\n                }\n\n                applyTextExpansion();\n            };"""
+
+          if old not in text:
+              raise SystemExit('expected image resize block not found')
+          text = text.replace(old, new, 1)
+
+          old2 = """                wrapper.dataset.md = escapeHtml(newMd);\n                lastSavedValue = cmEditor.getValue();"""
+          new2 = """                wrapper.dataset.md = escapeHtml(newMd);\n                lastSavedValue = cmEditor.getValue();\n                applyTextExpansion();"""
+          text = text.replace(old2, new2, 1)
+
+          app.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Remove vertical clamp from image CSS
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('frontend/borderless-description.css')
+          text = path.read_text(encoding='utf-8')
+
+          old = """/* Hard stop: a manually resized image can never paint beyond the live\n   description viewport, even if an inline width/height is still present. */\nhtml body .task-detail-body .markdown-body .image-resizer-wrapper.has-custom-size {\n    max-width: calc(100% - var(--description-scrollbar-width, 0px) - var(--description-scrollbar-gap, 0px)) !important;\n    max-height: 100% !important;\n    overflow: hidden !important;\n    box-sizing: border-box !important;\n}\n\nhtml body .task-detail-body .markdown-body .image-resizer-wrapper.has-custom-size img {\n    max-width: 100% !important;\n    max-height: 100% !important;\n    width: auto !important;\n    height: auto !important;\n    object-fit: contain !important;\n    box-sizing: border-box !important;\n}"""
+
+          new = """/* Horizontal overflow is constrained by the live description viewport.\n   Vertical overflow is intentionally allowed: the resize handler grows the\n   floating description wrapper to keep the full image visible. */\nhtml body .task-detail-body .markdown-body .image-resizer-wrapper.has-custom-size {\n    max-width: calc(100% - var(--description-scrollbar-width, 0px) - var(--description-scrollbar-gap, 0px)) !important;\n    box-sizing: border-box !important;\n    overflow: visible !important;\n}\n\nhtml body .task-detail-body .markdown-body .image-resizer-wrapper.has-custom-size img {\n    max-width: 100% !important;\n    width: auto !important;\n    height: auto !important;\n    object-fit: contain !important;\n    box-sizing: border-box !important;\n}"""
+
+          if old not in text:
+              raise SystemExit('expected vertical clamp CSS not found')
+          text = text.replace(old, new, 1)
+          path.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Validate JavaScript
+        run: node --check frontend/app.js
+
+      - name: Commit and remove workflow
+        run: |
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          rm -f .github/workflows/fix-floating-image-resize.yml
+          git add frontend/app.js frontend/borderless-description.css .github/workflows/fix-floating-image-resize.yml
+          git commit -m "fix: let description grow with image resize"
+          git push origin agent/borderless-description-work
