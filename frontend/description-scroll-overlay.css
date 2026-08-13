@@ -58,33 +58,50 @@ html body .task-detail-body .description-wrapper .markdown-body {
     scrollbar-color: var(--scrollbar-thumb) transparent;
 }
 
-/* Restore the classic resize corner over the runtime loader's fallback glyph.
-   The extra :not(#...) specificity intentionally wins over the loader's
-   !important rules without changing the resize logic itself. */
-html body .task-detail-body .markdown-body .image-resize-handle.image-resize-handle:not(#__doe_resize_corner_override) {
+/* Original image resize handle: green 24x24 corner with white resize mark. */
+html body .task-detail-body .markdown-body .image-resize-handle {
+    position: absolute !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 24px !important;
+    height: 24px !important;
+    cursor: nwse-resize !important;
+    background-color: var(--brand-pine) !important;
     background-image: none !important;
-    background-color: transparent !important;
-    width: 12px !important;
-    height: 12px !important;
-    right: -5px !important;
-    bottom: -5px !important;
+    border-top-left-radius: 8px !important;
+    border-bottom-right-radius: 8px !important;
+    opacity: 0 !important;
+    transition: opacity 0.2s !important;
+    z-index: 30 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0 !important;
+    border-right: 0 !important;
+    border-bottom: 0 !important;
+    box-shadow: none !important;
+    pointer-events: auto !important;
 }
 
-html body .task-detail-body .markdown-body .image-resize-handle.image-resize-handle:not(#__doe_resize_corner_override)::before {
+html body .task-detail-body .markdown-body .image-resize-handle::before {
     content: none !important;
     display: none !important;
 }
 
-html body .task-detail-body .markdown-body .image-resize-handle.image-resize-handle:not(#__doe_resize_corner_override)::after {
+html body .task-detail-body .markdown-body .image-resize-handle::after {
     content: '' !important;
-    position: absolute !important;
-    right: 0 !important;
-    bottom: 0 !important;
-    display: block !important;
-    width: 9px !important;
-    height: 9px !important;
-    border-right: 2px solid var(--text-secondary) !important;
-    border-bottom: 2px solid var(--text-secondary) !important;
-    box-sizing: border-box !important;
+    width: 8px !important;
+    height: 8px !important;
+    border-right: 2px solid white !important;
+    border-bottom: 2px solid white !important;
+    margin-top: -2px !important;
+    margin-left: -2px !important;
     transform: none !important;
+    display: block !important;
+    position: static !important;
+}
+
+html body .task-detail-body .markdown-body .image-resizer-wrapper:hover .image-resize-handle,
+html body .task-detail-body .markdown-body .image-resizer-wrapper.is-resizing .image-resize-handle {
+    opacity: 1 !important;
 }
