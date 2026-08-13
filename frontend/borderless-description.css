@@ -293,14 +293,28 @@ html body .task-detail-body .markdown-body p.image-collage .image-resizer-wrappe
    floating description wrapper to keep the full image visible. */
 html body .task-detail-body .markdown-body .image-resizer-wrapper.has-custom-size {
     max-width: calc(100% - var(--description-scrollbar-width, 0px) - var(--description-scrollbar-gap, 0px)) !important;
+    min-height: 50px;
     box-sizing: border-box !important;
     overflow: visible !important;
 }
 
 html body .task-detail-body .markdown-body .image-resizer-wrapper.has-custom-size img {
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
     max-width: 100% !important;
-    width: auto !important;
-    height: auto !important;
-    object-fit: contain !important;
+    max-height: none !important;
+    object-fit: fill !important;
     box-sizing: border-box !important;
+}
+
+/* A simple, stable diagonal resize glyph. */
+html body .task-detail-body .markdown-body .image-resize-handle::after {
+    content: '';
+    width: 9px;
+    height: 9px;
+    border-right: 2px solid white;
+    border-bottom: 2px solid white;
+    transform: rotate(45deg);
+    margin: -1px 1px 1px -1px;
 }
