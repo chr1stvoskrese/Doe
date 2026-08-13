@@ -22,54 +22,51 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
+          import re
 
           path = Path('frontend/app.js')
           text = path.read_text(encoding='utf-8')
 
-          old = '''            const startWidth = wrapper.offsetWidth;
-            const startHeight = wrapper.offsetHeight;
-            const aspectRatio = startWidth / startHeight;
-            
-            wrapper.classList.add('is-resizing');'''
-          new = '''            const startWidth = wrapper.offsetWidth;
-            const startHeight = wrapper.offsetHeight;
-            const aspectRatio = startWidth / startHeight;
-            const descriptionWrapper = wrapper.closest('.description-wrapper');
+          if 'const descriptionWrapper = wrapper.closest(\'.description-wrapper\');' not in text:
+              marker = "            const aspectRatio = startWidth / startHeight;"
+              if marker not in text:
+                  raise SystemExit('image resize aspect ratio marker not found')
+              text = text.replace(
+                  marker,
+                  marker + "\n            const descriptionWrapper = wrapper.closest('.description-wrapper');",
+                  1,
+              )
 
-            wrapper.classList.add('is-resizing');'''
-          if old not in text:
-              raise SystemExit('image resize start block not found')
-          text = text.replace(old, new, 1)
+          if 'const bounds = descriptionWrapper?.getBoundingClientRect();' not in text:
+              pattern = re.compile(
+                  r"(?P<indent>\s*)const onMouseMove = \(moveEvent\) => \{\n"
+                  r"(?P<body>.*?wrapper\.style\.height = newHeight \+ 'px';)",
+                  re.S,
+              )
+              match = pattern.search(text)
+              if not match:
+                  raise SystemExit('image resize mousemove handler not found')
 
-          old = '''            const onMouseMove = (moveEvent) => {
-                let newWidth = Math.max(50, startWidth + (moveEvent.clientX - startX));
-                let newHeight = Math.max(50, startHeight + (moveEvent.clientY - startY));
-                
-                if (moveEvent.shiftKey) newHeight = newWidth / aspectRatio;
-                
-                wrapper.style.width = newWidth + 'px';
-                wrapper.style.height = newHeight + 'px';'''
-          new = '''            const onMouseMove = (moveEvent) => {
-                let newWidth = Math.max(50, startWidth + (moveEvent.clientX - startX));
-                let newHeight = Math.max(50, startHeight + (moveEvent.clientY - startY));
+              indent = match.group('indent')
+              replacement = f'''{indent}const onMouseMove = (moveEvent) => {{
+{indent}    let newWidth = Math.max(50, startWidth + (moveEvent.clientX - startX));
+{indent}    let newHeight = Math.max(50, startHeight + (moveEvent.clientY - startY));
 
-                const bounds = descriptionWrapper?.getBoundingClientRect();
-                const maxWidth = Math.max(50, (bounds?.width || wrapper.parentElement?.clientWidth || newWidth));
-                const maxHeight = Math.max(50, (bounds?.height || wrapper.parentElement?.clientHeight || newHeight));
+{indent}    const bounds = descriptionWrapper?.getBoundingClientRect();
+{indent}    const maxWidth = Math.max(50, (bounds?.width || wrapper.parentElement?.clientWidth || newWidth));
+{indent}    const maxHeight = Math.max(50, (bounds?.height || wrapper.parentElement?.clientHeight || newHeight));
 
-                if (moveEvent.shiftKey) {
-                    newWidth = Math.min(newWidth, maxWidth, maxHeight * aspectRatio);
-                    newHeight = newWidth / aspectRatio;
-                } else {
-                    newWidth = Math.min(newWidth, maxWidth);
-                    newHeight = Math.min(newHeight, maxHeight);
-                }
+{indent}    if (moveEvent.shiftKey) {{
+{indent}        newWidth = Math.min(newWidth, maxWidth, maxHeight * aspectRatio);
+{indent}        newHeight = newWidth / aspectRatio;
+{indent}    }} else {{
+{indent}        newWidth = Math.min(newWidth, maxWidth);
+{indent}        newHeight = Math.min(newHeight, maxHeight);
+{indent}    }}
 
-                wrapper.style.width = newWidth + 'px';
-                wrapper.style.height = newHeight + 'px';'''
-          if old not in text:
-              raise SystemExit('image resize move block not found')
-          text = text.replace(old, new, 1)
+{indent}    wrapper.style.width = newWidth + 'px';
+{indent}    wrapper.style.height = newHeight + 'px';'''
+              text = text[:match.start()] + replacement + text[match.end():]
 
           path.write_text(text, encoding='utf-8')
           PY
