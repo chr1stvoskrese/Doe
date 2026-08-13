@@ -5,6 +5,9 @@ on:
     branches: [main, agent/borderless-description-work]
   pull_request:
 
+permissions:
+  contents: write
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -12,7 +15,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Apply image resize bounds fix on working branch
-        if: github.ref == 'refs/heads/agent/borderless-description-work'
+        if: github.ref == 'refs/heads/agent/borderless-description-work' || github.head_ref == 'agent/borderless-description-work'
         shell: bash
         run: |
           python3 - <<'PY'
