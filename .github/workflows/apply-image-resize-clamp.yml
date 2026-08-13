@@ -1,0 +1,98 @@
+name: Apply image resize clamp
+
+on:
+  push:
+    branches: [agent/borderless-description-work]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/borderless-description-work
+          fetch-depth: 0
+
+      - name: Patch image resize handler
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          path = Path('frontend/app.js')
+          text = path.read_text(encoding='utf-8')
+
+          if 'const descriptionWrapper = wrapper.closest(\'.description-wrapper\');' not in text:
+              anchor = "            const aspectRatio = startWidth / startHeight;"
+              if anchor not in text:
+                  raise SystemExit('image resize anchor not found')
+              text = text.replace(
+                  anchor,
+                  anchor + "\n            const descriptionWrapper = wrapper.closest('.description-wrapper');\n            const imageViewport = wrapper.closest('.markdown-body') || descriptionWrapper;",
+                  1,
+              )
+
+          old_move = re.compile(
+              r"(?P<indent>\s*)const onMouseMove = \(moveEvent\) => \{\n"
+              r"(?P=indent)\s*let newWidth = Math\.max\(50, startWidth \+ \(moveEvent\.clientX - startX\)\);\n"
+              r"(?P=indent)\s*let newHeight = Math\.max\(50, startHeight \+ \(moveEvent\.clientY - startY\)\);\n"
+              r"(?P=indent)\s*\n"
+              r"(?P=indent)\s*if \(moveEvent\.shiftKey\) newHeight = newWidth / aspectRatio;\n"
+              r"(?P=indent)\s*\n"
+              r"(?P=indent)\s*wrapper\.style\.width = newWidth \+ 'px';\n"
+              r"(?P=indent)\s*wrapper\.style\.height = newHeight \+ 'px';",
+              re.MULTILINE,
+          )
+
+          replacement = r"""\g<indent>const onMouseMove = (moveEvent) => {
+\g<indent>    let newWidth = Math.max(50, startWidth + (moveEvent.clientX - startX));
+\g<indent>    let newHeight = Math.max(50, startHeight + (moveEvent.clientY - startY));
+\g<indent>
+\g<indent>    const viewportRect = imageViewport?.getBoundingClientRect();
+\g<indent>    const wrapperRect = wrapper.getBoundingClientRect();
+\g<indent>    const descriptionRect = descriptionWrapper?.getBoundingClientRect();
+\g<indent>    const availableWidth = viewportRect
+\g<indent>        ? Math.max(1, viewportRect.right - wrapperRect.left)
+\g<indent>        : Math.max(1, wrapper.parentElement?.clientWidth || newWidth);
+\g<indent>    const availableHeight = descriptionRect
+\g<indent>        ? Math.max(1, descriptionRect.bottom - wrapperRect.top)
+\g<indent>        : Math.max(1, wrapper.parentElement?.clientHeight || newHeight);
+\g<indent>    const minWidth = Math.min(50, availableWidth);
+\g<indent>    const minHeight = Math.min(50, availableHeight);
+\g<indent>
+\g<indent>    if (moveEvent.shiftKey) {
+\g<indent>        newWidth = Math.min(Math.max(minWidth, newWidth), availableWidth, availableHeight * aspectRatio);
+\g<indent>        newHeight = Math.min(Math.max(minHeight, newWidth / aspectRatio), availableHeight);
+\g<indent>    } else {
+\g<indent>        newWidth = Math.min(Math.max(minWidth, newWidth), availableWidth);
+\g<indent>        newHeight = Math.min(Math.max(minHeight, newHeight), availableHeight);
+\g<indent>    }
+\g<indent>
+\g<indent>    wrapper.style.width = newWidth + 'px';
+\g<indent>    wrapper.style.height = newHeight + 'px';"""
+
+          text, count = old_move.subn(replacement, text, count=1)
+          if count != 1:
+              raise SystemExit('image resize move block not found')
+
+          path.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Validate JavaScript
+        run: node --check frontend/app.js
+
+      - name: Commit and remove temporary workflow
+        shell: bash
+        run: |
+          rm -f .github/workflows/apply-image-resize-clamp.yml
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add frontend/app.js .github/workflows/apply-image-resize-clamp.yml
+          git commit -m "fix: clamp image resize to description bounds"
+          git push origin agent/borderless-description-work
