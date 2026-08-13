@@ -30,9 +30,9 @@ async function doeLoadAssetRoots() {
         }
     } catch (e) { console.warn('[Assets] get_asset_roots failed', e); }
 }
-window.prioritySettings = { 
+window.prioritySettings = {
     show_always: false,
-    t_low: 40, t_mid: 70, 
+    t_low: 40, t_mid: 70,
     e_low: "😞", e_mid: "😐", e_high: "🤩", e_none: "?",
     c_low: "#D35446", "c_mid": "#B3863A", "c_high": "#89A085", c_none: "#7C5CB7"
 };
@@ -56,9 +56,9 @@ const translations = {
         loading: 'Загрузка...',
         settings: 'Настройки', theme: 'Тема', language: 'Язык', about: 'О приложении', workspace: 'Doe Board', cancel: 'Отмена', close: 'Закрыть',
         newColumn: '+ Создать колонку', newTask: '+ Новая карточка', subtasks: 'Чек-лист',
-        menu: { 
-            mode: 'Режим колонки', collapse: 'Свернуть колонку', rename: 'Переименовать', 
-            delete: 'Удалить', clear: 'Очистить', open: 'Открыть', 
+        menu: {
+            mode: 'Режим колонки', collapse: 'Свернуть колонку', rename: 'Переименовать',
+            delete: 'Удалить', clear: 'Очистить', open: 'Открыть',
             deleteCard: 'Удалить карточку', clearTimer: 'Очистить таймер',
             exportCard: 'Экспорт в Markdown', moveCard: 'Переместить...', attachmentsSettings: 'Хранилище вложений', fontSettings: 'Шрифт',
             exportJson: 'Экспорт в JSON', importJson: 'Импорт из JSON',
@@ -80,7 +80,7 @@ const translations = {
             insightNeutral: (day) => `Стабильная неделя. Больше всего времени вы были в фокусе в ${day}.`,
             insightEmpty: 'Трекайте время и закрывайте задачи, чтобы собрать аналитику.'
         },
-        modals: { 
+        modals: {
             extTitle: 'Расширения', extSearch: 'Поиск', extCalendar: 'Календарь', extReminders: 'Напоминания', extGraph: 'Граф связей', extTabs: 'Вкладки', extDeadlines: 'Дедлайны', extExport: 'Экспорт карточек', extPriority: 'Приоритетность', extAi: 'ИИ-ассистент', extStatistics: 'Статистика', sortTitle: 'Сортировка',
             priorityTitle: 'Приоритетность', prioC: 'Одобренная ценность (через год)', prioD: 'Шанс успеха', prioA: 'Фоновая грызня (висит грузом)', prioB: 'Боль процесса', prioE: 'Затянутость', prioResult: 'Итоговая приоритетность:', btnClear: 'Очистить',
             prioSettingsTitle: 'Приоритетность',
@@ -101,7 +101,7 @@ const translations = {
             fontNotFound: 'Шрифт не найден. Нажмите Enter для применения.', fontSystemDefault: 'По умолчанию',
             fontSelectCustom: 'Выбрать .ttf / .otf ...',
             dueDateTitle: 'Установить дедлайн', dueDateSet: 'Установить дедлайн', dueDateClear: 'Очистить',
-            themeTitle: 'Тема оформления', light: 'Светлая', dark: 'Тёмная', 
+            themeTitle: 'Тема оформления', light: 'Светлая', dark: 'Тёмная',
             langTitle: 'Выберите язык', aboutTitle: 'О приложении',
             aboutDesc: 'Aesthetic. Local-first. Kanban sanctuary.',
             licensesTitle: 'Лицензии и благодарности',
@@ -248,7 +248,7 @@ const translations = {
         timeUnits: { y: 'л', w: 'н', d: 'д', h: 'ч', m: 'м', s: 'с' },
         timeUnitsFull: { s: 'секунд', m: 'минут', h: 'часов', d: 'дней', w: 'недель', mo: 'месяцев', y: 'лет' },
         prompts: {
-            taskTitle: 'Название карточки:', columnTitle: 'Название колонки:', renameColumn: 'Новое название:', 
+            taskTitle: 'Название карточки:', columnTitle: 'Название колонки:', renameColumn: 'Новое название:',
             deleteConfirmTitle: 'Удалить колонку?', deleteConfirmDesc: 'Все карточки внутри будут потеряны.',
             clearConfirmTitle: 'Очистить колонку?', clearConfirmDesc: 'Все карточки внутри будут удалены безвозвратно.',
             newTabTitle: 'Название новой вкладки:', deleteTabConfirm: 'Удалить вкладку?',
@@ -335,9 +335,9 @@ const translations = {
         loading: 'Loading...',
         settings: 'Settings', theme: 'Theme', language: 'Language', about: 'About', workspace: 'Doe Board', cancel: 'Cancel', close: 'Close',
         newColumn: '+ Create column', newTask: '+ New card', subtasks: 'Checklist',
-        menu: { 
-            mode: 'Column mode', collapse: 'Collapse column', rename: 'Rename', 
-            delete: 'Delete', clear: 'Clear', open: 'Open', 
+        menu: {
+            mode: 'Column mode', collapse: 'Collapse column', rename: 'Rename',
+            delete: 'Delete', clear: 'Clear', open: 'Open',
             deleteCard: 'Delete card', clearTimer: 'Clear timer',
             exportCard: 'Export to Markdown', moveCard: 'Move...', attachmentsSettings: 'Attachments Storage', fontSettings: 'Font',
             exportJson: 'Export to JSON', importJson: 'Import from JSON',
@@ -359,7 +359,7 @@ const translations = {
             insightNeutral: (day) => `A stable week. You focused the most on ${day}.`,
             insightEmpty: 'Track your time and complete tasks to build analytics.'
         },
-        modals: { 
+        modals: {
             extTitle: 'Extensions', extSearch: 'Search', extCalendar: 'Calendar', extReminders: 'Reminders', extGraph: 'Connections Graph', extTabs: 'Tabs', extDeadlines: 'Deadlines', extExport: 'Card Export', extPriority: 'Priority', extAi: 'AI-assistant', extStatistics: 'Statistics', sortTitle: 'Sorting',
             priorityTitle: 'Priority', prioC: 'Approved value (in a year)', prioD: 'Chance of success', prioA: 'Background gnawing (weighs heavy)', prioB: 'Pain of the process', prioE: 'Protraction', prioResult: 'Total Priority:', btnClear: 'Clear',
             prioSettingsTitle: 'Priority',
@@ -380,7 +380,7 @@ const translations = {
             fontNotFound: 'Font not found. Press Enter to apply.', fontSystemDefault: 'Default',
             fontSelectCustom: 'Select .ttf / .otf ...',
             dueDateTitle: 'Due date', dueDateSet: 'Set deadline', dueDateClear: 'Clear',
-            themeTitle: 'Theme', light: 'Light', dark: 'Dark', 
+            themeTitle: 'Theme', light: 'Light', dark: 'Dark',
             langTitle: 'Select language', aboutTitle: 'About',
             aboutDesc: 'Aesthetic. Local-first. Kanban sanctuary.',
             licensesTitle: 'Licenses & acknowledgements',
@@ -524,7 +524,7 @@ const translations = {
         timeUnits: { y: 'y', w: 'w', d: 'd', h: 'h', m: 'm', s: 's' },
         timeUnitsFull: { s: 'seconds', m: 'minutes', h: 'hours', d: 'days', w: 'weeks', mo: 'months', y: 'years' },
         prompts: {
-            taskTitle: 'Card title:', columnTitle: 'Column title:', renameColumn: 'New name:', 
+            taskTitle: 'Card title:', columnTitle: 'Column title:', renameColumn: 'New name:',
             deleteConfirmTitle: 'Delete column?', deleteConfirmDesc: 'All cards inside will be lost.',
             clearConfirmTitle: 'Clear column?', clearConfirmDesc: 'All cards inside will be permanently deleted.',
             newTabTitle: 'New tab name:', deleteTabConfirm: 'Delete tab?',
@@ -743,7 +743,7 @@ window.applyExtensionsUI = (exts, available) => {
     document.body.classList.toggle('ext-ai-hidden', !exts.ai);
     document.body.classList.toggle('ext-automations-hidden', !exts.automations);
     document.body.classList.toggle('ext-statistics-hidden', !exts.statistics);
-    
+
     const searchWrapper = document.getElementById('global-search-wrapper');
     const calendarBtn = document.getElementById('calendar-trigger');
     const statisticsBtn = document.getElementById('statistics-trigger');
@@ -818,7 +818,7 @@ window.toggleExtension = async (key, value) => {
 
         const payload = { extensions: {} };
         payload.extensions[key] = value;
-        
+
         const res = await fetch(`${API_BASE}/system/settings`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
@@ -869,7 +869,7 @@ window.addEventListener('dragover', (e) => e.preventDefault());
 window.addEventListener('drop', (e) => e.preventDefault());
 
 let currentLang = 'ru';
-let activeConfirmResolve = null; 
+let activeConfirmResolve = null;
 let activeDetachResolve = null;
 
 function showDetachModal() {
@@ -906,7 +906,7 @@ const markdownCallbacks = {};
 
 function initMarkdownWorker() {
     if (markdownWorker) return;
-    
+
     // 🔒 Без сервера воркер грузит библиотеки по абсолютным file://-путям из
     // каталога frontend/, а KaTeX теперь локальный (не CDN). Корень вложений
     // прокидываем в воркер снимком self.__DOE_ATTACH (для resolveMarkdownAssetSrc).
@@ -1035,7 +1035,7 @@ function initMarkdownWorker() {
 
     const blob = new Blob([workerCode], { type: 'application/javascript' });
     markdownWorker = new Worker(URL.createObjectURL(blob));
-    
+
     markdownWorker.onmessage = function(e) {
         const { id, html } = e.data;
         if (markdownCallbacks[id]) {
@@ -1047,7 +1047,7 @@ function initMarkdownWorker() {
 
 function renderMarkdownProgressively(text, container, options) {
     window.isRenderingMarkdown = true;
-    
+
     let onBeforeInsert = null;
     let onFirstScreen = null;
     let onComplete = null;
@@ -1075,14 +1075,14 @@ function renderMarkdownProgressively(text, container, options) {
 
     const token = Symbol();
     container._renderToken = token;
-    
+
     container.style.visibility = '';
     container.innerHTML = `<span class="markdown-empty">${t('loading')}</span>`;
 
     initMarkdownWorker();
     markdownRenderId++;
     const currentId = markdownRenderId;
-    
+
     markdownCallbacks[currentId] = (html) => {
         if (container._renderToken !== token) return;
 
@@ -1118,21 +1118,21 @@ function renderMarkdownProgressively(text, container, options) {
 
 function formatExactTime(seconds) {
     if (!seconds) return "00:00:00";
-    
+
     const MAX_SECONDS = 31536000000;
     if (seconds >= MAX_SECONDS) {
         return currentLang === 'ru' ? '1000+ лет' : '1000+ y';
     }
-    
+
     const d = Math.floor(seconds / 86400);
     const h = Math.floor((seconds % 86400) / 3600).toString().padStart(2, '0');
     const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
     const s = Math.floor(seconds % 60).toString().padStart(2, '0');
-    
+
     if (d === 0) {
         return `${h}:${m}:${s}`;
     }
-    
+
     const units = t('timeUnits');
     return `${d}${units.d} ${h}:${m}:${s}`;
 }
@@ -1246,11 +1246,11 @@ async function triggerGarbageCollector() {
     }
 }
 
-async function fetchWorkspaces() { 
-    const res = await fetch(`${API_BASE}/workspaces/`); 
-    if (!res.ok) throw new Error('Error'); return res.json(); 
+async function fetchWorkspaces() {
+    const res = await fetch(`${API_BASE}/workspaces/`);
+    if (!res.ok) throw new Error('Error'); return res.json();
 }
-async function createWorkspaceAPI(name) { 
+async function createWorkspaceAPI(name) {
     const res = await fetch(`${API_BASE}/workspaces/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) });
     if (!res.ok) throw new Error('Error'); return res.json();
 }
@@ -1263,9 +1263,9 @@ async function updateWorkspaceAPI(id, name) {
     if (!res.ok) throw new Error('Error');
     return res.json();
 }
-async function deleteWorkspaceAPI(id) { 
-    const res = await fetch(`${API_BASE}/workspaces/${id}`, { method: 'DELETE' }); 
-    if (!res.ok) throw new Error('Error'); 
+async function deleteWorkspaceAPI(id) {
+    const res = await fetch(`${API_BASE}/workspaces/${id}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error('Error');
 }
 
 async function fetchVault() {
@@ -1285,17 +1285,17 @@ async function switchVault() {
     }
 
     const selectedPath = await window.pywebview.api.choose_directory();
-    
+
     if (!selectedPath) {
         return { canceled: true };
     }
 
-    const res = await fetch(`${API_BASE}/system/vault/switch`, { 
+    const res = await fetch(`${API_BASE}/system/vault/switch`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ new_path: selectedPath })
     });
-    
+
     if (!res.ok) throw new Error('Error switching vault');
     return res.json();
 }
@@ -1305,13 +1305,13 @@ function updateVaultName(name) {
     if (span) {
 
         span.dataset.fullTitle = name;
-        
+
         if (name.length > 30) {
             span.textContent = name.substring(0, 29) + '…';
         } else {
             span.textContent = name;
         }
-        
+
         span.removeAttribute('data-i18n');
     }
 }
@@ -1323,9 +1323,9 @@ async function saveTasksOrder(orderedIds) {
     if (!res.ok) throw new Error('Error');
 }
 
-async function fetchColumns(workspaceId) { 
-    const res = await fetch(`${API_BASE}/columns/?workspace_id=${workspaceId}`); 
-    if (!res.ok) throw new Error('Error'); return res.json(); 
+async function fetchColumns(workspaceId) {
+    const res = await fetch(`${API_BASE}/columns/?workspace_id=${workspaceId}`);
+    if (!res.ok) throw new Error('Error'); return res.json();
 }
 
 async function saveColumnsOrder(orderedIds) {
@@ -1337,11 +1337,11 @@ async function saveColumnsOrder(orderedIds) {
 async function createColumn(title, mode = 'default', workspaceId, position = null) {
     const body = { title, mode, workspace_id: workspaceId };
     if (position !== null) body.position = position;
-    
-    const res = await fetch(`${API_BASE}/columns/`, { 
-        method: 'POST', 
-        headers: { 'Content-Type': 'application/json' }, 
-        body: JSON.stringify(body) 
+
+    const res = await fetch(`${API_BASE}/columns/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
     });
     if (!res.ok) throw new Error('Error'); return res.json();
 }
@@ -1377,7 +1377,7 @@ function formatTotalTime(seconds) {
     if (d > 0) parts.push(`${d}${units.d}`);
     if (h > 0) parts.push(`${h}${units.h}`);
     if (m > 0) parts.push(`${m}${units.m}`);
-    
+
     if (s > 0 || parts.length === 0) {
         parts.push(`${s}${units.s}`);
     }
@@ -1411,14 +1411,14 @@ function formatDetailedDuration(seconds) {
 
     let parts = [];
     let started = false;
-    
+
     if (y > 0) { parts.push(`${y}л`); started = true; }
     if (mo > 0 || started) { parts.push(`${mo}мес`); started = true; }
     if (d > 0 || started) { parts.push(`${d}д`); started = true; }
     if (h > 0 || started) { parts.push(`${h}ч`); started = true; }
     if (m > 0 || started) { parts.push(`${m}м`); started = true; }
-    parts.push(`${s}с`); 
-    
+    parts.push(`${s}с`);
+
     return parts.join(' ');
 }
 
@@ -1432,9 +1432,9 @@ function formatShortDate(isoString) {
 }
 
 async function deleteColumn(id) { const res = await fetch(`${API_BASE}/columns/${id}`, { method: 'DELETE' }); if (!res.ok) throw new Error('Error'); }
-async function clearColumn(id) { 
-    const res = await fetch(`${API_BASE}/columns/${id}/tasks`, { method: 'DELETE' }); 
-    if (!res.ok) throw new Error('Error'); 
+async function clearColumn(id) {
+    const res = await fetch(`${API_BASE}/columns/${id}/tasks`, { method: 'DELETE' });
+    if (!res.ok) throw new Error('Error');
 }
 async function createTask(title, columnId) {
     const res = await fetch(`${API_BASE}/tasks/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title, column_id: columnId }) });
@@ -1452,7 +1452,7 @@ async function updateTask(id, data) {
 async function handleClearDueDate(taskId) {
     try {
         await updateTask(taskId, { due_date: null });
-        
+
         let updatedColId = null;
         for (let col of state.columns) {
             let t = col.tasks.find(task => task.id == taskId);
@@ -1472,23 +1472,23 @@ async function handleClearDueDate(taskId) {
                 break;
             }
         }
-        
+
         if (updatedColId) await syncColumnDOM(updatedColId);
-        
+
         const taskModal = document.getElementById('task-modal');
         if (taskModal.classList.contains('show') && parseInt(taskModal.dataset.taskId) === taskId) {
-            loadTaskIntoModal(taskId, false); 
+            loadTaskIntoModal(taskId, false);
         }
-        
+
     } catch (e) {
         window.showToast(t('alerts.error'), 'Не удалось очистить срок', true);
     }
 }
 
-async function deleteTask(id) { 
-    const res = await fetch(`${API_BASE}/tasks/${id}`, { method: 'DELETE' }); 
-    if (!res.ok) throw new Error('Error'); 
-    return res.json(); 
+async function deleteTask(id) {
+    const res = await fetch(`${API_BASE}/tasks/${id}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error('Error');
+    return res.json();
 }
 
 async function moveTask(taskId, targetColumnId) {
@@ -1711,14 +1711,14 @@ function encodeMarkdownPath(path) {
 function applyTextExpansion() {
     const renderDiv = document.getElementById('task-desc-render');
     if (!renderDiv) return;
-    
+
     const images = renderDiv.querySelectorAll('.image-resizer-wrapper.has-custom-size');
     let maxWidth = 0;
     images.forEach(img => {
         const w = parseInt(img.style.width);
         if (w > maxWidth) maxWidth = w;
     });
-    
+
     if (maxWidth > 0) {
         renderDiv.style.minWidth = (maxWidth + 24) + 'px';
     } else {
@@ -1728,28 +1728,28 @@ function applyTextExpansion() {
 
 function formatTime(task) {
     let startStr = task.active_timer.start_time;
-    if (!startStr.endsWith('Z')) startStr += 'Z'; 
-    const start = new Date(startStr); 
-    
+    if (!startStr.endsWith('Z')) startStr += 'Z';
+    const start = new Date(startStr);
+
     const activeSeconds = Math.max(0, Math.floor((Date.now() - start) / 1000));
     const closedSeconds = task.total_time_spent || 0;
-    
+
     const diff = activeSeconds + closedSeconds;
-    
+
     const MAX_SECONDS = 31536000000;
     if (diff >= MAX_SECONDS) {
         return currentLang === 'ru' ? '1000+ лет' : '1000+ y';
     }
-    
+
     const d = Math.floor(diff / 86400);
     const h = Math.floor((diff % 86400) / 3600).toString().padStart(2, '0');
     const m = Math.floor((diff % 3600) / 60).toString().padStart(2, '0');
     const s = Math.floor(diff % 60).toString().padStart(2, '0');
-    
+
     if (d === 0) {
         return `${h}:${m}:${s}`;
     }
-    
+
     const units = t('timeUnits');
     return `${d}${units.d} ${h}:${m}:${s}`;
 }
@@ -1764,22 +1764,22 @@ function bumpModalUpdatedDate() {
 
 function formatDateTime(isoString) {
     if (!isoString) return '';
-    
+
     let dateStr = isoString;
     if (!dateStr.endsWith('Z') && !dateStr.includes('+')) {
         dateStr += 'Z';
     }
-    
+
     const date = new Date(dateStr);
-    
-    const options = { 
-        year: 'numeric', 
-        month: 'short', 
-        day: 'numeric', 
-        hour: '2-digit', 
-        minute: '2-digit' 
+
+    const options = {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
     };
-    
+
     return date.toLocaleDateString(currentLang, options);
 }
 
@@ -1842,7 +1842,7 @@ window.syncColumnDOM = async function(columnId) {
     try {
         const freshCols = await fetchColumns(state.activeWorkspaceId);
         state.columns = freshCols.map(col => ({ ...col, collapsed: col.collapsed || false }));
-        
+
         const colEl = document.querySelector(`.column[data-column-id="${columnId}"]`);
         if (!colEl) {
             renderBoard();
@@ -1887,16 +1887,16 @@ window.syncColumnDOM = async function(columnId) {
                 nextCard = nextCard.nextElementSibling;
             }
             const nextId = nextCard ? nextCard.dataset.cardId : 'END';
-            
+
             if (!spacerMap.has(nextId)) spacerMap.set(nextId, []);
             spacerMap.get(nextId).push(s);
-            
+
             s.remove();
         });
 
         cardList.innerHTML = '';
         const sortedTasks = [...colState.tasks].sort((a, b) => a.position - b.position);
-        
+
         sortedTasks.forEach(task => {
             if (spacerMap.has(String(task.id))) {
                 spacerMap.get(String(task.id)).forEach(s => cardList.appendChild(s));
@@ -1957,7 +1957,7 @@ function updateCardAppearance(cardElement, task, columnMode) {
     const hasChecklist = subtasks.length > 0;
     const isTimerColumn = (columnMode === 'track_time');
     const isCompletionTime = (columnMode === 'completion' && task.total_time_spent !== undefined);
-    
+
     cardElement.classList.toggle('has-unknown-time', isCompletionTime && task.total_time_spent === 0);
 
     let footer = cardElement.querySelector('.card-footer');
@@ -1978,7 +1978,7 @@ function updateCardAppearance(cardElement, task, columnMode) {
 
     const ps = window.prioritySettings;
     const hasPriority = task.priority !== null && task.priority !== undefined;
-    
+
     if (hasPriority || ps.show_always) {
         let levelClass = 'level-high';
         let emoji = ps.e_high;
@@ -1993,7 +1993,7 @@ function updateCardAppearance(cardElement, task, columnMode) {
             else if (task.priority < ps.t_mid) { levelClass = 'level-mid'; emoji = ps.e_mid; }
             displayValue = (Math.round(parseFloat(task.priority) * 10) / 10) + '%';
         }
-        
+
         newContent += `<div class="priority-pill ${levelClass} clickable" onclick="openPriorityModal(${task.id})"><span>${displayValue}</span><span>${emoji}</span></div>`;
     }
 
@@ -2069,7 +2069,7 @@ function generateCardHtml(task, columnMode) {
             else if (task.priority < ps.t_mid) { levelClass = 'level-mid'; emoji = ps.e_mid; }
             displayValue = (Math.round(parseFloat(task.priority) * 10) / 10) + '%';
         }
-        
+
         priorityHtml = `<div class="priority-pill ${levelClass} clickable" onclick="openPriorityModal(${task.id})"><span>${displayValue}</span><span>${emoji}</span></div>`;
     }
 
@@ -2125,13 +2125,13 @@ function generateCardHtml(task, columnMode) {
             spentTimeHtml = `<div class="subtask-meta">${t('card.timeSpent')} ${formatTotalTime(task.total_time_spent)}</div>`;
         }
         if (task.total_time_spent === 0) extraClasses.push('has-unknown-time');
-    } 
+    }
 
     let footerHtml = '';
     if (checklistHtml || priorityHtml || dueDateHtml || timerHtml || spentTimeHtml) {
         footerHtml = `<div class="card-footer">${checklistHtml}${priorityHtml}${dueDateHtml}${timerHtml}${spentTimeHtml}</div>`;
     }
-    
+
     return `
         <div class="card ${extraClasses.join(' ')}" data-card-id="${task.id}">
             <div class="card-title-wrapper">
@@ -2158,7 +2158,7 @@ function createColumnElement(column) {
     const colDiv = document.createElement('div');
     colDiv.className = 'column';
     colDiv.dataset.columnId = column.id;
-    
+
     if (column.collapsed) colDiv.classList.add('collapsed');
 
     let pillClass = 'meta-pill default';
@@ -2172,7 +2172,7 @@ function createColumnElement(column) {
     }
 
     const sortedTasks = [...column.tasks].sort((a, b) => a.position - b.position);
-    
+
     let tasksHtml = '';
     sortedTasks.forEach((task) => {
         tasksHtml += generateCardHtml(task, column.mode);
@@ -2262,7 +2262,7 @@ async function refreshBoard(scrollToActive = false, newTabId = null) {
             _prefetchWsId ? fetchColumns(_prefetchWsId).catch(() => null) : Promise.resolve(null)
         ]);
         state.workspaces = _wsList;
-        
+
         if (!state.activeWorkspaceId || !state.workspaces.find(w => w.id === state.activeWorkspaceId)) {
             state.activeWorkspaceId = state.workspaces[0].id;
         }
@@ -2279,9 +2279,9 @@ async function refreshBoard(scrollToActive = false, newTabId = null) {
         if (calModal && calModal.classList.contains('show') && Calendar.syncData) {
             Calendar.syncData();
         }
-        
-    } catch (e) { 
-        console.error(e); 
+
+    } catch (e) {
+        console.error(e);
     }
 }
 
@@ -2291,9 +2291,9 @@ function createCardFormElement() {
     const placeholder = t('prompts.taskTitle').replace(/:$/, '');
     card.innerHTML = `
         <div class="card-input-wrapper">
-            <textarea 
-                class="card-input" 
-                placeholder="${placeholder}" 
+            <textarea
+                class="card-input"
+                placeholder="${placeholder}"
                 autocomplete="off"
                 spellcheck="false"
                 rows="1"
@@ -2317,7 +2317,7 @@ async function onAddCardInline(plusBtn) {
     columnEl.setAttribute('draggable', 'false');
 
     const formCard = createCardFormElement();
-    
+
     cardEl.after(formCard);
 
     requestAnimationFrame(() => {
@@ -2341,7 +2341,7 @@ async function onAddCardInline(plusBtn) {
             input.style.overflowY = 'hidden';
         }
     };
-    
+
     input.addEventListener('input', autoResize);
     autoResize();
     input.focus();
@@ -2401,10 +2401,10 @@ async function onAddCardInline(plusBtn) {
 
         let nextPosition = null;
         let prevPosition = null;
-        
+
         const currentCardId = parseInt(cardEl.dataset.cardId);
         const currentTask = colState.tasks.find(t => t.id === currentCardId);
-        
+
         prevPosition = currentTask.position;
         const nextCardEl = cardEl.nextElementSibling;
         if (nextCardEl && nextCardEl.classList.contains('card') && !nextCardEl.classList.contains('card-entering')) {
@@ -2412,7 +2412,7 @@ async function onAddCardInline(plusBtn) {
             const nextTask = colState.tasks.find(t => t.id === nextCardId);
             if (nextTask) nextPosition = nextTask.position;
         }
-        
+
         let targetPosition = 0;
         if (prevPosition !== null && nextPosition !== null) {
             targetPosition = (prevPosition + nextPosition) / 2;
@@ -2425,14 +2425,14 @@ async function onAddCardInline(plusBtn) {
         }
 
         try {
-            const res = await fetch(`${API_BASE}/tasks/`, { 
-                method: 'POST', 
-                headers: { 'Content-Type': 'application/json' }, 
-                body: JSON.stringify({ 
-                    title, 
+            const res = await fetch(`${API_BASE}/tasks/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    title,
                     column_id: columnId,
                     position: targetPosition
-                }) 
+                })
             });
             if (!res.ok) throw new Error('Create failed');
             const newTask = await res.json();
@@ -2444,7 +2444,7 @@ async function onAddCardInline(plusBtn) {
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = realCardStr.trim();
             const realCard = tempDiv.firstChild;
-            
+
             realCard.classList.add('card-birth');
 
             formCard.replaceWith(realCard);
@@ -2524,9 +2524,9 @@ async function onAddTask(columnId) {
 
     const cardList = columnEl.querySelector('.card-list');
     const formCard = createCardFormElement();
-    
+
     cardList.appendChild(formCard);
-    
+
     requestAnimationFrame(() => {
         requestAnimationFrame(() => {
             formCard.classList.add('entered');
@@ -2535,7 +2535,7 @@ async function onAddTask(columnId) {
     });
 
     const input = formCard.querySelector('.card-input');
-    
+
     const autoResize = () => {
         const computed = window.getComputedStyle(input);
         const borders = parseFloat(computed.borderTopWidth) + parseFloat(computed.borderBottomWidth);
@@ -2550,7 +2550,7 @@ async function onAddTask(columnId) {
             input.style.overflowY = 'hidden';
         }
     };
-    
+
     input.addEventListener('input', autoResize);
     autoResize();
     input.focus();
@@ -2563,7 +2563,7 @@ async function onAddTask(columnId) {
         isResolved = true;
 
         columnEl.setAttribute('draggable', 'true');
-        
+
         input.blur();
 
         if (!animate) {
@@ -2612,7 +2612,7 @@ async function onAddTask(columnId) {
 
         try {
             const newTask = await createTask(title, columnId);
-            
+
             const columnState = state.columns.find(c => c.id === columnId);
             if (columnState) {
                 columnState.tasks.push(newTask);
@@ -2622,7 +2622,7 @@ async function onAddTask(columnId) {
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = realCardStr.trim();
             const realCard = tempDiv.firstChild;
-            
+
             realCard.classList.add('card-birth');
 
             formCard.replaceWith(realCard);
@@ -2707,9 +2707,9 @@ function createColumnFormElement() {
     const placeholder = t('prompts.columnTitle').replace(/:$/, '');
     col.innerHTML = `
         <div class="column-form-inner">
-            <textarea 
-                class="column-input" 
-                placeholder="${placeholder}" 
+            <textarea
+                class="column-input"
+                placeholder="${placeholder}"
                 autocomplete="off"
                 spellcheck="false"
             ></textarea>
@@ -2736,7 +2736,7 @@ function closeAllOpenCardForms(excludeColumnId = null) {
 function restoreAddButton() {
     const board = document.getElementById('board');
     if (board.querySelector('.new-column-btn')) return;
-    
+
     const btn = document.createElement('button');
     btn.className = 'new-column-btn';
     btn.textContent = t('newColumn');
@@ -2751,7 +2751,7 @@ async function onCreateColumn() {
     if (!addBtn) return;
 
     const formCol = createColumnFormElement();
-    
+
     addBtn.replaceWith(formCol);
 
     requestAnimationFrame(() => {
@@ -2768,7 +2768,7 @@ async function onCreateColumn() {
     const cancel = (animate = true) => {
         if (isResolved) return;
         isResolved = true;
-        
+
         input.blur();
 
         if (!animate) {
@@ -2796,20 +2796,20 @@ async function onCreateColumn() {
         input.style.height = '1px';
         const sh = input.scrollHeight + borders;
         const boardHeight = document.getElementById('board').clientHeight;
-        
+
         const maxAllowedHeight = Math.max(60, boardHeight - 60);
-        
+
         if (sh > maxAllowedHeight) {
             input.style.height = maxAllowedHeight + 'px';
-            input.style.overflowY = 'auto'; 
+            input.style.overflowY = 'auto';
         } else {
             input.style.height = sh + 'px';
-            input.style.overflowY = 'hidden'; 
+            input.style.overflowY = 'hidden';
         }
     };
 
     input.addEventListener('input', autoResize);
-    
+
     requestAnimationFrame(() => {
         autoResize();
     });
@@ -2912,7 +2912,7 @@ async function onCreateColumn() {
 
 function renderTabs(scrollToActive = false, newTabId = null) {
     const container = document.getElementById('tabs-container');
-    const savedScroll = container.scrollLeft; 
+    const savedScroll = container.scrollLeft;
     container.innerHTML = '';
 
     state.workspaces.sort((a, b) => a.position - b.position);
@@ -2920,13 +2920,13 @@ function renderTabs(scrollToActive = false, newTabId = null) {
     state.workspaces.forEach(ws => {
         const tab = document.createElement('div');
         tab.className = `board-tab ${ws.id === state.activeWorkspaceId ? 'active' : ''}`;
-        
+
         if (ws.id === newTabId) {
             tab.classList.add('tab-birth');
         }
-        
+
         tab.dataset.workspaceId = ws.id;
-        
+
         const canDelete = state.workspaces.length > 1;
         tab.innerHTML = `
             <span class="tab-name" data-full-title="${escapeHtml(ws.name)}">${escapeHtml(ws.name)}</span>
@@ -2937,24 +2937,24 @@ function renderTabs(scrollToActive = false, newTabId = null) {
 
         tab.addEventListener('click', async (e) => {
             if (e.target.closest('.tab-close-btn')) return;
-            
+
             if (ws.id !== state.activeWorkspaceId) {
                 e.stopPropagation();
                 closeAllDropdowns();
-                
+
                 document.querySelectorAll('.board-tab').forEach(t => t.classList.remove('active'));
                 tab.classList.add('active');
-                
+
                 state.activeWorkspaceId = ws.id;
                 updateSettings({ active_workspace_id: ws.id }).catch(console.error);
-                
+
                 try {
                     const columns = await fetchColumns(state.activeWorkspaceId);
                     state.columns = columns.map(col => ({ ...col, collapsed: col.collapsed || false }));
                     renderBoard();
                 } catch (err) {
                     console.error('Ошибка загрузки колонок:', err);
-                    refreshBoard(); 
+                    refreshBoard();
                 }
             }
         });
@@ -2962,7 +2962,7 @@ function renderTabs(scrollToActive = false, newTabId = null) {
         if (canDelete) {
             tab.querySelector('.tab-close-btn').addEventListener('click', async (e) => {
                 e.stopPropagation();
-                
+
                 const isConfirmed = await showConfirmModal(t('prompts.deleteTabConfirm'), t('prompts.deleteTabDesc'));
                 if (!isConfirmed) return;
 
@@ -2974,9 +2974,9 @@ function renderTabs(scrollToActive = false, newTabId = null) {
                 if (isActive) {
                     const nextIndex = Math.min(currentIndex, state.workspaces.length - 1);
                     state.activeWorkspaceId = state.workspaces[nextIndex].id;
-                    
-                    renderTabs(true); 
-                    
+
+                    renderTabs(true);
+
                     try {
                         const columns = await fetchColumns(state.activeWorkspaceId);
                         state.columns = columns.map(col => ({ ...col, collapsed: col.collapsed || false }));
@@ -3002,12 +3002,12 @@ function renderTabs(scrollToActive = false, newTabId = null) {
     separator.innerHTML = `
         <svg class="hb-chevron" viewBox="0 0 12 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="8 4 3 12 8 20"></polyline></svg>
     `;
-    
+
     separator.addEventListener('click', (e) => {
         e.stopPropagation();
         closeAllDropdowns();
         const willBeHidden = document.body.classList.toggle('tabs-hidden');
-        
+
         if (window.appSettings) window.appSettings.tabs_hidden = willBeHidden;
         updateSettings({ tabs_hidden: willBeHidden }).catch(console.error);
 
@@ -3019,9 +3019,9 @@ function renderTabs(scrollToActive = false, newTabId = null) {
     let hbIndex = window.appSettings?.hb_index;
     if (typeof hbIndex !== 'number' || isNaN(hbIndex)) {
         hbIndex = parseInt(localStorage.getItem(`doe-hb-index_${window.currentVaultPath}`));
-        if (isNaN(hbIndex)) hbIndex = 999; 
+        if (isNaN(hbIndex)) hbIndex = 999;
     }
-    
+
     const currentTabs = Array.from(container.querySelectorAll('.board-tab:not(.hb-separator)'));
     if (hbIndex < currentTabs.length) {
         container.insertBefore(separator, currentTabs[hbIndex]);
@@ -3032,9 +3032,9 @@ function renderTabs(scrollToActive = false, newTabId = null) {
     const addBtn = document.createElement('button');
     addBtn.className = 'add-tab-btn';
     addBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>';
-    
+
     addBtn.addEventListener('click', onAddTabClick);
-    
+
     container.appendChild(addBtn);
 
     if (scrollToActive) {
@@ -3049,7 +3049,7 @@ function renderTabs(scrollToActive = false, newTabId = null) {
             if (window.updateTabsScrollbar) window.updateTabsScrollbar();
         });
     } else {
-        container.scrollLeft = savedScroll; 
+        container.scrollLeft = savedScroll;
         requestAnimationFrame(() => {
             if (window.updateTabsScrollbar) window.updateTabsScrollbar();
         });
@@ -3082,7 +3082,7 @@ function restoreTabAddButton(container, replaceElement = null) {
     } else {
         container.appendChild(addBtn);
     }
-    
+
     if (window.updateTabsScrollbar) window.updateTabsScrollbar();
     return addBtn;
 }
@@ -3113,7 +3113,7 @@ function onAddTabClick(e) {
         input.style.width = Math.max(100, span.getBoundingClientRect().width + 8) + 'px';
         document.body.removeChild(span);
     };
-    
+
     input.addEventListener('input', autoResize);
     autoResize();
     input.focus({ preventScroll: true });
@@ -3137,7 +3137,7 @@ function onAddTabClick(e) {
         }
 
         const currentWidth = formTab.offsetWidth;
-        
+
         const wrapper = document.createElement('div');
         wrapper.className = 'tab-spacer-wrapper';
         wrapper.style.width = `${currentWidth}px`;
@@ -3210,10 +3210,10 @@ function closeAllDropdowns() {
     document.querySelectorAll('.dropdown-menu.show').forEach(m => m.classList.remove('show'));
     document.querySelectorAll('.menu-btn.active').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.settings-trigger.active').forEach(b => b.classList.remove('active'));
-    
+
     const bellTrigger = document.getElementById('reminders-bell-trigger');
     if (bellTrigger) bellTrigger.classList.remove('active');
-    
+
     document.querySelectorAll('.card-menu-btn.active').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.card.has-open-menu').forEach(c => {
         c.classList.remove('has-open-menu');
@@ -3225,9 +3225,9 @@ function toggleColumnMenu(e, columnEl) {
     const menu = columnEl.querySelector('.dropdown-menu');
     const btn = columnEl.querySelector('.menu-btn');
     const isShowing = menu.classList.contains('show');
-    
+
     closeAllDropdowns();
-    
+
     if (!isShowing) {
         menu.classList.add('show');
         btn.classList.add('active');
@@ -3239,9 +3239,9 @@ function showConfirmModal(title, message, confirmBtnText = t('menu.delete'), isD
         const modal = document.getElementById('confirm-modal');
         modal.querySelector('.confirm-title').textContent = title;
         modal.querySelector('.confirm-text').textContent = message;
-        
+
         modal.querySelector('.cancel-btn').textContent = t('cancel');
-        
+
         const confirmBtn = modal.querySelector('[data-action="confirm-delete"]');
         if (isDanger) {
             confirmBtn.className = 'confirm-btn danger-btn';
@@ -3251,7 +3251,7 @@ function showConfirmModal(title, message, confirmBtnText = t('menu.delete'), isD
             confirmBtn.style.color = 'white';
         }
         confirmBtn.textContent = confirmBtnText;
-        
+
         activeConfirmResolve = resolve;
         modal.classList.add('show');
     });
@@ -3272,10 +3272,10 @@ async function onExpandColumn(columnEl) {
     if (titleEl) {
         titleEl.textContent = titleEl.dataset.fullTitle || titleEl.textContent;
         titleEl.dataset.clamped = "false";
-        
+
         requestAnimationFrame(() => clampSingleTitle(titleEl));
     }
-    
+
     const menu = columnEl.querySelector('.dropdown-menu');
     if (menu) menu.style.display = '';
 
@@ -3307,8 +3307,8 @@ function startColumnResize(colDiv, column, e) {
 
         const onUp = async (e) => {
             clearInterval(syncLockInterval);
-    
-        
+
+
         document.removeEventListener('pointermove', onMove);
         document.removeEventListener('pointerup', onUp);
         document.body.style.cursor = '';
@@ -3350,10 +3350,10 @@ async function handleColumnMenu(action, columnEl, menuItem) {
         setTimeout(() => startColumnRename(columnEl, column), 50);
     } else if (action === 'collapse-column') {
         closeAllDropdowns();
-        
+
         const menu = columnEl.querySelector('.dropdown-menu');
         if (menu) menu.style.display = 'none';
-        
+
         column.collapsed = true;
         columnEl.classList.add('collapsed');
 
@@ -3362,7 +3362,7 @@ async function handleColumnMenu(action, columnEl, menuItem) {
             titleEl.style.display = '';
             titleEl.style.webkitLineClamp = '';
         }
-        
+
         adjustCollapsedColumnWidths();
 
         updateColumn(columnId, { collapsed: true }).catch(err => {
@@ -3370,9 +3370,9 @@ async function handleColumnMenu(action, columnEl, menuItem) {
         });
     } else if (action === 'clear-column') {
         closeAllDropdowns();
-        
+
         const isConfirmed = await showConfirmModal(
-            t('prompts.clearConfirmTitle'), 
+            t('prompts.clearConfirmTitle'),
             t('prompts.clearConfirmDesc'),
             t('menu.clear')
         );
@@ -3380,7 +3380,7 @@ async function handleColumnMenu(action, columnEl, menuItem) {
 
         const cardList = columnEl.querySelector('.card-list');
         const cards = cardList.querySelectorAll('.card');
-        
+
         cards.forEach(card => {
             card.style.transition = 'opacity 0.25s ease, transform 0.25s ease';
             card.style.opacity = '0';
@@ -3388,7 +3388,7 @@ async function handleColumnMenu(action, columnEl, menuItem) {
         });
 
         column.tasks = [];
-        
+
         updateColumnCount(columnEl, 0);
 
         clearColumn(columnId).catch(async e => {
@@ -3402,14 +3402,14 @@ async function handleColumnMenu(action, columnEl, menuItem) {
         }, 250);
 
     } else if (action === 'delete-column') {
-        
+
         closeAllDropdowns();
-        
+
         const isConfirmed = await showConfirmModal(
-            t('prompts.deleteConfirmTitle'), 
+            t('prompts.deleteConfirmTitle'),
             t('prompts.deleteConfirmDesc')
         );
-        
+
         if (!isConfirmed) return;
 
         const rect = columnEl.getBoundingClientRect();
@@ -3426,7 +3426,7 @@ async function handleColumnMenu(action, columnEl, menuItem) {
         spacer.className = 'column-spacer';
         spacer.style.width = `${rect.width}px`;
         spacer.style.minWidth = `${rect.width}px`;
-        
+
         columnEl.replaceWith(spacer);
 
         state.columns = state.columns.filter(c => c.id !== columnId);
@@ -3480,17 +3480,17 @@ function startTabRename(tabEl, ws) {
         span.style.whiteSpace = 'pre';
         span.textContent = input.value || ' ';
         document.body.appendChild(span);
-        
+
         input.style.width = Math.max(20, span.getBoundingClientRect().width + 9) + 'px';
         document.body.removeChild(span);
-        
+
         if (window.updateTabsScrollbar) window.updateTabsScrollbar();
     };
 
     input.addEventListener('input', autoResize);
     autoResize();
-    
-    input.focus({ preventScroll: true }); 
+
+    input.focus({ preventScroll: true });
     input.setSelectionRange(input.value.length, input.value.length);
 
     let committed = false;
@@ -3500,22 +3500,22 @@ function startTabRename(tabEl, ws) {
         span.className = 'tab-name';
         span.textContent = title;
         span.dataset.fullTitle = title;
-        
+
         if (input.parentNode) input.replaceWith(span);
-        
+
         tabEl.setAttribute('draggable', 'true');
         tabEl.classList.remove('is-renaming');
-        
+
         if (window.updateTabsScrollbar) window.updateTabsScrollbar();
     };
 
     const commit = async () => {
         if (committed) return;
         committed = true;
-        
+
         const newName = input.value.trim();
         const finalName = newName || ws.name;
-        
+
         restore(finalName);
 
         if (newName && newName !== ws.name) {
@@ -3574,9 +3574,9 @@ function startColumnRename(columnEl, column) {
         input.style.height = '1px';
         const sh = input.scrollHeight + borders;
         const boardHeight = document.getElementById('board').clientHeight;
-        
+
         const maxAllowedHeight = Math.max(60, boardHeight - 250);
-        
+
         if (sh > maxAllowedHeight) {
             input.style.height = maxAllowedHeight + 'px';
             input.style.overflowY = 'auto';
@@ -3587,8 +3587,8 @@ function startColumnRename(columnEl, column) {
     };
     input.addEventListener('input', autoResize);
 
-    autoResize(); 
-    
+    autoResize();
+
     input.focus();
     input.setSelectionRange(input.value.length, input.value.length);
 
@@ -3666,26 +3666,26 @@ function startCardRename(cardEl, task) {
         const offset = input.offsetHeight - input.clientHeight;
         input.style.height = '1px';
         input.style.height = (input.scrollHeight + offset) + 'px';
-        
+
         if (scrollParent) scrollParent.scrollTop = currentScroll;
-        
+
         if (input.value.trim().length <= 1000) {
             cardEl.classList.remove('is-error');
         }
     };
-    
+
     input.addEventListener('input', () => {
         autoResize();
-        
+
         const globalMenu = document.getElementById('global-card-menu');
         if (globalMenu.classList.contains('show') && globalMenu.dataset.activeCardId == task.id) {
             closeAllDropdowns();
         }
     });
     autoResize();
-    
+
     input.focus();
-    input.setSelectionRange(input.value.length, input.value.length); 
+    input.setSelectionRange(input.value.length, input.value.length);
     bindTitleFormattingShortcuts(input);
 
     let committed = false;
@@ -3698,7 +3698,7 @@ function startCardRename(cardEl, task) {
                 hint = document.createElement('div');
                 hint.className = 'card-error-hint';
                 hint.textContent = t('errors.tooLong');
-                
+
                 const wrapper = input.closest('.card-title-wrapper');
                 if (wrapper) {
                     wrapper.after(hint);
@@ -3710,7 +3710,7 @@ function startCardRename(cardEl, task) {
             cardEl.classList.remove('is-error');
             void cardEl.offsetWidth;
             cardEl.classList.add('is-error');
-            
+
             return false;
         }
         return true;
@@ -3720,10 +3720,10 @@ function startCardRename(cardEl, task) {
         const div = document.createElement('div');
         div.className = 'card-title';
         div.innerHTML = renderInlineMarkdown(title);
-        
+
         const hint = cardEl.querySelector('.card-error-hint');
         if (hint) hint.remove();
-        
+
         if (input.parentNode) input.replaceWith(div);
         cardEl.classList.remove('is-renaming', 'is-error');
     };
@@ -3733,16 +3733,16 @@ function startCardRename(cardEl, task) {
 
         if (!validateAndShake()) {
             input.focus();
-            return; 
+            return;
         }
 
         committed = true;
-        
+
         closeAllDropdowns();
 
         const newTitle = input.value.trim();
         const finalTitle = newTitle || task.title;
-        
+
         restore(finalTitle);
 
         if (newTitle && newTitle !== task.title) {
@@ -3755,14 +3755,14 @@ function startCardRename(cardEl, task) {
 
                 await updateTask(task.id, { title: newTitle });
                 task.title = newTitle;
-                
+
                 const colEl = cardEl.closest('.column');
                 if (colEl) await syncColumnDOM(parseInt(colEl.dataset.columnId));
             } catch (_) {
                 cardEl.classList.add('is-error');
                 const div = cardEl.querySelector('.card-title');
                 if (div) div.innerHTML = renderInlineMarkdown(task.title);
-                
+
                 const subtaskTitleEl = document.querySelector(`.subtask-item[data-subtask-id="${task.id}"] .subtask-title`);
                 if (subtaskTitleEl) {
                     subtaskTitleEl.innerHTML = renderInlineMarkdown(task.title);
@@ -3783,16 +3783,16 @@ function startCardRename(cardEl, task) {
         if (e.key === 'Escape') {
             e.preventDefault();
             committed = true;
-            
+
             closeAllDropdowns();
-            
+
             restore(task.title);
         }
     });
 
     input.addEventListener('blur', () => {
-        setTimeout(() => { 
-            if (!committed) commit(); 
+        setTimeout(() => {
+            if (!committed) commit();
         }, 120);
     });
 }
@@ -3826,7 +3826,7 @@ function startModalTaskRename(titleEl) {
         }
     });
     autoResize();
-    
+
     input.focus();
     input.setSelectionRange(input.value.length, input.value.length);
     bindTitleFormattingShortcuts(input);
@@ -3853,7 +3853,7 @@ function startModalTaskRename(titleEl) {
 
     const commit = async () => {
         if (committed) return;
-        
+
         const newTitle = input.value.trim();
         if (newTitle.length > 1000) {
             const header = input.closest('.modal-header');
@@ -3884,9 +3884,9 @@ function startModalTaskRename(titleEl) {
                 }
 
                 await updateTask(taskId, { title: newTitle });
-                
+
                 bumpModalUpdatedDate();
-                
+
                 let taskUpdated = false;
                 for (let col of state.columns) {
                     let t = col.tasks.find(t => t.id === taskId);
@@ -3905,12 +3905,12 @@ function startModalTaskRename(titleEl) {
                     }
                 }
                 refreshBoard();
-                
+
                 renderGraphBreadcrumbs(taskId);
             } catch (e) {
                 console.error("Ошибка при переименовании задачи", e);
                 restore(originalTitle);
-                
+
                 const boardCardTitle = document.querySelector(`.card[data-card-id="${taskId}"] .card-title`);
                 if (boardCardTitle) {
                     boardCardTitle.innerHTML = renderInlineMarkdown(originalTitle);
@@ -3961,7 +3961,7 @@ function startSubtaskRename(subtaskEl) {
         autoResize();
     });
     autoResize();
-    
+
     input.focus();
     input.setSelectionRange(input.value.length, input.value.length);
     bindTitleFormattingShortcuts(input);
@@ -3983,9 +3983,9 @@ function startSubtaskRename(subtaskEl) {
 
     const commit = async () => {
         if (committed) return;
-        
+
         const newTitle = stripDoeTaskLinks(input.value.trim());
-        
+
         if (newTitle.length > 1000) {
             if (!subtaskEl.querySelector('.card-error-hint')) {
                 const hint = document.createElement('div');
@@ -4033,12 +4033,12 @@ function startSubtaskRename(subtaskEl) {
                 }
 
                 await updateTask(subtaskId, { title: newTitle });
-                
-                refreshBoard(); 
+
+                refreshBoard();
             } catch (e) {
                 console.error("Ошибка при переименовании подзадачи", e);
                 restore(originalTitle);
-                
+
                 const boardCardTitle = document.querySelector(`.card[data-card-id="${subtaskId}"] .card-title`);
                 if (boardCardTitle) {
                     boardCardTitle.innerHTML = renderInlineMarkdown(originalTitle);
@@ -4124,7 +4124,7 @@ let currentScrollSpeedY = 0;
 
 let originalWorkspaceId = null;
 let isHoveringTabs = false;
-let draggedTaskObject = null; 
+let draggedTaskObject = null;
 let currentDragScale = 1;
 let dragCloneWidth = 0;
 
@@ -4169,7 +4169,7 @@ document.addEventListener('pointerdown', (e) => {
         potentialDragType = 'attachment';
         potentialDragTarget = attachment;
     }
-    else if (subtask) { 
+    else if (subtask) {
         potentialDragType = 'subtask';
         potentialDragTarget = subtask;
     }
@@ -4212,7 +4212,7 @@ document.addEventListener('pointermove', (e) => {
 document.addEventListener('pointerup', async (e) => {
     isPointerDown = false;
     potentialDragTarget = null;
-    
+
     if (isDragging) {
         window._isAfterDrag = true;
         setTimeout(() => window._isAfterDrag = false, 250);
@@ -4242,13 +4242,13 @@ function startDrag(element, type, e) {
     } else {
         draggedTaskObject = null;
     }
-    
+
     originalWorkspaceId = state.activeWorkspaceId;
     isHoveringTabs = false;
     currentDragScale = 1;
     pendingSwitchTabId = null;
     clearTimeout(tabSwitchTimeout);
-    
+
     mouseX = e.clientX;
     mouseY = e.clientY;
     lastMouseX = mouseX;
@@ -4268,7 +4268,7 @@ function startDrag(element, type, e) {
     originalOffsetY = e.clientY - rect.top;
     currentOriginX = originalOffsetX;
     currentOriginY = originalOffsetY;
-    
+
     const sourceFooter = draggedElement.querySelector('.card-footer');
     if (sourceFooter) {
         const computedFooterHeight = window.getComputedStyle(sourceFooter).height;
@@ -4285,7 +4285,7 @@ function startDrag(element, type, e) {
     dragClone.style.margin = '0';
     dragClone.classList.add(`${dragType}-drag-clone`);
 
-    dragClone.style.transformOrigin = '0 0'; 
+    dragClone.style.transformOrigin = '0 0';
     dragClone.style.transform = `translate3d(${mouseX}px, ${mouseY}px, 0) scale(1) translate3d(${-currentOriginX}px, ${-currentOriginY}px, 0)`;
 
     document.body.appendChild(dragClone);
@@ -4303,7 +4303,7 @@ function autoExpandColumn(columnEl) {
     autoExpandedColumnId = columnId;
     columnEl.classList.remove('collapsed');
     columnEl.classList.add('auto-expanded-temp');
-    
+
     columnEl.style.width = column.width ? column.width + 'px' : '';
 
     const titleEl = columnEl.querySelector('.column-title');
@@ -4346,13 +4346,13 @@ function performHitTest() {
 
                 tabSwitchTimeout = setTimeout(async () => {
                     await switchToWorkspaceDuringDrag(tabId);
-                }, 600); 
+                }, 600);
             }
         } else {
             clearTimeout(tabSwitchTimeout);
             pendingSwitchTabId = null;
         }
-        return; 
+        return;
     } else {
         isHoveringTabs = false;
         clearTimeout(tabSwitchTimeout);
@@ -4375,7 +4375,7 @@ function performHitTest() {
         const hoverCol = elemUnderMouse.closest('.column:not(.is-ghost)');
         const board = document.getElementById('board');
         const boardContainer = elemUnderMouse.closest('.board-container');
-        
+
         if (hoverCol && hoverCol !== draggedElement) {
             const rect = hoverCol.getBoundingClientRect();
             if (mouseX > rect.left + rect.width / 2) {
@@ -4383,7 +4383,7 @@ function performHitTest() {
             } else {
                 if (hoverCol.previousElementSibling !== draggedElement) hoverCol.before(draggedElement);
             }
-        } 
+        }
         else if (boardContainer && board && !board.contains(draggedElement)) {
             const addBtn = board.querySelector('.new-column-btn');
             if (addBtn) {
@@ -4399,7 +4399,7 @@ function performHitTest() {
 
         if (hoverCol) {
             const colId = parseInt(hoverCol.dataset.columnId);
-            
+
             if (hoverCol.classList.contains('collapsed') && !hoverCol.classList.contains('auto-expanded-temp')) {
                 if (autoExpandTimeoutColumnId !== colId) {
                     clearTimeout(autoExpandTimeout);
@@ -4431,7 +4431,7 @@ function performHitTest() {
             } else {
                 if (hoverCard.previousElementSibling !== draggedElement) hoverCard.before(draggedElement);
             }
-        } 
+        }
         else {
             const hoverCol2 = elemUnderMouse.closest('.column:not(.is-ghost)');
             if (hoverCol2) {
@@ -4500,7 +4500,7 @@ async function switchToWorkspaceDuringDrag(wsId) {
     try {
         const columns = await fetchColumns(wsId);
         state.columns = columns.map(col => ({ ...col, collapsed: col.collapsed || false }));
-        renderBoard(); 
+        renderBoard();
     } catch (err) {
         console.error('Ошибка смены вкладки при драге:', err);
     }
@@ -4511,7 +4511,7 @@ function handleEdgePanning() {
 
     let containerX = null;
     let containerY = null;
-    
+
     let scrollZoneX = 140;
     let maxSpeedX = 45;
     let scrollZoneY = 80;
@@ -4526,13 +4526,13 @@ function handleEdgePanning() {
         containerX = document.getElementById('tabs-container');
         scrollZoneX = 60;
         maxSpeedX = 20;
-    } 
+    }
     else if (dragType === 'column') {
         containerX = document.querySelector('.board-container');
-    } 
+    }
     else if (dragType === 'card') {
         containerX = document.querySelector('.board-container');
-        
+
         const hoverCol = document.elementFromPoint(mouseX, mouseY)?.closest('.column:not(.is-ghost)');
         if (hoverCol) {
             containerY = hoverCol.querySelector('.card-list');
@@ -4581,7 +4581,7 @@ function handleEdgePanning() {
             const prevScroll = containerX.scrollLeft;
             containerX.scrollLeft += scrollStepX;
             scrollAccumX -= scrollStepX;
-            
+
             if (containerX.scrollLeft !== prevScroll) {
                 didScroll = true;
                 if (containerX.id === 'tabs-container' && window.updateTabsScrollbar) {
@@ -4604,7 +4604,7 @@ function handleEdgePanning() {
             const prevScroll = containerY.scrollTop;
             containerY.scrollTop += scrollStepY;
             scrollAccumY -= scrollStepY;
-            
+
             if (containerY.scrollTop !== prevScroll) {
                 didScroll = true;
             } else {
@@ -4624,22 +4624,22 @@ function renderPhysics() {
     if (!isDragging || !dragClone) return;
 
     const didScroll = handleEdgePanning();
-    
+
     const deltaX = mouseX - lastMouseX;
     lastMouseX = mouseX;
-    
-    const maxRotation = (dragType === 'tab' || dragType === 'column') ? 3 : (dragType === 'vault-history' ? 5 : 12); 
+
+    const maxRotation = (dragType === 'tab' || dragType === 'column') ? 3 : (dragType === 'vault-history' ? 5 : 12);
     targetRotation = Math.max(-maxRotation, Math.min(maxRotation, deltaX * 0.4));
     currentRotation += (targetRotation - currentRotation) * 0.15;
 
     let targetScale = (dragType === 'column' || dragType === 'tab') ? 1.02 : 1.04;
-    
+
     let targetOriginX = originalOffsetX;
     let targetOriginY = originalOffsetY;
 
     if (isHoveringTabs) {
-        targetScale = 0.20; 
-        dragClone.style.opacity = '0.7'; 
+        targetScale = 0.20;
+        dragClone.style.opacity = '0.7';
         targetOriginX = dragCloneWidth;
         targetOriginY = 0;
     } else {
@@ -4651,7 +4651,7 @@ function renderPhysics() {
     currentOriginY += (targetOriginY - currentOriginY) * 0.15;
 
     dragClone.style.transform = `translate3d(${mouseX}px, ${mouseY}px, 0) rotate(${currentRotation}deg) scale(${currentDragScale}) translate3d(${-currentOriginX}px, ${-currentOriginY}px, 0)`;
-    
+
     const now = performance.now();
     if (didScroll) {
         if (now - lastHitTestTime > 50) {
@@ -4676,7 +4676,7 @@ async function endDrag() {
     isDragging = false;
     cancelAnimationFrame(rafId);
     clearTimeout(tabSwitchTimeout);
-    
+
     clearTimeout(autoExpandTimeout);
     autoExpandTimeoutColumnId = null;
 
@@ -4686,7 +4686,7 @@ async function endDrag() {
     scrollAccumY = 0;
     currentScrollSpeedX = 0;
     currentScrollSpeedY = 0;
-    
+
     document.body.classList.remove(`is-dragging-${dragType}`);
     document.body.style.userSelect = '';
 
@@ -4705,23 +4705,23 @@ async function endDrag() {
                     tTab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
                 }
                 updateSettings({ active_workspace_id: originalWorkspaceId }).catch(() => {});
-                
+
                 try {
                     const columns = await fetchColumns(originalWorkspaceId);
                     state.columns = columns.map(col => ({ ...col, collapsed: col.collapsed || false }));
                     renderBoard();
-                    
+
                     if (dragType === 'card') {
                         draggedElement = document.querySelector(`.card[data-card-id="${draggedElement.dataset.cardId}"]`);
                     } if (dragType === 'column') {
                         const currentColumns = Array.from(document.querySelectorAll('#board .column:not(.column-drag-clone)'));
                         const orderedIds = currentColumns.map(col => parseInt(col.dataset.columnId));
                         const colId = parseInt(draggedElement.dataset.columnId);
-                        
+
                         if (state.activeWorkspaceId !== originalWorkspaceId) {
-                            try { 
-                                await updateColumn(colId, { workspace_id: state.activeWorkspaceId }); 
-                            } 
+                            try {
+                                await updateColumn(colId, { workspace_id: state.activeWorkspaceId });
+                            }
                             catch (e) { console.error("Не удалось сменить вкладку для колонки:", e); }
                         }
 
@@ -4795,7 +4795,7 @@ async function endDrag() {
             });
         } catch (e) { console.error(e); }
     }
-    
+
     if (dragClone) {
         dragClone.remove();
         dragClone = null;
@@ -4861,7 +4861,7 @@ async function endDrag() {
 
         const droppedEl = draggedElement;
         const rect = droppedEl.getBoundingClientRect();
-        
+
         if (mouseX >= rect.left && mouseX <= rect.right && mouseY >= rect.top && mouseY <= rect.bottom) {
             droppedEl.classList.add('is-dropped-hover');
             const cleanupHover = () => {
@@ -4870,7 +4870,7 @@ async function endDrag() {
             };
             setTimeout(() => document.addEventListener('pointermove', cleanupHover), 50);
         }
-        
+
         if (dragType === 'tab') {
             const currentTabs = Array.from(document.querySelectorAll('#tabs-container .board-tab:not(.hb-separator)'));
             const orderedIds = currentTabs.map(tab => parseInt(tab.dataset.workspaceId));
@@ -4881,7 +4881,7 @@ async function endDrag() {
             const sepElement = document.querySelector('.hb-separator');
             if (sepElement) {
                 const sepIndex = allElements.indexOf(sepElement);
-                
+
                 if (window.appSettings) window.appSettings.hb_index = sepIndex;
                 updateSettings({ hb_index: sepIndex }).catch(console.error);
 
@@ -4898,9 +4898,9 @@ async function endDrag() {
             const currentColumns = Array.from(document.querySelectorAll('#board .column:not(.column-drag-clone)'));
             const orderedIds = currentColumns.map(col => parseInt(col.dataset.columnId));
             const colId = parseInt(draggedElement.dataset.columnId);
-            
+
             if (state.activeWorkspaceId !== originalWorkspaceId) {
-                try { await updateColumn(colId, { workspace_id: state.activeWorkspaceId }); } 
+                try { await updateColumn(colId, { workspace_id: state.activeWorkspaceId }); }
                 catch (e) { console.error(e); }
             }
 
@@ -4910,9 +4910,9 @@ async function endDrag() {
             });
             state.columns.sort((a, b) => a.position - b.position);
 
-            try { 
-                await saveColumnsOrder(orderedIds); 
-                
+            try {
+                await saveColumnsOrder(orderedIds);
+
                 if (state.activeWorkspaceId !== originalWorkspaceId) {
                     const freshColumns = await fetchColumns(state.activeWorkspaceId);
                     state.columns = freshColumns.map(c => ({ ...c, collapsed: c.collapsed || false }));
@@ -4926,7 +4926,7 @@ async function endDrag() {
                 const newColumnId = parseInt(newColumnEl.dataset.columnId);
                 const sourceColumnId = parseInt(draggedElement.dataset.sourceColumnId);
                 const taskId = parseInt(draggedElement.dataset.cardId);
-                
+
                 const currentCards = Array.from(newColumnEl.querySelectorAll('.card:not(.card-drag-clone)'));
                 const orderedIds = currentCards.map(c => parseInt(c.dataset.cardId));
 
@@ -4943,14 +4943,14 @@ async function endDrag() {
                     if (newColumnId !== sourceColumnId) {
                         const updatedTask = await moveTask(taskId, newColumnId);
                         let taskForUI = updatedTask;
-                        
+
                         if (sourceCol && targetCol) {
                             const taskIndex = sourceCol.tasks.findIndex(t => t.id == taskId);
                             if (taskIndex !== -1) {
                                 const [movedTask] = sourceCol.tasks.splice(taskIndex, 1);
-                                movedTask.column_id = newColumnId; 
+                                movedTask.column_id = newColumnId;
                                 movedTask.completed_at = updatedTask.completed_at;
-                                movedTask.active_timer = updatedTask.active_timer; 
+                                movedTask.active_timer = updatedTask.active_timer;
                                 movedTask.total_time_spent = updatedTask.total_time_spent;
                                 targetCol.tasks.push(movedTask);
                                 taskForUI = movedTask;
@@ -4958,7 +4958,7 @@ async function endDrag() {
                         } else if (!sourceCol && targetCol) {
                             targetCol.tasks.push(updatedTask);
                         }
-                        
+
                         updateCardAppearance(draggedElement, taskForUI, targetCol.mode);
                         draggedElement.dataset.sourceColumnId = newColumnId;
 
@@ -4966,7 +4966,7 @@ async function endDrag() {
                             updatedTask.parent_ids.forEach(parentId => {
                                 let parentTask = null;
                                 let parentCol = null;
-                                
+
                                 for (const col of state.columns) {
                                     parentTask = col.tasks.find(t => t.id === parentId);
                                     if (parentTask) {
@@ -4980,7 +4980,7 @@ async function endDrag() {
                                     if (subtask) {
                                         subtask.completed_at = updatedTask.completed_at;
                                     }
-                                    
+
                                     const parentCardEl = document.querySelector(`.card[data-card-id="${parentId}"]`);
                                     if (parentCardEl && parentCol) {
                                         updateCardAppearance(parentCardEl, parentTask, parentCol.mode);
@@ -4991,7 +4991,7 @@ async function endDrag() {
                     }
 
                     await saveTasksOrder(orderedIds);
-                    
+
                     if (window.syncColumnDOM) {
                         await window.syncColumnDOM(newColumnId);
                         if (sourceColumnId !== newColumnId) {
@@ -5006,7 +5006,7 @@ async function endDrag() {
 
                 } catch (error) {
                     console.error("Ошибка при перемещении", error);
-                    await refreshBoard(); 
+                    await refreshBoard();
                 }
             }
         }
@@ -5019,7 +5019,7 @@ async function endDrag() {
 
 document.addEventListener('mousedown', (e) => {
     if (e.target.closest('.card-menu-btn')) {
-        e.preventDefault(); 
+        e.preventDefault();
     }
 });
 
@@ -5125,11 +5125,11 @@ document.addEventListener('click', async (e) => {
         e.stopPropagation();
         const modal = document.getElementById('task-modal');
         const taskId = parseInt(modal.dataset.taskId);
-        
+
         detachModalBtn.style.transition = 'all 0.2s ease-in';
         detachModalBtn.style.opacity = '0';
         detachModalBtn.style.transform = 'translateY(-10px)';
-        
+
         setTimeout(() => {
             detachModalBtn.style.display = 'none';
             detachModalBtn.style.opacity = '1';
@@ -5140,7 +5140,7 @@ document.addEventListener('click', async (e) => {
             updateTask(taskId, { parent_ids: [], is_visible_on_board: true }).then(() => {
                 bumpModalUpdatedDate();
                 refreshBoard();
-                
+
                 renderGraphBreadcrumbs(taskId);
             });
         } catch (err) {
@@ -5202,7 +5202,7 @@ document.addEventListener('click', async (e) => {
                 });
 
                 bumpModalUpdatedDate();
-                
+
                 if (timestamp) {
                     completeSubtaskBtn.title = t('modals.uncompleteSubtask');
                     completeSubtaskBtn.style.color = 'var(--success-done)';
@@ -5256,15 +5256,15 @@ document.addEventListener('click', async (e) => {
         const exportModal = document.getElementById('export-modal');
         exportModal.dataset.taskId = taskId;
         exportModal.classList.add('show');
-        
+
         const confirmBtn = document.getElementById('btn-confirm-export');
         const newConfirmBtn = confirmBtn.cloneNode(true);
         confirmBtn.replaceWith(newConfirmBtn);
-        
+
         newConfirmBtn.onclick = async () => {
             const includeAtt = document.getElementById('export-include-att').checked;
             exportModal.classList.remove('show');
-            
+
             if (window.pywebview && window.pywebview.api && window.pywebview.api.choose_directory) {
                 const exportDir = await window.pywebview.api.choose_directory();
                 if (exportDir) {
@@ -5272,8 +5272,8 @@ document.addEventListener('click', async (e) => {
                     fetch(`${API_BASE}/tasks/${taskId}/export`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ 
-                            export_path: exportDir, 
+                        body: JSON.stringify({
+                            export_path: exportDir,
                             include_attachments: includeAtt
                         })
                     }).then(res => {
@@ -5301,10 +5301,10 @@ document.addEventListener('click', async (e) => {
         e.stopPropagation();
         const modal = document.getElementById('task-modal');
         const taskId = parseInt(modal.dataset.taskId);
-        
+
         const titleNode = document.getElementById('task-modal-title') || document.querySelector('.task-modal-title-input');
         const taskTitle = (titleNode.value !== undefined ? titleNode.value : (titleNode.dataset.rawTitle || titleNode.textContent)).trim();
-        
+
         openNotifyModal(taskId, taskTitle);
         return;
     }
@@ -5326,7 +5326,7 @@ document.addEventListener('click', async (e) => {
 
         (async () => {
             const isConfirmed = await showConfirmModal(
-                t('menu.deleteCard'), 
+                t('menu.deleteCard'),
                 currentLang === 'ru' ? 'Карточка и все её подзадачи будут удалены.' : 'Card and all its subtasks will be deleted.'
             );
             if (!isConfirmed) return;
@@ -5364,7 +5364,7 @@ document.addEventListener('click', async (e) => {
                     if (id === taskId) return;
                     const boardCard = document.querySelector(`.card[data-card-id="${id}"]`);
                     if (boardCard) animateCardDeletion(boardCard);
-                    
+
                     for (let col of state.columns) {
                         col.tasks = col.tasks.filter(t => t.id !== id);
                         col.tasks.forEach(parentTask => {
@@ -5397,7 +5397,7 @@ document.addEventListener('click', async (e) => {
         document.getElementById('confirm-modal').classList.remove('show');
         return;
     }
-    
+
     if (target.closest('[data-action="detach-cancel"]')) {
         if (activeDetachResolve) { activeDetachResolve(null); activeDetachResolve = null; }
         document.getElementById('detach-modal').classList.remove('show');
@@ -5432,14 +5432,14 @@ document.addEventListener('click', async (e) => {
     if (settingsTrigger) {
         const wrapper = settingsTrigger.closest('.settings-wrapper');
         const menu = wrapper.querySelector('.dropdown-menu');
-        
+
         const isShowing = menu.classList.contains('show');
-        closeAllDropdowns(); 
-        if (!isShowing) { 
+        closeAllDropdowns();
+        if (!isShowing) {
             menu.classList.add('show');
             settingsTrigger.classList.add('active');
         }
-        return; 
+        return;
     }
 
     const cardMenuBtn = target.closest('.card-menu-btn');
@@ -5447,19 +5447,19 @@ document.addEventListener('click', async (e) => {
         e.stopPropagation();
         const globalMenu = document.getElementById('global-card-menu');
         const cardEl = cardMenuBtn.closest('.card');
-        
+
         closeAllDropdowns();
 
         globalMenu.dataset.activeCardId = cardEl.dataset.cardId;
         globalMenu.classList.add('show');
         cardMenuBtn.classList.add('active');
         cardEl.classList.add('has-open-menu');
-        
+
         const taskId = parseInt(cardEl.dataset.cardId);
         const colId = parseInt(cardEl.closest('.column').dataset.columnId);
         const col = state.columns.find(c => c.id === colId);
         const task = col?.tasks.find(t => t.id === taskId);
-        
+
         if (task && !cardEl.classList.contains('is-renaming')) {
             startCardRename(cardEl, task);
         } else {
@@ -5468,10 +5468,10 @@ document.addEventListener('click', async (e) => {
 
         requestAnimationFrame(() => {
             requestAnimationFrame(() => {
-                cardEl.scrollIntoView({ 
-                    behavior: 'smooth', 
-                    block: 'nearest', 
-                    inline: 'center' 
+                cardEl.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'nearest',
+                    inline: 'center'
                 });
             });
         });
@@ -5527,22 +5527,22 @@ document.addEventListener('click', async (e) => {
 
                 if (action === 'open-card') {
                     const taskId = parseInt(activeCardId);
-                    
-                    loadTaskIntoModal(taskId, true); 
-                    
+
+                    loadTaskIntoModal(taskId, true);
+
                     document.getElementById('task-modal').classList.add('show');
                 }
                 else if (action === 'delete-card') {
                     animateCardDeletion(cardEl);
-                    
+
                     for (let col of state.columns) {
                         col.tasks = col.tasks.filter(t => t.id !== taskId);
-                        
+
                         col.tasks.forEach(parentTask => {
                             if (parentTask.subtasks) {
                                 const originalLength = parentTask.subtasks.length;
                                 parentTask.subtasks = parentTask.subtasks.filter(s => s.id !== taskId);
-                                
+
                                 if (parentTask.subtasks.length !== originalLength) {
                                     const parentCardEl = document.querySelector(`.card[data-card-id="${parentTask.id}"]`);
                                     if (parentCardEl) {
@@ -5557,22 +5557,22 @@ document.addEventListener('click', async (e) => {
                             }
                         });
                     }
-                    
+
                     deleteTask(taskId).then(data => {
                         const deletedIds = data.deleted_ids || [];
                         const snapshot = data.snapshot;
                         if (snapshot) pushBoardAction({ type: 'DELETE_CARD', taskData: snapshot });
-                        
+
                         deletedIds.forEach(id => {
                             if (id === taskId) return;
                             const boardCard = document.querySelector(`.card[data-card-id="${id}"]`);
                             if (boardCard) {
                                 animateCardDeletion(boardCard);
                             }
-                            
+
                             for (let col of state.columns) {
                                 col.tasks = col.tasks.filter(t => t.id !== id);
-                                
+
                                 col.tasks.forEach(parentTask => {
                                     if (parentTask.subtasks) {
                                         const originalLength = parentTask.subtasks.length;
@@ -5585,9 +5585,9 @@ document.addEventListener('click', async (e) => {
                                 });
                             }
                         });
-                        
-                    }).catch(err => { 
-                        console.error(err); 
+
+                    }).catch(err => {
+                        console.error(err);
                         refreshBoard();
                     });
                 }
@@ -5608,7 +5608,7 @@ document.addEventListener('click', async (e) => {
                     const titleNode = cardEl.querySelector('.card-title') || cardEl.querySelector('.card-title-input');
                     const taskTitle = (titleNode.value !== undefined ? titleNode.value : titleNode.textContent).trim();
                     const link = `[${taskTitle}](doe://task/${taskId})`;
-                    
+
                     try {
                         if (navigator.clipboard && window.isSecureContext) {
                             await navigator.clipboard.writeText(link);
@@ -5638,22 +5638,22 @@ document.addEventListener('click', async (e) => {
                         const exportModal = document.getElementById('export-modal');
                         exportModal.dataset.taskId = taskId;
                         exportModal.classList.add('show');
-                        
+
                         const confirmBtn = document.getElementById('btn-confirm-export');
                         const newConfirmBtn = confirmBtn.cloneNode(true);
                         confirmBtn.replaceWith(newConfirmBtn);
-                        
+
                         newConfirmBtn.onclick = async () => {
                             const includeAtt = document.getElementById('export-include-att').checked;
                             exportModal.classList.remove('show');
-                            
+
                             const exportDir = await window.pywebview.api.choose_directory();
                             if (exportDir) {
                                 fetch(`${API_BASE}/tasks/${taskId}/export`, {
                                     method: 'POST',
                                     headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ 
-                                        export_path: exportDir, 
+                                    body: JSON.stringify({
+                                        export_path: exportDir,
                                         include_attachments: includeAtt
                                     })
                                 }).then(res => {
@@ -5675,7 +5675,7 @@ document.addEventListener('click', async (e) => {
                 else if (action === 'notify-card') {
                     const task = state.columns.find(c => c.id === parseInt(colEl.dataset.columnId))?.tasks.find(t => t.id === taskId);
                     const taskTitle = task ? task.title : ((cardEl.querySelector('.card-title-input')?.value || cardEl.querySelector('.card-title')?.textContent).trim());
-                    
+
                     openNotifyModal(taskId, taskTitle);
                 }
                 else if (action === 'set-due-date') {
@@ -5723,7 +5723,7 @@ document.addEventListener('click', async (e) => {
                 if (uiFontInput) {
                     uiFontInput.value = data.ui_font ? data.ui_font : `Inter (${t('modals.fontSystemDefault')})`;
                 }
-                
+
                 const pathDisplay = document.getElementById('font-path-display');
                 if (pathDisplay) {
                     if (data.custom_font) {
@@ -5732,7 +5732,7 @@ document.addEventListener('click', async (e) => {
                         pathDisplay.textContent = t('modals.fontSelectCustom');
                     }
                 }
-                
+
                 fetch(`${API_BASE}/system/fonts/available`).then(res => {
                     if (res.ok) return res.json();
                     return [];
@@ -5782,23 +5782,23 @@ document.addEventListener('click', async (e) => {
         else if (action === 'priority-settings') {
             fetchSettings().then(data => {
                 const ps = data.priority_settings || window.prioritySettings;
-                
+
                 document.getElementById('cfg-prio-show-always').checked = !!ps.show_always;
 
                 document.getElementById('cfg-prio-e-none').value = ps.e_none || "❔";
                 document.getElementById('cfg-prio-c-none').value = ps.c_none || "#828A80";
-                
+
                 document.getElementById('cfg-prio-t-low').value = ps.t_low;
                 document.getElementById('cfg-prio-t-mid').value = ps.t_mid;
-                
+
                 document.getElementById('cfg-prio-e-low').value = ps.e_low;
                 document.getElementById('cfg-prio-e-mid').value = ps.e_mid;
                 document.getElementById('cfg-prio-e-high').value = ps.e_high;
-                
+
                 document.getElementById('cfg-prio-c-low').value = ps.c_low;
                 document.getElementById('cfg-prio-c-mid').value = ps.c_mid;
                 document.getElementById('cfg-prio-c-high').value = ps.c_high;
-                
+
                 document.getElementById('priority-settings-modal').classList.add('show');
 
                 const defEmojis = { low: "😞", mid: "😐", high: "🤩", none: "?" };
@@ -5829,11 +5829,11 @@ document.addEventListener('click', async (e) => {
                         document.getElementById('cfg-prio-c-none').value = "#7C5CB7";
                     };
                 }
-                
+
                 const saveBtn = document.getElementById('btn-save-prio-cfg');
                 const newSaveBtn = saveBtn.cloneNode(true);
                 saveBtn.replaceWith(newSaveBtn);
-                
+
                 newSaveBtn.onclick = async () => {
                     const newPs = {
                         show_always: document.getElementById('cfg-prio-show-always').checked,
@@ -5848,7 +5848,7 @@ document.addEventListener('click', async (e) => {
                         e_none: document.getElementById('cfg-prio-e-none').value || "❔",
                         c_none: document.getElementById('cfg-prio-c-none').value || "#828A80"
                     };
-                    
+
                     try {
                         await fetch(`${API_BASE}/system/settings`, {
                             method: 'PUT',
@@ -5869,14 +5869,14 @@ document.addEventListener('click', async (e) => {
         }
         else if (action === 'export-json') {
             closeAllDropdowns();
-            
+
             const jsonModal = document.getElementById('export-json-modal');
             jsonModal.classList.add('show');
-            
+
             const confirmBtn = document.getElementById('btn-confirm-json-export');
             const newConfirmBtn = confirmBtn.cloneNode(true);
             confirmBtn.replaceWith(newConfirmBtn);
-            
+
             newConfirmBtn.onclick = async () => {
                 const includeAtt = document.getElementById('export-json-include-att').checked;
                 jsonModal.classList.remove('show');
@@ -5936,7 +5936,7 @@ document.addEventListener('click', async (e) => {
                                         await updateSettings({ active_workspace_id: data.new_workspace_id });
                                     }
                                     await refreshBoard(true, data.new_workspace_id);
-                                    
+
                                 } else {
                                     const errData = await res.json().catch(() => ({}));
                                     const errMsg = errData.detail || (currentLang === 'ru' ? 'Неверный формат файла' : 'Invalid file format');
@@ -5959,13 +5959,13 @@ document.addEventListener('click', async (e) => {
     const themeItem = target.closest('#theme-list .lang-item');
     if (themeItem) {
         const theme = themeItem.dataset.themeValue;
-        
+
         document.getElementById('theme-modal').classList.remove('show');
-        
+
         setTimeout(() => {
             applyTheme(theme, true);
         }, 250);
-        
+
         return;
     }
 
@@ -5982,12 +5982,12 @@ document.addEventListener('click', async (e) => {
 
     if (modalCloseBtn || isOverlayClick) {
         const modalToClose = modalCloseBtn ? modalCloseBtn.closest('.modal-overlay') : target;
-        
+
         if (!modalToClose) return;
 
         const nonDismissibleModals = ['task-modal', 'font-settings-modal', 'due-date-modal', 'notify-modal', 'priority-modal', 'priority-settings-modal', 'move-modal'];
         if (nonDismissibleModals.includes(modalToClose.id) && isOverlayClick) {
-            return; 
+            return;
         }
 
         if (activeConfirmResolve && modalToClose.id === 'confirm-modal') {
@@ -5998,10 +5998,10 @@ document.addEventListener('click', async (e) => {
             activeDetachResolve(null);
             activeDetachResolve = null;
         }
-        
+
         if (modalToClose.id === 'task-modal') {
             if (window.closeLocalSearch) window.closeLocalSearch();
-            
+
             document.getElementById('modal-tools-wrapper')?.classList.remove('expanded');
             triggerGarbageCollector();
 
@@ -6018,10 +6018,10 @@ document.addEventListener('click', async (e) => {
                     break;
                 }
             }
-            
+
             const card = modalToClose.querySelector('.task-detail-card');
             const maximizeBtn = modalToClose.querySelector('.modal-maximize');
-            
+
             if (card) {
                 if(maximizeBtn) {
                     maximizeBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="14 6 18 6 18 10"></polyline><polyline points="10 18 6 18 6 14"></polyline><line x1="18" y1="6" x2="13" y2="11"></line><line x1="6" y1="18" x2="11" y2="13"></line></svg>`;
@@ -6037,18 +6037,18 @@ document.addEventListener('click', async (e) => {
                     card.style.height = '';
                     card.style.transform = '';
                     card.style.margin = '';
-                    
-                    void card.offsetWidth; 
+
+                    void card.offsetWidth;
                     card.style.transition = '';
 
                     if (renderDiv) renderDiv.innerHTML = '';
-                    
+
                     const subtasksList = document.getElementById('subtasks-list');
                     if (subtasksList) subtasksList.innerHTML = '';
-                    
+
                     const attachmentsList = document.getElementById('attachments-list');
                     if (attachmentsList) attachmentsList.innerHTML = '';
-                    
+
                     const breadcrumbs = document.getElementById('task-breadcrumbs');
                     if (breadcrumbs) breadcrumbs.innerHTML = '';
                 }, 300);
@@ -6074,8 +6074,8 @@ document.addEventListener('click', async (e) => {
     }
 
     if (
-        !target.closest('.dropdown-menu') && 
-        !target.closest('.menu-btn') && 
+        !target.closest('.dropdown-menu') &&
+        !target.closest('.menu-btn') &&
         !target.closest('.card-menu-btn') &&
         !target.closest('.card.has-open-menu') &&
         !target.closest('#ui-font-wrapper')
@@ -6122,7 +6122,7 @@ function applyHighlight(container, query) {
     setTimeout(() => {
         const firstMatch = ranges[0];
         let block = firstMatch.startContainer.parentElement;
-        
+
         while (block && block !== container) {
             if (block.classList.contains('is-hidden-by-fold')) {
                 let prev = block.previousElementSibling;
@@ -6137,7 +6137,7 @@ function applyHighlight(container, query) {
         }
 
         const rect = firstMatch.getBoundingClientRect();
-        if (rect.top === 0) return; 
+        if (rect.top === 0) return;
 
         const scrollParent = document.querySelector('.task-detail-body');
         if (scrollParent) {
@@ -6201,7 +6201,7 @@ async function loadTaskIntoModal(taskId, pushToStack = true, highlightQuery = nu
         if (window.DoeMemory) window.DoeMemory.onCardOpen(task);
         titleEl.innerHTML = renderInlineMarkdown(task.title);
         titleEl.dataset.rawTitle = task.title;
-        
+
         const detachBtn = modal.querySelector('.modal-detach');
         if (detachBtn) {
             detachBtn.style.display = (task.parent_ids && task.parent_ids.length > 0) ? 'flex' : 'none';
@@ -6228,20 +6228,20 @@ async function loadTaskIntoModal(taskId, pushToStack = true, highlightQuery = nu
         if (datesMetaEl) {
             const createdStr = formatDateTime(task.created_at);
             const updatedStr = formatDateTime(task.updated_at);
-            
+
             let datesHtml = `<div><span>${t('taskModal.created')}: ${createdStr}</span><span id="task-updated-text">${t('taskModal.updated')}: ${updatedStr}</span>`;
-            
+
             if (task.due_date) {
                 const dateStr = task.due_date + (task.due_date.endsWith('Z') || task.due_date.includes('+') ? '' : 'Z');
                 const isOverdue = !task.completed_at && new Date(dateStr) < new Date();
                 const overdueStyle = isOverdue ? 'style="color: #D35446; font-weight: 700;"' : '';
-                
+
                 datesHtml += `<span> &middot; </span><span ${overdueStyle} id="task-due-text">Срок: ${formatShortDate(task.due_date)}</span>`;
             }
             datesHtml += `</div>`;
             datesMetaEl.innerHTML = datesHtml;
         }
-        
+
         const modalDueDateBtn = document.getElementById('modal-due-date');
         if (modalDueDateBtn) {
             const newBtn = modalDueDateBtn.cloneNode(true);
@@ -6263,7 +6263,7 @@ async function loadTaskIntoModal(taskId, pushToStack = true, highlightQuery = nu
 
             if (task.due_date) {
                 newBtn.title = t('menu.clearDueDate');
-                
+
                 const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
                 line.setAttribute("x1", "21");
                 line.setAttribute("y1", "3");
@@ -6277,7 +6277,7 @@ async function loadTaskIntoModal(taskId, pushToStack = true, highlightQuery = nu
                 };
             } else {
                 newBtn.title = t('modals.dueDateSet');
-                
+
                 newBtn.onclick = (e) => {
                     e.stopPropagation();
                     openDueDateModal(task.id, task.due_date);
@@ -6292,21 +6292,21 @@ async function loadTaskIntoModal(taskId, pushToStack = true, highlightQuery = nu
             cmEditor.setValue(task.description || "");
             cmEditor.getWrapperElement().style.display = 'none';
         }
-        
+
         const attachmentsList = document.getElementById('attachments-list');
         const attachmentsCount = document.getElementById('attachments-count');
-        
+
         if (task.description) {
             let extracted = extractAttachments(task.description, task.attachments_order || []);
             extracted = await enrichAttachments(extracted);
-            
+
             attachmentsCount.textContent = extracted.length;
             attachmentsList.innerHTML = '';
             extracted.forEach(att => attachmentsList.appendChild(createAttachmentElement(att)));
 
             const cleanRegex = /(!?)\[[^\]]*\]\(doe\/[^)]+\)(?:\{[^}]+\})?!\s*/g;
             let readModeText = task.description.replace(cleanRegex, '');
-            
+
             const applyScroll = () => {
                 if (localTask && localTask._readScrollTop !== undefined) {
                     renderDiv.scrollTop = localTask._readScrollTop;
@@ -6341,22 +6341,22 @@ async function loadTaskIntoModal(taskId, pushToStack = true, highlightQuery = nu
             renderDiv.innerHTML = `<span class="markdown-empty">${t('taskModal.descPlaceholder')}</span>`;
             if (highlightQuery) applyHighlight(titleEl, highlightQuery);
         }
-        
+
         renderDiv.style.display = 'block';
 
         subtasksList.innerHTML = '';
         subtasksCount.textContent = task.subtasks.length;
-        
+
         const parentColumn = state.columns.find(c => c.id === task.column_id);
         const parentMode = parentColumn ? parentColumn.mode : 'default';
-        
+
         task.subtasks.sort((a, b) => a.position - b.position).forEach(sub => {
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = generateSubtaskHtml(sub, parentMode).trim();
             const subItem = tempDiv.firstChild;
-            
+
             bindSubtaskEvents(subItem, sub, task, parentMode);
-            
+
             subtasksList.appendChild(subItem);
         });
 
@@ -6365,11 +6365,11 @@ async function loadTaskIntoModal(taskId, pushToStack = true, highlightQuery = nu
         const modalTimeTracker = document.getElementById('modal-time-tracker');
         const modalTimerPill = document.getElementById('modal-task-timer');
         const modalTimerInput = document.getElementById('modal-task-timer-input');
-        
+
         modalTimeTracker.style.display = 'flex';
-        
+
         modalTimerPill.dataset.taskId = task.id;
-        
+
         const exactTime = task.active_timer ? formatTime(task) : formatExactTime(task.total_time_spent || 0);
         modalTimerPill.textContent = exactTime;
 
@@ -6393,9 +6393,9 @@ async function loadTaskIntoModal(taskId, pushToStack = true, highlightQuery = nu
         const commitTimer = async () => {
             if (timerCommitted) return;
             timerCommitted = true;
-            
+
             const seconds = parseTimeToSeconds(newInput.value);
-            
+
             if (seconds === null) {
                 newInput.style.display = 'none';
                 newPill.style.display = 'block';
@@ -6420,15 +6420,15 @@ async function loadTaskIntoModal(taskId, pushToStack = true, highlightQuery = nu
                             col.tasks[idx] = updatedTask;
                         }
                     }
-                    
+
                     const displayTime = updatedTask.active_timer ? formatTime(updatedTask) : formatExactTime(updatedTask.total_time_spent || 0);
                     newPill.textContent = displayTime;
-                    
+
                     const boardCard = document.querySelector(`.card[data-card-id="${task.id}"]`);
                     if (boardCard) {
                         updateCardAppearance(boardCard, updatedTask, col.mode);
                     }
-                    
+
                     if (col && window.syncColumnDOM) {
                         await window.syncColumnDOM(col.id);
                     } else {
@@ -6464,12 +6464,12 @@ async function loadTaskIntoModal(taskId, pushToStack = true, highlightQuery = nu
 async function renderGraphBreadcrumbs(taskId) {
     const container = document.getElementById('task-breadcrumbs');
     container.innerHTML = '';
-    
+
     try {
         const res = await fetch(`${API_BASE}/tasks/${taskId}/paths`);
         if (!res.ok) return;
         const paths = await res.json();
-        
+
         if (paths.length === 0 || (paths.length === 1 && paths[0].length === 1)) {
             return;
         }
@@ -6479,7 +6479,7 @@ async function renderGraphBreadcrumbs(taskId) {
             html += '<div class="breadcrumb-path">';
             path.forEach((node, index) => {
                 const isLast = index === path.length - 1;
-                
+
                 const rawTitle = node.title || "";
                 const firstLine = rawTitle.includes('\n') ? rawTitle.split('\n')[0] : rawTitle;
                 const isMultiLine = rawTitle.includes('\n');
@@ -6502,17 +6502,17 @@ async function renderGraphBreadcrumbs(taskId) {
                 html += `<span class="breadcrumb-item ${isLast ? 'active' : ''}"
                                data-id="${node.id}"
                                data-full-title="${escapeHtml(rawTitle)}">${titleHtml}</span>`;
-                
+
                 if (!isLast) {
                     html += '<span class="breadcrumb-separator"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg></span>';
                 }
-                
+
                 html += `</div>`;
             });
             html += '</div>';
         });
         html += '</div>';
-        
+
         container.innerHTML = html;
 
         container.querySelectorAll('.breadcrumb-item:not(.active)').forEach(el => {
@@ -6638,7 +6638,7 @@ function updateTimers() {
 
     if (dragActive) {
         const newTime = formatTime(draggedTaskObject);
-        
+
         if (dragClone) {
             const timerEl = dragClone.querySelector('.card-timer');
             if (timerEl) timerEl.textContent = newTime;
@@ -6651,9 +6651,9 @@ function updateTimers() {
 
     if (modalActive) {
         const taskId = modalTimerPill.dataset.taskId;
-        
+
         let task = _getTask(taskId) || null;
-        
+
         if (!task && draggedTaskObject && draggedTaskObject.id == taskId) {
             task = draggedTaskObject;
         }
@@ -6675,9 +6675,9 @@ function updateColumnCount(columnEl, count = null) {
 
 function animateCardDeletion(boardCard) {
     if (!boardCard || !boardCard.parentNode) return;
-    
+
     const rect = boardCard.getBoundingClientRect();
-    
+
     const clone = boardCard.cloneNode(true);
     clone.classList.add('card-deleting-clone');
     clone.style.left = `${rect.left}px`;
@@ -6687,25 +6687,25 @@ function animateCardDeletion(boardCard) {
     clone.removeAttribute('id');
     clone.removeAttribute('data-card-id');
     document.body.appendChild(clone);
-    
+
     const spacer = document.createElement('div');
     spacer.className = 'card-spacer';
     spacer.style.height = `${rect.height}px`;
-    
+
     const parentCol = boardCard.closest('.column');
     boardCard.replaceWith(spacer);
-    
+
     if (parentCol) {
         updateColumnCount(parentCol, parentCol.querySelectorAll('.card:not(.card-drag-clone)').length);
     }
-    
+
     requestAnimationFrame(() => {
         requestAnimationFrame(() => {
             clone.classList.add('is-animating');
             spacer.classList.add('is-shrinking');
         });
     });
-    
+
     setTimeout(() => {
         if (clone.parentNode) clone.remove();
         if (spacer.parentNode) spacer.remove();
@@ -6714,8 +6714,8 @@ function animateCardDeletion(boardCard) {
 
 function clampSingleTitle(titleEl) {
     if (!titleEl) return;
-    
-    const MAX_ALLOWED_HEIGHT = window.innerHeight * 0.25; 
+
+    const MAX_ALLOWED_HEIGHT = window.innerHeight * 0.25;
 
     const fullTitle = titleEl.dataset.fullTitle || titleEl.textContent;
 
@@ -6729,7 +6729,7 @@ function clampSingleTitle(titleEl) {
         const maxLines = Math.max(2, Math.floor((MAX_ALLOWED_HEIGHT - 2) / lineHeight));
 
         titleEl.style.webkitLineClamp = String(maxLines);
-        
+
         titleEl.style.maxHeight = (maxLines * lineHeight) + "px";
 
         titleEl.dataset.fullTitle = fullTitle;
@@ -6750,7 +6750,7 @@ function initTabsScrollbar() {
     const container = document.getElementById('tabs-container');
     const scrollbar = document.getElementById('tabs-scrollbar');
     const thumb = document.getElementById('tabs-thumb');
-    
+
     if (!wrapper || !container || !scrollbar || !thumb) return;
 
     let hideTimeout;
@@ -6764,17 +6764,17 @@ function initTabsScrollbar() {
             scrollbar.classList.remove('visible');
             return;
         }
-        
+
         const thumbWidth = Math.max(container.clientWidth * scrollRatio, 40);
         thumb.style.width = `${thumbWidth}px`;
-        
+
         const maxScrollLeft = container.scrollWidth - container.clientWidth;
         let scrollPercent = container.scrollLeft / maxScrollLeft;
-        
+
         scrollPercent = Math.max(0, Math.min(1, scrollPercent));
-        
+
         const maxThumbLeft = container.clientWidth - thumbWidth;
-        
+
         thumb.style.transform = `translateX(${scrollPercent * maxThumbLeft}px)`;
     }
 
@@ -6783,7 +6783,7 @@ function initTabsScrollbar() {
         if (scrollRatio < 1) {
             scrollbar.classList.add('visible');
         }
-        
+
         clearTimeout(hideTimeout);
         if (!wrapper.matches(':hover') && !isDraggingThumb) {
             hideTimeout = setTimeout(() => {
@@ -6795,7 +6795,7 @@ function initTabsScrollbar() {
     container.addEventListener('scroll', () => {
         updateThumb();
         showScrollbar();
-        
+
         if (container.scrollLeft > 2) {
             container.classList.add('is-scrolled');
         } else {
@@ -6829,12 +6829,12 @@ function initTabsScrollbar() {
     window.addEventListener('mousemove', (e) => {
         if (!isDraggingThumb) return;
         const deltaX = e.clientX - startX;
-        
+
         const scrollRatio = container.clientWidth / container.scrollWidth;
         const thumbWidth = Math.max(container.clientWidth * scrollRatio, 40);
         const maxThumbLeft = container.clientWidth - thumbWidth;
         const maxScrollLeft = container.scrollWidth - container.clientWidth;
-        
+
         if (maxThumbLeft > 0) {
             const scrollPerPixel = maxScrollLeft / maxThumbLeft;
             container.scrollLeft = startScrollLeft + deltaX * scrollPerPixel;
@@ -6846,7 +6846,7 @@ function initTabsScrollbar() {
             isDraggingThumb = false;
             thumb.classList.remove('is-dragging');
             document.body.style.userSelect = '';
-            
+
             if (!wrapper.matches(':hover')) {
                 hideTimeout = setTimeout(() => {
                     scrollbar.classList.remove('visible');
@@ -6972,11 +6972,11 @@ function initTooltip() {
     const tooltip = document.createElement('div');
     tooltip.id = 'tooltip';
     tooltip.className = 'custom-tooltip';
-    
+
     const tooltipInner = document.createElement('div');
     tooltipInner.className = 'tooltip-inner';
     tooltip.appendChild(tooltipInner);
-    
+
     document.body.appendChild(tooltip);
 
     let activeTitle = null;
@@ -6985,8 +6985,8 @@ function initTooltip() {
         if (!activeTitle) return;
 
         const tooltipRect = tooltip.getBoundingClientRect();
-        
-        let left = e.clientX + 14; 
+
+        let left = e.clientX + 14;
         let top = e.clientY + 14;
 
         if (left + tooltipRect.width > window.innerWidth - 8) {
@@ -7002,7 +7002,7 @@ function initTooltip() {
         } else if (!fitsBelow && !fitsAbove) {
             top = 8;
         }
-        
+
         tooltip.style.left = left + 'px';
         tooltip.style.top = top + 'px';
     }
@@ -7014,15 +7014,15 @@ function initTooltip() {
         if (!titleEl) return;
 
         let isActuallyClamped = false;
-        
-        if (titleEl.classList.contains('tab-name') || 
-            titleEl.classList.contains('breadcrumb-item') || 
+
+        if (titleEl.classList.contains('tab-name') ||
+            titleEl.classList.contains('breadcrumb-item') ||
             titleEl.classList.contains('vault-name-text') ||
             titleEl.classList.contains('vault-history-name') ||
             titleEl.classList.contains('cal-event-chip') ||
             titleEl.classList.contains('cal-ev-title') ||
             titleEl.classList.contains('cal-ev-time')) {
-            
+
             isActuallyClamped = titleEl.textContent.trim().endsWith('…') || titleEl.scrollWidth > titleEl.clientWidth;
         } else if (titleEl.closest('.column.collapsed')) {
             isActuallyClamped = titleEl.dataset.clamped === 'true';
@@ -7033,19 +7033,19 @@ function initTooltip() {
         if (!isActuallyClamped) return;
 
         activeTitle = titleEl;
-        
+
         tooltipInner.style.maxHeight = 'none';
         tooltipInner.innerHTML = renderInlineMarkdown(titleEl.dataset.fullTitle || titleEl.textContent);
-        
-        const paddingY = 16; 
-        const safeMarginY = 32; 
+
+        const paddingY = 16;
+        const safeMarginY = 32;
         const maxAvailableHeight = window.innerHeight - paddingY - safeMarginY;
-        
+
         const computedStyle = window.getComputedStyle(tooltipInner);
         const lineHeight = parseFloat(computedStyle.lineHeight) || 19.5;
-        
+
         const maxLines = Math.max(1, Math.floor(maxAvailableHeight / lineHeight));
-        
+
         tooltipInner.style.maxHeight = (maxLines * lineHeight) + 'px';
 
         tooltip.classList.add('visible');
@@ -7077,9 +7077,9 @@ function initTooltip() {
             tooltip.classList.remove('visible');
         }
     };
-    
+
     document.addEventListener('mousedown', hideTooltip);
-    
+
     document.addEventListener('wheel', hideTooltip, { passive: true });
 }
 
@@ -7115,7 +7115,7 @@ function initHeadingFolding(container, foldedHeadings = []) {
         const arrow = document.createElement('span');
         arrow.className = 'heading-fold-arrow';
         arrow.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>`;
-        
+
         heading.prepend(arrow);
         heading.classList.add('foldable-heading');
 
@@ -7156,7 +7156,7 @@ function initHeadingFolding(container, foldedHeadings = []) {
                     next.classList.add('is-hidden-by-fold');
                 } else {
                     next.classList.remove('is-hidden-by-fold');
-                    
+
                     if (next.tagName.match(/^H[1-6]$/) && next.classList.contains('is-folded')) {
                         const skipLevel = parseInt(next.tagName.substring(1));
                         let skipNext = next.nextElementSibling;
@@ -7299,7 +7299,7 @@ function enhanceUploadChips(container) {
     };
 
     lb.addEventListener('click', close);
-    
+
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && lb.classList.contains('show')) {
             e.preventDefault();
@@ -7447,7 +7447,7 @@ function enhanceCodeBlocks(container) {
 
     const scheduleIdle = window.requestIdleCallback || ((cb) => setTimeout(cb, 16));
     let prismIndex = 0;
-    
+
     const highlightNextChunk = () => {
         const sliceStart = performance.now();
         while (prismIndex < codeBlocks.length && (performance.now() - sliceStart) < 16) {
@@ -7471,17 +7471,17 @@ function generateSubtaskHtml(sub, parentMode = 'default') {
     const openIconSvg = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`;
     const eyeOpenSvg = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
     const eyeClosedSvg = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`;
-    
+
     const currentEyeSvg = sub.is_visible_on_board ? eyeOpenSvg : eyeClosedSvg;
     const eyeClass = sub.is_visible_on_board ? 'active-eye' : '';
-    
+
     const isAgent = sub.is_visible_on_board;
     const isLocked = isAgent;
     const isDone = sub.completed_at;
 
-    const checkIcon = isAgent 
-        ? (isDone 
-            ? `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4"><polyline points="20 6 9 17 4 12"/></svg>` 
+    const checkIcon = isAgent
+        ? (isDone
+            ? `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4"><polyline points="20 6 9 17 4 12"/></svg>`
             : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>`)
         : `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4"><polyline points="20 6 9 17 4 12"/></svg>`;
 
@@ -7493,7 +7493,7 @@ function generateSubtaskHtml(sub, parentMode = 'default') {
             <div class="subtask-checkbox ${isLocked ? 'locked' : ''}" ${titleAttr}>
                 ${checkIcon}
             </div>
-            
+
             <!-- Группируем левые кнопки точно так же, как правые -->
             <div class="subtask-left-actions">
                 <button class="subtask-eye-btn ${eyeClass}" title="Показывать на доске как карточку">${currentEyeSvg}</button>
@@ -7508,9 +7508,9 @@ function generateSubtaskHtml(sub, parentMode = 'default') {
                     </svg>
                 </button>
             </div>
-            
+
             <div class="subtask-title" data-raw-title="${escapeHtml(sub.title)}">${renderInlineMarkdown(sub.title)}</div>
-            
+
             <div class="subtask-actions">
                 <button class="subtask-open-btn" title="${t('menu.open')}">${openIconSvg}</button>
                 <button class="subtask-delete-btn" title="${t('menu.delete')}">${trashIconSvg}</button>
@@ -7537,15 +7537,15 @@ async function onAddSubtask() {
 
     addBtn.replaceWith(formItem);
     const input = formItem.querySelector('textarea');
-    
+
     const autoResize = () => {
         const scrollParent = formItem.closest('.task-detail-body');
         const currentScroll = scrollParent ? scrollParent.scrollTop : 0;
 
         const offset = input.offsetHeight - input.clientHeight;
-        input.style.height = '1px'; 
+        input.style.height = '1px';
         input.style.height = (input.scrollHeight + offset) + 'px';
-        
+
         if (scrollParent) scrollParent.scrollTop = currentScroll;
     };
 
@@ -7557,7 +7557,7 @@ async function onAddSubtask() {
         }
         autoResize();
     });
-    
+
     autoResize();
     input.focus({ preventScroll: true });
     bindTitleFormattingShortcuts(input);
@@ -7602,15 +7602,15 @@ async function onAddSubtask() {
         const linkMatch = rawTitle.match(/\[(.*?)\]\(doe:\/\/task\/(\d+)\)/i) || rawTitle.match(/doe:\/\/task\/(\d+)/i);
         if (linkMatch) {
             const linkedTaskId = parseInt(linkMatch[2] || linkMatch[1]);
-            
+
             const isDuplicate = !!subtasksList.querySelector(`.subtask-item[data-subtask-id="${linkedTaskId}"]`);
 
             if (linkedTaskId === parentId || isDuplicate) {
-                input.disabled = false; 
+                input.disabled = false;
                 formItem.classList.remove('is-error');
                 void formItem.offsetWidth;
                 formItem.classList.add('is-error');
-                
+
                 setTimeout(() => formItem.classList.remove('is-error'), 400);
 
                 input.focus({ preventScroll: true });
@@ -7624,35 +7624,35 @@ async function onAddSubtask() {
             try {
                 const linkedTaskRes = await fetch(`${API_BASE}/tasks/${linkedTaskId}`);
                 if (!linkedTaskRes.ok) throw new Error("Task not found");
-                
+
                 const linkedTask = await linkedTaskRes.json();
-                
+
                 const safeOldParents = Array.isArray(linkedTask.parent_ids) ? linkedTask.parent_ids : [];
                 const newParents = [...new Set([...safeOldParents, parentId])];
-                
-                await updateTask(linkedTaskId, { 
-                    parent_ids: newParents, 
-                    is_visible_on_board: true 
+
+                await updateTask(linkedTaskId, {
+                    parent_ids: newParents,
+                    is_visible_on_board: true
                 });
-                
+
                 bumpModalUpdatedDate();
                 formItem.remove();
                 renderSubtaskAddButton(container);
-                
+
                 await loadTaskIntoModal(parentId, false);
                 refreshBoard();
                 return;
             } catch (err) {
                 isResolved = false;
                 input.disabled = false;
-                
+
                 let hint = formItem.querySelector('.card-error-hint');
                 if (!hint) {
                     hint = document.createElement('div');
                     hint.className = 'card-error-hint';
                     formItem.appendChild(hint);
                 }
-                
+
                 if (err.message && (err.message.includes('цикл') || err.message.includes('самой себя'))) {
                      hint.textContent = t('cyclicError');
                 } else {
@@ -7662,7 +7662,7 @@ async function onAddSubtask() {
                 formItem.classList.remove('is-error');
                 void formItem.offsetWidth;
                 formItem.classList.add('is-error');
-                
+
                 setTimeout(() => formItem.classList.remove('is-error'), 400);
                 input.focus({ preventScroll: true });
                 return;
@@ -7670,7 +7670,7 @@ async function onAddSubtask() {
         }
 
         const title = stripDoeTaskLinks(rawTitle);
-        
+
         // 🔥 ФИКС: Защита от создания пустого имени после вырезания ссылок
         if (!title) { cancel(); return; }
 
@@ -7684,7 +7684,7 @@ async function onAddSubtask() {
             formItem.classList.remove('is-error');
             void formItem.offsetWidth;
             formItem.classList.add('is-error');
-            autoResize(); 
+            autoResize();
             input.focus({ preventScroll: true });
             return;
         }
@@ -7702,14 +7702,14 @@ async function onAddSubtask() {
 
             if (!res.ok) throw new Error("Create subtask failed");
             const newSub = await res.json();
-            
+
             bumpModalUpdatedDate();
 
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = generateSubtaskHtml(newSub).trim();
             const realSub = tempDiv.firstChild;
             realSub.classList.add('subtask-birth');
-            
+
             subtasksList.appendChild(realSub);
             bindSubtaskEvents(realSub, newSub, parentId);
 
@@ -7723,7 +7723,7 @@ async function onAddSubtask() {
 
             setTimeout(() => realSub.classList.remove('subtask-birth', 'born'), 500);
             document.getElementById('subtasks-count').textContent = parseInt(document.getElementById('subtasks-count').textContent) + 1;
-            
+
             // 🔥 ФИКС: Добавляем созданную подзадачу локально в стейт до перерендера
             for (let col of state.columns) {
                 let pTask = col.tasks.find(t => t.id === parentId);
@@ -7733,7 +7733,7 @@ async function onAddSubtask() {
                     break;
                 }
             }
-            
+
             refreshBoard();
         } catch (err) {
             console.error(err);
@@ -7751,9 +7751,9 @@ async function onAddSubtask() {
     });
 
     input.addEventListener('blur', () => {
-        if (!isResolved) { 
-            if (input.value.trim()) submit(); 
-            else cancel(); 
+        if (!isResolved) {
+            if (input.value.trim()) submit();
+            else cancel();
         }
     });
 }
@@ -7789,9 +7789,9 @@ function bindSubtaskEvents(el, sub, parentTaskOrId, parentMode = 'default') {
         }
 
         const isDone = !el.classList.contains('is-done');
-        
+
         el.classList.toggle('is-done', isDone);
-        
+
         const timestamp = isDone ? new Date().toISOString() : null;
         const previousTimestamp = sub.completed_at;
         sub.completed_at = timestamp;
@@ -7802,7 +7802,7 @@ function bindSubtaskEvents(el, sub, parentTaskOrId, parentMode = 'default') {
                     const subIndex = task.subtasks.findIndex(s => s.id === sub.id);
                     if (subIndex !== -1) {
                         task.subtasks[subIndex].completed_at = timestamp;
-                        
+
                         const cardEl = document.querySelector(`.card[data-card-id="${task.id}"]`);
                         if (cardEl) {
                             updateCardAppearance(cardEl, task, col.mode);
@@ -7814,17 +7814,17 @@ function bindSubtaskEvents(el, sub, parentTaskOrId, parentMode = 'default') {
 
         updateTask(sub.id, { completed_at: timestamp }).catch((err) => {
             console.error("Failed to update subtask status:", err);
-            
+
             el.classList.toggle('is-done', !isDone);
             sub.completed_at = previousTimestamp;
-            
+
             state.columns.forEach(col => {
                 col.tasks.forEach(task => {
                     if (task.subtasks) {
                         const subIndex = task.subtasks.findIndex(s => s.id === sub.id);
                         if (subIndex !== -1) {
                             task.subtasks[subIndex].completed_at = previousTimestamp;
-                            
+
                             const cardEl = document.querySelector(`.card[data-card-id="${task.id}"]`);
                             if (cardEl) {
                                 updateCardAppearance(cardEl, task, col.mode);
@@ -7833,7 +7833,7 @@ function bindSubtaskEvents(el, sub, parentTaskOrId, parentMode = 'default') {
                     }
                 });
             });
-            
+
             window.showToast(t('alerts.error'), 'Не удалось сохранить статус подзадачи', true);
         });
     };
@@ -7846,7 +7846,7 @@ function bindSubtaskEvents(el, sub, parentTaskOrId, parentMode = 'default') {
         el.style.transition = 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)';
         el.style.opacity = '0';
         el.style.transform = 'translateX(30px) scale(0.95)';
-        
+
         setTimeout(() => {
             if (el.parentNode) el.remove();
             const countEl = document.getElementById('subtasks-count');
@@ -7867,19 +7867,19 @@ function bindSubtaskEvents(el, sub, parentTaskOrId, parentMode = 'default') {
 
                     bumpModalUpdatedDate();
                     const deletedIds = data.deleted_ids || [];
-                    
+
                     deletedIds.forEach(id => {
                         const boardCard = document.querySelector(`.card[data-card-id="${id}"]`);
                         if (boardCard) {
                             animateCardDeletion(boardCard);
                         }
-                        
+
                         for (let col of state.columns) {
                             const taskIndex = col.tasks.findIndex(t => t.id === id);
                             if (taskIndex !== -1) col.tasks.splice(taskIndex, 1);
                         }
                     });
-                    refreshBoard(); 
+                    refreshBoard();
                 }
             } catch(err) {
                 console.error("Ошибка при удалении пункта:", err);
@@ -7893,7 +7893,7 @@ function bindSubtaskEvents(el, sub, parentTaskOrId, parentMode = 'default') {
             loadTaskIntoModal(sub.id, true);
             return;
         }
-        
+
         fetch(`${API_BASE}/tasks/${sub.id}/context`)
             .then(res => res.json())
             .then(context => {
@@ -7909,7 +7909,7 @@ function bindSubtaskEvents(el, sub, parentTaskOrId, parentMode = 'default') {
         e.stopPropagation();
         const eyeBtn = e.currentTarget;
         const checkbox = el.querySelector('.subtask-checkbox');
-        
+
         sub.is_visible_on_board = !sub.is_visible_on_board;
 
         const eyeOpenSvg = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
@@ -7920,18 +7920,18 @@ function bindSubtaskEvents(el, sub, parentTaskOrId, parentMode = 'default') {
         eyeBtn.innerHTML = sub.is_visible_on_board ? eyeOpenSvg : eyeClosedSvg;
         eyeBtn.classList.toggle('active-eye', sub.is_visible_on_board);
         el.classList.toggle('is-board-agent', sub.is_visible_on_board);
-        
-        updateTask(sub.id, { 
+
+        updateTask(sub.id, {
             is_visible_on_board: sub.is_visible_on_board
         }).then(updatedSub => {
             sub.completed_at = updatedSub.completed_at;
-            
+
             const isDone = sub.completed_at;
             const isLocked = sub.is_visible_on_board;
 
             checkbox.classList.toggle('locked', isLocked);
             el.classList.toggle('is-done', !!isDone);
-            
+
             if (sub.is_visible_on_board) {
                 checkbox.setAttribute('title', 'Статус управляется на доске');
                 checkbox.innerHTML = isDone ? checkIconSvg : boardIconSvg;
@@ -7939,7 +7939,7 @@ function bindSubtaskEvents(el, sub, parentTaskOrId, parentMode = 'default') {
                 checkbox.removeAttribute('title');
                 checkbox.innerHTML = checkIconSvg;
             }
-            
+
             refreshBoard();
         }).catch(console.error);
     };
@@ -7960,7 +7960,7 @@ function bindSubtaskEvents(el, sub, parentTaskOrId, parentMode = 'default') {
             el.style.transition = 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)';
             el.style.opacity = '0';
             el.style.transform = 'translateY(-10px) scale(0.95)';
-            
+
             setTimeout(() => {
                 if (el.parentNode) el.remove();
                 const countEl = document.getElementById('subtasks-count');
@@ -8069,7 +8069,7 @@ function initTaskDescriptionLogic() {
 
     if (!cmEditor && window.CodeMirror) {
         cmEditor = CodeMirror.fromTextArea(inputArea, {
-            lineWrapping: true,      
+            lineWrapping: true,
             viewportMargin: 50,
             maxHighlightLength: 2000,
             workTime: 10,
@@ -8079,22 +8079,22 @@ function initTaskDescriptionLogic() {
             extraKeys: {
                 "Cmd-F": (cm) => { if (window.openLocalSearch) window.openLocalSearch(); },
                 "Ctrl-F": (cm) => { if (window.openLocalSearch) window.openLocalSearch(); },
-                
+
                 "Cmd-B": (cm) => toggleFormat(cm, "**", "**"),
                 "Ctrl-B": (cm) => toggleFormat(cm, "**", "**"),
-                
+
                 "Cmd-I": (cm) => toggleFormat(cm, "*", "*"),
                 "Ctrl-I": (cm) => toggleFormat(cm, "*", "*"),
-                
+
                 "Cmd-U": (cm) => toggleFormat(cm, "<u>", "</u>"),
                 "Ctrl-U": (cm) => toggleFormat(cm, "<u>", "</u>"),
-                
+
                 "Shift-Cmd-X": (cm) => toggleFormat(cm, "~~", "~~"),
                 "Shift-Ctrl-X": (cm) => toggleFormat(cm, "~~", "~~"),
-                
+
                 "Cmd-E": (cm) => toggleFormat(cm, "`", "`"),
                 "Ctrl-E": (cm) => toggleFormat(cm, "`", "`"),
-                
+
                 "Cmd-K": (cm) => insertLink(cm),
                 "Ctrl-K": (cm) => insertLink(cm)
             }
@@ -8129,8 +8129,8 @@ function initTaskDescriptionLogic() {
     };
 
     const switchToEditMode = () => {
-        if (window.closeLocalSearch) window.closeLocalSearch(); 
-        lastSavedValue = cmEditor.getValue(); 
+        if (window.closeLocalSearch) window.closeLocalSearch();
+        lastSavedValue = cmEditor.getValue();
 
         const taskId = parseInt(modal.dataset.taskId);
         let currentTask = null;
@@ -8155,17 +8155,17 @@ function initTaskDescriptionLogic() {
 
         renderDiv.style.display = 'none';
         cmEditor.getWrapperElement().style.display = 'block';
-        cmEditor.refresh(); 
+        cmEditor.refresh();
 
         window.getSelection().removeAllRanges();
-        
-        const targetPos = currentTask && currentTask._editCursorPos 
-            ? currentTask._editCursorPos 
+
+        const targetPos = currentTask && currentTask._editCursorPos
+            ? currentTask._editCursorPos
             : { line: 0, ch: 0 };
 
         cmEditor.focus();
         cmEditor.setCursor(targetPos);
-        
+
         const info = cmEditor.getScrollInfo();
         cmEditor.scrollIntoView(targetPos, Math.round(info.clientHeight / 2));
 
@@ -8441,7 +8441,7 @@ function initTaskDescriptionLogic() {
     });
 
     descWrapper.addEventListener('drop', handleFileDrop);
-    
+
     cmEditor.on('paste', (cm, e) => handleFilePaste(e));
     renderDiv.addEventListener('paste', handleFilePaste);
 
@@ -8466,14 +8466,14 @@ function initTaskDescriptionLogic() {
             const res = await fetch(`${API_BASE}/tasks/${taskId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
+                body: JSON.stringify({
                     description: newDesc,
-                    attachments_order: newOrderPaths 
+                    attachments_order: newOrderPaths
                 })
             });
 
             if (!res.ok) throw new Error("Save failed");
-            
+
             bumpModalUpdatedDate();
 
             let updatedColId = null;
@@ -8494,11 +8494,11 @@ function initTaskDescriptionLogic() {
                     break;
                 }
             }
-            
+
             if (updatedColId && window.syncColumnDOM) {
                 await window.syncColumnDOM(updatedColId);
             }
-            
+
             exitEditingUI(newDesc, extracted);
         } catch (err) {
             console.error("Critical sync error:", err);
@@ -8512,13 +8512,13 @@ function initTaskDescriptionLogic() {
         const attachmentsList = document.getElementById('attachments-list');
         const attachmentsCount = document.getElementById('attachments-count');
         const taskId = parseInt(modal.dataset.taskId);
-        
+
         let currentTask = null;
         for (let col of state.columns) {
             currentTask = col.tasks.find(t => t.id === taskId);
             if (currentTask) break;
         }
-        
+
         if (attachmentsCount && attachmentsList && preCalculatedAttachments) {
             let extracted = preCalculatedAttachments;
             if (extracted.length > 0 && extracted[0].exists === undefined) {
@@ -8551,7 +8551,7 @@ function initTaskDescriptionLogic() {
         if (content.trim()) {
             const cleanRegex = /(!?)\[[^\]]*\]\(doe\/[^)]+\)(?:\{[^}]+\})?!\s*/g;
             const cleanContent = content.replace(cleanRegex, '');
-            
+
             renderMarkdownProgressively(cleanContent, renderDiv, {
                 onFirstScreen: () => {
                     applyScroll();
@@ -8559,13 +8559,13 @@ function initTaskDescriptionLogic() {
                 onComplete: () => {
                     let localFolded = currentTask ? currentTask.folded_headings || [] : [];
                     initHeadingFolding(renderDiv, localFolded);
-                    applyTextExpansion(); 
+                    applyTextExpansion();
                     applyScroll();
                 }
             });
         } else {
             renderDiv.innerHTML = `<span class="markdown-empty">${t('taskModal.descPlaceholder')}</span>`;
-            applyTextExpansion(); 
+            applyTextExpansion();
             applyScroll();
         }
     };
@@ -8574,7 +8574,7 @@ function initTaskDescriptionLogic() {
         if (e.target.classList.contains('image-resize-handle')) {
             e.preventDefault();
             e.stopPropagation();
-            
+
             const wrapper = e.target.closest('.image-resizer-wrapper');
             const startX = e.clientX;
             const startY = e.clientY;
@@ -8590,32 +8590,49 @@ function initTaskDescriptionLogic() {
             const storedHeight = sizeMatch ? Number(sizeMatch[2]) : startHeight;
             let desiredWidth = storedWidth;
             let desiredHeight = storedHeight;
-            
+
             wrapper.classList.add('is-resizing');
-            wrapper.classList.add('has-custom-size'); 
-            document.body.style.userSelect = 'none'; 
-            
+            wrapper.classList.add('has-custom-size');
+            document.body.style.userSelect = 'none';
+
+            const imageResizeState = {
+                descriptionHeightBefore: descWrapper ? descWrapper.getBoundingClientRect().height : 0,
+                descriptionHeightExpanded: false
+            };
+
             const onMouseMove = (moveEvent) => {
                 desiredWidth = Math.max(50, storedWidth + (moveEvent.clientX - startX));
                 desiredHeight = Math.max(50, storedHeight + (moveEvent.clientY - startY));
-                
+
                 if (moveEvent.shiftKey) desiredHeight = desiredWidth / aspectRatio;
 
                 const wrapperRect = wrapper.getBoundingClientRect();
                 const viewportRect = renderDiv.getBoundingClientRect();
                 const availableWidth = Math.max(50, viewportRect.right - wrapperRect.left);
-                const availableHeight = Math.max(50, viewportRect.bottom - wrapperRect.top);
 
-                // Only the visual size is clamped. The desired size remains
-                // untouched so a later card expansion restores it.
+                // Horizontal size is constrained by the live description viewport.
+                // Vertical size is NOT constrained by the current description height:
+                // the description itself grows to make room for the image.
                 const visibleWidth = Math.min(desiredWidth, availableWidth);
-                const visibleHeight = Math.min(desiredHeight, availableHeight);
+                const visibleHeight = desiredHeight;
 
                 wrapper.style.width = visibleWidth + 'px';
                 wrapper.style.height = visibleHeight + 'px';
+
+                if (descWrapper) {
+                    const descRect = descWrapper.getBoundingClientRect();
+                    const imageBottom = wrapper.getBoundingClientRect().bottom;
+                    const requiredHeight = Math.max(0, imageBottom - descRect.top + 18);
+                    const currentHeight = descRect.height;
+                    if (requiredHeight > currentHeight) {
+                        descWrapper.style.height = `${requiredHeight}px`;
+                        imageResizeState.descriptionHeightExpanded = true;
+                    }
+                }
+
                 applyTextExpansion();
             };
-            
+
             const onMouseUp = async () => {
                 document.removeEventListener('mousemove', onMouseMove);
                 document.removeEventListener('mouseup', onMouseUp);
@@ -8624,26 +8641,27 @@ function initTaskDescriptionLogic() {
                 // Клик, прилетающий сразу после ресайза, не должен открывать лайтбокс
                 wrapper.dataset.justResized = '1';
                 setTimeout(() => { delete wrapper.dataset.justResized; }, 300);
-                
+
                 // Persist the user's requested size, not the temporarily
                 // clamped size currently visible in the description viewport.
                 const finalWidth = Math.round(desiredWidth);
                 const finalHeight = Math.round(desiredHeight);
                 const originalMd = unescapeHtml(wrapper.dataset.md);
-                
+
                 const regex = /!\[([^\]]*)\]\(([^)]+)\)(?:\{[^}]+\})?/;
                 const newMd = originalMd.replace(regex, `![$1]($2){${finalWidth}, ${finalHeight}}`);
-                
+
                 const idx = cmEditor.getValue().indexOf(originalMd);
                 if (idx !== -1) {
                     const from = cmEditor.posFromIndex(idx);
                     const to = cmEditor.posFromIndex(idx + originalMd.length);
                     cmEditor.replaceRange(newMd, from, to);
                 }
-                
+
                 wrapper.dataset.md = escapeHtml(newMd);
-                lastSavedValue = cmEditor.getValue(); 
-                
+                lastSavedValue = cmEditor.getValue();
+                applyTextExpansion();
+
                 const taskId = modal.dataset.taskId;
                 try {
                     await fetch(`${API_BASE}/tasks/${taskId}`, {
@@ -8651,9 +8669,9 @@ function initTaskDescriptionLogic() {
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ description: cmEditor.getValue() })
                     });
-                    
+
                     bumpModalUpdatedDate();
-                    
+
                     for (let col of state.columns) {
                         let currentTask = col.tasks.find(t => t.id == taskId);
                         if (currentTask) {
@@ -8665,7 +8683,7 @@ function initTaskDescriptionLogic() {
                     console.error("Failed to save image resize", err);
                 }
             };
-            
+
             document.addEventListener('mousemove', onMouseMove);
             document.addEventListener('mouseup', onMouseUp);
             return;
@@ -8673,7 +8691,7 @@ function initTaskDescriptionLogic() {
 
         if (e.target.tagName === 'A') return;
         if (e.detail > 1) {
-            e.preventDefault(); 
+            e.preventDefault();
         }
     });
 
@@ -8882,7 +8900,7 @@ function initTaskDescriptionLogic() {
                 cmEditor.focus();
             }
         }
-        
+
         setTimeout(() => {
             preventBlurExit = false;
         }, 150);
@@ -8912,7 +8930,7 @@ function initTaskModalDragAndResize() {
 
     let currentResizer = null;
     let isDragging = false;
-    
+
     let startX, startY, startW, startH, startLeft, startTop;
 
     let currentRotation = 0;
@@ -8921,7 +8939,7 @@ function initTaskModalDragAndResize() {
     let currentMouseX = 0;
     let currentMouseY = 0;
     let rafId = null;
-    
+
     let dragCleanupTimeout = null;
     let dragCleanupFn = null;
 
@@ -8969,18 +8987,18 @@ function initTaskModalDragAndResize() {
 
             void card.offsetWidth;
 
-            card.style.transition = ''; 
+            card.style.transition = '';
             card.classList.add('is-restoring');
-            
+
             card.style.left = `${targetRect.left}px`;
             card.style.top = `${targetRect.top}px`;
             card.style.width = `${targetRect.width}px`;
             card.style.height = `${targetRect.height}px`;
 
             maximizeBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="14 6 18 6 18 10"></polyline><polyline points="10 18 6 18 6 14"></polyline><line x1="18" y1="6" x2="13" y2="11"></line><line x1="6" y1="18" x2="11" y2="13"></line></svg>`;
-            
+
             const cleanup = (ev) => {
-                if (ev && ev.target !== card) return; 
+                if (ev && ev.target !== card) return;
                 card.removeEventListener('transitionend', cleanup);
                 card.classList.remove('is-restoring');
                 card.style.position = '';
@@ -8997,11 +9015,11 @@ function initTaskModalDragAndResize() {
 
     const renderModalPhysics = () => {
         if (!isDragging) return;
-        
+
         const deltaX = currentMouseX - lastMouseX;
         lastMouseX = currentMouseX;
-        
-        const maxRotation = 2.5; 
+
+        const maxRotation = 2.5;
         targetRotation = Math.max(-maxRotation, Math.min(maxRotation, deltaX * 0.15));
         currentRotation += (targetRotation - currentRotation) * 0.12;
 
@@ -9014,12 +9032,12 @@ function initTaskModalDragAndResize() {
 
     const onPointerDown = (e) => {
         if (e.button !== 0) return;
-        
+
         if (card.classList.contains('maximized')) return;
         if (!e.target.closest('.task-detail-card')) return;
 
         const resizer = e.target.closest('.resizer');
-        
+
         const isInteractive = e.target.closest(
             'button, input, textarea, a, ' +
             '.markdown-body, .description-wrapper, ' +
@@ -9029,7 +9047,7 @@ function initTaskModalDragAndResize() {
             '.memory-card-section, .toggle-switch'
         );
 
-        const isScrollbarClick = (e.target.clientWidth > 0 && e.offsetX > e.target.clientWidth) || 
+        const isScrollbarClick = (e.target.clientWidth > 0 && e.offsetX > e.target.clientWidth) ||
                                  (e.target.clientHeight > 0 && e.offsetY > e.target.clientHeight);
 
         if (!resizer && (isInteractive || isScrollbarClick)) return;
@@ -9039,7 +9057,7 @@ function initTaskModalDragAndResize() {
         }
 
         e.preventDefault();
-        
+
         if (dragCleanupFn) {
             card.removeEventListener('transitionend', dragCleanupFn);
             dragCleanupFn = null;
@@ -9075,9 +9093,9 @@ function initTaskModalDragAndResize() {
             currentMouseY = e.clientY;
             currentRotation = 0;
             targetRotation = 0;
-            
-            card.style.willChange = 'transform'; 
-            
+
+            card.style.willChange = 'transform';
+
             document.body.classList.add('is-dragging-modal');
 
             cancelAnimationFrame(rafId);
@@ -9090,14 +9108,14 @@ function initTaskModalDragAndResize() {
     };
 
     const onPointerMove = (e) => {
-        currentMouseX = e.clientX; 
+        currentMouseX = e.clientX;
         currentMouseY = e.clientY;
-        
+
         const dx = e.clientX - startX;
         const dy = e.clientY - startY;
 
         if (isDragging) {
-            return; 
+            return;
         }
 
         if (currentResizer) {
@@ -9140,23 +9158,23 @@ function initTaskModalDragAndResize() {
             card.style.transform = `translate3d(${dx}px, ${dy}px, 0) rotate(0deg)`;
 
             dragCleanupFn = (ev) => {
-                if (ev && ev.target !== card) return; 
+                if (ev && ev.target !== card) return;
                 if (ev && ev.propertyName !== 'transform') return;
-                
+
                 if (dragCleanupFn) card.removeEventListener('transitionend', dragCleanupFn);
                 if (dragCleanupTimeout) clearTimeout(dragCleanupTimeout);
                 dragCleanupFn = null;
                 dragCleanupTimeout = null;
-                
+
                 card.style.transition = 'none';
                 card.style.left = `${startLeft + dx}px`;
                 card.style.top = `${startTop + dy}px`;
                 card.style.transform = 'none';
             };
-            
+
             card.addEventListener('transitionend', dragCleanupFn);
-            dragCleanupTimeout = setTimeout(dragCleanupFn, 450); 
-            
+            dragCleanupTimeout = setTimeout(dragCleanupFn, 450);
+
             if (Math.abs(e.clientX - startX) > 3 || Math.abs(e.clientY - startY) > 3) {
                 window._isAfterDrag = true;
                 setTimeout(() => window._isAfterDrag = false, 250);
@@ -9211,14 +9229,14 @@ function extractAttachments(desc, savedOrder = []) {
 async function enrichAttachments(attachments) {
     if (attachments.length === 0) return attachments;
     const paths = attachments.map(a => a.path);
-    
+
     try {
         const res = await fetch(`${API_BASE}/system/validate-attachments`, {
-            method: 'POST', 
-            headers: {'Content-Type': 'application/json'}, 
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({paths})
         });
-        
+
         if (res.ok) {
             const validation = await res.json();
             attachments.forEach(a => {
@@ -9229,34 +9247,34 @@ async function enrichAttachments(attachments) {
                 } else {
                     const status = validation[a.path];
                     a.exists = status ? status.exists : false;
-                    a.real_name = status ? status.real_name : a.label; 
+                    a.real_name = status ? status.real_name : a.label;
                 }
             });
         }
     } catch (e) {
         console.error("Attachment validation failed", e);
-        attachments.forEach(a => { a.exists = true; a.real_name = a.name; }); 
+        attachments.forEach(a => { a.exists = true; a.real_name = a.name; });
     }
     return attachments;
 }
 
 function createAttachmentElement(att) {
     const div = document.createElement('div');
-    div.className = 'subtask-item attachment-item'; 
+    div.className = 'subtask-item attachment-item';
     div.dataset.fullMatch = att.fullMatch;
-    div.dataset.path = att.path; 
-    
+    div.dataset.path = att.path;
+
     const isPending = att.isPending === true;
     const isMissing = att.exists === false && !isPending;
     const needsRelink = isMissing || isPending;
-    
+
     let fileIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: block;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>`;
     if (needsRelink) {
         fileIcon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>`;
     }
-    
+
     const trashIcon = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
-    
+
     let displayTitle = escapeHtml(att.real_name);
     if (isPending) {
         displayTitle = t('pendingTitle', escapeHtml(att.label));
@@ -9281,10 +9299,10 @@ function createAttachmentElement(att) {
             <button class="subtask-delete-btn" title="${t('menu.delete')}">${trashIcon}</button>
         </div>
     `;
-    
+
     div.addEventListener('click', async (e) => {
         if (e.target.closest('.subtask-delete-btn')) return;
-        
+
         if (needsRelink) {
             let newAbsPath = null;
             if (window.pywebview && window.pywebview.api && window.pywebview.api.choose_file) {
@@ -9335,10 +9353,10 @@ function createAttachmentElement(att) {
             body: JSON.stringify({path: decodeURIComponent(att.path)})
         });
     });
-    
+
     div.querySelector('.subtask-delete-btn').addEventListener('click', async (e) => {
         e.stopPropagation();
-        
+
         div.style.transition = 'all 0.2s ease-out';
         div.style.opacity = '0';
         div.style.transform = 'translateX(20px)';
@@ -9356,10 +9374,10 @@ function createAttachmentElement(att) {
         setTimeout(async () => {
             const renderDiv = document.getElementById('task-desc-render');
             const isEditMode = renderDiv.style.display === 'none';
-            
+
             const escapedPath = pathToDelete.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             const pathRegex = new RegExp(`!?\\[[^\\]]*\\]\\(${escapedPath}\\)(?:\\{[^}]+\\})?!?`, 'g');
-            
+
             const oldText = cmEditor.getValue();
             const newText = oldText.replace(pathRegex, '');
 
@@ -9451,14 +9469,14 @@ async function replaceBrokenAttachment(att, newData) {
     const sizeStr = sizeMatch ? sizeMatch[0] : '';
 
     const newMarkdown = `${prefix}[${att.label}](${encodedNewPath})${sizeStr}${suffix}`;
-    
+
     const idx = cmEditor.getValue().indexOf(att.fullMatch);
     if (idx !== -1) {
         const from = cmEditor.posFromIndex(idx);
         const to = cmEditor.posFromIndex(idx + att.fullMatch.length);
         cmEditor.replaceRange(newMarkdown, from, to);
     }
-    
+
     if (isEditMode) {
         cmEditor.focus();
         refreshAttachmentsList();
@@ -9687,9 +9705,9 @@ function appendAttachmentToDescription(name, path) {
     const isImg = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'ico'].includes(ext);
     const prefix = isImg ? '!' : '';
 
-    const encodedPath = encodeMarkdownPath(path); 
+    const encodedPath = encodeMarkdownPath(path);
     const attachmentMarkdown = `${prefix}[${name}](${encodedPath})`;
-    
+
     if (isEditMode) {
         const cursor = cmEditor.getCursor();
         const textBefore = cmEditor.getRange({line: 0, ch: 0}, cursor);
@@ -9699,7 +9717,7 @@ function appendAttachmentToDescription(name, path) {
             if (textBefore.endsWith('\n')) pfx = "\n";
             else pfx = "\n\n";
         }
-        
+
         const insertText = `${pfx}${attachmentMarkdown}\n`;
         cmEditor.replaceSelection(insertText);
         cmEditor.focus();
@@ -10496,9 +10514,9 @@ async function renderVaultHistory() {
     const list = document.getElementById('vault-history-list');
     if (!list) return;
     list.innerHTML = '';
-    
+
     const history = await fetchVaultHistory();
-    
+
     if (history.length === 0) {
         list.innerHTML = `
             <div style="text-align:center; padding: 24px; color: var(--text-secondary); font-size: 13px; opacity: 0.6;" data-i18n="vault.recentEmpty">
@@ -10517,7 +10535,7 @@ async function renderVaultHistory() {
         const isMissing = item.exists === false;
         div.className = `subtask-item vault-history-item${isMissing ? ' is-missing' : ''}`;
         div.dataset.path = item.path;
-        
+
         let dateStr = '';
         if (item.last_opened) {
             dateStr = formatDateTime(item.last_opened);
@@ -10570,12 +10588,12 @@ async function renderVaultHistory() {
         });
 
         div.addEventListener('click', async (e) => {
-            if (window._isAfterDrag) return; 
+            if (window._isAfterDrag) return;
             if (e.target.closest('.vault-hist-del')) return;
             if (e.target.closest('.vault-hist-reveal')) return;
-            
+
             const currentlyMissing = div.querySelector('.subtask-checkbox').classList.contains('missing');
-            
+
             if (currentlyMissing) {
                 try {
                     let newPath = null;
@@ -10674,9 +10692,9 @@ async function renderVaultHistory() {
 
         div.querySelector('.vault-hist-del').addEventListener('click', async (e) => {
             e.stopPropagation();
-            
+
             const rect = div.getBoundingClientRect();
-            
+
             const clone = div.cloneNode(true);
             clone.classList.add('vault-deleting-clone');
             clone.style.left = `${rect.left}px`;
@@ -10684,11 +10702,11 @@ async function renderVaultHistory() {
             clone.style.width = `${rect.width}px`;
             clone.style.height = `${rect.height}px`;
             document.body.appendChild(clone);
-            
+
             const spacer = document.createElement('div');
             spacer.className = 'vault-history-spacer';
             spacer.style.height = `${rect.height}px`;
-            
+
             div.replaceWith(spacer);
 
             requestAnimationFrame(() => {
@@ -10701,9 +10719,9 @@ async function renderVaultHistory() {
             setTimeout(() => {
                 if (clone.parentNode) clone.remove();
                 if (spacer.parentNode) spacer.remove();
-                
+
                 updateVaultHistoryScrollState();
-                
+
                 if (list.querySelectorAll('.vault-history-item').length === 0) {
                     renderVaultHistory();
                 }
@@ -10722,7 +10740,7 @@ async function renderVaultHistory() {
 
         list.appendChild(div);
     });
-    
+
     requestAnimationFrame(updateVaultHistoryScrollState);
 }
 
@@ -10754,12 +10772,12 @@ window.handleVaultAction = async (actionType) => {
             cardsContainer.style.opacity = '0';
             cardsContainer.style.transform = 'translateY(-4px) scale(0.98)';
             cardsContainer.style.pointerEvents = 'none';
-            
+
             setTimeout(() => {
                 cardsContainer.style.display = 'none';
-                
+
                 createForm.style.display = 'block';
-                
+
                 requestAnimationFrame(() => {
                     requestAnimationFrame(() => {
                         if (nameInput) {
@@ -10773,7 +10791,7 @@ window.handleVaultAction = async (actionType) => {
     } else if (actionType === 'open') {
         try {
             if (!window.pywebview || !window.pywebview.api) return;
-            
+
             const selectedPath = await window.pywebview.api.choose_directory();
             if (!selectedPath) return;
 
@@ -10847,11 +10865,11 @@ window.cancelVaultCreate = () => {
 
     if (createForm && cardsContainer) {
         createForm.style.display = 'none';
-        
+
         cardsContainer.style.display = 'flex';
         cardsContainer.style.opacity = '0';
         cardsContainer.style.transform = 'translateY(4px) scale(0.98)';
-        
+
         requestAnimationFrame(() => {
             requestAnimationFrame(() => {
                 cardsContainer.style.transition = 'opacity 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1)';
@@ -10861,7 +10879,7 @@ window.cancelVaultCreate = () => {
             });
         });
     }
-    
+
     if (nameInput) {
         nameInput.value = '';
     }
@@ -10870,7 +10888,7 @@ window.cancelVaultCreate = () => {
 window.confirmVaultCreate = async () => {
     const nameInput = document.getElementById('new-vault-name');
     const vaultName = nameInput.value.trim();
-    
+
     if (!vaultName) {
         nameInput.focus();
         nameInput.classList.add('is-error');
@@ -10881,7 +10899,7 @@ window.confirmVaultCreate = async () => {
     if (!window.pywebview || !window.pywebview.api) return;
 
     const parentPath = await window.pywebview.api.choose_directory();
-    if (!parentPath) return; 
+    if (!parentPath) return;
 
     try {
         window.showVaultOpeningOverlay();
@@ -10929,13 +10947,13 @@ function initGlobalSearch() {
     document.addEventListener('keydown', (e) => {
         if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'f') {
             const taskModal = document.getElementById('task-modal');
-            
+
             if (taskModal && taskModal.classList.contains('show')) {
-                e.preventDefault(); 
+                e.preventDefault();
                 if (window.openLocalSearch) window.openLocalSearch();
                 return;
             }
-            
+
             if (wrapper && wrapper.style.display !== 'none') {
                 e.preventDefault();
                 input.focus();
@@ -10949,7 +10967,7 @@ function initGlobalSearch() {
     input.addEventListener('input', () => {
         clearTimeout(debounceTimer);
         const query = input.value.trim();
-        
+
         if (query.length < 2) {
             dropdown.classList.remove('show');
             return;
@@ -10991,10 +11009,10 @@ function initGlobalSearch() {
             if (!q) return escapeHtml(text);
             const words = q.trim().split(/\s+/).filter(w => w.length > 0);
             if (words.length === 0) return escapeHtml(text);
-            
+
             const regexWords = words.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
             const regex = new RegExp(`(${regexWords.join('|')})`, 'gi');
-            
+
             const parts = text.split(regex);
             return parts.map((part, i) => {
                 if (i % 2 !== 0) {
@@ -11052,7 +11070,7 @@ function initGlobalSearch() {
                     .replace(/&lt;\/mark&gt;/gi, '</mark>');
                 desc = `...${safeSnippet}...`;
             }
-            
+
             createItem(highlightString(t.title, query), `${taskIcon} Карточка &middot; ${t.workspace_name} / ${t.column_title}`, desc, () => window.navigateToEntityGlobal(t.workspace_id, t.column_id, t.id, isTagSearch ? null : query));
         });
 
@@ -11084,7 +11102,7 @@ function initGlobalSearch() {
 
 window.navigateToEntityGlobal = async function(wsId, colId, taskId, highlightQuery = null, keepStack = false, openModal = true) {
     closeAllDropdowns();
-    
+
     if (wsId && wsId !== state.activeWorkspaceId) {
         document.querySelectorAll('.board-tab').forEach(t => t.classList.remove('active'));
         const targetTab = document.querySelector(`.board-tab[data-workspace-id="${wsId}"]`);
@@ -11092,10 +11110,10 @@ window.navigateToEntityGlobal = async function(wsId, colId, taskId, highlightQue
             targetTab.classList.add('active');
             targetTab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
         }
-        
+
         state.activeWorkspaceId = wsId;
         updateSettings({ active_workspace_id: wsId }).catch(console.error);
-        
+
         const columns = await fetchColumns(wsId);
         state.columns = columns.map(col => ({ ...col, collapsed: col.collapsed || false }));
         renderBoard();
@@ -11109,7 +11127,7 @@ window.navigateToEntityGlobal = async function(wsId, colId, taskId, highlightQue
                     onExpandColumn(colEl);
                 }
                 colEl.scrollIntoView({ behavior: 'smooth', inline: 'center' });
-                
+
                 if (taskId) {
                     const cardEl = document.querySelector(`.card[data-card-id="${taskId}"]`);
                     if (cardEl) {
@@ -11133,18 +11151,18 @@ window.chooseCustomAttFolder = async () => {
     if (path) {
         try {
             document.getElementById('setting-item-external').style.opacity = '0.5';
-            
+
             await fetch(`${API_BASE}/system/settings`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ global_attachments_path: path, reset_attachments: false })
             });
-            
+
             document.getElementById('att-path-display').textContent = path;
             document.getElementById('setting-item-local').classList.remove('active');
             document.getElementById('setting-item-external').classList.add('active');
-        } catch (e) { 
-            console.error(e); 
+        } catch (e) {
+            console.error(e);
         } finally {
             document.getElementById('setting-item-external').style.opacity = '1';
         }
@@ -11162,12 +11180,12 @@ window.resetAttFolder = async () => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ reset_attachments: true })
         });
-        
+
         document.getElementById('att-path-display').textContent = t('modals.attSelectBtn');
         document.getElementById('setting-item-external').classList.remove('active');
         document.getElementById('setting-item-local').classList.add('active');
-    } catch (e) { 
-        console.error(e); 
+    } catch (e) {
+        console.error(e);
     } finally {
         document.getElementById('setting-item-local').style.opacity = '1';
     }
@@ -11180,15 +11198,15 @@ let activeDatePickerTrigger = null;
 function renderDatePicker() {
     const locale = dpLocales[currentLang];
     document.getElementById('dp-time-label').textContent = locale.time;
-    
+
     const weekdaysEl = document.getElementById('dp-weekdays');
     weekdaysEl.innerHTML = locale.days.map(d => `<span>${d}</span>`).join('');
 
     const year = dpCurrentDate.getFullYear();
     const month = dpCurrentDate.getMonth();
-    
+
     document.getElementById('dp-month-year').textContent = `${locale.months[month]} ${year}`;
-    
+
     const grid = document.getElementById('dp-grid');
     grid.innerHTML = '';
 
@@ -11198,7 +11216,7 @@ function renderDatePicker() {
     const daysInPrevMonth = new Date(year, month, 0).getDate();
 
     const today = new Date();
-    
+
     for (let i = 0; i < startDay; i++) {
         const d = daysInPrevMonth - startDay + i + 1;
         const div = document.createElement('div');
@@ -11211,11 +11229,11 @@ function renderDatePicker() {
         const div = document.createElement('div');
         div.className = 'dp-cell';
         div.textContent = i;
-        
+
         if (year === today.getFullYear() && month === today.getMonth() && i === today.getDate()) {
             div.classList.add('today');
         }
-        
+
         if (year === dpSelectedDate.getFullYear() && month === dpSelectedDate.getMonth() && i === dpSelectedDate.getDate()) {
             div.classList.add('selected');
         }
@@ -11257,12 +11275,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const renderFontList = (query = '') => {
             uiFontDropdown.innerHTML = '';
             const lowerQuery = query.toLowerCase();
-            
+
             const filtered = window.cachedSystemFonts.filter(f => {
                 const text = f === "Inter" ? `Inter (${t('modals.fontSystemDefault')})` : f;
                 return text.toLowerCase().includes(lowerQuery);
             });
-            
+
             if (filtered.length === 0) {
                 uiFontDropdown.innerHTML = `<div class="menu-item" style="opacity: 0.5; cursor: default; font-size: 12px; line-height: 1.3;">${t('modals.fontNotFound')}</div>`;
                 return;
@@ -11271,21 +11289,21 @@ document.addEventListener('DOMContentLoaded', () => {
             filtered.forEach(font => {
                 const item = document.createElement('div');
                 item.className = 'menu-item';
-                
+
                 const family = font === "Inter" ? "var(--font-main)" : `"${font}"`;
                 item.style.setProperty('font-family', family, 'important');
-                
+
                 const displayText = font === "Inter" ? `Inter (${t('modals.fontSystemDefault')})` : font;
                 item.textContent = displayText;
-                
+
                 item.addEventListener('mousedown', (e) => {
-                    e.preventDefault(); 
+                    e.preventDefault();
                     uiFontInput.value = displayText;
                     applyAndSaveUiFont();
                     uiFontDropdown.classList.remove('show');
                     setTimeout(() => uiFontDropdown.style.display = 'none', 200);
                 });
-                
+
                 uiFontDropdown.appendChild(item);
             });
         };
@@ -11300,14 +11318,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 uiFontInput.value = '';
             }
             renderFontList(uiFontInput.value.trim());
-            
+
             uiFontDropdown.style.visibility = 'hidden';
             uiFontDropdown.style.display = 'block';
             uiFontDropdown.classList.add('show');
             const menuHeight = uiFontDropdown.offsetHeight;
             uiFontDropdown.classList.remove('show');
             uiFontDropdown.style.visibility = '';
-            
+
             const rect = uiFontInput.getBoundingClientRect();
             if (rect.bottom + menuHeight + 10 > window.innerHeight) {
                 uiFontDropdown.style.top = 'auto';
@@ -11318,7 +11336,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 uiFontDropdown.style.top = '40px';
                 uiFontDropdown.style.transformOrigin = 'top center';
             }
-            
+
             setTimeout(() => uiFontDropdown.classList.add('show'), 10);
         });
 
@@ -11330,18 +11348,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const applyAndSaveUiFont = async () => {
             const val = uiFontInput.value.trim();
-            
+
             const isDefault = !val || val === `Inter (${t('modals.fontSystemDefault')})` || val.toLowerCase() === "inter";
             const saveVal = isDefault ? "" : val;
-            
+
             await updateSettings({ ui_font: saveVal });
-            
+
             uiFontInput.value = isDefault ? `Inter (${t('modals.fontSystemDefault')})` : val;
-            
+
             const settings = await fetchSettings().catch(() => ({}));
             updateAppFont(saveVal, settings.custom_font);
         };
-        
+
         uiFontInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
@@ -11349,17 +11367,17 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-    
+
     const amountInput = document.getElementById('notify-amount');
     if (amountInput) {
         amountInput.addEventListener('blur', () => {
             const rawValue = amountInput.value.trim();
-            
+
             if (rawValue === '') {
                 amountInput.value = '15';
                 return;
             }
-            
+
             const val = parseInt(rawValue);
             if (isNaN(val) || val <= 0) {
                 amountInput.value = '15';
@@ -11382,7 +11400,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const menuHeight = menu.offsetHeight;
                 menu.classList.remove('show');
                 menu.style.visibility = '';
-                
+
                 const rect = trigger.getBoundingClientRect();
                 if (rect.bottom + menuHeight + 10 > window.innerHeight) {
                     menu.style.top = 'auto';
@@ -11393,7 +11411,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     menu.style.top = '44px';
                     menu.style.transformOrigin = 'top center';
                 }
-                
+
                 void menu.offsetWidth;
                 menu.classList.add('show');
             }
@@ -11444,11 +11462,11 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('datepicker-trigger').onclick = (e) => {
         e.stopPropagation();
         closeAllDropdowns();
-        
+
         const trigger = e.currentTarget;
         const rect = trigger.getBoundingClientRect();
         const dropdown = document.getElementById('datepicker-dropdown');
-        
+
         dropdown.style.visibility = 'hidden';
         dropdown.style.display = 'flex';
         dropdown.classList.add('show');
@@ -11459,18 +11477,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let topPos = rect.bottom + 8;
         let transformOrigin = 'top center';
-        
+
         if (topPos + dropHeight > window.innerHeight - 10) {
             topPos = rect.top - dropHeight - 8;
             transformOrigin = 'bottom center';
         }
-        
+
         dropdown.style.top = `${topPos}px`;
         dropdown.style.left = `${rect.left + (rect.width / 2)}px`;
         dropdown.style.transformOrigin = transformOrigin;
-        
+
         void dropdown.offsetWidth;
-        
+
         dropdown.classList.add('show');
     };
 
@@ -11486,17 +11504,17 @@ document.addEventListener('DOMContentLoaded', () => {
         let m = parseInt(mInput.value) || 0;
         if (h < 0) h = 0; if (h > 23) h = 23;
         if (m < 0) m = 0; if (m > 59) m = 59;
-        
+
         hInput.value = h.toString().padStart(2, '0');
         mInput.value = m.toString().padStart(2, '0');
-        
+
         dpSelectedDate.setHours(h, m, 0, 0);
         if (window.updateDatePickerTrigger) window.updateDatePickerTrigger();
     };
 
     hInput.addEventListener('blur', handleTimeChange);
     mInput.addEventListener('blur', handleTimeChange);
-    
+
     hInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleTimeChange(); });
     mInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleTimeChange(); });
 
@@ -11525,7 +11543,7 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.onclick = () => {
                 const isText = inp.type === 'text';
                 inp.type = isText ? 'password' : 'text';
-                btn.innerHTML = isText 
+                btn.innerHTML = isText
                     ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`
                     : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`;
             };
@@ -11563,7 +11581,7 @@ async function checkAiStatus() {
                 aiState.ramGb = data.hardware.ram_gb;
             }
             if (data.models_info) aiState.modelsInfo = data.models_info;
-            
+
             const downloaded = aiState.downloadedModels || [];
             const savedModel = localStorage.getItem('doe-ai-model');
 
@@ -11581,7 +11599,7 @@ async function checkAiStatus() {
                 aiState.selectedModel = null;
                 localStorage.removeItem('doe-ai-model');
             }
-            
+
             const menuBtn = document.getElementById('menu-ai-settings');
             if (menuBtn) {
                 if (!aiState.supported) {
@@ -11593,7 +11611,7 @@ async function checkAiStatus() {
                     checkDailyJournal();
                 }
             }
-            
+
             const fab = document.getElementById('ai-floating-btn');
             if (fab) {
                 if (aiState.supported && aiState.downloadedModels.length > 0) {
@@ -11799,7 +11817,7 @@ window.openAiSettingsModal = async () => {
             </div>
             ${controlsHtml}
         `;
-        
+
         if (isDownloaded && !isSelected) {
             div.onclick = () => {
                 aiState.selectedModel = model;
@@ -11812,7 +11830,7 @@ window.openAiSettingsModal = async () => {
         if (deleteBtn) {
             deleteBtn.onclick = async (e) => {
                 e.stopPropagation();
-                
+
                 const isConfirmed = await showConfirmModal(t('ai.confirmDeleteTitle'), t('ai.confirmDeleteMsg', model));
                 if (!isConfirmed) return;
 
@@ -11886,7 +11904,7 @@ window.openAiSettingsModal = async () => {
                 }
             };
         }
-        
+
         list.appendChild(div);
     });
 
@@ -11922,11 +11940,11 @@ function openDailyJournal() {
     if (aiState.chatHistory.length === 0 && !aiState.isTyping) {
         const chatBox = document.getElementById('ai-chat-history');
         chatBox.innerHTML = '';
-        
+
         const greeting = "What to Doe today? ☕️";
         appendAiMessage(greeting);
     }
-    
+
     document.getElementById('ai-journal-modal').classList.add('show');
     setTimeout(() => {
         document.getElementById('ai-chat-input').focus();
@@ -11956,7 +11974,7 @@ function appendUserMessage(text) {
 function appendAiMessage(text, elapsedMs) {
     const div = document.createElement('div');
     div.className = 'ai-msg ai';
-    
+
     let safeText = text.replace(/\]\s+\(doe:\/\/task\//gi, '](doe://task/');
     safeText = safeText.replace(/(?:Задача|Task|Карточка|Карточку)\s*(?:ID:?|#)?\s*(\d+)(?:\s*['"«](.*?)['"»])?/gi, (match, id, title) => {
         const linkText = title ? title : t('ai.taskRef', id);
@@ -11967,7 +11985,7 @@ function appendAiMessage(text, elapsedMs) {
         const cleanTitle = title.trim().toLowerCase().replace(/^(?:\d+[\.)]\s*|[-•*]\s*)/, '').trim();
         let realId = id;
         let foundTask = null;
-        
+
         for (const col of state.columns) {
             foundTask = col.tasks.find(t => {
                 const boardTitle = t.title.trim().toLowerCase().replace(/^(?:\d+[\.)]\s*|[-•*]\s*)/, '').trim();
@@ -11975,7 +11993,7 @@ function appendAiMessage(text, elapsedMs) {
             });
             if (foundTask) break;
         }
-        
+
         if (!foundTask && cleanTitle.length > 3) {
             for (const col of state.columns) {
                 foundTask = col.tasks.find(t => {
@@ -11985,7 +12003,7 @@ function appendAiMessage(text, elapsedMs) {
                 if (foundTask) break;
             }
         }
-        
+
         if (foundTask) {
             realId = foundTask.id;
         }
@@ -12240,7 +12258,7 @@ function appendAiActions(actions) {
         else if (a.action === 'get_task_details') text = t('ai.actionGetTaskDetails', taskName(p.task_id));
         html += `<div class="ai-action-item">- ${escapeHtml(text)}</div>`;
     });
-    
+
     html += `
         <div class="ai-actions-btns">
             <button class="ai-btn-cancel">${t('cancel')}</button>
@@ -12248,19 +12266,19 @@ function appendAiActions(actions) {
         </div>
     `;
     div.innerHTML = html;
-    
+
     const cancelBtn = div.querySelector('.ai-btn-cancel');
     const confirmBtn = div.querySelector('.ai-btn-confirm');
-    
+
     cancelBtn.onclick = () => {
         div.innerHTML = `<div style="opacity: 0.6; font-style: italic;">${t('ai.actionsCancelled')}</div>`;
     };
-    
+
     confirmBtn.onclick = async () => {
         confirmBtn.disabled = true;
         cancelBtn.disabled = true;
         confirmBtn.textContent = "Выполняю...";
-        
+
         try {
             const res = await fetch(`${API_BASE}/ai/execute`, {
                 method: 'POST', headers: {'Content-Type': 'application/json'},
@@ -12310,7 +12328,7 @@ function appendAiActions(actions) {
             div.innerHTML = `<div style="color: #D35446; font-weight: 600;">${t('ai.actionsError')}</div>`;
         }
     };
-    
+
     const row = document.createElement('div');
     row.className = 'ai-msg-row';
     row.appendChild(div);
@@ -12365,11 +12383,11 @@ document.getElementById('ai-send-btn')?.addEventListener('click', async () => {
     input.value = '';
     input.style.height = '';
     appendUserMessage(text);
-    
+
     aiState.isTyping = true;
     setAiBtnState(true);
     const typingEl = showAiTyping();
-    
+
     aiAbortController = new AbortController();
 
     const aiStart2 = Date.now();
@@ -12383,15 +12401,15 @@ document.getElementById('ai-send-btn')?.addEventListener('click', async () => {
             signal: aiAbortController.signal
         });
         if (!res.ok) throw new Error("Backend error");
-        
+
         const data = await res.json();
         if (typingEl._timerStop) typingEl._timerStop();
         typingEl.remove();
-        
+
         if (data.reply) {
             appendAiMessage(data.reply, Date.now() - aiStart2);
         }
-        
+
         if (data.proposed_actions && data.proposed_actions.length > 0) {
             appendAiActions(data.proposed_actions);
         }
@@ -12399,7 +12417,7 @@ document.getElementById('ai-send-btn')?.addEventListener('click', async () => {
         if (e.name === 'AbortError') {
         } else {
             typingEl.remove();
-            
+
             const div = document.createElement('div');
             div.className = 'ai-msg ai';
             div.style.color = '#D35446';
@@ -12407,8 +12425,8 @@ document.getElementById('ai-send-btn')?.addEventListener('click', async () => {
             div.textContent = "Произошла техническая заминка. Пожалуйста, отправьте сообщение еще раз.";
             document.getElementById('ai-chat-history').appendChild(div);
             div.scrollIntoView({behavior: 'smooth'});
-            
-            aiState.chatHistory.pop(); 
+
+            aiState.chatHistory.pop();
             input.value = text;
         }
     } finally {
@@ -12438,25 +12456,25 @@ function openNotifyModal(taskId, taskTitle) {
     const modal = document.getElementById('notify-modal');
     modal.dataset.taskId = taskId;
     modal.dataset.taskTitle = taskTitle;
-    
+
     document.getElementById('notify-amount').value = 15;
-    
+
     dpSelectedDate = new Date();
     dpSelectedDate.setMinutes(dpSelectedDate.getMinutes() + 1);
     dpSelectedDate.setSeconds(0);
     dpSelectedDate.setMilliseconds(0);
     dpCurrentDate = new Date(dpSelectedDate);
-    
+
     document.getElementById('dp-hour').value = dpSelectedDate.getHours().toString().padStart(2, '0');
     document.getElementById('dp-minute').value = dpSelectedDate.getMinutes().toString().padStart(2, '0');
-    
+
     activeDatePickerTrigger = document.getElementById('datepicker-trigger');
     renderDatePicker();
     updateDatePickerTrigger();
-    
+
     const btns = modal.querySelectorAll('.segmented-btn');
     const contents = modal.querySelectorAll('.notify-tab-content');
-    
+
     btns.forEach(btn => {
         btn.onclick = () => {
             btns.forEach(b => b.classList.remove('active'));
@@ -12465,56 +12483,56 @@ function openNotifyModal(taskId, taskTitle) {
             document.getElementById(btn.dataset.target).classList.add('active');
         };
     });
-    
+
     const confirmBtn = document.getElementById('btn-confirm-notify');
     const newConfirmBtn = confirmBtn.cloneNode(true);
     confirmBtn.replaceWith(newConfirmBtn);
-    
+
     newConfirmBtn.onclick = async () => {
         let delaySeconds = 0;
         let timeText = '';
         const isRelative = modal.querySelector('.segmented-btn.active').dataset.target === 'notify-relative';
-        
+
         if (isRelative) {
             const amount = parseInt(document.getElementById('notify-amount').value) || 0;
             const unitSelect = document.getElementById('notify-unit');
             const multiplier = parseInt(unitSelect.value) || 60;
             const unitText = document.getElementById('notify-unit-label').textContent;
-            
+
             delaySeconds = amount * multiplier;
             timeText = currentLang === 'ru' ? `через ${amount} ${unitText}` : `in ${amount} ${unitText}`;
         } else {
             let targetTime = dpSelectedDate.getTime();
             const nowTime = Date.now();
-            
+
             if (targetTime < nowTime && (nowTime - targetTime) < 300000) {
                 dpSelectedDate = new Date(nowTime + 10000);
                 targetTime = dpSelectedDate.getTime();
             }
-            
+
             delaySeconds = Math.floor((targetTime - nowTime) / 1000);
-            
+
             const timeStr = dpSelectedDate.toLocaleTimeString(currentLang, {hour: '2-digit', minute: '2-digit'});
             const dateStr = dpSelectedDate.toLocaleDateString(currentLang, {day: 'numeric', month: 'short'});
             timeText = currentLang === 'ru' ? `${dateStr} в ${timeStr}` : `on ${dateStr} at ${timeStr}`;
         }
-        
+
         if (delaySeconds <= 0) {
             window.showToast(
-                t('alerts.error'), 
-                currentLang === 'ru' ? 'Укажите время в будущем' : 'Please specify a future time', 
+                t('alerts.error'),
+                currentLang === 'ru' ? 'Укажите время в будущем' : 'Please specify a future time',
                 true
             );
             return;
         }
-        
+
         newConfirmBtn.style.opacity = '0.5';
         newConfirmBtn.disabled = true;
-        
+
         try {
             const plainTaskTitle = stripMarkdownToPlain(taskTitle);
-            const notificationMsg = currentLang === 'ru' 
-                ? `Вы просили напомнить о карточке: "${plainTaskTitle}"` 
+            const notificationMsg = currentLang === 'ru'
+                ? `Вы просили напомнить о карточке: "${plainTaskTitle}"`
                 : `Reminder for card: "${plainTaskTitle}"`;
 
             const res = await fetch(`${API_BASE}/tasks/${taskId}/notify`, {
@@ -12526,7 +12544,7 @@ function openNotifyModal(taskId, taskTitle) {
                     message: notificationMsg
                 })
             });
-            
+
             if (!res.ok) throw new Error('Network response was not ok');
 
             window.showToast(
@@ -12535,9 +12553,9 @@ function openNotifyModal(taskId, taskTitle) {
             );
 
             modal.classList.remove('show');
-            
+
             updateBellBadge();
-            
+
             const bellBtn = document.querySelector('.modal-notify');
             if (bellBtn) {
                 bellBtn.style.color = 'var(--success-done)';
@@ -12551,7 +12569,7 @@ function openNotifyModal(taskId, taskTitle) {
             newConfirmBtn.disabled = false;
         }
     };
-    
+
     modal.classList.add('show');
 }
 
@@ -12611,12 +12629,12 @@ function openPriorityModal(taskId) {
 
         const value_base = c_eff * d_eff;
         const value = value_base * (1 + 0.35 * f) + 0.15 * p * d_eff;
-        
+
         const relief_base = a * (0.10 + c_eff * (0.45 * d_eff + 0.50));
         const relief = relief_base + 0.40 * s;
-        
+
         const friction = b * (0.62 + 0.42 * e);
-        
+
         const base_score = 100 * (value + relief) / (1 + friction);
         const score = base_score * (1 - 0.75 * h);
 
@@ -12665,7 +12683,7 @@ function openPriorityModal(taskId) {
             els[k].r.value = savedVal;
             els[k].n.value = fmtPrio(savedVal);
         });
-        
+
         els.f.value = priorityData.f !== undefined ? parseFloat(priorityData.f) : 0;
         fBtns.forEach(btn => {
             btn.classList.toggle('active', parseFloat(btn.dataset.val) === parseFloat(els.f.value));
@@ -12693,7 +12711,7 @@ function openPriorityModal(taskId) {
         if (currentPriority !== null && currentPriority !== undefined) {
             els.total.value = fmtPrio(currentPriority);
             btnClear.style.display = 'block';
-            isManualTotal = true; 
+            isManualTotal = true;
         } else {
             btnClear.style.display = 'none';
         }
@@ -12724,7 +12742,7 @@ function openPriorityModal(taskId) {
     };
 
     const btnSet = document.getElementById('btn-set-priority');
-    
+
     const newBtnSet = btnSet.cloneNode(true);
     btnSet.replaceWith(newBtnSet);
     const newBtnClear = btnClear.cloneNode(true);
@@ -12822,7 +12840,7 @@ function openPriorityModal(taskId) {
 function openDueDateModal(taskId, currentDueDate) {
     const modal = document.getElementById('due-date-modal');
     modal.dataset.taskId = taskId;
-    
+
     if (currentDueDate) {
         const dateStr = currentDueDate + (currentDueDate.endsWith('Z') || currentDueDate.includes('+') ? '' : 'Z');
         dpSelectedDate = new Date(dateStr);
@@ -12833,20 +12851,20 @@ function openDueDateModal(taskId, currentDueDate) {
         dpSelectedDate.setMilliseconds(0);
     }
     dpCurrentDate = new Date(dpSelectedDate);
-    
+
     document.getElementById('dp-hour').value = dpSelectedDate.getHours().toString().padStart(2, '0');
     document.getElementById('dp-minute').value = dpSelectedDate.getMinutes().toString().padStart(2, '0');
-    
+
     activeDatePickerTrigger = document.getElementById('due-datepicker-trigger');
     const trigger = activeDatePickerTrigger;
-    
+
     trigger.onclick = (e) => {
         e.stopPropagation();
         closeAllDropdowns();
-        
+
         const rect = trigger.getBoundingClientRect();
         const dropdown = document.getElementById('datepicker-dropdown');
-        
+
         dropdown.style.visibility = 'hidden';
         dropdown.style.display = 'flex';
         dropdown.classList.add('show');
@@ -12857,16 +12875,16 @@ function openDueDateModal(taskId, currentDueDate) {
 
         let topPos = rect.bottom + 8;
         let transformOrigin = 'top center';
-        
+
         if (topPos + dropHeight > window.innerHeight - 10) {
             topPos = rect.top - dropHeight - 8;
             transformOrigin = 'bottom center';
         }
-        
+
         dropdown.style.top = `${topPos}px`;
         dropdown.style.left = `${rect.left + (rect.width / 2)}px`;
         dropdown.style.transformOrigin = transformOrigin;
-        
+
         void dropdown.offsetWidth;
         dropdown.classList.add('show');
     };
@@ -12877,14 +12895,14 @@ function openDueDateModal(taskId, currentDueDate) {
     const confirmBtn = document.getElementById('btn-confirm-due-date');
     const newConfirmBtn = confirmBtn.cloneNode(true);
     confirmBtn.replaceWith(newConfirmBtn);
-    
+
     newConfirmBtn.onclick = async () => {
         newConfirmBtn.style.opacity = '0.5';
         newConfirmBtn.disabled = true;
         try {
             const isoString = dpSelectedDate.toISOString();
             await updateTask(taskId, { due_date: isoString });
-            
+
             let updatedColId = null;
             for (let col of state.columns) {
                 let t = col.tasks.find(task => task.id == taskId);
@@ -12904,9 +12922,9 @@ function openDueDateModal(taskId, currentDueDate) {
                     break;
                 }
             }
-            
+
             if (updatedColId) await syncColumnDOM(updatedColId);
-            
+
             loadTaskIntoModal(taskId, false);
             modal.classList.remove('show');
         } catch (e) {
@@ -12947,7 +12965,7 @@ document.addEventListener('click', async (e) => {
                 document.execCommand('copy');
                 textArea.remove();
             }
-            
+
             copyBtn.classList.add('copied');
             setTimeout(() => copyBtn.classList.remove('copied'), 600);
         } catch (err) {
@@ -13791,7 +13809,7 @@ function initLocalSearchLogic() {
 
     let matchRanges = [];
     let cachedTextNodes = null;
-    
+
     let cmMatches = [];
     let cmMarkers = [];
     let cmActiveMarker = null;
@@ -13807,7 +13825,7 @@ function initLocalSearchLogic() {
     window.openLocalSearch = () => {
         widget.classList.add('show');
         setTimeout(() => { input.focus(); input.select(); }, 50);
-        
+
         if (isEditMode()) {
             cachedTextNodes = null;
         } else {
@@ -13841,7 +13859,7 @@ function initLocalSearchLogic() {
             CSS.highlights.clear();
         }
         matchRanges = [];
-        
+
         if (cmEditor) {
             cmEditor.operation(() => {
                 cmMarkers.forEach(m => m.clear());
@@ -13853,7 +13871,7 @@ function initLocalSearchLogic() {
         }
         cmMatches = [];
         cmMarkers = [];
-        
+
         currentMatchIndex = -1;
         countEl.textContent = '0/0';
     }
@@ -13875,10 +13893,10 @@ function initLocalSearchLogic() {
                         const from = { line, ch: pos };
                         const to = { line, ch: pos + textLower.length };
                         cmMatches.push({ from, to });
-                        
+
                         const marker = cmEditor.markText(from, to, { className: 'local-search-highlight' });
                         cmMarkers.push(marker);
-                        
+
                         pos += textLower.length;
                     }
                 }
@@ -13898,16 +13916,16 @@ function initLocalSearchLogic() {
 
             function searchNextChunk(startIndex) {
                 if (currentSearchId !== searchId) return;
-                
+
                 const startTime = performance.now();
                 let i = startIndex;
-                
+
                 for (; i < cachedTextNodes.length; i++) {
                     if (performance.now() - startTime > 12) break;
-                    
+
                     const item = cachedTextNodes[i];
                     if (!item.text.includes(textLower)) continue;
-                    
+
                     let pos = 0;
                     while ((pos = item.text.indexOf(textLower, pos)) !== -1) {
                         const range = new Range();
@@ -13916,7 +13934,7 @@ function initLocalSearchLogic() {
                         matchRanges.push(range);
                         pos += query.length;
                     }
-                    
+
                     if (matchRanges.length >= 10000) break;
                 }
 
@@ -13929,7 +13947,7 @@ function initLocalSearchLogic() {
                             CSS.highlights.set('local-search', new Highlight(...matchRanges));
                         }
                         updateLocalSearchUI();
-                        
+
                         if (matchRanges.length >= 10000) {
                             countEl.textContent = `1/10000+`;
                         }
@@ -13952,7 +13970,7 @@ function initLocalSearchLogic() {
 
             const activeMatch = cmMatches[currentMatchIndex];
             cmActiveMarker = cmEditor.markText(activeMatch.from, activeMatch.to, { className: 'local-search-highlight active' });
-            
+
             cmEditor.scrollIntoView(activeMatch.from, 150);
             countEl.textContent = `${currentMatchIndex + 1}/${cmMatches.length}`;
         } else {
@@ -13971,7 +13989,7 @@ function initLocalSearchLogic() {
                     let prev = block.previousElementSibling;
                     while (prev) {
                         if (prev.classList.contains('foldable-heading') && prev.classList.contains('is-folded')) {
-                            prev.click(); 
+                            prev.click();
                         }
                         prev = prev.previousElementSibling;
                     }
@@ -14042,12 +14060,12 @@ function initLocalSearchLogic() {
         clearTimeout(searchDebounce);
         searchDebounce = setTimeout(() => performLocalSearch(input.value), 120);
     });
-    
+
     input.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') { e.preventDefault(); e.shiftKey ? prevMatch() : nextMatch(); }
         if (e.key === 'Escape') { e.preventDefault(); window.closeLocalSearch(); }
     });
-    
+
     btnNext.addEventListener('click', nextMatch);
     btnPrev.addEventListener('click', prevMatch);
     btnClose.addEventListener('click', window.closeLocalSearch);
@@ -14279,13 +14297,13 @@ function runGraphLoop() {
         const totalNodes = nodes.length;
 
         const grid = new Map();
-        
+
         for (let i = 0; i < totalNodes; i++) {
             const n = nodes[i];
             const cx = Math.floor(n.x / CELL_SIZE);
             const cy = Math.floor(n.y / CELL_SIZE);
             const key = cx + ',' + cy;
-            
+
             let cell = grid.get(key);
             if (!cell) {
                 cell = [];
@@ -14308,22 +14326,22 @@ function runGraphLoop() {
                     for (let j = 0; j < cell.length; j++) {
                         const b = cell[j];
                         if (a === b) continue;
-                        
+
                         let diffX = a.x - b.x;
                         let diffY = a.y - b.y;
                         let d2 = diffX * diffX + diffY * diffY;
-                        
+
                         if (d2 > CELL_SIZE * CELL_SIZE) continue;
-                        
-                        if (d2 < 0.01) { 
-                            diffX = (Math.random() - 0.5); 
-                            diffY = (Math.random() - 0.5); 
-                            d2 = 1; 
+
+                        if (d2 < 0.01) {
+                            diffX = (Math.random() - 0.5);
+                            diffY = (Math.random() - 0.5);
+                            d2 = 1;
                         }
-                        
+
                         const d = Math.sqrt(d2);
-                        const f = (repulsion / d2) * 0.5; 
-                        
+                        const f = (repulsion / d2) * 0.5;
+
                         a.vx += (diffX / d) * f;
                         a.vy += (diffY / d) * f;
                     }
@@ -14347,23 +14365,23 @@ function runGraphLoop() {
 
         for (let i = 0; i < totalNodes; i++) {
             const n = nodes[i];
-            n.vx += (cx - n.x) * 0.002; 
+            n.vx += (cx - n.x) * 0.002;
             n.vy += (cy - n.y) * 0.002;
-            n.vx *= 0.82; 
-            n.vy *= 0.82; 
-            if (n !== G.dragNode) { 
-                n.x += n.vx; 
-                n.y += n.vy; 
+            n.vx *= 0.82;
+            n.vy *= 0.82;
+            if (n !== G.dragNode) {
+                n.x += n.vx;
+                n.y += n.vy;
             }
             totalKineticEnergy += Math.abs(n.vx) + Math.abs(n.vy);
         }
 
         ctx.save();
         ctx.scale(G.dpr, G.dpr);
-        
+
         ctx.fillStyle = bgColor;
         ctx.fillRect(0, 0, G.W, G.H);
-        
+
         ctx.translate(G.offsetX, G.offsetY);
         ctx.scale(G.scale, G.scale);
 
@@ -14377,7 +14395,7 @@ function runGraphLoop() {
         ctx.strokeStyle = colorEdge;
         ctx.globalAlpha = 0.35;
         ctx.lineWidth = 1 / G.scale;
-        
+
         const arrowLen = 9 / G.scale;
         const arrowAng = 0.42;
 
@@ -14388,11 +14406,11 @@ function runGraphLoop() {
             const b = G.nodeMap[e.target];
             if (!a || !b) continue;
 
-            if ((a.x < viewLeft && b.x < viewLeft) || 
-                (a.x > viewRight && b.x > viewRight) || 
-                (a.y < viewTop && b.y < viewTop) || 
+            if ((a.x < viewLeft && b.x < viewLeft) ||
+                (a.x > viewRight && b.x > viewRight) ||
+                (a.y < viewTop && b.y < viewTop) ||
                 (a.y > viewBottom && b.y > viewBottom)) {
-                continue; 
+                continue;
             }
 
             ctx.moveTo(a.x, a.y);
@@ -14421,7 +14439,7 @@ function runGraphLoop() {
                 const n = nodes[i];
                 const r = G.graphNodeRadius(n);
                 if (n.x + r < viewLeft || n.x - r > viewRight || n.y + r < viewTop || n.y - r > viewBottom) continue;
-                
+
                 if (n === G.hoverNode) {
                     ctx.fillStyle = colorText;
                     ctx.fillRect(n.x - r, n.y - r, r*2, r*2);
@@ -14448,7 +14466,7 @@ function runGraphLoop() {
             ctx.textAlign = 'center';
             ctx.font = `${12 / G.scale}px Inter, -apple-system, sans-serif`;
             ctx.globalAlpha = Math.min(1, (G.scale - 1.3) / 0.6);
-            
+
             for (let i = 0; i < totalNodes; i++) {
                 const n = nodes[i];
                 const r = G.graphNodeRadius(n);
@@ -14456,7 +14474,7 @@ function runGraphLoop() {
 
                 let label = n.title || '';
                 label = label.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/[*_~`]/g, '').trim();
-                
+
                 if (label.length > 15) label = label.substring(0, 14) + '…';
                 ctx.fillText(label, n.x, n.y + r + 14 / G.scale);
             }
@@ -14469,10 +14487,10 @@ function runGraphLoop() {
         if (G.hoverNode && tooltip && tooltip.classList.contains('visible')) {
             const rect = canvas.getBoundingClientRect();
             const rScaled = G.graphNodeRadius(G.hoverNode) * G.scale;
-            
+
             let tx = G.hoverNode.x * G.scale + G.offsetX + rect.left + rScaled + 12;
             let ty = G.hoverNode.y * G.scale + G.offsetY + rect.top + rScaled + 12;
-            
+
             const tRect = tooltip.getBoundingClientRect();
             if (tx + tRect.width > window.innerWidth - 12) tx = window.innerWidth - tRect.width - 12;
             if (ty + tRect.height > window.innerHeight - 12) ty = window.innerHeight - tRect.height - 12;
@@ -14524,42 +14542,42 @@ async function openStatisticsModal() {
     const modal = document.getElementById('statistics-modal');
     const loading = document.getElementById('stats-loading');
     const content = document.getElementById('stats-content');
-    
+
     modal.classList.add('show');
-    
+
     const nextBtn = document.getElementById('stats-next-btn');
     if (statsWeekOffset === 0) {
         nextBtn.style.visibility = 'hidden';
     } else {
         nextBtn.style.visibility = 'visible';
     }
-    
+
     if (content.style.display === 'flex') {
         content.style.opacity = '0.4';
         content.style.pointerEvents = 'none';
     } else {
         loading.style.display = 'block';
     }
-    
+
     try {
         const res = await fetch(`${API_BASE}/system/statistics?offset_weeks=${statsWeekOffset}`);
         if (!res.ok) throw new Error("Failed to fetch stats");
         const data = await res.json();
-        
+
         document.getElementById('stats-date-label').textContent = data.date_range_label;
-        
+
         document.getElementById('stat-val-done').textContent = data.total_done;
-        
+
         let h = Math.floor(data.total_time / 3600);
         let m = Math.floor((data.total_time % 3600) / 60);
         document.getElementById('stat-val-time').textContent = h > 0 ? `${h}${t('timeUnits.h')} ${m}${t('timeUnits.m')}` : `${m}${t('timeUnits.m')}`;
-        
+
         document.getElementById('stat-val-overdue').textContent = data.overdue_count;
-        
+
         const applyTrend = (elId, pct) => {
             const el = document.getElementById(elId);
             if (!el) return;
-            
+
             if (pct === 0) {
                 el.style.display = 'none';
             } else {
@@ -14581,7 +14599,7 @@ async function openStatisticsModal() {
         const fullDayNamesRu = ['в <b>понедельник</b>', 'во <b>вторник</b>', 'в <b>среду</b>', 'в <b>четверг</b>', 'в <b>пятницу</b>', 'в <b>субботу</b>', 'в <b>воскресенье</b>'];
         const fullDayNamesEn = ['on <b>Monday</b>', 'on <b>Tuesday</b>', 'on <b>Wednesday</b>', 'on <b>Thursday</b>', 'on <b>Friday</b>', 'on <b>Saturday</b>', 'on <b>Sunday</b>'];
         const fullDayNames = currentLang === 'ru' ? fullDayNamesRu : fullDayNamesEn;
-        
+
         if (data.total_time === 0) {
             insightEl.innerHTML = `<span>💡 ${t('stats.insightEmpty')}</span>`;
         } else {
@@ -14594,19 +14612,19 @@ async function openStatisticsModal() {
                 insightEl.innerHTML = `<span>⚖️ ${t('stats.insightNeutral', bestDayName)}</span>`;
             }
         }
-        
+
         const topContainer = document.getElementById('stats-top-tasks');
         const topTitleEl = document.getElementById('stats-top-title-el');
-        
+
         const renderTasksList = (title, tasks, emptyMsg) => {
             topTitleEl.textContent = title;
             topContainer.innerHTML = '';
-            
+
             if (tasks.length === 0) {
                 topContainer.innerHTML = `<div style="font-size: 13px; color: var(--text-secondary); opacity: 0.7; text-align: center; padding: 20px 16px 12px;">${emptyMsg}</div>`;
                 return;
             }
-            
+
             tasks.forEach(task => {
                 const timeFormatted = formatDetailedDuration(task.time_spent);
                 topContainer.innerHTML += `
@@ -14624,7 +14642,7 @@ async function openStatisticsModal() {
                     </div>
                 `;
             });
-            
+
             setTimeout(() => {
                 topContainer.querySelectorAll('.stats-top-progress-fill').forEach(fill => fill.style.width = fill.dataset.target);
             }, 50);
@@ -14632,25 +14650,25 @@ async function openStatisticsModal() {
 
         const chartContainer = document.getElementById('stats-activity-chart');
         chartContainer.innerHTML = '';
-        
+
         let maxTime = Math.max(...data.chart_data.map(d => d.time_spent));
-        if (maxTime === 0) maxTime = 1; 
-        
+        if (maxTime === 0) maxTime = 1;
+
         const daysShort = currentLang === 'ru' ? ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'] : ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-        
+
         data.chart_data.forEach((day, index) => {
-            const pct = day.time_spent === 0 ? 0 : Math.max(2, Math.round((day.time_spent / maxTime) * 100)); 
+            const pct = day.time_spent === 0 ? 0 : Math.max(2, Math.round((day.time_spent / maxTime) * 100));
             const timeFormatted = formatDetailedDuration(day.time_spent);
             const tooltipText = t('stats.tooltip', day.tasks_done, timeFormatted);
             const isBest = day.day_name === data.best_day;
             const dayNameStr = daysShort[day.day_name];
-            
+
             const dateObj = new Date(day.date);
             const todayObj = new Date();
-            const isToday = dateObj.getFullYear() === todayObj.getFullYear() && 
-                            dateObj.getMonth() === todayObj.getMonth() && 
+            const isToday = dateObj.getFullYear() === todayObj.getFullYear() &&
+                            dateObj.getMonth() === todayObj.getMonth() &&
                             dateObj.getDate() === todayObj.getDate();
-            
+
             const colDiv = document.createElement('div');
             colDiv.className = `stats-chart-col ${isBest ? 'is-best' : ''}`;
             colDiv.title = tooltipText;
@@ -14663,12 +14681,12 @@ async function openStatisticsModal() {
                     <div class="stats-chart-indicator ${isToday ? 'is-today' : ''}"></div>
                 </div>
             `;
-            
+
             colDiv.onclick = () => {
                 const isAlreadySelected = colDiv.classList.contains('is-selected');
-                
+
                 chartContainer.querySelectorAll('.stats-chart-col').forEach(c => c.classList.remove('is-selected'));
-                
+
                 if (isAlreadySelected) {
                     renderTasksList(t('stats.topTasks'), data.top_tasks, t('stats.emptyTop'));
                 } else {
@@ -14676,12 +14694,12 @@ async function openStatisticsModal() {
                     renderTasksList(t('stats.dayTasks', dayNameStr), day.tasks, t('stats.emptyDay'));
                 }
             };
-            
+
             chartContainer.appendChild(colDiv);
         });
-        
+
         renderTasksList(t('stats.topTasks'), data.top_tasks, t('stats.emptyTop'));
-        
+
         const modalBody = modal.querySelector('.modal-body');
         modalBody.onclick = (e) => {
             if (!e.target.closest('.stats-chart-col') && !e.target.closest('.stats-top-item')) {
@@ -14697,12 +14715,12 @@ async function openStatisticsModal() {
         content.style.display = 'flex';
         content.style.opacity = '1';
         content.style.pointerEvents = 'auto';
-        
+
         setTimeout(() => {
             const bars = chartContainer.querySelectorAll('.stats-chart-bar-fill');
             bars.forEach(bar => bar.style.height = bar.dataset.target);
         }, 50);
-        
+
     } catch (e) {
         console.error("Stats loading error", e);
         loading.textContent = t('alerts.error');
@@ -14787,7 +14805,7 @@ function syncCustomSelect(selectEl) {
                 menu.style.display = '';
 
                 const rect = trigger.getBoundingClientRect();
-                
+
                 if (rect.bottom + menuHeight + 10 > window.innerHeight) {
                     menu.style.top = 'auto';
                     menu.style.bottom = '100%';
@@ -14801,7 +14819,7 @@ function syncCustomSelect(selectEl) {
                     menu.style.marginBottom = '0';
                     menu.style.transformOrigin = 'top center';
                 }
-                
+
                 void menu.offsetWidth;
                 menu.classList.add('show');
             }
@@ -14871,7 +14889,7 @@ function showAutomationForm(autoData = null) {
 
         const colSelect = document.getElementById('auto-column');
         colSelect.value = cfg.column_id || '';
-        
+
         if (cfg.column_id && colSelect.value != cfg.column_id) {
             const opt = document.createElement('option');
             opt.value = cfg.column_id;
@@ -15198,7 +15216,7 @@ async function renderAutomationsList() {
                     typeIcon = '🧹';
                     typeLabel = t('modals.autoTypeClear') || 'Очистка колонки';
                     const maxAge = cfg.max_age_minutes !== undefined ? cfg.max_age_minutes : 1440;
-                    
+
                     if (maxAge === 0) {
                         desc = t('modals.autoClearImmediateDesc') || 'Мгновенное удаление при попадании в колонку';
                     } else {
@@ -15484,7 +15502,7 @@ function initCloudSync() {
                     const restored = await res.json();
                     action.restoredTaskId = restored.id;
                     await refreshBoard();
-                    
+
                     // Если в момент отмены открыта модалка карточки — подтягиваем свежее состояние
                     const modal = document.getElementById('task-modal');
                     if (modal && modal.classList.contains('show')) {
@@ -15704,10 +15722,10 @@ document.addEventListener('keydown', async (e) => {
             document.getElementById('vault-screen').classList.remove('hidden', 'content-hidden');
             const lights = document.getElementById('mac-traffic-lights');
             if (lights) lights.classList.add('vault-mode');
-            
+
             document.body.classList.remove('preload');
             setTimeout(triggerReveal, 50);
-            
+
             try {
                 if (settingsData.theme) applyTheme(settingsData.theme, false);
                 if (settingsData.language) applyLanguage(settingsData.language, false);
@@ -15751,7 +15769,7 @@ document.addEventListener('keydown', async (e) => {
         else document.body.classList.remove('tabs-hidden');
 
         window.applyExtensionsUI(settingsData.extensions, settingsData.available_extensions);
-        
+
         if (settingsData.priority_settings) applyPriorityStyles(settingsData.priority_settings);
         else applyPriorityStyles(window.prioritySettings);
 
@@ -15796,21 +15814,21 @@ document.addEventListener('keydown', async (e) => {
                 updateBellBadge();
             }
         });
-        
+
         setInterval(async () => {
             try {
                 const res = await fetch(`${API_BASE}/system/pending-highlights`);
                 if (!res.ok) return;
                 const data = await res.json();
-                
+
                 if (data.task_id) {
                     const ctxRes = await fetch(`${API_BASE}/tasks/${data.task_id}/context`);
                     if (!ctxRes.ok) return;
-                    
+
                     const context = await ctxRes.json();
                     const taskModal = document.getElementById('task-modal');
                     if (taskModal && taskModal.classList.contains('show')) taskModal.classList.remove('show');
-                    
+
                     window.navigateToEntityGlobal(context.workspace_id, context.column_id, data.task_id, null, true, true);
                     updateBellBadge();
                 }
@@ -15836,7 +15854,7 @@ document.addEventListener('pointerdown', (e) => {
     if (plusBtn) {
         e.preventDefault();
         e.stopPropagation();
-        
+
         if (plusBtn.closest('.card-inline-trigger')) {
             onAddCardInline(plusBtn);
         } else if (plusBtn.closest('.column-inline-trigger')) {
@@ -15879,13 +15897,13 @@ async function onAddColumnInline(plusBtn) {
         const sh = input.scrollHeight + borders;
         const boardHeight = document.getElementById('board').clientHeight;
         const maxAllowedHeight = Math.max(60, boardHeight - 250);
-        
+
         if (sh > maxAllowedHeight) {
             input.style.height = maxAllowedHeight + 'px';
-            input.style.overflowY = 'auto'; 
+            input.style.overflowY = 'auto';
         } else {
             input.style.height = sh + 'px';
-            input.style.overflowY = 'hidden'; 
+            input.style.overflowY = 'hidden';
         }
     };
 
@@ -16010,8 +16028,8 @@ async function cancelReminder(reminderId, event) {
     try {
         const res = await fetch(`${API_BASE}/system/reminders/${reminderId}`, { method: 'DELETE' });
         if (res.ok) {
-            renderRemindersDropdown(); 
-            updateBellBadge();         
+            renderRemindersDropdown();
+            updateBellBadge();
         }
     } catch (e) {
         console.error("Failed to cancel reminder:", e);
@@ -16036,21 +16054,21 @@ async function renderRemindersDropdown() {
     const list = document.getElementById('reminders-list');
     if (!list) return;
     list.innerHTML = '';
-    
+
     const reminders = await fetchActiveReminders();
     if (reminders.length === 0) {
         list.innerHTML = `<div style="padding: 12px; text-align: center; color: var(--text-secondary); font-size: 13px;">${t('menu.remindersEmpty')}</div>`;
         return;
     }
-    
+
     const trashIcon = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
-    
+
     reminders.forEach(r => {
         const div = document.createElement('div');
         div.className = 'reminder-item';
-        
+
         const dueTimeStr = formatDateTime(r.due_time);
-        
+
         const plainTitle = escapeHtml(stripMarkdownToPlain(r.task_title));
         div.innerHTML = `
             <div class="reminder-info">
@@ -16059,16 +16077,16 @@ async function renderRemindersDropdown() {
             </div>
             <button class="subtask-delete-btn" title="${t('menu.delete')}">${trashIcon}</button>
         `;
-        
+
         div.addEventListener('click', async (e) => {
             if (e.target.closest('.subtask-delete-btn')) return;
             if (e.target.closest('a')) return;
             document.getElementById('reminders-dropdown').classList.remove('show');
             document.getElementById('reminders-bell-trigger').classList.remove('active');
-            
+
             const vaultRes = await fetch(`${API_BASE}/system/vault`);
             const currentVault = await vaultRes.json();
-            
+
             if (r.vault_path && r.vault_path !== currentVault.path) {
                 await fetch(`${API_BASE}/system/vault/switch`, {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -16078,7 +16096,7 @@ async function renderRemindersDropdown() {
                 window.location.reload();
                 return;
             }
-            
+
             fetch(`${API_BASE}/tasks/${r.task_id}/context`)
                 .then(res => res.json())
                 .then(context => {
@@ -16089,7 +16107,7 @@ async function renderRemindersDropdown() {
                     document.getElementById('task-modal').classList.add('show');
                 });
         });
-        
+
         div.querySelector('.subtask-delete-btn').onclick = (e) => cancelReminder(r.reminder_id, e);
 
         list.appendChild(div);
@@ -16104,23 +16122,23 @@ const Calendar = {
     currentDate: new Date(),
     view: 'month',
     zoomHourHeight: 60,
-    
+
     init() {
         this.modal = document.getElementById('calendar-modal');
         this.body = document.getElementById('cal-body');
         this.titleLabel = document.getElementById('cal-title-label');
         this.zoomWrapper = document.getElementById('cal-zoom-wrapper');
         this.zoomSlider = document.getElementById('cal-zoom-slider');
-        
+
         document.getElementById('calendar-trigger').addEventListener('click', () => this.open());
-        
+
         document.getElementById('cal-prev').addEventListener('click', () => this.navigate(-1));
         document.getElementById('cal-next').addEventListener('click', () => this.navigate(1));
         document.getElementById('cal-today').addEventListener('click', () => {
             this.currentDate = new Date();
             this.render();
         });
-        
+
         const viewBtns = this.modal.querySelectorAll('.cal-controls-center .segmented-btn');
         viewBtns.forEach(btn => {
             btn.addEventListener('click', () => {
@@ -16143,24 +16161,24 @@ const Calendar = {
 
                 const zoomSpeed = 0.5;
                 let newZoom = this.zoomHourHeight - (e.deltaY * zoomSpeed);
-                
+
                 newZoom = Math.max(30, Math.min(150, newZoom));
 
                 if (newZoom !== this.zoomHourHeight) {
                     const scrollContainer = this.body.querySelector('.cal-time-scroll');
-                    
+
                     if (scrollContainer) {
                         const rect = scrollContainer.getBoundingClientRect();
                         const cursorY = e.clientY - rect.top;
                         const scrollY = scrollContainer.scrollTop;
-                        
+
                         const absoluteY = scrollY + cursorY;
                         const zoomRatio = newZoom / this.zoomHourHeight;
-                        
+
                         this.zoomHourHeight = newZoom;
                         this.body.style.setProperty('--hour-height', `${this.zoomHourHeight}px`);
                         this.zoomSlider.value = this.zoomHourHeight;
-                        
+
                         const newAbsoluteY = absoluteY * zoomRatio;
                         scrollContainer.scrollTop = newAbsoluteY - cursorY;
                     } else {
@@ -16172,14 +16190,14 @@ const Calendar = {
             }
         }, { passive: false });
     },
-    
+
     async open() {
         closeAllDropdowns();
         this.modal.classList.add('show');
-        
+
         this.currentDate = new Date();
         this.body.innerHTML = `<div class="graph-empty" style="display:flex;">${t('calendar.loading')}</div>`;
-        
+
         await this.syncData();
     },
 
@@ -16204,7 +16222,7 @@ const Calendar = {
             }
         }
     },
-    
+
     navigate(dir) {
         if (this.view === 'month') {
             this.currentDate.setMonth(this.currentDate.getMonth() + dir);
@@ -16215,7 +16233,7 @@ const Calendar = {
         }
         this.render();
     },
-    
+
     getStartOfWeek(date) {
         const d = new Date(date);
         const day = d.getDay();
@@ -16237,12 +16255,12 @@ const Calendar = {
         const m2 = end.getMinutes().toString().padStart(2, '0');
         const t2 = `${h2}:${m2}`;
 
-        const isSameDay = start.getFullYear() === end.getFullYear() && 
-                          start.getMonth() === end.getMonth() && 
+        const isSameDay = start.getFullYear() === end.getFullYear() &&
+                          start.getMonth() === end.getMonth() &&
                           start.getDate() === end.getDate();
 
-        const isStartToday = start.getFullYear() === now.getFullYear() && 
-                             start.getMonth() === now.getMonth() && 
+        const isStartToday = start.getFullYear() === now.getFullYear() &&
+                             start.getMonth() === now.getMonth() &&
                              start.getDate() === now.getDate();
 
         const formatDate = (d) => d.toLocaleDateString(currentLang, {day: 'numeric', month: 'short'}).replace(/\s*г\.?/, '').trim();
@@ -16253,7 +16271,7 @@ const Calendar = {
         const h = Math.floor((sec % 86400) / 3600);
         const m = Math.floor((sec % 3600) / 60);
         const s = Math.floor(sec % 60);
-        
+
         let durParts = [];
         if (d > 0) durParts.push(`${d}${units.d}`);
         if (h > 0 || d > 0) durParts.push(`${h}${units.h}`);
@@ -16280,38 +16298,38 @@ const Calendar = {
     render() {
         const locale = dpLocales[currentLang];
         this.body.style.setProperty('--hour-height', `${this.zoomHourHeight}px`);
-        
+
         if (this.view === 'month') {
             this.renderMonth(locale);
         } else {
             this.renderTimeView(locale, this.view === 'week');
         }
     },
-    
+
     renderMonth(locale) {
         const year = this.currentDate.getFullYear();
         const month = this.currentDate.getMonth();
         this.titleLabel.textContent = `${locale.months[month]} ${year}`;
-        
+
         const firstDay = new Date(year, month, 1).getDay();
-        const startDay = firstDay === 0 ? 6 : firstDay - 1; 
+        const startDay = firstDay === 0 ? 6 : firstDay - 1;
         const daysInMonth = new Date(year, month + 1, 0).getDate();
         const daysInPrevMonth = new Date(year, month, 0).getDate();
-        
+
         let html = `<div class="cal-month-view">`;
         html += `<div class="cal-weekdays">${locale.days.map(d => `<div class="cal-weekday">${d}</div>`).join('')}</div>`;
         html += `<div class="cal-month-grid">`;
-        
+
         const today = new Date();
         const addCell = (dNum, isOther, curDateObj) => {
             const isToday = !isOther && year === today.getFullYear() && month === today.getMonth() && dNum === today.getDate();
-            
-            const dayEvents = this.events.filter(ev => 
+
+            const dayEvents = this.events.filter(ev =>
                 ev.dateObj.getFullYear() === curDateObj.getFullYear() &&
                 ev.dateObj.getMonth() === curDateObj.getMonth() &&
                 ev.dateObj.getDate() === curDateObj.getDate()
             ).sort((a,b) => a.dateObj - b.dateObj);
-            
+
             let evHtml = dayEvents.map(ev => {
                 const timeText = this.formatTimeText(ev, true);
                 const fullText = `${timeText} ${ev.title}`;
@@ -16336,19 +16354,19 @@ const Calendar = {
         for (let i = 1; i <= remaining; i++) {
             html += addCell(i, true, new Date(year, month + 1, i));
         }
-        
+
         html += `</div></div>`;
         this.body.innerHTML = html;
         this.attachEventClicks();
     },
-    
+
     renderTimeView(locale, isWeek) {
         let startDate;
         if (isWeek) {
             startDate = this.getStartOfWeek(this.currentDate);
             const endDate = new Date(startDate);
             endDate.setDate(startDate.getDate() + 6);
-            
+
             let m1 = locale.months[startDate.getMonth()];
             let m2 = locale.months[endDate.getMonth()];
             if (startDate.getMonth() === endDate.getMonth()) {
@@ -16361,45 +16379,45 @@ const Calendar = {
             const monthName = locale.monthsGenitive ? locale.monthsGenitive[startDate.getMonth()] : locale.months[startDate.getMonth()];
             this.titleLabel.textContent = `${startDate.getDate()} ${monthName} ${startDate.getFullYear()}`;
         }
-        
+
         const daysCount = isWeek ? 7 : 1;
         const today = new Date();
-        
+
         let headerHtml = `<div class="cal-time-header"><div class="cal-time-zone"></div><div class="cal-time-days">`;
         const colDates = [];
-        
+
         for (let i = 0; i < daysCount; i++) {
             const d = new Date(startDate);
             d.setDate(startDate.getDate() + i);
             colDates.push(d);
             const isToday = d.getFullYear() === today.getFullYear() && d.getMonth() === today.getMonth() && d.getDate() === today.getDate();
-            const dayName = locale.days[d.getDay() === 0 ? 6 : d.getDay() - 1]; 
-            
+            const dayName = locale.days[d.getDay() === 0 ? 6 : d.getDay() - 1];
+
             headerHtml += `<div class="cal-time-day-hdr ${isToday ? 'is-today' : ''}">
                 <span>${dayName}</span><span>${d.getDate()}</span>
             </div>`;
         }
         headerHtml += `</div><div class="cal-header-scrollbar-spacer"></div></div>`;
-        
+
         let gridHtml = `<div class="cal-time-scroll" id="cal-time-scroll"><div class="cal-time-grid">`;
-        
+
         gridHtml += `<div class="cal-time-labels">`;
         for (let h = 0; h < 24; h++) {
             gridHtml += `<div class="cal-time-label" style="top: calc(${h} * var(--hour-height))">${h}:00</div>`;
         }
         gridHtml += `</div>`;
-        
+
         gridHtml += `<div class="cal-time-columns">`;
-        
+
         let earliestEventHour = 24;
 
         for (let i = 0; i < daysCount; i++) {
             const curDate = colDates[i];
             const curDayStartTs = new Date(curDate.getFullYear(), curDate.getMonth(), curDate.getDate(), 0, 0, 0).getTime();
             const curDayEndTs = curDayStartTs + 24 * 3600 * 1000;
-            
+
             gridHtml += `<div class="cal-time-col">`;
-            
+
             const dayEvents = [];
             this.events.forEach(ev => {
                 const origDurSec = ev.duration > 0 ? ev.duration : 3600;
@@ -16422,14 +16440,14 @@ const Calendar = {
             });
 
             dayEvents.sort((a,b) => a.dateObj.getTime() - b.dateObj.getTime());
-            
+
             const groups = [];
             let currentGroup = [];
             let groupEnd = 0;
 
             dayEvents.forEach(mappedEv => {
                 const start = mappedEv.dateObj.getTime();
-                const end = start + Math.max(mappedEv.effectiveDurSec * 1000, 2400000); 
+                const end = start + Math.max(mappedEv.effectiveDurSec * 1000, 2400000);
 
                 if (mappedEv.dateObj.getHours() < earliestEventHour) earliestEventHour = mappedEv.dateObj.getHours();
 
@@ -16453,32 +16471,32 @@ const Calendar = {
 
             groups.forEach(group => {
                 const columnsCount = Math.max(...group.map(item => item.colIndex)) + 1;
-                
+
                 group.forEach(item => {
                     const mappedEv = item.mappedEv;
                     const ev = mappedEv.originalEv;
                     const hours = mappedEv.dateObj.getHours();
                     const mins = mappedEv.dateObj.getMinutes();
-                    
+
                     const startSecFromMidnight = (hours * 3600) + (mins * 60);
                     const secondsInDay = 24 * 3600;
                     const maxAllowedDurSec = secondsInDay - startSecFromMidnight;
 
-                    const visDurSec = Math.min(Math.max(mappedEv.effectiveDurSec, 2400), maxAllowedDurSec); 
-                    
+                    const visDurSec = Math.min(Math.max(mappedEv.effectiveDurSec, 2400), maxAllowedDurSec);
+
                     const topPos = `calc((${hours} + ${mins}/60) * var(--hour-height))`;
                     const heightPos = `calc((${visDurSec}/3600) * var(--hour-height))`;
-                    
+
                     const widthPercent = 100 / columnsCount;
                     const leftPercent = item.colIndex * widthPercent;
-                    
+
                     const timeText = this.formatTimeText(ev, false);
-                    
+
                     const positionStyle = `top: ${topPos}; height: ${heightPos}; left: ${leftPercent}%; width: calc(${widthPercent}% - 2px);`;
-                    
+
                     const continuationClass = mappedEv.isContinuation ? 'is-continuation' : '';
-                    
-                    gridHtml += `<div class="cal-abs-event ${ev.completed ? 'is-done' : ''} ${continuationClass}" 
+
+                    gridHtml += `<div class="cal-abs-event ${ev.completed ? 'is-done' : ''} ${continuationClass}"
                                       data-id="${ev.id}" data-event-id="${ev.event_id}" data-ws="${ev.workspace_id}" data-col="${ev.column_id}"
                                       style="${positionStyle}">
                         <div class="cal-ev-title" data-full-title="${escapeHtml(ev.title)}">${escapeHtml(ev.title)}</div>
@@ -16486,32 +16504,32 @@ const Calendar = {
                     </div>`;
                 });
             });
-            
+
             if (curDate.getFullYear() === today.getFullYear() && curDate.getMonth() === today.getMonth() && curDate.getDate() === today.getDate()) {
                 const nowH = today.getHours();
                 const nowM = today.getMinutes();
                 const nowTop = `calc((${nowH} + ${nowM}/60) * var(--hour-height))`;
-                
+
                 const timeStr = `${nowH.toString().padStart(2, '0')}:${nowM.toString().padStart(2, '0')}`;
                 gridHtml += `<div class="cal-now-line" style="top: ${nowTop}" data-time="${timeStr}"></div>`;
-                
+
                 if (earliestEventHour === 24) earliestEventHour = Math.max(0, nowH - 1);
             }
-            
+
             gridHtml += `</div>`;
         }
-        
-        gridHtml += `</div></div></div>`; 
-        
+
+        gridHtml += `</div></div></div>`;
+
         this.body.innerHTML = `<div class="cal-time-view">${headerHtml}${gridHtml}</div>`;
         this.attachEventClicks();
-        
+
         setTimeout(() => {
             const scrollEl = document.getElementById('cal-time-scroll');
             if (scrollEl) {
                 let targetHour = earliestEventHour === 24 ? 8 : earliestEventHour - 1;
                 targetHour = Math.max(0, targetHour);
-                
+
                 scrollEl.scrollTo({
                     top: targetHour * this.zoomHourHeight,
                     behavior: 'smooth'
@@ -16519,7 +16537,7 @@ const Calendar = {
             }
         }, 100);
     },
-    
+
     attachEventClicks() {
         this.body.querySelectorAll('.cal-event-chip, .cal-abs-event').forEach(el => {
             el.addEventListener('click', (e) => {
@@ -16527,7 +16545,7 @@ const Calendar = {
                 const id = parseInt(el.dataset.id);
                 const wsId = parseInt(el.dataset.ws);
                 const colId = parseInt(el.dataset.col);
-                
+
                 this.modal.classList.remove('show');
                 window.navigateToEntityGlobal(wsId, colId, id, null, true, true);
             });
@@ -16536,27 +16554,27 @@ const Calendar = {
                 e.preventDefault();
                 e.stopPropagation();
                 const eventId = el.dataset.eventId;
-                
+
                 if (eventId) {
                     closeAllDropdowns();
-                    
+
                     const menu = document.getElementById('cal-context-menu');
                     menu.dataset.eventId = eventId;
-                    
+
                     menu.style.visibility = 'hidden';
                     menu.style.display = 'block';
                     menu.classList.add('show');
-                    
+
                     let left = e.clientX;
                     let top = e.clientY;
                     const rect = menu.getBoundingClientRect();
-                    
+
                     if (left + rect.width > window.innerWidth - 10) left = window.innerWidth - rect.width - 10;
                     if (top + rect.height > window.innerHeight - 10) top = window.innerHeight - rect.height - 10;
-                    
+
                     menu.style.left = `${left}px`;
                     menu.style.top = `${top}px`;
-                    
+
                     menu.style.visibility = '';
                 }
             });
@@ -16572,7 +16590,7 @@ async function openMoveTaskModal(taskId) {
     const modal = document.getElementById('move-modal');
     modal.dataset.taskId = taskId;
     const select = document.getElementById('move-column-select');
-    
+
     if (select._customUI) {
         select._customUI.wrapper.remove();
         select._customUI = null;
@@ -16581,7 +16599,7 @@ async function openMoveTaskModal(taskId) {
 
     select.innerHTML = `<option value="">${t('loading')}</option>`;
     modal.classList.add('show');
-    
+
     try {
         let optionsHtml = '';
         for (const ws of state.workspaces) {
@@ -16604,10 +16622,10 @@ async function openMoveTaskModal(taskId) {
     newApplyBtn.onclick = async () => {
         const targetColId = parseInt(select.value);
         if (!targetColId || isNaN(targetColId)) return;
-        
+
         newApplyBtn.disabled = true;
         newApplyBtn.style.opacity = '0.5';
-        
+
         try {
             await moveTask(taskId, targetColId);
             modal.classList.remove('show');
@@ -16625,7 +16643,7 @@ async function openMoveTaskModal(taskId) {
 function openSortModal(columnId) {
     const modal = document.getElementById('sort-modal');
     modal.dataset.columnId = columnId;
-    
+
     const criteriaRows = modal.querySelectorAll('#sort-criteria-list .setting-row');
     criteriaRows.forEach(r => {
         r.onclick = () => {
@@ -16686,13 +16704,13 @@ async function applyColumnSort(columnId, criteria, dir) {
         }
 
         if (isNullA && isNullB) return a.position - b.position;
-        
+
         if (isNullA) return 1;
         if (isNullB) return -1;
 
         if (valA < valB) return dir === 'asc' ? -1 : 1;
         if (valA > valB) return dir === 'asc' ? 1 : -1;
-        
+
         return a.position - b.position;
     });
 
@@ -16940,7 +16958,7 @@ async function applyColumnSort(columnId, criteria, dir) {
               </button>
             </div>
             <div class="modal-body" style="padding:16px; gap:16px;">
-              
+
               <div class="settings-group-card">
                 <div class="setting-row" style="cursor: default; flex-direction: column; align-items: flex-start; gap: 10px;">
                     <div class="setting-text-box" style="width: 100%;">
@@ -17355,12 +17373,12 @@ async function applyColumnSort(columnId, criteria, dir) {
         const item = M.queue[M.qIndex];
         if (item && typeof loadTaskIntoModal === 'function') {
             closeModal('memory-review-modal');
-            
+
             // Загружаем данные
             loadTaskIntoModal(item.task_id, true);
             // Показываем окно
             document.getElementById('task-modal').classList.add('show');
-            
+
             // Опционально: фокусируем доску на этой карточке на фоне
             if (window.navigateToEntityGlobal && item.workspace_id && item.column_id) {
                 window.navigateToEntityGlobal(item.workspace_id, item.column_id, item.task_id, null, true, false);
@@ -17409,16 +17427,16 @@ async function applyColumnSort(columnId, criteria, dir) {
 
     function setEnabled(v) {
         M.enabled = !!v;
-        if (M.enabled) { 
-            startPoller(); 
-            pollDue(); 
+        if (M.enabled) {
+            startPoller();
+            pollDue();
             scheduleOffline();
-        } else { 
-            stopPoller(); 
-            setBadge(0); 
+        } else {
+            stopPoller();
+            setBadge(0);
             hideSelBtn(); // <-- Скрываем кнопку, если она зависла
-            const s = document.getElementById('memory-card-section'); 
-            if (s) s.style.display = 'none'; 
+            const s = document.getElementById('memory-card-section');
+            if (s) s.style.display = 'none';
         }
     }
 
@@ -17435,15 +17453,15 @@ async function applyColumnSort(columnId, criteria, dir) {
         ensureModals();
         const btn = document.getElementById('memory-trigger');
         if (btn) btn.addEventListener('click', openHub);
-        
+
         // Фрагмент добавляется выделением текста
         document.addEventListener('selectionchange', onSelectionChange);
         document.addEventListener('scroll', hideSelBtn, true);
         loadSettings();
-        
+
         // ВЫРЕЗАНЫ БЕЗУСЛОВНЫЕ startPoller(), pollDue() и scheduleOffline()
         // Теперь их запускает только setEnabled(true), когда придут настройки с сервера!
-        
+
         window.addEventListener('pagehide', () => { if (M.enabled) scheduleOffline(); });
         window.addEventListener('beforeunload', () => { if (M.enabled) scheduleOffline(); });
     }
