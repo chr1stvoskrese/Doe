@@ -69,9 +69,10 @@
     const restoreDescriptionHeight = (description, hadExplicitHeight, baseHeight) => {
         if (!description) return;
         if (hadExplicitHeight) {
-            const current = description.getBoundingClientRect().height;
-            description.style.height = `${Math.max(baseHeight || 0, current)}px`;
+            description.style.height = `${Math.max(0, baseHeight || 0)}px`;
         } else {
+            // No inline height existed before the drag: let the normal layout
+            // determine the final height again instead of persisting a temporary expansion.
             description.style.height = '';
         }
     };
