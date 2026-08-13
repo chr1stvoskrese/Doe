@@ -1,0 +1,92 @@
+name: Fix image resize bounds
+
+on:
+  push:
+    branches: [agent/borderless-description-work]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/borderless-description-work
+          fetch-depth: 0
+
+      - name: Patch image resize bounds
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('frontend/app.js')
+          text = path.read_text(encoding='utf-8')
+
+          old = '''            const startWidth = wrapper.offsetWidth;
+            const startHeight = wrapper.offsetHeight;
+            const aspectRatio = startWidth / startHeight;
+            
+            wrapper.classList.add('is-resizing');'''
+          new = '''            const startWidth = wrapper.offsetWidth;
+            const startHeight = wrapper.offsetHeight;
+            const aspectRatio = startWidth / startHeight;
+            const descriptionWrapper = wrapper.closest('.description-wrapper');
+
+            wrapper.classList.add('is-resizing');'''
+          if old not in text:
+              raise SystemExit('image resize start block not found')
+          text = text.replace(old, new, 1)
+
+          old = '''            const onMouseMove = (moveEvent) => {
+                let newWidth = Math.max(50, startWidth + (moveEvent.clientX - startX));
+                let newHeight = Math.max(50, startHeight + (moveEvent.clientY - startY));
+                
+                if (moveEvent.shiftKey) newHeight = newWidth / aspectRatio;
+                
+                wrapper.style.width = newWidth + 'px';
+                wrapper.style.height = newHeight + 'px';'''
+          new = '''            const onMouseMove = (moveEvent) => {
+                let newWidth = Math.max(50, startWidth + (moveEvent.clientX - startX));
+                let newHeight = Math.max(50, startHeight + (moveEvent.clientY - startY));
+
+                const bounds = descriptionWrapper?.getBoundingClientRect();
+                const maxWidth = Math.max(50, (bounds?.width || wrapper.parentElement?.clientWidth || newWidth));
+                const maxHeight = Math.max(50, (bounds?.height || wrapper.parentElement?.clientHeight || newHeight));
+
+                if (moveEvent.shiftKey) {
+                    newWidth = Math.min(newWidth, maxWidth, maxHeight * aspectRatio);
+                    newHeight = newWidth / aspectRatio;
+                } else {
+                    newWidth = Math.min(newWidth, maxWidth);
+                    newHeight = Math.min(newHeight, maxHeight);
+                }
+
+                wrapper.style.width = newWidth + 'px';
+                wrapper.style.height = newHeight + 'px';'''
+          if old not in text:
+              raise SystemExit('image resize move block not found')
+          text = text.replace(old, new, 1)
+
+          path.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Validate JavaScript
+        run: node --check frontend/app.js
+
+      - name: Commit patch and remove workflow
+        shell: bash
+        run: |
+          rm -f .github/workflows/fix-image-resize-bounds.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add frontend/app.js .github/workflows/fix-image-resize-bounds.yml
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          git commit -m "fix: clamp image resize to description bounds"
+          git push origin agent/borderless-description-work
