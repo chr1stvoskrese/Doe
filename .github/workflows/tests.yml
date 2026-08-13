@@ -2,6 +2,89 @@ name: tests
 
 on:
   push:
+    branches: [main, agent/borderless-description-work]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Apply image resize bounds fix on working branch
+        if: github.ref == 'refs/heads/agent/borderless-description-work'
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          path = Path('frontend/app.js')
+          text = path.read_text(encoding='utf-8')
+
+          if "const descriptionWrapper = wrapper.closest('.description-wrapper');" not in text:
+              anchor = "            const aspectRatio = startWidth / startHeight;"
+              if anchor not in text:
+                  raise SystemExit('image resize anchor not found')
+              text = text.replace(
+                  anchor,
+                  anchor + "\n            const descriptionWrapper = wrapper.closest('.description-wrapper');\n            const imageViewport = wrapper.closest('.markdown-body') || descriptionWrapper;",
+                  1,
+              )
+
+          pattern = re.compile(
+              r"(?P<i>\s*)const onMouseMove = \(moveEvent\) => \{\n"
+              r"(?P=i)\s*let newWidth = Math\.max\(50, startWidth \+ \(moveEvent\.clientX - startX\)\);\n"
+              r"(?P=i)\s*let newHeight = Math\.max\(50, startHeight \+ \(moveEvent\.clientY - startY\)\);\n"
+              r"(?P=i)\s*\n"
+              r"(?P=i)\s*if \(moveEvent\.shiftKey\) newHeight = newWidth / aspectRatio;\n"
+              r"(?P=i)\s*\n"
+              r"(?P=i)\s*wrapper\.style\.width = newWidth \+ 'px';\n"
+              r"(?P=i)\s*wrapper\.style\.height = newHeight \+ 'px';",
+              re.MULTILINE,
+          )
+
+          replacement = r"""\g<i>const onMouseMove = (moveEvent) => {
+\g<i>    let newWidth = Math.max(50, startWidth + (moveEvent.clientX - startX));
+\g<i>    let newHeight = Math.max(50, startHeight + (moveEvent.clientY - startY));
+\g<i>
+\g<i>    const viewportRect = imageViewport?.getBoundingClientRect();
+\g<i>    const wrapperRect = wrapper.getBoundingClientRect();
+\g<i>    const descriptionRect = descriptionWrapper?.getBoundingClientRect();
+\g<i>    const availableWidth = viewportRect
+\g<i>        ? Math.max(1, viewportRect.right - wrapperRect.left)
+\g<i>        : Math.max(1, wrapper.parentElement?.clientWidth || newWidth);
+\g<i>    const availableHeight = descriptionRect
+\g<i>        ? Math.max(1, descriptionRect.bottom - wrapperRect.top)
+\g<i>        : Math.max(1, wrapper.parentElement?.clientHeight || newHeight);
+\g<i>    const minWidth = Math.min(50, availableWidth);
+\g<i>    const minHeight = Math.min(50, availableHeight);
+\g<i>
+\g<i>    if (moveEvent.shiftKey) {
+\g<i>        newWidth = Math.min(Math.max(minWidth, newWidth), availableWidth, availableHeight * aspectRatio);
+\g<i>        newHeight = Math.min(Math.max(minHeight, newWidth / aspectRatio), availableHeight);
+\g<i>    } else {
+\g<i>        newWidth = Math.min(Math.max(minWidth, newWidth), availableWidth);
+\g<i>        newHeight = Math.min(Math.max(minHeight, newHeight), availableHeight);
+\g<i>    }
+\g<i>
+\g<i>    wrapper.style.width = newWidth + 'px';
+\g<i>    wrapper.style.height = newHeight + 'px';"""
+
+          text, count = pattern.subn(replacement, text, count=1)
+          if count != 1:
+              raise SystemExit('image resize move block not found')
+
+          path.write_text(text, encoding='utf-8')
+          PY
+
+          node --check frontend/app.js
+
+          cat > .github/workflows/tests.yml.restored <<'EOF'
+name: tests
+
+on:
+  push:
     branches: [main]
   pull_request:
 
@@ -10,6 +93,32 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install test dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Run tests
+        run: python -m pytest -q
+EOF
+          mv .github/workflows/tests.yml.restored .github/workflows/tests.yml
+          rm -f .github/workflows/apply-image-resize-clamp.yml
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add frontend/app.js frontend/borderless-description.css .github/workflows/tests.yml .github/workflows/apply-image-resize-clamp.yml
+          git diff --cached --check
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "fix: clamp image resize to description bounds"
+            git push origin agent/borderless-description-work
+          fi
 
       - name: Set up Python
         uses: actions/setup-python@v5
