@@ -8581,19 +8581,38 @@ function initTaskDescriptionLogic() {
             const startWidth = wrapper.offsetWidth;
             const startHeight = wrapper.offsetHeight;
             const aspectRatio = startWidth / startHeight;
+
+            // Keep the user's chosen size separate from the size currently
+            // visible inside a narrow description viewport.
+            const mdSource = unescapeHtml(wrapper.dataset.md || '');
+            const sizeMatch = mdSource.match(/\{\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)\s*\}\s*$/);
+            const storedWidth = sizeMatch ? Number(sizeMatch[1]) : startWidth;
+            const storedHeight = sizeMatch ? Number(sizeMatch[2]) : startHeight;
+            let desiredWidth = storedWidth;
+            let desiredHeight = storedHeight;
             
             wrapper.classList.add('is-resizing');
             wrapper.classList.add('has-custom-size'); 
             document.body.style.userSelect = 'none'; 
             
             const onMouseMove = (moveEvent) => {
-                let newWidth = Math.max(50, startWidth + (moveEvent.clientX - startX));
-                let newHeight = Math.max(50, startHeight + (moveEvent.clientY - startY));
+                desiredWidth = Math.max(50, storedWidth + (moveEvent.clientX - startX));
+                desiredHeight = Math.max(50, storedHeight + (moveEvent.clientY - startY));
                 
-                if (moveEvent.shiftKey) newHeight = newWidth / aspectRatio;
-                
-                wrapper.style.width = newWidth + 'px';
-                wrapper.style.height = newHeight + 'px';
+                if (moveEvent.shiftKey) desiredHeight = desiredWidth / aspectRatio;
+
+                const wrapperRect = wrapper.getBoundingClientRect();
+                const viewportRect = renderDiv.getBoundingClientRect();
+                const availableWidth = Math.max(50, viewportRect.right - wrapperRect.left);
+                const availableHeight = Math.max(50, viewportRect.bottom - wrapperRect.top);
+
+                // Only the visual size is clamped. The desired size remains
+                // untouched so a later card expansion restores it.
+                const visibleWidth = Math.min(desiredWidth, availableWidth);
+                const visibleHeight = Math.min(desiredHeight, availableHeight);
+
+                wrapper.style.width = visibleWidth + 'px';
+                wrapper.style.height = visibleHeight + 'px';
                 applyTextExpansion();
             };
             
@@ -8606,8 +8625,10 @@ function initTaskDescriptionLogic() {
                 wrapper.dataset.justResized = '1';
                 setTimeout(() => { delete wrapper.dataset.justResized; }, 300);
                 
-                const finalWidth = Math.round(wrapper.offsetWidth);
-                const finalHeight = Math.round(wrapper.offsetHeight);
+                // Persist the user's requested size, not the temporarily
+                // clamped size currently visible in the description viewport.
+                const finalWidth = Math.round(desiredWidth);
+                const finalHeight = Math.round(desiredHeight);
                 const originalMd = unescapeHtml(wrapper.dataset.md);
                 
                 const regex = /!\[([^\]]*)\]\(([^)]+)\)(?:\{[^}]+\})?/;

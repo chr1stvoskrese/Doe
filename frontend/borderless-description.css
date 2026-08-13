@@ -283,12 +283,6 @@ html body .task-detail-body .markdown-body .image-resizer-wrapper img {
     box-sizing: border-box !important;
 }
 
-/* When the description gets narrower, the image follows it instead of keeping
-   an oversized inline width/height from a previous manual resize. */
-html body .task-detail-body .markdown-body .image-resizer-wrapper.has-custom-size {
-    height: auto !important;
-}
-
 html body .task-detail-body .markdown-body p.image-collage .image-resizer-wrapper,
 html body .task-detail-body .markdown-body p.image-collage .image-resizer-wrapper img {
     max-width: 100% !important;
