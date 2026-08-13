@@ -58,8 +58,10 @@ jobs:
           path.write_text(text, encoding='utf-8')
           PY
 
-      - name: Validate JavaScript
-        run: node --check frontend/app.js
+      - name: Validate and normalize
+        run: |
+          node --check frontend/app.js
+          sed -i 's/[[:space:]]\+$//' frontend/app.js frontend/borderless-description.css
 
       - name: Commit and remove workflow
         run: |
