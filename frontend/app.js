@@ -7250,9 +7250,6 @@ function enhanceImageRows(container) {
                     delete wrap.dataset.justResized;
                 });
             }
-    // Без пустой строки подряд идущие изображения собираются в коллаж.
-    // Пустая строка создаёт отдельный <p>, поэтому такие изображения не объединяются.
-    p.classList.toggle('image-collage', onlyImages);
         }
     });
 }
@@ -8614,7 +8611,10 @@ function initTaskDescriptionLogic() {
                 // Vertical size is NOT constrained by the current description height:
                 // the description itself grows to make room for the image.
                 const visibleWidth = Math.min(desiredWidth, availableWidth);
-                const visibleHeight = desiredHeight;
+                const widthWasClamped = visibleWidth < desiredWidth;
+                const visibleHeight = widthWasClamped
+                    ? Math.max(50, visibleWidth / aspectRatio)
+                    : desiredHeight;
 
                 wrapper.style.width = visibleWidth + 'px';
                 wrapper.style.height = visibleHeight + 'px';
@@ -8630,7 +8630,6 @@ function initTaskDescriptionLogic() {
                     }
                 }
 
-                applyTextExpansion();
             };
 
             const onMouseUp = async () => {
@@ -8660,7 +8659,6 @@ function initTaskDescriptionLogic() {
 
                 wrapper.dataset.md = escapeHtml(newMd);
                 lastSavedValue = cmEditor.getValue();
-                applyTextExpansion();
 
                 const taskId = modal.dataset.taskId;
                 try {
