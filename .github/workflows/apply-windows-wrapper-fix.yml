@@ -1,0 +1,74 @@
+name: Apply Windows wrapper fix
+
+on:
+  push:
+    branches:
+      - agent/borderless-description-work
+
+permissions:
+  contents: write
+
+jobs:
+  patch-wrapper:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Patch wrapper.py
+        shell: python
+        run: |
+          from pathlib import Path
+          import subprocess
+
+          path = Path('wrapper.py')
+          text = path.read_text(encoding='utf-8')
+          original = text
+
+          old = """    url = out.resolve().as_uri()\n    if launch_mode == 'vault':\n        url += '?mode=vault'\n    return url\n"""
+          new = """    url = out.resolve().as_uri()\n    # Windows WebView2 treats query strings on file:// URLs unreliably and\n    # may encode the '?' into the filename (%3F), producing ERR_FILE_NOT_FOUND.\n    # The launch mode is already injected into window.__doeLaunchMode.\n    if launch_mode == 'vault' and sys.platform != 'win32':\n        url += '?mode=vault'\n    return url\n"""
+          if old not in text:
+              raise SystemExit('runtime_index_url pattern not found')
+          text = text.replace(old, new, 1)
+
+          old = """            text_select=True,\n            hidden=(not sys.platform.startswith('linux')),            \n            js_api=WindowAPI()      \n        )\n"""
+          new = """            text_select=True,\n            # Windows can reveal and style the native window from the loaded\n            # callback; do not keep the first window hidden there.\n            hidden=(sys.platform not in ('linux', 'win32')),\n            js_api=WindowAPI()\n        )\n"""
+          if old not in text:
+              raise SystemExit('initial window create pattern not found')
+          text = text.replace(old, new, 1)
+
+          old = """        window = webview.create_window(\n            title=MAIN_WINDOW_TITLE if is_configured else 'Doe — Select Vault',\n            url=start_url,\n            width=start_w,           \n            height=start_h,          \n            x=t_x,\n            y=t_y,\n            min_size=(min_w, min_h), \n            resizable=is_resizable,\n            frameless=(sys.platform in ('darwin', 'win32')),\n            easy_drag=False,     \n            background_color=bg_color, \n            text_select=True,\n            hidden=(not sys.platform.startswith('linux')),            \n            js_api=WindowAPI()      \n        )\n        bind_resize_event(window)\n"""
+          new = """        window = webview.create_window(\n            title=MAIN_WINDOW_TITLE if is_configured else 'Doe — Select Vault',\n            url=start_url,\n            width=start_w,\n            height=start_h,\n            x=t_x,\n            y=t_y,\n            min_size=(min_w, min_h),\n            resizable=is_resizable,\n            frameless=(sys.platform in ('darwin', 'win32')),\n            easy_drag=False,\n            background_color=bg_color,\n            text_select=True,\n            # Windows must not depend on a JS bridge callback just to become visible.\n            hidden=(sys.platform not in ('linux', 'win32')),\n            js_api=WindowAPI()\n        )\n\n        if sys.platform == 'win32':\n            def _reveal_windows_startup(*_args):\n                try:\n                    window.show()\n                    window.restore()\n                    # Applies the existing native Win32 styles (resize, min/max,\n                    # DWM chrome) and brings the window to the foreground.\n                    WindowAPI().reveal_window()\n                    print('[WebView] Windows initial window revealed.', flush=True)\n                except Exception as exc:\n                    print(f'[WebView] Windows initial reveal failed: {exc}', flush=True)\n\n            try:\n                window.events.loaded += _reveal_windows_startup\n            except Exception as exc:\n                print(f'[WebView] Windows loaded handler registration failed: {exc}', flush=True)\n\n        bind_resize_event(window)\n"""
+          if old not in text:
+              raise SystemExit('main startup block pattern not found')
+          text = text.replace(old, new, 1)
+
+          old = """                    try:\n                        _cur_url = window.get_current_url() or ''\n                        is_resizable = 'mode=vault' not in _cur_url\n                    except Exception:\n                        is_resizable = \"Select Vault\" not in window.title\n"""
+          new = """                    try:\n                        _cur_url = window.get_current_url() or ''\n                        _is_vault_window = (\n                            'mode=vault' in _cur_url\n                            or 'doe_runtime_vault.html' in _cur_url\n                            or window.title == 'Doe — Select Vault'\n                        )\n                        is_resizable = not _is_vault_window\n                    except Exception:\n                        is_resizable = \"Select Vault\" not in window.title\n"""
+          if old not in text:
+              raise SystemExit('Windows style detection pattern not found')
+          text = text.replace(old, new, 1)
+
+          path.write_text(text, encoding='utf-8')
+
+          subprocess.run(['python', '-m', 'py_compile', 'wrapper.py'], check=True)
+
+          if text == original:
+              raise SystemExit('wrapper.py was not changed')
+          print('wrapper.py patched and syntax check passed')
+
+      - name: Remove temporary diagnostic launchers
+        shell: bash
+        run: |
+          rm -f windows_entry.py sitecustomize.py
+
+      - name: Commit wrapper fix and cleanup
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add wrapper.py windows_entry.py sitecustomize.py
+          git commit -m "fix: make Windows launch work directly from wrapper.py"
+          git push
