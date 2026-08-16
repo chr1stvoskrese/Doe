@@ -9,6 +9,7 @@ from __future__ import annotations
 import os
 import runpy
 import sys
+import threading
 from typing import Any
 
 
@@ -21,25 +22,48 @@ def _patch_pywebview_for_windows() -> None:
     original_create_window = webview.create_window
 
     def create_window(*args: Any, **kwargs: Any):
-        # Doe's wrapper historically starts its first window hidden and expects
-        # a JS bridge callback to reveal it. That callback is not guaranteed to
-        # happen before/after WebView2 startup on Windows, so make the native
-        # window visible from the start.
         if kwargs.get("hidden") is True:
             kwargs["hidden"] = False
 
         window = original_create_window(*args, **kwargs)
 
         try:
-            def on_loaded(*_event_args: Any) -> None:
+            def _diagnose_and_show() -> None:
                 try:
+                    print("[WindowsEntry] loaded callback fired.", flush=True)
                     window.show()
                     window.restore()
                     print("[WindowsEntry] Initial window shown after WebView load.", flush=True)
                 except Exception as exc:
                     print(f"[WindowsEntry] Failed to show window: {exc!r}", flush=True)
+                    return
 
-            window.events.loaded += on_loaded
+                # Give Chromium one event-loop turn after the native window is
+                # visible, then inspect the actual document state. This tells us
+                # whether the Doe page is present or JavaScript failed before
+                # the application could render.
+                def _inspect_page() -> None:
+                    try:
+                        js = """
+                        (() => ({
+                            url: location.href,
+                            title: document.title,
+                            readyState: document.readyState,
+                            bodyText: (document.body && document.body.innerText || '').slice(0, 500),
+                            bodyChildren: document.body ? document.body.children.length : -1,
+                            htmlClass: document.documentElement.className || '',
+                            launchMode: window.__doeLaunchMode || null,
+                            pywebview: !!window.pywebview
+                        }))()
+                        """
+                        result = window.evaluate_js(js)
+                        print(f"[WindowsEntry] Page diagnostics: {result!r}", flush=True)
+                    except Exception as exc:
+                        print(f"[WindowsEntry] Page diagnostics failed: {exc!r}", flush=True)
+
+                threading.Timer(1.0, _inspect_page).start()
+
+            window.events.loaded += _diagnose_and_show
         except Exception as exc:
             print(f"[WindowsEntry] Failed to attach loaded handler: {exc!r}", flush=True)
 
