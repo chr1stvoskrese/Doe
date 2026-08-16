@@ -52,11 +52,11 @@ _AUTO_STOP_NEW = '''    def update_win_move(self):
 _RUNTIME_HEAD_OLD = '''    html = html.replace('</head>', inject, 1)
 '''
 
-_RUNTIME_HEAD_NEW = '''    html = html.replace('</head>', inject, 1)
+_RUNTIME_HEAD_NEW = """    html = html.replace('</head>', inject, 1)
 
     # Windows borderless windows receive mouse input in the WebView2 child HWND,
-    # not the top-level WinForms HWND.  Start the existing native polling move
-    # loop from the WebView itself.  Interactive controls in the header are
+    # not the top-level WinForms HWND. Start the existing native polling move
+    # loop from the WebView itself. Interactive controls in the header are
     # deliberately excluded so close/minimize buttons keep working normally.
     if sys.platform == 'win32':
         _win_drag_bridge = r'''<script>
@@ -73,7 +73,7 @@ _RUNTIME_HEAD_NEW = '''    html = html.replace('</head>', inject, 1)
 
     function isInteractive(target) {
         return !!(target && target.closest && target.closest(
-            'button, a, input, textarea, select, [role="button"], [data-no-window-drag], .window-control'
+            'button, a, input, textarea, select, [role=\"button\"], [data-no-window-drag], .window-control'
         ));
     }
 
@@ -113,7 +113,7 @@ _RUNTIME_HEAD_NEW = '''    html = html.replace('</head>', inject, 1)
 })();
 </script>'''
         html = html.replace('</head>', _win_drag_bridge + '</head>', 1)
-'''
+"""
 
 
 def _run_original():
