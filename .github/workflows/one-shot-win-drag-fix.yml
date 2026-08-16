@@ -1,0 +1,65 @@
+name: one-shot Windows drag fix
+
+on:
+  push:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Patch native hit test
+        shell: pwsh
+        run: |
+          $p = 'wrapper.py'
+          $s = Get-Content $p -Raw
+          $old = @'
+                        def custom_wndproc(h, msg, wp, lp):
+                            if msg == WM_NCCALCSIZE and wp:
+                                return 0
+                            return call_wnd_proc(old_proc, h, msg, wp, lp)
+'@
+          $new = @'
+                        WM_NCHITTEST = 0x0084
+                        HTCAPTION = 2
+                        HTCLIENT = 1
+
+                        def custom_wndproc(h, msg, wp, lp):
+                            if msg == WM_NCCALCSIZE and wp:
+                                return 0
+                            if msg == WM_NCHITTEST:
+                                # Borderless Doe window: expose a small native
+                                # caption strip so Windows handles drag/snap.
+                                # Keep the lower client area untouched.
+                                y_screen = ctypes.c_short((lp >> 16) & 0xFFFF).value
+                                rect = wintypes.RECT()
+                                if ctypes.windll.user32.GetWindowRect(h, ctypes.byref(rect)):
+                                    local_y = y_screen - rect.top
+                                    if 0 <= local_y < 42:
+                                        return HTCAPTION
+                                return HTCLIENT
+                            return call_wnd_proc(old_proc, h, msg, wp, lp)
+'@
+          if (-not $s.Contains($old)) { throw 'custom_wndproc target not found' }
+          $s = $s.Replace($old, $new)
+          Set-Content -Path $p -Value $s -Encoding UTF8
+          python -m py_compile wrapper.py
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add wrapper.py
+          git commit -m 'fix: restore native Windows drag hit testing'
+          git push
+
+      - name: Remove one-shot workflow
+        shell: pwsh
+        run: |
+          git rm .github/workflows/one-shot-win-drag-fix.yml
+          git commit -m 'chore: remove one-shot drag fix workflow'
+          git push
