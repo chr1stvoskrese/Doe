@@ -1039,7 +1039,10 @@ def runtime_index_url(mode: str = 'board') -> str:
     with open(out, 'w', encoding='utf-8') as f:
         f.write(html)
     url = out.resolve().as_uri()
-    if launch_mode == 'vault':
+    # Windows WebView2 may encode '?' from file:// URLs into the filename
+    # (%3F), producing ERR_FILE_NOT_FOUND. The mode is already injected into
+    # window.__doeLaunchMode, so no query string is needed on Windows.
+    if launch_mode == 'vault' and sys.platform != 'win32':
         url += '?mode=vault'
     return url
 
@@ -2446,7 +2449,12 @@ class WindowAPI:
                     # Определяем по URL (надёжно), title — фолбэк на случай ошибки.
                     try:
                         _cur_url = window.get_current_url() or ''
-                        is_resizable = 'mode=vault' not in _cur_url
+                        _is_vault_window = (
+                            'mode=vault' in _cur_url
+                            or 'doe_runtime_vault.html' in _cur_url
+                            or window.title == 'Doe — Select Vault'
+                        )
+                        is_resizable = not _is_vault_window
                     except Exception:
                         is_resizable = "Select Vault" not in window.title
 
@@ -2655,7 +2663,7 @@ class WindowAPI:
             easy_drag=False,
             background_color=bg_color,
             text_select=True,
-            hidden=(not sys.platform.startswith('linux')),
+            hidden=(sys.platform not in ('linux', 'win32')),
             js_api=WindowAPI()
         )
         try:
@@ -2724,7 +2732,7 @@ class WindowAPI:
             easy_drag=False,
             background_color=bg_color,
             text_select=True,
-            hidden=(not sys.platform.startswith('linux')),
+            hidden=(sys.platform not in ('linux', 'win32')),
             js_api=WindowAPI()
         )
 
@@ -2955,9 +2963,25 @@ if __name__ == '__main__':
             easy_drag=False,     
             background_color=bg_color, 
             text_select=True,
-            hidden=(not sys.platform.startswith('linux')),            
+            hidden=(sys.platform not in ('linux', 'win32')),            
             js_api=WindowAPI()      
         )
+        if sys.platform == 'win32':
+            def _reveal_windows_startup(*_args):
+                try:
+                    window.show()
+                    window.restore()
+                    # Reuse Doe's existing Win32 style/foreground logic.
+                    WindowAPI().reveal_window()
+                    print('[WebView] Windows initial window revealed.', flush=True)
+                except Exception as exc:
+                    print(f'[WebView] Windows initial reveal failed: {exc}', flush=True)
+
+            try:
+                window.events.loaded += _reveal_windows_startup
+            except Exception as exc:
+                print(f'[WebView] Windows loaded handler registration failed: {exc}', flush=True)
+
         bind_resize_event(window)
         if sys.platform == 'win32' and is_configured and t_x is not None:
             bind_geometry_enforcement(window, (t_x, t_y, t_w, t_h))
