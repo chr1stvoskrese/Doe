@@ -14,7 +14,6 @@ jobs:
   test-and-build:
     runs-on: windows-latest
     timeout-minutes: 30
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -30,82 +29,32 @@ jobs:
       - name: Patch Windows borderless window drag
         shell: pwsh
         run: |
-          @'
-          from pathlib import Path
-
-          p = Path('wrapper.py')
-          s = p.read_text(encoding='utf-8')
-
-          old = '''    def start_window_drag(self):
-        """Бесшовное нативное перетаскивание заголовочной рамки."""
-        import sys
-        if sys.platform != 'win32':
-            return False
-        import ctypes
-        
-        hwnd = self._win_hwnd()
-        if not hwnd:
-            return False
-            
-        self._win_maximized = False
-        
-        # 1. КРИТИЧНО: Принудительно отбираем захват мыши у Chromium
-        ctypes.windll.user32.ReleaseCapture()
-        
-        # 2. Получаем координаты курсора для ядра Windows
-        class POINT(ctypes.Structure):
-            _fields_ = [("x", ctypes.c_long), ("y", ctypes.c_long)]
-        pt = POINT()
-        ctypes.windll.user32.GetCursorPos(ctypes.byref(pt))
-        lparam = ((pt.y & 0xFFFF) << 16) | (pt.x & 0xFFFF)
-        
-        # 3. Начинаем нативный Drag, вызывающий Aero Snap (HTCAPTION = 2)
-        WM_NCLBUTTONDOWN = 0x00A1
-        try:
-            ctypes.windll.user32.SetForegroundWindow(hwnd)
-        except Exception:
-            pass
-        ctypes.windll.user32.SendMessageW(hwnd, WM_NCLBUTTONDOWN, 2, lparam)
-        return True
-'''
-
-          new = '''    def start_window_drag(self):
-        """Старт перетаскивания Windows-окна без зависимости от native title bar."""
-        import sys
-        if sys.platform != 'win32':
-            return False
-        try:
-            # В Doe уже есть надёжный polling-loop по GetCursorPos(), который
-            # продолжает работать, когда курсор вышел за пределы WebView.
-            # Используем его для borderless окна вместо WM_NCLBUTTONDOWN:
-            # Chromium больше не перехватывает жест, а окно можно двигать
-            # непрерывно и точно.
-            return bool(self.begin_win_move())
-        except Exception as e:
-            print(f"[WebView] start_window_drag failed: {e}", flush=True)
-            return False
-'''
-
-          if old not in s:
-              if 'def start_window_drag(self):' not in s:
-                  raise SystemExit('start_window_drag not found')
-              print('start_window_drag already patched; nothing to do')
-          else:
-              p.write_text(s.replace(old, new, 1), encoding='utf-8')
-              print('patched wrapper.py')
-          '@ | Set-Content -Encoding UTF8 patch_drag.py
-
-          python patch_drag.py
-          python -m py_compile wrapper.py
-          Remove-Item patch_drag.py
-
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add wrapper.py
-          if (git diff --cached --quiet) {
-            Write-Host 'No wrapper.py changes to commit.'
+          $p = 'wrapper.py'
+          $s = Get-Content $p -Raw
+          $pattern = '(?s)    def start_window_drag\(self\):.*?(?=\n    def start_window_resize\(self\):)'
+          $replacement = @"
+          def start_window_drag(self):
+              """Старт перетаскивания Windows-окна без зависимости от native title bar."""
+              import sys
+              if sys.platform != 'win32':
+                  return False
+              try:
+                  return bool(self.begin_win_move())
+              except Exception as e:
+                  print(f"[WebView] start_window_drag failed: {e}", flush=True)
+                  return False
+          "@
+          $new = [regex]::Replace($s, $pattern, $replacement.TrimEnd(), 1)
+          if ($new -eq $s) {
+            Write-Host 'Windows drag already patched.'
           } else {
-            git commit -m "fix: restore Windows borderless window dragging"
+            Set-Content -Path $p -Value $new -Encoding UTF8
+            Write-Host 'Patched wrapper.py.'
+            python -m py_compile wrapper.py
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add wrapper.py
+            git commit -m 'fix: restore Windows borderless window dragging'
             git push
           }
 
@@ -133,20 +82,12 @@ jobs:
         shell: pwsh
         run: |
           $exe = Join-Path $PWD 'dist\Doe\Doe.exe'
-          if (-not (Test-Path $exe)) {
-            throw "Doe.exe was not produced: $exe"
-          }
-
+          if (-not (Test-Path $exe)) { throw "Doe.exe was not produced: $exe" }
           $item = Get-Item $exe
-          if ($item.Length -lt 100KB) {
-            throw "Doe.exe looks suspiciously small: $($item.Length) bytes"
-          }
-
+          if ($item.Length -lt 100KB) { throw "Doe.exe looks suspiciously small: $($item.Length) bytes" }
           $past = '2000-01-01T00:00:00'
           & $exe '--worker' $past 'CI smoke' 'CI smoke' '1' 'C:\__doe_ci_missing_vault__' 'ci-smoke'
-          if ($LASTEXITCODE -ne 0) {
-            throw "Frozen worker startup failed with exit code $LASTEXITCODE"
-          }
+          if ($LASTEXITCODE -ne 0) { throw "Frozen worker startup failed with exit code $LASTEXITCODE" }
 
       - name: Upload Windows build
         uses: actions/upload-artifact@v4
