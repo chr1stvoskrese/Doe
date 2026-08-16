@@ -1,11 +1,8 @@
 """Windows startup compatibility for Doe.
 
-Python imports sitecustomize automatically during normal interpreter startup.
-Doe historically creates its first pywebview window hidden and relies on a
-frontend callback to call WindowAPI.reveal_window(). If the frontend bridge is
-not ready yet, the native window can remain invisible even though WebView2 has
-already loaded the page. On Windows we let pywebview show the initial window
-normally and keep the explicit reveal_window() path as a harmless fallback.
+On Windows, make Doe's pywebview startup window visible without relying on
+frontend bridge initialization. The frontend reveal_window() path remains a
+harmless fallback.
 """
 
 import sys
@@ -17,16 +14,30 @@ if sys.platform == "win32":
         _original_create_window = webview.create_window
 
         def _doe_create_window(*args, **kwargs):
-            # Only override the accidental hidden startup state. Callers that
-            # explicitly pass hidden=False remain unchanged; explicit hidden
-            # windows are not part of Doe's notification-worker path.
             if kwargs.get("hidden", False) is True:
                 kwargs["hidden"] = False
-            return _original_create_window(*args, **kwargs)
+
+            window = _original_create_window(*args, **kwargs)
+
+            # Belt-and-suspenders startup path: once Chromium reports that the
+            # page is loaded, explicitly show and restore the native window.
+            # This avoids depending on JS -> pywebview bridge readiness merely
+            # to make the first window visible.
+            try:
+                def _show_after_load(*_event_args):
+                    try:
+                        window.show()
+                        window.restore()
+                        print("[Windows] Initial pywebview window shown after load.", flush=True)
+                    except Exception as _show_e:
+                        print(f"[Windows] Failed to show initial window: {_show_e}", flush=True)
+
+                window.events.loaded += _show_after_load
+            except Exception as _event_e:
+                print(f"[Windows] Could not attach startup show handler: {_event_e}", flush=True)
+
+            return window
 
         webview.create_window = _doe_create_window
-        print("[Windows] pywebview startup compatibility: forcing initial windows visible.")
     except Exception as _e:
-        # Never prevent Python/Doe from starting if pywebview is not installed
-        # yet or changes its import surface in a future release.
-        print(f"[Windows] pywebview startup compatibility unavailable: {_e}")
+        print(f"[Windows] pywebview startup compatibility unavailable: {_e}", flush=True)
