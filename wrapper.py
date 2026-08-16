@@ -1835,7 +1835,11 @@ class WindowAPI:
         
         # 3. Начинаем нативный Drag, вызывающий Aero Snap (HTCAPTION = 2)
         WM_NCLBUTTONDOWN = 0x00A1
-        ctypes.windll.user32.PostMessageW(hwnd, WM_NCLBUTTONDOWN, 2, lparam)
+        try:
+            ctypes.windll.user32.SetForegroundWindow(hwnd)
+        except Exception:
+            pass
+        ctypes.windll.user32.SendMessageW(hwnd, WM_NCLBUTTONDOWN, 2, lparam)
         return True
 
     def start_window_resize(self, ht):
@@ -1863,7 +1867,11 @@ class WindowAPI:
         
         # 3. Начинаем нативный ресайз ядром DWM (без подергиваний)
         WM_NCLBUTTONDOWN = 0x00A1
-        ctypes.windll.user32.PostMessageW(hwnd, WM_NCLBUTTONDOWN, int(ht), lparam)
+        try:
+            ctypes.windll.user32.SetForegroundWindow(hwnd)
+        except Exception:
+            pass
+        ctypes.windll.user32.SendMessageW(hwnd, WM_NCLBUTTONDOWN, int(ht), lparam)
         return True
 
     def _win_rect(self, hwnd):
@@ -2468,7 +2476,7 @@ class WindowAPI:
                         WS_SYSMENU = 0x00080000     
                         
                         style = ctypes.windll.user32.GetWindowLongW(hwnd, GWL_STYLE)
-                        new_style = (style & ~WS_CAPTION) | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_SYSMENU
+                        new_style = style | WS_CAPTION | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_SYSMENU
                         ctypes.windll.user32.SetWindowLongW(hwnd, GWL_STYLE, new_style)
 
                         # WndProc Hook для удаления белой полосы (растягивает контент на 100% окна)
@@ -2519,7 +2527,7 @@ class WindowAPI:
                         
                         style = ctypes.windll.user32.GetWindowLongW(hwnd, GWL_STYLE)
                         # Полностью убираем рамку изменения размеров (WS_THICKFRAME) и кнопку развертывания (WS_MAXIMIZEBOX)
-                        new_style = style & ~WS_CAPTION & ~WS_THICKFRAME & ~WS_MAXIMIZEBOX
+                        new_style = (style | WS_CAPTION | WS_MINIMIZEBOX | WS_SYSMENU) & ~WS_THICKFRAME & ~WS_MAXIMIZEBOX
                         ctypes.windll.user32.SetWindowLongW(hwnd, GWL_STYLE, new_style)
                         
                         ctypes.windll.user32.SetWindowPos(hwnd, 0, 0, 0, 0, 0, 0x0027) # SWP_FRAMECHANGED
@@ -2551,6 +2559,23 @@ class WindowAPI:
             except Exception as e:
                 print(f"[WebView] Windows UI Sync failed: {e}")
 
+    def _bind_windows_chrome_on_loaded(self, win):
+        """Re-apply the correct Windows native chrome after every navigation."""
+        if sys.platform != 'win32' or getattr(win, '_doe_windows_chrome_bound', False):
+            return
+
+        def _apply(*_args):
+            try:
+                self.reveal_window()
+            except Exception as exc:
+                print(f"[WebView] Windows chrome re-apply failed: {exc}", flush=True)
+
+        try:
+            win.events.loaded += _apply
+            win._doe_windows_chrome_bound = True
+        except Exception as exc:
+            print(f"[WebView] Windows chrome binding failed: {exc}", flush=True)
+
     def open_main_window(self):
         """Показывает окно доски. 🔧 Чтобы НЕ рвать мост pywebview (он роутит
         ответы api_request через окно 'master'), ПЕРЕИСПОЛЬЗУЕМ существующее
@@ -2567,6 +2592,7 @@ class WindowAPI:
 
         if windows:
             win = windows[0]
+            self._bind_windows_chrome_on_loaded(win)
             print(f"[Window] reusing existing window → navigating to board (no destroy)", flush=True)
 
             def _navigate_and_apply_chrome():
@@ -2666,6 +2692,7 @@ class WindowAPI:
             hidden=(sys.platform not in ('linux', 'win32')),
             js_api=WindowAPI()
         )
+        self._bind_windows_chrome_on_loaded(new_win)
         try:
             bind_resize_event(new_win)
             if sys.platform == 'win32' and t_x is not None:
@@ -2684,6 +2711,7 @@ class WindowAPI:
 
         if windows:
             win = windows[0]
+            self._bind_windows_chrome_on_loaded(win)
             print(f"[Window] reusing existing window → navigating to vault selector (no destroy)", flush=True)
 
             def _navigate_and_apply_chrome():
@@ -2721,7 +2749,7 @@ class WindowAPI:
             return
 
         # --- Холодный путь: окон нет — создаём окно селектора ---
-        webview.create_window(
+        vault_win = webview.create_window(
             title='Doe — Select Vault',
             url=_vault_url,
             width=760,
@@ -2735,6 +2763,7 @@ class WindowAPI:
             hidden=(sys.platform not in ('linux', 'win32')),
             js_api=WindowAPI()
         )
+        self._bind_windows_chrome_on_loaded(vault_win)
 
 if __name__ == '__main__':
     multiprocessing.freeze_support()
