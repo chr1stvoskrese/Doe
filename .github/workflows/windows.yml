@@ -1,0 +1,74 @@
+name: windows
+
+on:
+  push:
+    branches:
+      - main
+      - 'agent/**'
+  pull_request:
+
+jobs:
+  test-and-build:
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Install test dependencies
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-dev.txt
+
+      - name: Run Python tests
+        shell: pwsh
+        run: python -m pytest -q
+
+      - name: Install runtime dependencies
+        shell: pwsh
+        run: python -m pip install -r requirements.txt
+
+      - name: Build Windows executable
+        shell: pwsh
+        run: >-
+          python build.py --target windows
+          --features search,calendar,reminders,graph,tabs,deadlines,export,priority,automations,statistics,memory
+
+      - name: Verify frozen executable
+        shell: pwsh
+        run: |
+          $exe = Join-Path $PWD 'dist\Doe\Doe.exe'
+          if (-not (Test-Path $exe)) {
+            throw "Doe.exe was not produced: $exe"
+          }
+
+          $item = Get-Item $exe
+          if ($item.Length -lt 100KB) {
+            throw "Doe.exe looks suspiciously small: $($item.Length) bytes"
+          }
+
+          # The worker path exits without opening the GUI when there is no
+          # active reminder. This verifies that the frozen executable can
+          # start successfully on Windows and load its bundled Python code.
+          $past = '2000-01-01T00:00:00'
+          & $exe '--worker' $past 'CI smoke' 'CI smoke' '1' 'C:\__doe_ci_missing_vault__' 'ci-smoke'
+          if ($LASTEXITCODE -ne 0) {
+            throw "Frozen worker startup failed with exit code $LASTEXITCODE"
+          }
+
+      - name: Upload Windows build
+        uses: actions/upload-artifact@v4
+        with:
+          name: Doe-windows
+          path: dist/Doe/
+          if-no-files-found: error
