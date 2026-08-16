@@ -13,6 +13,23 @@ import threading
 from typing import Any
 
 
+def _normalize_file_url(url: Any) -> Any:
+    """Work around pywebview WinForms treating file:// query strings as paths.
+
+    Doe already embeds the launch mode in the generated runtime HTML, so the
+    `?mode=vault` query is redundant for local file URLs and breaks Windows:
+    WinForms/Chromium can encode the `?` as `%3F`, producing ERR_FILE_NOT_FOUND.
+    """
+    if not isinstance(url, str):
+        return url
+    if url.startswith("file://"):
+        if "%3Fmode=vault" in url:
+            url = url.replace("%3Fmode=vault", "")
+        if "?mode=vault" in url:
+            url = url.replace("?mode=vault", "")
+    return url
+
+
 def _patch_pywebview_for_windows() -> None:
     if sys.platform != "win32":
         return
@@ -20,12 +37,26 @@ def _patch_pywebview_for_windows() -> None:
     import webview
 
     original_create_window = webview.create_window
+    original_load_url = getattr(webview.Window, "load_url", None)
 
     def create_window(*args: Any, **kwargs: Any):
+        if "url" in kwargs:
+            kwargs["url"] = _normalize_file_url(kwargs["url"])
+        elif len(args) >= 2:
+            args = list(args)
+            args[1] = _normalize_file_url(args[1])
+            args = tuple(args)
+
         if kwargs.get("hidden") is True:
             kwargs["hidden"] = False
 
         window = original_create_window(*args, **kwargs)
+
+        if original_load_url is not None:
+            def _load_url(url: Any) -> Any:
+                return original_load_url(window, _normalize_file_url(url))
+
+            window.load_url = _load_url
 
         try:
             def _diagnose_and_show() -> None:
@@ -38,10 +69,6 @@ def _patch_pywebview_for_windows() -> None:
                     print(f"[WindowsEntry] Failed to show window: {exc!r}", flush=True)
                     return
 
-                # Give Chromium one event-loop turn after the native window is
-                # visible, then inspect the actual document state. This tells us
-                # whether the Doe page is present or JavaScript failed before
-                # the application could render.
                 def _inspect_page() -> None:
                     try:
                         js = """
