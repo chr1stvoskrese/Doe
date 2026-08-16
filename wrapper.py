@@ -30,6 +30,17 @@ _SOURCE_NEW = '''                        WM_NCHITTEST = 0x0084
                             return call_wnd_proc(old_proc, h, msg, wp, lp)
 '''
 
+# Keep the Windows constants local to the complete reveal path, because the
+# selector and board branches share the style-refresh code below them.
+_STYLE_MARKER_OLD = '''                    if is_resizable:\n'''
+_STYLE_MARKER_NEW = '''                    WS_MINIMIZEBOX = 0x00020000\n                    WS_MAXIMIZEBOX = 0x00010000\n                    WS_SYSMENU = 0x00080000\n\n                    if is_resizable:\n'''
+
+# ctypes argtypes for GetCursorPos are process-global in ctypes. Another
+# helper (_cursor) configures it for wintypes.POINT; start_window_drag/resize
+# use a local POINT class. Set the prototype immediately before each call.
+_CURSOR_OLD = '''        pt = POINT()\n        ctypes.windll.user32.GetCursorPos(ctypes.byref(pt))\n'''
+_CURSOR_NEW = '''        pt = POINT()\n        ctypes.windll.user32.GetCursorPos.argtypes = [ctypes.POINTER(POINT)]\n        ctypes.windll.user32.GetCursorPos.restype = ctypes.c_bool\n        ctypes.windll.user32.GetCursorPos(ctypes.byref(pt))\n'''
+
 _AUTO_STOP_OLD = '''    def update_win_move(self):
         import sys, ctypes
         if sys.platform != 'win32':
@@ -73,7 +84,7 @@ _RUNTIME_HEAD_NEW = """    html = html.replace('</head>', inject, 1)
 
     function isInteractive(target) {
         return !!(target && target.closest && target.closest(
-            'button, a, input, textarea, select, [role=\"button\"], [data-no-window-drag], .window-control'
+            'button, a, input, textarea, select, [role=\\\"button\\\"], [data-no-window-drag], .window-control'
         ));
     }
 
@@ -98,14 +109,50 @@ _RUNTIME_HEAD_NEW = """    html = html.replace('</head>', inject, 1)
         }
     }
 
+    function resizeEdges(event) {
+        if (event.button !== 0) return null;
+        if (window.__doeLaunchMode !== 'board') return null;
+        var x = event.clientX, y = event.clientY;
+        var w = window.innerWidth, h = window.innerHeight;
+        var edge = '';
+        var g = 10;
+        if (x <= g) edge += 'l';
+        else if (x >= w - g) edge += 'r';
+        if (y <= g) edge += 't';
+        else if (y >= h - g) edge += 'b';
+        return edge || null;
+    }
+
+    function beginResize(event) {
+        var edge = resizeEdges(event);
+        if (!edge) return;
+        if (isInteractive(event.target)) return;
+        var bridge = api();
+        if (!bridge || typeof bridge.begin_win_resize !== 'function') return;
+        event.preventDefault();
+        event.stopPropagation();
+        try { bridge.begin_win_resize(edge); } catch (_) {}
+    }
+
+    function stopResize() {
+        var bridge = api();
+        if (bridge && typeof bridge.end_win_resize === 'function') {
+            try { bridge.end_win_resize(); } catch (_) {}
+        }
+    }
+
     function install() {
         if (installed) return;
         if (!api()) return;
         installed = true;
+        document.addEventListener('pointerdown', beginResize, true);
         document.addEventListener('pointerdown', startDrag, true);
         document.addEventListener('pointerup', stopDrag, true);
+        document.addEventListener('pointerup', stopResize, true);
         document.addEventListener('pointercancel', stopDrag, true);
+        document.addEventListener('pointercancel', stopResize, true);
         window.addEventListener('blur', stopDrag, true);
+        window.addEventListener('blur', stopResize, true);
     }
 
     install();
@@ -121,6 +168,12 @@ def _run_original():
 
     if 'WM_NCHITTEST = 0x0084' not in source and _SOURCE_OLD in source:
         source = source.replace(_SOURCE_OLD, _SOURCE_NEW, 1)
+
+    if '_STYLE_MARKER_OLD in source' and _STYLE_MARKER_OLD in source:
+        source = source.replace(_STYLE_MARKER_OLD, _STYLE_MARKER_NEW, 1)
+
+    if 'GetCursorPos.argtypes = [ctypes.POINTER(POINT)]' not in source and _CURSOR_OLD in source:
+        source = source.replace(_CURSOR_OLD, _CURSOR_NEW, 2)
 
     if 'The pointer can leave the WebView2 child window' not in source and _AUTO_STOP_OLD in source:
         source = source.replace(_AUTO_STOP_OLD, _AUTO_STOP_NEW, 1)
