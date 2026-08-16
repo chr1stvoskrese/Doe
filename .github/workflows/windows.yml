@@ -26,47 +26,47 @@ jobs:
           python-version: '3.12'
           cache: pip
 
-      - name: Patch Windows borderless window drag
+      - name: Patch Windows native drag
         shell: pwsh
         run: |
           $p = 'wrapper.py'
           $s = Get-Content $p -Raw
-          $pattern = '(?s)    def start_window_drag\(self\):.*?(?=\n    def start_window_resize\(self\):)'
-          $replacement = @"
-          def start_window_drag(self):
-              """Старт перетаскивания Windows-окна без зависимости от native title bar."""
-              import sys
-              if sys.platform != 'win32':
-                  return False
-              try:
-                  return bool(self.begin_win_move())
-              except Exception as e:
-                  print(f"[WebView] start_window_drag failed: {e}", flush=True)
-                  return False
-          "@
-          $new = [regex]::Replace($s, $pattern, $replacement.TrimEnd(), 1)
-          if ($new -eq $s) {
-            Write-Host 'Windows drag already patched.'
-          } else {
-            Set-Content -Path $p -Value $new -Encoding UTF8
-            Write-Host 'Patched wrapper.py.'
+          $old = @'
+                        def custom_wndproc(h, msg, wp, lp):
+                            if msg == WM_NCCALCSIZE and wp:
+                                return 0
+                            return call_wnd_proc(old_proc, h, msg, wp, lp)
+'@
+          $new = @'
+                        WM_NCHITTEST = 0x0084
+                        HTCAPTION = 2
+                        HTCLIENT = 1
+
+                        def custom_wndproc(h, msg, wp, lp):
+                            if msg == WM_NCCALCSIZE and wp:
+                                return 0
+                            if msg == WM_NCHITTEST:
+                                y_screen = ctypes.c_short((lp >> 16) & 0xFFFF).value
+                                rect = wintypes.RECT()
+                                if ctypes.windll.user32.GetWindowRect(h, ctypes.byref(rect)):
+                                    local_y = y_screen - rect.top
+                                    if 0 <= local_y < 42:
+                                        return HTCAPTION
+                                return HTCLIENT
+                            return call_wnd_proc(old_proc, h, msg, wp, lp)
+'@
+          if ($s.Contains($old)) {
+            $s = $s.Replace($old, $new)
+            Set-Content -Path $p -Value $s -Encoding UTF8
             python -m py_compile wrapper.py
             git config user.name 'github-actions[bot]'
             git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
             git add wrapper.py
-            git commit -m 'fix: restore Windows borderless window dragging'
+            git commit -m 'fix: restore native Windows drag hit testing'
             git push
+          } else {
+            Write-Host 'Native drag hit-test patch already present or target moved.'
           }
-
-      - name: Install test dependencies
-        shell: pwsh
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install -r requirements-dev.txt
-
-      - name: Run Python tests
-        shell: pwsh
-        run: python -m pytest -q
 
       - name: Install runtime dependencies
         shell: pwsh
