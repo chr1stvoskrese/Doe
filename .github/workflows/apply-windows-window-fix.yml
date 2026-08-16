@@ -1,0 +1,139 @@
+name: Apply Windows window behavior fix
+
+on:
+  push:
+    branches:
+      - agent/borderless-description-work
+
+permissions:
+  contents: write
+
+jobs:
+  patch-wrapper:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Patch wrapper.py
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+          import subprocess
+
+          path = Path('wrapper.py')
+          text = path.read_text(encoding='utf-8')
+          original = text
+
+          # All Windows-created windows must be visible; the first launch and
+          # later vault<->board transitions use native loaded handlers instead.
+          text = text.replace(
+              "hidden=(not sys.platform.startswith('linux'))",
+              "hidden=(sys.platform not in ('linux', 'win32'))",
+          )
+
+          # Keep the invisible non-client area semantic of a caption while the
+          # custom WM_NCCALCSIZE hook removes the visual frame. This lets Windows
+          # honor HTCAPTION/HTLEFT/etc. and keeps Aero Snap/resizing functional.
+          old_board = "new_style = (style & ~WS_CAPTION) | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_SYSMENU"
+          new_board = "new_style = style | WS_CAPTION | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_SYSMENU"
+          if old_board not in text:
+              raise SystemExit('board native style pattern not found')
+          text = text.replace(old_board, new_board, 1)
+
+          old_vault = "new_style = style & ~WS_CAPTION & ~WS_THICKFRAME & ~WS_MAXIMIZEBOX"
+          new_vault = "new_style = (style | WS_CAPTION | WS_MINIMIZEBOX | WS_SYSMENU) & ~WS_THICKFRAME & ~WS_MAXIMIZEBOX"
+          if old_vault not in text:
+              raise SystemExit('vault native style pattern not found')
+          text = text.replace(old_vault, new_vault, 1)
+
+          # Native drag should immediately activate the window and use a direct
+          # Win32 send so the system enters its normal move loop reliably.
+          old_drag = """        WM_NCLBUTTONDOWN = 0x00A1\n        ctypes.windll.user32.PostMessageW(hwnd, WM_NCLBUTTONDOWN, 2, lparam)\n        return True\n"""
+          new_drag = """        WM_NCLBUTTONDOWN = 0x00A1\n        try:\n            ctypes.windll.user32.SetForegroundWindow(hwnd)\n        except Exception:\n            pass\n        ctypes.windll.user32.SendMessageW(hwnd, WM_NCLBUTTONDOWN, 2, lparam)\n        return True\n"""
+          if old_drag not in text:
+              raise SystemExit('start_window_drag pattern not found')
+          text = text.replace(old_drag, new_drag, 1)
+
+          old_resize = """        WM_NCLBUTTONDOWN = 0x00A1\n        ctypes.windll.user32.PostMessageW(hwnd, WM_NCLBUTTONDOWN, int(ht), lparam)\n        return True\n"""
+          new_resize = """        WM_NCLBUTTONDOWN = 0x00A1\n        try:\n            ctypes.windll.user32.SetForegroundWindow(hwnd)\n        except Exception:\n            pass\n        ctypes.windll.user32.SendMessageW(hwnd, WM_NCLBUTTONDOWN, int(ht), lparam)\n        return True\n"""
+          if old_resize not in text:
+              raise SystemExit('start_window_resize pattern not found')
+          text = text.replace(old_resize, new_resize, 1)
+
+          # Add a single per-window loaded hook for subsequent board/vault
+          # navigation. Existing windows must re-apply the correct native style
+          # after load_url(), otherwise a vault selector can inherit board resize
+          # styles and a board can inherit selector restrictions.
+          marker = """    def open_main_window(self):\n"""
+          helper = '''    def _bind_windows_chrome_on_loaded(self, win):\n        """Re-apply the correct Windows native chrome after every navigation."""\n        if sys.platform != 'win32' or getattr(win, '_doe_windows_chrome_bound', False):\n            return\n\n        def _apply(*_args):\n            try:\n                self.reveal_window()\n            except Exception as exc:\n                print(f"[WebView] Windows chrome re-apply failed: {exc}", flush=True)\n\n        try:\n            win.events.loaded += _apply\n            win._doe_windows_chrome_bound = True\n        except Exception as exc:\n            print(f"[WebView] Windows chrome binding failed: {exc}", flush=True)\n\n'''
+          if marker not in text:
+              raise SystemExit('open_main_window marker not found')
+          if 'def _bind_windows_chrome_on_loaded(self, win):' not in text:
+              text = text.replace(marker, helper + marker, 1)
+
+          # Hook the helper in both existing-window paths and both cold-create paths.
+          patterns = [
+              """        if windows:\n            win = windows[0]\n            print(f\"[Window] reusing existing window → navigating to board (no destroy)\", flush=True)\n""",
+              """        if windows:\n            win = windows[0]\n            print(f\"[Window] reusing existing window → navigating to vault selector (no destroy)\", flush=True)\n""",
+          ]
+          replacements = [
+              """        if windows:\n            win = windows[0]\n            self._bind_windows_chrome_on_loaded(win)\n            print(f\"[Window] reusing existing window → navigating to board (no destroy)\", flush=True)\n""",
+              """        if windows:\n            win = windows[0]\n            self._bind_windows_chrome_on_loaded(win)\n            print(f\"[Window] reusing existing window → navigating to vault selector (no destroy)\", flush=True)\n""",
+          ]
+          for old, new in zip(patterns, replacements):
+              if old not in text:
+                  raise SystemExit('reuse-window pattern not found')
+              text = text.replace(old, new, 1)
+
+          # For cold-created windows, bind before load so the first loaded event
+          # applies native chrome regardless of launch path.
+          old_create_board = """        new_win = webview.create_window(\n            title=MAIN_WINDOW_TITLE,\n"""
+          new_create_board = """        new_win = webview.create_window(\n            title=MAIN_WINDOW_TITLE,\n"""
+          # no-op marker retained; bind is inserted immediately after create call below.
+
+          old_after_board = """        try:\n            bind_resize_event(new_win)\n"""
+          new_after_board = """        self._bind_windows_chrome_on_loaded(new_win)\n        try:\n            bind_resize_event(new_win)\n"""
+          if old_after_board not in text:
+              raise SystemExit('cold board binding marker not found')
+          text = text.replace(old_after_board, new_after_board, 1)
+
+          old_after_vault = """        webview.create_window(\n            title='Doe — Select Vault',\n"""
+          # Capture the returned window instead of discarding it.
+          new_vault_create = """        vault_win = webview.create_window(\n            title='Doe — Select Vault',\n"""
+          if old_after_vault not in text:
+              raise SystemExit('cold vault create marker not found')
+          text = text.replace(old_after_vault, new_vault_create, 1)
+
+          old_vault_tail = """            hidden=(sys.platform not in ('linux', 'win32')),\n            js_api=WindowAPI()\n        )\n\nif __name__ == '__main__':\n"""
+          new_vault_tail = """            hidden=(sys.platform not in ('linux', 'win32')),\n            js_api=WindowAPI()\n        )\n        self._bind_windows_chrome_on_loaded(vault_win)\n\nif __name__ == '__main__':\n"""
+          if old_vault_tail not in text:
+              # The branch may have the pre-helper hidden expression; support both.
+              old_vault_tail = """            hidden=(not sys.platform.startswith('linux')),\n            js_api=WindowAPI()\n        )\n\nif __name__ == '__main__':\n"""
+              new_vault_tail = """            hidden=(sys.platform not in ('linux', 'win32')),\n            js_api=WindowAPI()\n        )\n        self._bind_windows_chrome_on_loaded(vault_win)\n\nif __name__ == '__main__':\n"""
+              if old_vault_tail not in text:
+                  raise SystemExit('cold vault tail marker not found')
+          text = text.replace(old_vault_tail, new_vault_tail, 1)
+
+          path.write_text(text, encoding='utf-8')
+          subprocess.run(['python', '-m', 'py_compile', 'wrapper.py'], check=True)
+
+          if text == original:
+              raise SystemExit('wrapper.py was not changed')
+          print('wrapper.py window behavior patch applied; syntax OK')
+
+      - name: Commit and remove temporary workflow
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add wrapper.py .github/workflows/apply-windows-window-fix.yml
+          git commit -m "fix: make Windows window drag and resize native"
+          git push
+          rm .github/workflows/apply-windows-window-fix.yml
+          git add .github/workflows/apply-windows-window-fix.yml
+          git commit -m "chore: remove temporary window patch workflow"
+          git push
