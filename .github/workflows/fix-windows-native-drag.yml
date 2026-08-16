@@ -5,7 +5,6 @@ on:
 
 jobs:
   patch-wrapper:
-    if: contains(github.event.head_commit.message, 'ci: fix native Windows window dragging') == false
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -27,7 +26,6 @@ jobs:
         if sys.platform != 'win32':
             return False
         import ctypes
-        from ctypes import wintypes
 
         try:
             hwnd = self._win_hwnd()
@@ -35,8 +33,6 @@ jobs:
                 return False
 
             user32 = ctypes.windll.user32
-            # Bring the window to the foreground first so DefWindowProc can
-            # start a normal Win32 move loop from the current mouse position.
             try:
                 user32.SetForegroundWindow(hwnd)
             except Exception:
@@ -44,11 +40,6 @@ jobs:
 
             WM_NCLBUTTONDOWN = 0x00A1
             HTCAPTION = 2
-
-            # JS has already received the left-button press. Release the
-            # WebView capture, then feed the window the exact native message
-            # Windows uses for dragging a title bar. This works with a
-            # frameless window and keeps Aero Snap / edge docking native.
             user32.ReleaseCapture()
             user32.SendMessageW(hwnd, WM_NCLBUTTONDOWN, HTCAPTION, 0)
             return True
@@ -60,10 +51,10 @@ jobs:
           p.write_text(s, encoding='utf-8')
           PY
           python -m py_compile wrapper.py
-      - name: Commit patch and remove workflow
+      - name: Commit patched wrapper and remove workflow
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add wrapper.py .github/workflows/fix-windows-native-drag.yml
-          git commit -m "ci: fix Windows native window dragging"
+          git commit -m "fix: restore native Windows window drag"
           git push
