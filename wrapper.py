@@ -30,16 +30,23 @@ _SOURCE_NEW = '''                        WM_NCHITTEST = 0x0084
                             return call_wnd_proc(old_proc, h, msg, wp, lp)
 '''
 
-# Keep the Windows constants local to the complete reveal path, because the
-# selector and board branches share the style-refresh code below them.
-_STYLE_MARKER_OLD = '''                    if is_resizable:\n'''
-_STYLE_MARKER_NEW = '''                    WS_MINIMIZEBOX = 0x00020000\n                    WS_MAXIMIZEBOX = 0x00010000\n                    WS_SYSMENU = 0x00080000\n\n                    if is_resizable:\n'''
+_STYLE_MARKER_OLD = '''                    if is_resizable:
+'''
+_STYLE_MARKER_NEW = '''                    WS_MINIMIZEBOX = 0x00020000
+                    WS_MAXIMIZEBOX = 0x00010000
+                    WS_SYSMENU = 0x00080000
 
-# ctypes argtypes for GetCursorPos are process-global in ctypes. Another
-# helper (_cursor) configures it for wintypes.POINT; start_window_drag/resize
-# use a local POINT class. Set the prototype immediately before each call.
-_CURSOR_OLD = '''        pt = POINT()\n        ctypes.windll.user32.GetCursorPos(ctypes.byref(pt))\n'''
-_CURSOR_NEW = '''        pt = POINT()\n        ctypes.windll.user32.GetCursorPos.argtypes = [ctypes.POINTER(POINT)]\n        ctypes.windll.user32.GetCursorPos.restype = ctypes.c_bool\n        ctypes.windll.user32.GetCursorPos(ctypes.byref(pt))\n'''
+                    if is_resizable:
+'''
+
+_CURSOR_OLD = '''        pt = POINT()
+        ctypes.windll.user32.GetCursorPos(ctypes.byref(pt))
+'''
+_CURSOR_NEW = '''        pt = POINT()
+        ctypes.windll.user32.GetCursorPos.argtypes = [ctypes.POINTER(POINT)]
+        ctypes.windll.user32.GetCursorPos.restype = ctypes.c_bool
+        ctypes.windll.user32.GetCursorPos(ctypes.byref(pt))
+'''
 
 _AUTO_STOP_OLD = '''    def update_win_move(self):
         import sys, ctypes
@@ -66,16 +73,16 @@ _RUNTIME_HEAD_OLD = '''    html = html.replace('</head>', inject, 1)
 _RUNTIME_HEAD_NEW = """    html = html.replace('</head>', inject, 1)
 
     # Windows borderless windows receive mouse input in the WebView2 child HWND,
-    # not the top-level WinForms HWND. Start the existing native polling move
-    # loop from the WebView itself. Interactive controls in the header are
-    # deliberately excluded so close/minimize buttons keep working normally.
+    # not the top-level WinForms HWND. Start the native polling move/resize
+    # loops from the WebView itself. Interactive controls remain clickable.
     if sys.platform == 'win32':
         _win_drag_bridge = r'''<script>
 (function () {
-    if (window.__doeWinDragInstalled) return;
-    window.__doeWinDragInstalled = true;
+    if (window.__doeWinControlsInstalled) return;
+    window.__doeWinControlsInstalled = true;
 
-    var dragging = false;
+    var moving = false;
+    var resizing = false;
     var installed = false;
 
     function api() {
@@ -84,29 +91,8 @@ _RUNTIME_HEAD_NEW = """    html = html.replace('</head>', inject, 1)
 
     function isInteractive(target) {
         return !!(target && target.closest && target.closest(
-            'button, a, input, textarea, select, [role=\\\"button\\\"], [data-no-window-drag], .window-control'
+            'button, a, input, textarea, select, [role="button"], [data-no-window-drag], .window-control'
         ));
-    }
-
-    function startDrag(event) {
-        if (event.button !== 0 || event.clientY < 0 || event.clientY > 64) return;
-        if (isInteractive(event.target)) return;
-        var bridge = api();
-        if (!bridge || typeof bridge.begin_win_move !== 'function') return;
-
-        dragging = true;
-        event.preventDefault();
-        event.stopPropagation();
-        try { bridge.begin_win_move(); } catch (_) {}
-    }
-
-    function stopDrag() {
-        if (!dragging) return;
-        dragging = false;
-        var bridge = api();
-        if (bridge && typeof bridge.end_win_move === 'function') {
-            try { bridge.end_win_move(); } catch (_) {}
-        }
     }
 
     function resizeEdges(event) {
@@ -114,8 +100,8 @@ _RUNTIME_HEAD_NEW = """    html = html.replace('</head>', inject, 1)
         if (window.__doeLaunchMode !== 'board') return null;
         var x = event.clientX, y = event.clientY;
         var w = window.innerWidth, h = window.innerHeight;
-        var edge = '';
         var g = 10;
+        var edge = '';
         if (x <= g) edge += 'l';
         else if (x >= w - g) edge += 'r';
         if (y <= g) edge += 't';
@@ -123,36 +109,50 @@ _RUNTIME_HEAD_NEW = """    html = html.replace('</head>', inject, 1)
         return edge || null;
     }
 
-    function beginResize(event) {
-        var edge = resizeEdges(event);
-        if (!edge) return;
+    function onPointerDown(event) {
+        if (event.button !== 0) return;
         if (isInteractive(event.target)) return;
         var bridge = api();
-        if (!bridge || typeof bridge.begin_win_resize !== 'function') return;
-        event.preventDefault();
-        event.stopPropagation();
-        try { bridge.begin_win_resize(edge); } catch (_) {}
-    }
+        if (!bridge) return;
 
-    function stopResize() {
-        var bridge = api();
-        if (bridge && typeof bridge.end_win_resize === 'function') {
-            try { bridge.end_win_resize(); } catch (_) {}
+        var edge = resizeEdges(event);
+        if (edge && typeof bridge.begin_win_resize === 'function') {
+            resizing = true;
+            event.preventDefault();
+            event.stopPropagation();
+            try { bridge.begin_win_resize(edge); } catch (_) {}
+            return;
+        }
+
+        if (event.clientY >= 0 && event.clientY <= 64 &&
+            typeof bridge.begin_win_move === 'function') {
+            moving = true;
+            event.preventDefault();
+            event.stopPropagation();
+            try { bridge.begin_win_move(); } catch (_) {}
         }
     }
 
+    function onPointerUp() {
+        var bridge = api();
+        if (!bridge) return;
+        if (moving && typeof bridge.end_win_move === 'function') {
+            try { bridge.end_win_move(); } catch (_) {}
+        }
+        if (resizing && typeof bridge.end_win_resize === 'function') {
+            try { bridge.end_win_resize(); } catch (_) {}
+        }
+        moving = false;
+        resizing = false;
+    }
+
     function install() {
-        if (installed) return;
-        if (!api()) return;
+        if (installed || !api()) return;
         installed = true;
-        document.addEventListener('pointerdown', beginResize, true);
-        document.addEventListener('pointerdown', startDrag, true);
-        document.addEventListener('pointerup', stopDrag, true);
-        document.addEventListener('pointerup', stopResize, true);
-        document.addEventListener('pointercancel', stopDrag, true);
-        document.addEventListener('pointercancel', stopResize, true);
-        window.addEventListener('blur', stopDrag, true);
-        window.addEventListener('blur', stopResize, true);
+        document.addEventListener('pointerdown', onPointerDown, true);
+        document.addEventListener('pointerup', onPointerUp, true);
+        document.addEventListener('pointercancel', onPointerUp, true);
+        window.addEventListener('blur', onPointerUp, true);
     }
 
     install();
@@ -169,7 +169,7 @@ def _run_original():
     if 'WM_NCHITTEST = 0x0084' not in source and _SOURCE_OLD in source:
         source = source.replace(_SOURCE_OLD, _SOURCE_NEW, 1)
 
-    if '_STYLE_MARKER_OLD in source' and _STYLE_MARKER_OLD in source:
+    if 'WS_MINIMIZEBOX = 0x00020000' not in source and _STYLE_MARKER_OLD in source:
         source = source.replace(_STYLE_MARKER_OLD, _STYLE_MARKER_NEW, 1)
 
     if 'GetCursorPos.argtypes = [ctypes.POINTER(POINT)]' not in source and _CURSOR_OLD in source:
@@ -178,7 +178,7 @@ def _run_original():
     if 'The pointer can leave the WebView2 child window' not in source and _AUTO_STOP_OLD in source:
         source = source.replace(_AUTO_STOP_OLD, _AUTO_STOP_NEW, 1)
 
-    if 'window.__doeWinDragInstalled' not in source and _RUNTIME_HEAD_OLD in source:
+    if 'window.__doeWinControlsInstalled' not in source and _RUNTIME_HEAD_OLD in source:
         source = source.replace(_RUNTIME_HEAD_OLD, _RUNTIME_HEAD_NEW, 1)
 
     code = compile(source, str(_ORIGINAL), 'exec')
