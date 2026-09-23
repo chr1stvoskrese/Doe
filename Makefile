@@ -46,5 +46,5 @@ check:
 	$(PY) -c "from src.core.config import ALL_EXTENSION_KEYS; print('extensions:', ALL_EXTENSION_KEYS)"
 
 clean:
-	rm -rf build dist doe_source.zip
+	rm -rf build dist Doe.spec
 	find . -name "__pycache__" -type d -prune -exec rm -rf {} +

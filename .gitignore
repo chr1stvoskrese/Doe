@@ -18,14 +18,9 @@ htmlcov/
 # Сборка (всё пересоздаётся build.py / make_dmg.sh)
 # ============================================================
 build/
-build-intel/
 dist/
-dist-intel/
 Doe.app/
 *.spec
-doe_source.zip
-feature_flags.json
-version.txt
 *.dmg
 .doe-tmp.dmg
 

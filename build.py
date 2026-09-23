@@ -25,7 +25,6 @@ WORKPATH = "build"
 ADD_DATA = [
     ("favicon.ico", "."),
     ("doe.png", "."),
-    ("doe_source.zip", "."),
     ("frontend", "frontend"),
     ("src", "src"),
     ("alembic.ini", "."),
@@ -69,25 +68,6 @@ def clean(paths):
                 os.remove(full)
             except OSError:
                 pass
-
-
-def make_source_zip():
-    import zipfile
-    log("📦 Упаковка исходного кода...")
-    ignore_dirs = {
-        ".git", "venv", "__pycache__", "build",
-        "dist", ".idea", ".vscode", "Doe.app",
-    }
-    ignore_exts = (".pyc", ".db", ".sqlite3", ".doe", ".DS_Store", ".log")
-    out = os.path.join(ROOT, "doe_source.zip")
-    with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as zf:
-        for root, dirs, files in os.walk(ROOT):
-            dirs[:] = [d for d in dirs if d not in ignore_dirs]
-            for f in files:
-                if f.endswith(ignore_exts) or f == "doe_source.zip":
-                    continue
-                path = os.path.join(root, f)
-                zf.write(path, os.path.relpath(path, ROOT))
 
 
 def ensure_icns():
@@ -148,9 +128,11 @@ def patch_plist(app):
 
 
 def add_data_args(sep):
+    # Абсолютные пути: --specpath меняет базовый каталог PyInstaller,
+    # относительные пути при этом резолвятся неверно.
     out = []
     for s, d in ADD_DATA:
-        out += ["--add-data", f"{s}{sep}{d}"]
+        out += ["--add-data", f"{os.path.join(ROOT, s)}{sep}{d}"]
     return out
 
 
@@ -168,8 +150,7 @@ def build():
 
     py = venv_python()
     log(f"\n🚀 Сборка {APP_NAME}.app (macOS arm64)...")
-    clean([WORKPATH, DISTPATH, "doe_source.zip"])
-    make_source_zip()
+    clean([WORKPATH, DISTPATH])
     ensure_icns()
 
     log("🔧 Сборка notify_worker...")
@@ -184,9 +165,9 @@ def build():
     log("🏗  Сборка Doe.app (это может занять время)...")
     app_cmd = [py, "-m", "PyInstaller",
                "--noconfirm", "--clean", "--windowed", "--argv-emulation",
-               "--name", APP_NAME, "--icon", "doe.icns",
+               "--name", APP_NAME, "--icon", os.path.join(ROOT, "doe.icns"),
                "--osx-bundle-identifier", BUNDLE_ID,
-               "--distpath", DISTPATH, "--workpath", WORKPATH]
+               "--distpath", DISTPATH, "--workpath", WORKPATH, "--specpath", WORKPATH]
     app_cmd += add_data_args(":")
     app_cmd += hidden_args(HIDDEN)
     app_cmd += ["wrapper.py"]
