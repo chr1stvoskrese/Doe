@@ -162,7 +162,7 @@ python wrapper.py
 ┌──────────────────────────────────────────────┐
 │          Desktop Window (pywebview)          │
 │  ┌────────────────────────────────────────┐  │
-│  │    index.html · app.js · styles.css    │  │
+│  │    index.html · js/ · styles/          │  │
 │  │   Vanilla JS · fetch() → мост-шим      │  │
 │  └────────────────────┬───────────────────┘  │
 │                       │ window.pywebview.api │
@@ -195,7 +195,7 @@ python wrapper.py
 | **Миграции** | Alembic |
 | **Десктоп** | pywebview (нативный WebView ОС) |
 | **Сборка** | PyInstaller (`.app` / `.exe`) |
-| **Фронтенд** | Vanilla JS (~15k строк) · CSS (~9k строк) · space.js (~1.7k) |
+| **Фронтенд** | Vanilla JS (~15k строк) · CSS (~10k строк) |
 | **Хранилище** | SQLite (+aiosqlite) **и** Obsidian-совместимое файловое хранилище (FS Store v2) |
 | **Редактор** | CodeMirror · Marked.js · Prism.js · KaTeX |
 | **Синхронизация** | push через мост pywebview · watchdog |
@@ -233,7 +233,7 @@ python wrapper.py
 | **Поиск** | Глобальный поиск с булевыми выражениями (`&&`, `\|\|`) и поиском по тегам |
 | **Календарь** | День/неделя/месяц: блоки времени |
 | **Напоминания** | Системные уведомления по расписанию |
-| **Граф** | Визуализация связей задач (D3.js force-directed graph) |
+| **Граф** | Визуализация связей задач (самописный canvas-граф) |
 | **Статистика** | Недельная аналитика: тренды, топ задач, разбивка по дням |
 | **Приоритеты** | Цветовые метки и эмодзи приоритетов |
 | **Табы** | Переключение между рабочими пространствами |
@@ -281,7 +281,7 @@ src/
 └── schemas/         # Pydantic DTO (task, column, workspace, system)
 frontend/
 ├── index.html       # точка входа, упорядоченные <script> / <link>
-├── js/              # логика в 15 упорядоченных скриптах (00_core … 110_chrome, без сборщика)
+├── js/              # логика в 27 упорядоченных скриптах (00_core … 110_chrome, без сборщика)
 └── styles/          # стили по фичам (00_base … 90_media, порядок важен)
 wrapper.py           # тонкая точка входа (worker-режим + старт GUI)
 launcher/            # рантайм GUI: bridge, api (WindowAPI), main, macos, platform, logging_setup, vault_exit

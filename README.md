@@ -162,7 +162,7 @@ plain ASGI library. Zero network attack surface, fully offline.
 ┌──────────────────────────────────────────────┐
 │          Desktop Window (pywebview)          │
 │  ┌────────────────────────────────────────┐  │
-│  │    index.html · app.js · styles.css    │  │
+│  │    index.html · js/ · styles/          │  │
 │  │   Vanilla JS · fetch() → bridge shim   │  │
 │  └────────────────────┬───────────────────┘  │
 │                       │ window.pywebview.api │
@@ -195,7 +195,7 @@ plain ASGI library. Zero network attack surface, fully offline.
 | **Migrations** | Alembic |
 | **Desktop** | pywebview (native OS WebView) |
 | **Build** | PyInstaller (`.app` / `.exe`) |
-| **Frontend** | Vanilla JS (~15k lines) · CSS (~9k lines) · space.js (~1.7k) |
+| **Frontend** | Vanilla JS (~15k lines) · CSS (~10k lines) |
 | **Storage** | SQLite (+aiosqlite) **and** Obsidian-compatible file store (FS Store v2) |
 | **Editor** | CodeMirror · Marked.js · Prism.js · KaTeX |
 | **Sync** | pywebview bridge push · watchdog |
@@ -233,7 +233,7 @@ plain ASGI library. Zero network attack surface, fully offline.
 | **Search** | Global search with boolean expressions (`&&`, `\|\|`) and tag search |
 | **Calendar** | Day/week/month: time blocks |
 | **Reminders** | System notifications on schedule |
-| **Graph** | Task relationship visualization (D3.js force-directed graph) |
+| **Graph** | Task relationship visualization (hand-rolled canvas graph) |
 | **Statistics** | Weekly analytics: trends, top tasks, daily breakdown |
 | **Priorities** | Color labels and emoji for priorities |
 | **Tabs** | Switch between workspaces |
@@ -281,7 +281,7 @@ src/
 └── schemas/         # Pydantic DTOs (task, column, workspace, system)
 frontend/
 ├── index.html       # entry point, ordered <script> / <link> includes
-├── js/              # logic in 15 ordered scripts (00_core … 110_chrome, no bundler)
+├── js/              # logic in 27 ordered scripts (00_core … 110_chrome, no bundler)
 └── styles/          # styles by feature (00_base … 90_media, link order matters)
 wrapper.py           # thin entry point (worker mode + GUI bootstrap)
 launcher/            # GUI runtime: bridge, api (WindowAPI), main, macos, platform, logging_setup, vault_exit
