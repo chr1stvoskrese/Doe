@@ -60,17 +60,16 @@ const translations = {
             mode: 'Режим колонки', collapse: 'Свернуть колонку', rename: 'Переименовать',
             delete: 'Удалить', clear: 'Очистить', open: 'Открыть',
             deleteCard: 'Удалить карточку', clearTimer: 'Очистить таймер',
-            exportCard: 'Экспорт в Markdown', moveCard: 'Переместить...', attachmentsSettings: 'Хранилище вложений', fontSettings: 'Шрифт',
-            exportJson: 'Экспорт в JSON', importJson: 'Импорт из JSON',
-            copyCardLink: 'Скопировать ссылку', dueDate: 'Установить дедлайн', clearDueDate: 'Очистить дедлайн', notify: 'Напомнить',
+            moveCard: 'Переместить...', attachmentsSettings: 'Хранилище вложений', fontSettings: 'Шрифт',
+            copyCardLink: 'Скопировать ссылку', notify: 'Напомнить',
             reminders: 'Активные напоминания', remindersEmpty: 'Нет активных напоминаний', extensions: 'Расширения',
             priority: 'Приоритетность', sort: 'Сортировка',
             prioritySettings: 'Приоритетность'
         },
         copied: 'Скопировано!',
-        sort: { created: 'По дате создания', updated: 'По дате изменения', priority: 'По приоритетности', deadline: 'По дедлайну', asc: 'По возрастанию', desc: 'По убыванию', apply: 'Применить' },
+        sort: { created: 'По дате создания', updated: 'По дате изменения', priority: 'По приоритетности', asc: 'По возрастанию', desc: 'По убыванию', apply: 'Применить' },
         stats: {
-            title: 'Статистика', tasksDone: 'Завершено', timeTracked: 'В фокусе', overdue: 'Просрочено',
+            title: 'Статистика', tasksDone: 'Завершено', timeTracked: 'В фокусе',
             activityChart: 'Активность по дням', topTasks: 'Куда ушло время', dayTasks: (day) => `Куда ушло время (${day})`,
             emptyTop: 'На этой неделе вы еще не трекали время. Пора за работу!',
             emptyDay: 'В этот день активности не было',
@@ -81,7 +80,7 @@ const translations = {
             insightEmpty: 'Трекайте время и закрывайте задачи, чтобы собрать аналитику.'
         },
         modals: {
-            extTitle: 'Расширения', extSearch: 'Поиск', extCalendar: 'Календарь', extReminders: 'Напоминания', extGraph: 'Граф связей', extTabs: 'Вкладки', extDeadlines: 'Дедлайны', extExport: 'Экспорт карточек', extPriority: 'Приоритетность', extAi: 'ИИ-ассистент', extStatistics: 'Статистика', sortTitle: 'Сортировка',
+            extTitle: 'Расширения', extSearch: 'Поиск', extCalendar: 'Календарь', extReminders: 'Напоминания', extGraph: 'Граф связей', extTabs: 'Вкладки', extPriority: 'Приоритетность', extStatistics: 'Статистика', sortTitle: 'Сортировка',
             priorityTitle: 'Приоритетность', prioC: 'Одобренная ценность (через год)', prioD: 'Шанс успеха', prioA: 'Фоновая грызня (висит грузом)', prioB: 'Боль процесса', prioE: 'Затянутость', prioResult: 'Итоговая приоритетность:', btnClear: 'Очистить',
             prioSettingsTitle: 'Приоритетность',
             prioSettingsDesc: 'Настройте границы, цвета и эмодзи',
@@ -100,7 +99,6 @@ const translations = {
             fontWarning: 'Загружается в папку хранилища.', fontSearchPlaceholder: 'Поиск или ввод шрифта...',
             fontNotFound: 'Шрифт не найден. Нажмите Enter для применения.', fontSystemDefault: 'По умолчанию',
             fontSelectCustom: 'Выбрать .ttf / .otf ...',
-            dueDateTitle: 'Установить дедлайн', dueDateSet: 'Установить дедлайн', dueDateClear: 'Очистить',
             themeTitle: 'Тема оформления', light: 'Светлая', dark: 'Тёмная',
             langTitle: 'Выберите язык', aboutTitle: 'О приложении',
             aboutDesc: 'Aesthetic. Local-first. Kanban sanctuary.',
@@ -112,47 +110,12 @@ const translations = {
             attExternalTitle: 'Внешняя папка',
             attSelectBtn: 'Выбрать папку...',
             attWarning: 'При использовании внешней папки файлы не будут копироваться на флешку автоматически при переносе хранилища.',
-            exportTitle: 'Экспорт карточки', exportIncludeAtt: 'Экспортировать с вложениями', exportIncludeCode: 'Экспортировать кодовую базу проекта', btnExport: 'Экспортировать',
             moveTitle: 'Перемещение карточки', moveSelectCol: 'Вкладка и колонка', btnMove: 'Переместить',
             detachTitle: 'Отвязать карточку?', detachDesc: 'Эта карточка привязана к нескольким карточкам.',
             detachCurrent: 'Только от текущей карточки', detachAll: 'От всех карточек (сделать независимой)',
             completeSubtask: 'Отметить как выполненную', uncompleteSubtask: 'Снять отметку о выполнении',
             completeSubtaskTitle: 'Выполнить подзадачу?', completeSubtaskDesc: 'Она будет отмечена как выполненная у всех родительских карточек.', btnComplete: 'Выполнить',
-            autoTitle: 'Автоматизации', autoEmpty: 'Нет автоматизаций. Нажмите «+» чтобы создать.',
-            autoAddBtn: '+ Новая автоматизация',
-            autoType: 'Тип автоматизации',
-            autoTypeRecurring: '🔄 Повторяющаяся карточка',
-            autoTypeSort: '↕️ Сортировка колонки',
-            autoTypeClear: '🧹 Очистка колонки',
-            autoNamePlaceholder: 'Название автоматизации...', autoColumn: 'Колонка',
-            autoTitlePlaceholder: 'Шаблон заголовка, например: Обзор {date}',
-            autoDescPlaceholder: 'Шаблон описания (опционально)...',
-            autoVarsHint: 'Переменные: {date}, {date:формат}, {time}, {weekday}, {week_number}, {month_name}',
-            autoSortBy: 'Сортировать по:', autoSortPosition: 'Позиции', autoSortTitle: 'Названию',
-            autoSortCreated: 'Дате создания', autoSortPriority: 'Приоритету', autoSortDue: 'Сроку',
-            autoSortOrder: 'Порядок:', autoSortAsc: 'По возрастанию', autoSortDesc: 'По убыванию',
-            autoSortHint: 'Срабатывает автоматически при создании или перемещении карточки в эту колонку.',
-            autoMaxAge: 'Удалять карточки старше:', autoMaxAgeUnit: 'мин.',
-            autoClearHint: 'Карточки старше указанного времени будут удалены при следующей проверке по расписанию.',
-            autoClearImmediateTitle: 'Мгновенное удаление',
-            autoClearImmediateDesc: 'Удалять карточку сразу при её попадании в колонку',
-            autoClearOlder: 'Старше', autoCheck: 'Проверка',
-            autoSchedule: 'Расписание', autoHourly: 'Каждый час', autoDaily: 'Ежедневно', autoWeekdays: 'По будням',
-            autoWeekly: 'Еженедельно', autoMonthly: 'Ежемесячно', autoTime: 'Время:',
-            autoDayOfMonth: 'День месяца:', autoNextRun: 'След. запуск',
-            autoOnEvent: 'По событию',
-            autoRunNow: 'Запустить сейчас', autoRunDone: (id) => `Создана карточка #${id}`,
-            autoRunDoneClear: (n) => `Удалено карточек: ${n}`,
-            autoEdit: 'Редактировать', autoDelete: 'Удалить',
-            autoDeleteTitle: 'Удалить автоматизацию?', autoDeleteConfirm: 'Автоматизация будет удалена безвозвратно.',
-            autoValidationError: 'Заполните название и выберите колонку',
-            autoNoDaysError: 'Выберите хотя бы один день недели',
-            autoSaveError: 'Ошибка сохранения', autoNetworkError: 'Сетевая ошибка',
-            autoRunError: 'Не удалось запустить',
-            autoOrdinal: (n) => `${n}-е`,
             btnSave: 'Сохранить', btnCreate: 'Создать',
-            extAutomations: 'Автоматизации',
-            extMemory: 'Запоминание',
             extSpace: 'Пространство',
         },
         copyLink: 'Копировать ссылку',
@@ -259,75 +222,6 @@ const translations = {
         calendar: { today: 'Сегодня', month: 'Месяц', week: 'Неделя', day: 'День', loading: 'Загрузка данных...', error: 'Ошибка загрузки' },
         cal: { dayMon: 'ПН', dayTue: 'ВТ', dayWed: 'СР', dayThu: 'ЧТ', dayFri: 'ПТ', daySat: 'СБ', daySun: 'ВС' },
         alerts: { loadError: 'Не удалось загрузить доску', error: 'Ошибка', linkNotFound: 'Файл или папка не найдены' },
-        ai: {
-            hardwareRam: 'Оперативная память',
-            hardwareTier: 'Уровень',
-            tierLight: 'Базовый',
-            tierStandard: 'Стандарт',
-            tierPro: 'Pro',
-            statusInstalled: 'Установлено',
-            statusRequiresDownload: 'Требуется загрузка',
-            btnDownload: 'Скачать',
-            btnDownloadSize: (size) => `Скачать (~${size} ГБ)`,
-            toastReadyTitle: 'ИИ Готов',
-            toastReadyMsg: (m) => `Модель ${m} успешно скачана`,
-            toastErrTitle: 'Ошибка загрузки',
-            toastErrUnknown: 'Неизвестная ошибка',
-            toastCancelTitle: 'Загрузка прервана',
-            toastCancelMsg: (m) => `Скачивание модели ${m} успешно отменено`,
-            toastDeleted: 'Удалено',
-            toastDeletedMsg: (m) => `Модель ${m} удалена`,
-            toastDeleteErr: 'Не удалось удалить файл',
-            toastUnsupportedTitle: 'Не поддерживается',
-            toastUnsupportedMsg: 'Локальный ИИ-ассистент в данный момент доступен только для macOS',
-            confirmDeleteTitle: 'Удалить модель?',
-            confirmDeleteMsg: (m) => `Модель ${m} будет удалена с устройства.`,
-            starting: 'Запуск...',
-            errorText: 'Ошибка',
-            btnDeleteTitle: 'Удалить модель с диска',
-            btnCancelTitle: 'Отменить',
-            gbSuffix: 'ГБ',
-            hintText: 'Локальная нейросеть анализирует ваше состояние каждое утро и умно расставляет приоритеты задач. Не требует интернета.',
-            analyzeAll: 'Анализировать все задачи',
-            analyzeAllDesc: 'Если выкл — оценивает только видимые на доске',
-            setupBtn: '✨ Настроить ИИ-ассистента',
-            readyBtn: 'Готово',
-            chatPlaceholder: 'Спроси меня о чём-нибудь...',
-            sendAria: 'Отправить',
-            floatingBtnTitle: 'ИИ-ассистент',
-            searchModels: 'Поиск модели...',
-            noCompatible: 'Совместимых моделей не найдено для вашего уровня ПК',
-            toggleMenuTip: 'Включить / выключить AI в меню',
-            actionsHeader: 'Я хочу выполнить следующие действия:',
-            actionCreateTask: (title, colName) => `Создать задачу «${title}» в колонке «${colName}»`,
-            actionMoveTask: (taskName, colName) => `Переместить «${taskName}» в колонку «${colName}»`,
-            actionDeleteTask: (taskName) => `Удалить задачу «${taskName}»`,
-            actionCreateColumn: (title) => `Создать колонку "${title}"`,
-            actionDeleteColumn: (colName) => `Удалить колонку «${colName}»`,
-            actionCreateWorkspace: (name) => `Создать вкладку "${name}"`,
-            actionSetTheme: (theme) => `Сменить тему на ${theme}`,
-            actionToggleExtOn: (ext) => `Включить расширение ${ext}`,
-            actionToggleExtOff: (ext) => `Выключить расширение ${ext}`,
-            actionPrioritizeAll: 'Пересчитать приоритеты',
-            actionClearAllPriorities: 'Сбросить все приоритеты',
-            actionSearchBoard: (q) => `Поиск: «${q}»`,
-            actionGetTaskDetails: (name) => `Загрузить детали задачи «${name}»`,
-            actionRememberFact: (fact) => `Запомнить факт: "${fact}"`,
-            actionForgetFact: (fact) => `Забыть факт: "${fact}"`,
-            actionChangeLang: (lang) => `Изменить язык на ${lang}`,
-            actionSwitchWorkspace: (name) => `Переключиться на вкладку «${name}»`,
-            actionOpenTask: (name) => `Открыть карточку «${name}»`,
-            actionUpdateTask: (name) => `Изменить карточку «${name}»`,
-            actionClearChat: 'Очистить историю диалога',
-            actionSetReminders: (count) => `Установить напоминания (${count} шт.)`,
-            actionDeleteReminder: (id) => `Отменить напоминание ${id.split('-')[0]}...`,
-            btnConfirm: 'Разрешить',
-            actionsCancelled: 'Действия отменены пользователем.',
-            actionsExecuted: '✅ Действия выполнены!',
-            actionsPartial: '⚠️ Часть действий не удалось:',
-            actionsError: '❌ Ошибка выполнения. Проверьте правильность ID.',
-            taskRef: (id) => `Задача #${id}`,
-        },
     },
     en: {
         zenToggle: 'Toggle Tabs (Cmd/Ctrl + \\)',
@@ -339,17 +233,16 @@ const translations = {
             mode: 'Column mode', collapse: 'Collapse column', rename: 'Rename',
             delete: 'Delete', clear: 'Clear', open: 'Open',
             deleteCard: 'Delete card', clearTimer: 'Clear timer',
-            exportCard: 'Export to Markdown', moveCard: 'Move...', attachmentsSettings: 'Attachments Storage', fontSettings: 'Font',
-            exportJson: 'Export to JSON', importJson: 'Import from JSON',
-            copyCardLink: 'Copy link', dueDate: 'Set deadline', clearDueDate: 'Clear deadline', notify: 'Remind me',
+            moveCard: 'Move...', attachmentsSettings: 'Attachments Storage', fontSettings: 'Font',
+            copyCardLink: 'Copy link', notify: 'Remind me',
             reminders: 'Active Reminders', remindersEmpty: 'No active reminders', extensions: 'Extensions',
             priority: 'Priority', sort: 'Sort',
             prioritySettings: 'Priority Settings'
         },
         copied: 'Copied!',
-        sort: { created: 'By creation date', updated: 'By modification date', priority: 'By priority', deadline: 'By deadline', asc: 'Ascending', desc: 'Descending', apply: 'Apply' },
+        sort: { created: 'By creation date', updated: 'By modification date', priority: 'By priority', asc: 'Ascending', desc: 'Descending', apply: 'Apply' },
         stats: {
-            title: 'Statistics', tasksDone: 'Done', timeTracked: 'In Focus', overdue: 'Overdue',
+            title: 'Statistics', tasksDone: 'Done', timeTracked: 'In Focus',
             activityChart: 'Daily Activity', topTasks: 'Where time went', dayTasks: (day) => `Where time went (${day})`,
             emptyTop: 'You haven\'t tracked any time this week. Let\'s get to work!',
             emptyDay: 'No activity on this day',
@@ -360,7 +253,7 @@ const translations = {
             insightEmpty: 'Track your time and complete tasks to build analytics.'
         },
         modals: {
-            extTitle: 'Extensions', extSearch: 'Search', extCalendar: 'Calendar', extReminders: 'Reminders', extGraph: 'Connections Graph', extTabs: 'Tabs', extDeadlines: 'Deadlines', extExport: 'Card Export', extPriority: 'Priority', extAi: 'AI-assistant', extStatistics: 'Statistics', sortTitle: 'Sorting',
+            extTitle: 'Extensions', extSearch: 'Search', extCalendar: 'Calendar', extReminders: 'Reminders', extGraph: 'Connections Graph', extTabs: 'Tabs', extPriority: 'Priority', extStatistics: 'Statistics', sortTitle: 'Sorting',
             priorityTitle: 'Priority', prioC: 'Approved value (in a year)', prioD: 'Chance of success', prioA: 'Background gnawing (weighs heavy)', prioB: 'Pain of the process', prioE: 'Protraction', prioResult: 'Total Priority:', btnClear: 'Clear',
             prioSettingsTitle: 'Priority',
             prioSettingsDesc: 'Configure thresholds, colors and emojis',
@@ -379,7 +272,6 @@ const translations = {
             fontWarning: 'Saved inside the vault folder.', fontSearchPlaceholder: 'Search or type font name...',
             fontNotFound: 'Font not found. Press Enter to apply.', fontSystemDefault: 'Default',
             fontSelectCustom: 'Select .ttf / .otf ...',
-            dueDateTitle: 'Due date', dueDateSet: 'Set deadline', dueDateClear: 'Clear',
             themeTitle: 'Theme', light: 'Light', dark: 'Dark',
             langTitle: 'Select language', aboutTitle: 'About',
             aboutDesc: 'Aesthetic. Local-first. Kanban sanctuary.',
@@ -391,47 +283,12 @@ const translations = {
             attExternalTitle: 'External folder',
             attSelectBtn: 'Choose folder...',
             attWarning: 'When using an external folder, files will not copy automatically if you move the vault to a USB drive.',
-            exportTitle: 'Export Card', exportIncludeAtt: 'Export with attachments', exportIncludeCode: 'Export project codebase', btnExport: 'Export',
             moveTitle: 'Move Card', moveSelectCol: 'Tab and Column', btnMove: 'Move',
             detachTitle: 'Detach card?', detachDesc: 'This card is attached to multiple cards.',
             detachCurrent: 'Only from current card', detachAll: 'From all cards (make independent)',
             completeSubtask: 'Mark as completed', uncompleteSubtask: 'Mark as uncompleted',
             completeSubtaskTitle: 'Complete subtask?', completeSubtaskDesc: 'It will be marked as completed in all parent cards.', btnComplete: 'Complete',
-            autoTitle: 'Automations', autoEmpty: 'No automations. Press «+» to create.',
-            autoAddBtn: '+ New automation',
-            autoType: 'Automation type',
-            autoTypeRecurring: '🔄 Recurring card',
-            autoTypeSort: '↕️ Column sort',
-            autoTypeClear: '🧹 Column cleanup',
-            autoNamePlaceholder: 'Automation name...', autoColumn: 'Column',
-            autoTitlePlaceholder: 'Title template, e.g.: Review {date}',
-            autoDescPlaceholder: 'Description template (optional)...',
-            autoVarsHint: 'Variables: {date}, {date:format}, {time}, {weekday}, {week_number}, {month_name}',
-            autoSortBy: 'Sort by:', autoSortPosition: 'Position', autoSortTitle: 'Title',
-            autoSortCreated: 'Creation date', autoSortPriority: 'Priority', autoSortDue: 'Due date',
-            autoSortOrder: 'Order:', autoSortAsc: 'Ascending', autoSortDesc: 'Descending',
-            autoSortHint: 'Triggers automatically when a card is created or moved into this column.',
-            autoMaxAge: 'Delete cards older than:', autoMaxAgeUnit: 'min',
-            autoClearHint: 'Cards older than the specified time will be deleted on the next scheduled check.',
-            autoClearImmediateTitle: 'Instant deletion',
-            autoClearImmediateDesc: 'Delete a card as soon as it enters the column',
-            autoClearOlder: 'Older than', autoCheck: 'Check',
-            autoSchedule: 'Schedule', autoHourly: 'Hourly', autoDaily: 'Daily', autoWeekdays: 'Weekdays',
-            autoWeekly: 'Weekly', autoMonthly: 'Monthly', autoTime: 'Time:',
-            autoDayOfMonth: 'Day of month:', autoNextRun: 'Next run',
-            autoOnEvent: 'On event',
-            autoRunNow: 'Run now', autoRunDone: (id) => `Created card #${id}`,
-            autoRunDoneClear: (n) => `Deleted cards: ${n}`,
-            autoEdit: 'Edit', autoDelete: 'Delete',
-            autoDeleteTitle: 'Delete automation?', autoDeleteConfirm: 'The automation will be permanently deleted.',
-            autoValidationError: 'Fill in name and select a column',
-            autoNoDaysError: 'Select at least one day of the week',
-            autoSaveError: 'Save error', autoNetworkError: 'Network error',
-            autoRunError: 'Failed to run',
-            autoOrdinal: (n) => { const v = n % 100; if (v >= 11 && v <= 13) return 'th'; return ['th','st','nd','rd'][n % 10] || 'th'; },
             btnSave: 'Save', btnCreate: 'Create',
-            extAutomations: 'Automations',
-            extMemory: 'Memory',
             extSpace: 'Space',
         },
         columnModes: { default: 'Standard', track_time: 'Track time', completion: 'Completed' },
@@ -535,75 +392,6 @@ const translations = {
         calendar: { today: 'Today', month: 'Month', week: 'Week', day: 'Day', loading: 'Loading data...', error: 'Load error' },
         cal: { dayMon: 'Mon', dayTue: 'Tue', dayWed: 'Wed', dayThu: 'Thu', dayFri: 'Fri', daySat: 'Sat', daySun: 'Sun' },
         alerts: { loadError: 'Failed to load board', error: 'Error', linkNotFound: 'File or folder not found' },
-        ai: {
-            hardwareRam: 'RAM',
-            hardwareTier: 'Tier',
-            tierLight: 'Light',
-            tierStandard: 'Standard',
-            tierPro: 'Pro',
-            statusInstalled: 'Installed',
-            statusRequiresDownload: 'Download required',
-            btnDownload: 'Download',
-            btnDownloadSize: (size) => `Download (~${size} GB)`,
-            toastReadyTitle: 'AI Ready',
-            toastReadyMsg: (m) => `Model ${m} downloaded successfully`,
-            toastErrTitle: 'Download error',
-            toastErrUnknown: 'Unknown error',
-            toastCancelTitle: 'Download cancelled',
-            toastCancelMsg: (m) => `Model ${m} download cancelled`,
-            toastDeleted: 'Deleted',
-            toastDeletedMsg: (m) => `Model ${m} removed`,
-            toastDeleteErr: 'Failed to delete file',
-            toastUnsupportedTitle: 'Not supported',
-            toastUnsupportedMsg: 'Local AI assistant is currently available on macOS only',
-            confirmDeleteTitle: 'Delete model?',
-            confirmDeleteMsg: (m) => `Model ${m} will be removed from this device.`,
-            starting: 'Starting...',
-            errorText: 'Error',
-            btnDeleteTitle: 'Delete model from disk',
-            btnCancelTitle: 'Cancel',
-            gbSuffix: 'GB',
-            hintText: 'A local neural network analyzes your state every morning and intelligently prioritizes tasks. No internet required.',
-            analyzeAll: 'Analyze all tasks',
-            analyzeAllDesc: 'If off — only evaluates visible tasks on the board',
-            setupBtn: '✨ Setup AI Assistant',
-            readyBtn: 'Done',
-            chatPlaceholder: 'Ask me anything...',
-            sendAria: 'Send',
-            floatingBtnTitle: 'AI Assistant',
-            searchModels: 'Search models...',
-            noCompatible: 'No compatible models found for your hardware tier',
-            toggleMenuTip: 'Toggle AI in menu',
-            actionsHeader: 'I want to perform the following actions:',
-            actionCreateTask: (title, colName) => `Create task «${title}» in column «${colName}»`,
-            actionMoveTask: (taskName, colName) => `Move «${taskName}» to column «${colName}»`,
-            actionDeleteTask: (taskName) => `Delete task «${taskName}»`,
-            actionCreateColumn: (title) => `Create column "${title}"`,
-            actionDeleteColumn: (colName) => `Delete column «${colName}»`,
-            actionCreateWorkspace: (name) => `Create tab "${name}"`,
-            actionSetTheme: (theme) => `Change theme to ${theme}`,
-            actionToggleExtOn: (ext) => `Enable extension ${ext}`,
-            actionToggleExtOff: (ext) => `Disable extension ${ext}`,
-            actionPrioritizeAll: 'Recalculate priorities',
-            actionClearAllPriorities: 'Clear all priorities',
-            actionSearchBoard: (q) => `Search: «${q}»`,
-            actionGetTaskDetails: (name) => `Get details for «${name}»`,
-            actionRememberFact: (fact) => `Remember fact: "${fact}"`,
-            actionForgetFact: (fact) => `Forget fact: "${fact}"`,
-            actionChangeLang: (lang) => `Change language to ${lang}`,
-            actionSwitchWorkspace: (name) => `Switch to tab «${name}»`,
-            actionOpenTask: (name) => `Open card «${name}»`,
-            actionUpdateTask: (name) => `Update card «${name}»`,
-            actionClearChat: 'Clear chat history',
-            actionSetReminders: (count) => `Set reminders (${count})`,
-            actionDeleteReminder: (id) => `Cancel reminder ${id.split('-')[0]}...`,
-            btnConfirm: 'Allow',
-            actionsCancelled: 'Actions cancelled by user.',
-            actionsExecuted: '✅ Actions executed!',
-            actionsPartial: '⚠️ Some actions failed:',
-            actionsError: '❌ Execution error. Check ID correctness.',
-            taskRef: (id) => `Task #${id}`,
-        },
     }
 };
 
@@ -723,25 +511,10 @@ window.resetCustomFont = async () => {
     } catch(e) { console.error(e); }
 };
 
-window.applyExtensionsUI = (exts, available) => {
-    if (!exts) exts = { search: true, calendar: true, reminders: true, graph: true, tabs: true, deadlines: true, export: true, priority: true, ai: true, automations: true, statistics: true, memory: true };
-    if (exts.memory === undefined) exts.memory = true;
+window.applyExtensionsUI = (exts) => {
+    if (!exts) exts = { search: true, calendar: true, reminders: true, graph: true, tabs: true, priority: true, statistics: true };
 
-    // Allowlist расширений, запечённый в сборку (build.py -> feature_flags.json).
-    // Массив = доступны только эти расширения; null/undefined = доступны все.
-    const ALL_EXT_KEYS = ['search','calendar','reminders','graph','tabs','deadlines','export','priority','ai','automations','statistics','memory'];
-    if (Array.isArray(available)) window.__extAvailable = available;
-    const avail = Array.isArray(window.__extAvailable) ? window.__extAvailable : null;
-    if (avail) {
-        // Невыбранные при сборке расширения — принудительно OFF.
-        ALL_EXT_KEYS.forEach(k => { if (!avail.includes(k)) exts[k] = false; });
-    }
-
-    document.body.classList.toggle('ext-deadlines-hidden', !exts.deadlines);
-    document.body.classList.toggle('ext-export-hidden', !exts.export);
     document.body.classList.toggle('ext-priority-hidden', !exts.priority);
-    document.body.classList.toggle('ext-ai-hidden', !exts.ai);
-    document.body.classList.toggle('ext-automations-hidden', !exts.automations);
     document.body.classList.toggle('ext-statistics-hidden', !exts.statistics);
 
     const searchWrapper = document.getElementById('global-search-wrapper');
@@ -758,16 +531,6 @@ window.applyExtensionsUI = (exts, available) => {
     if (graphBtn) graphBtn.style.display = exts.graph ? '' : 'none';
     if (tabsWrapper) tabsWrapper.style.display = exts.tabs ? '' : 'none';
 
-    const automationsBtn = document.getElementById('automations-trigger');
-    if (automationsBtn) automationsBtn.style.display = exts.automations ? '' : 'none';
-
-    document.body.classList.toggle('ext-memory-hidden', !exts.memory);
-    const memoryBtn = document.getElementById('memory-trigger');
-    if (memoryBtn) memoryBtn.style.display = exts.memory ? '' : 'none';
-    const tMemory = document.getElementById('ext-toggle-memory');
-    if (tMemory) tMemory.checked = exts.memory;
-    if (window.DoeMemory) window.DoeMemory.setEnabled(exts.memory);
-
     const notifyMenuItem = document.querySelector('.menu-item[data-action="notify-card"]');
     if (notifyMenuItem) {
         notifyMenuItem.style.display = exts.reminders ? '' : 'none';
@@ -783,11 +546,7 @@ window.applyExtensionsUI = (exts, available) => {
     const tReminders = document.getElementById('ext-toggle-reminders');
     const tGraph = document.getElementById('ext-toggle-graph');
     const tTabs = document.getElementById('ext-toggle-tabs');
-    const tDeadlines = document.getElementById('ext-toggle-deadlines');
-    const tExport = document.getElementById('ext-toggle-export');
     const tPriority = document.getElementById('ext-toggle-priority');
-    const tAi = document.getElementById('ext-toggle-ai');
-    const tAutomations = document.getElementById('ext-toggle-automations');
     const tStatistics = document.getElementById('ext-toggle-statistics');
 
     if (tSearch) tSearch.checked = exts.search;
@@ -795,27 +554,13 @@ window.applyExtensionsUI = (exts, available) => {
     if (tReminders) tReminders.checked = exts.reminders;
     if (tGraph) tGraph.checked = exts.graph;
     if (tTabs) tTabs.checked = exts.tabs;
-    if (tDeadlines) tDeadlines.checked = exts.deadlines;
-    if (tExport) tExport.checked = exts.export;
     if (tPriority) tPriority.checked = exts.priority;
-    if (tAi) tAi.checked = exts.ai;
-    if (tAutomations) tAutomations.checked = exts.automations;
     if (tStatistics) tStatistics.checked = exts.statistics;
 
-    // Полностью скрываем строки настроек недоступных расширений: их нельзя включить.
-    ALL_EXT_KEYS.forEach(k => {
-        const toggle = document.getElementById('ext-toggle-' + k);
-        const row = toggle ? toggle.closest('.setting-row') : null;
-        if (row) row.style.display = (avail && !avail.includes(k)) ? 'none' : '';
-    });
 };
 
 window.toggleExtension = async (key, value) => {
     try {
-        // Недоступное в сборке расширение включить нельзя.
-        const avail = Array.isArray(window.__extAvailable) ? window.__extAvailable : null;
-        if (avail && !avail.includes(key)) return;
-
         const payload = { extensions: {} };
         payload.extensions[key] = value;
 
@@ -827,7 +572,7 @@ window.toggleExtension = async (key, value) => {
 
         if (res.ok) {
             const updatedSettings = await res.json();
-            window.applyExtensionsUI(updatedSettings.extensions, updatedSettings.available_extensions);
+            window.applyExtensionsUI(updatedSettings.extensions);
         }
     } catch (e) {
         console.error("Ошибка переключения расширения:", e);
@@ -1422,15 +1167,6 @@ function formatDetailedDuration(seconds) {
     return parts.join(' ');
 }
 
-function formatShortDate(isoString) {
-    if (!isoString) return '';
-    let dateStr = isoString;
-    if (!dateStr.endsWith('Z') && !dateStr.includes('+')) dateStr += 'Z';
-    const date = new Date(dateStr);
-    const options = { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
-    return date.toLocaleDateString(currentLang, options).replace(' г.', '');
-}
-
 async function deleteColumn(id) { const res = await fetch(`${API_BASE}/columns/${id}`, { method: 'DELETE' }); if (!res.ok) throw new Error('Error'); }
 async function clearColumn(id) {
     const res = await fetch(`${API_BASE}/columns/${id}/tasks`, { method: 'DELETE' });
@@ -1447,42 +1183,6 @@ async function updateTask(id, data) {
         throw new Error(errData.detail || `HTTP Error ${res.status}`);
     }
     return res.json();
-}
-
-async function handleClearDueDate(taskId) {
-    try {
-        await updateTask(taskId, { due_date: null });
-
-        let updatedColId = null;
-        for (let col of state.columns) {
-            let t = col.tasks.find(task => task.id == taskId);
-            if (!t) {
-                for (let pt of col.tasks) {
-                    if (pt.subtasks) {
-                        t = pt.subtasks.find(s => s.id == taskId);
-                        if (t) break;
-                    }
-                }
-            }
-            if (t) {
-                t.due_date = null;
-                updatedColId = col.id;
-                const cardEl = document.querySelector(`.card[data-card-id="${taskId}"]`);
-                if (cardEl) updateCardAppearance(cardEl, t, col.mode);
-                break;
-            }
-        }
-
-        if (updatedColId) await syncColumnDOM(updatedColId);
-
-        const taskModal = document.getElementById('task-modal');
-        if (taskModal.classList.contains('show') && parseInt(taskModal.dataset.taskId) === taskId) {
-            loadTaskIntoModal(taskId, false);
-        }
-
-    } catch (e) {
-        window.showToast(t('alerts.error'), 'Не удалось очистить срок', true);
-    }
 }
 
 async function deleteTask(id) {
@@ -1997,34 +1697,6 @@ function updateCardAppearance(cardElement, task, columnMode) {
         newContent += `<div class="priority-pill ${levelClass} clickable" onclick="openPriorityModal(${task.id})"><span>${displayValue}</span><span>${emoji}</span></div>`;
     }
 
-    if (task.due_date) {
-        const dateStr = task.due_date + (task.due_date.endsWith('Z') || task.due_date.includes('+') ? '' : 'Z');
-        const dueDate = new Date(dateStr);
-        const now = new Date();
-        const isOverdue = dueDate < now;
-
-        let icon;
-        let overdueClass = '';
-        if (task.completed_at) {
-            const completedDate = new Date(task.completed_at + (task.completed_at.endsWith('Z') || task.completed_at.includes('+') ? '' : 'Z'));
-            if (completedDate > dueDate) {
-                icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="7.5" y1="7.5" x2="10.5" y2="10.5"/><line x1="10.5" y1="7.5" x2="7.5" y2="10.5"/><line x1="13.5" y1="7.5" x2="16.5" y2="10.5"/><line x1="16.5" y1="7.5" x2="13.5" y2="10.5"/><line x1="9" y1="16" x2="15" y2="16"/></svg>';
-                overdueClass = 'overdue';
-            } else {
-                icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"/><polyline points="7,12 11,16 17,8"/></svg>';
-            }
-        } else {
-            if (isOverdue) {
-                icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="7.5" y1="7.5" x2="10.5" y2="10.5"/><line x1="10.5" y1="7.5" x2="7.5" y2="10.5"/><line x1="13.5" y1="7.5" x2="16.5" y2="10.5"/><line x1="16.5" y1="7.5" x2="13.5" y2="10.5"/><line x1="9" y1="16" x2="15" y2="16"/></svg>';
-                overdueClass = 'overdue';
-            } else {
-                icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c-4.42 0-8-3.58-8-8 0-3.1 1.76-5.8 4.36-7.14.33-.17.7-.06.88.24.41.69 1.05 1.34 1.7 1.15.65-.19.96-1.55 1.4-3.13C12.8 3.42 13.5 2 14.5 2c.28 0 .54.12.72.32 1.41 1.6 3.1 3.96 4.13 6.08C20.44 10.64 20 12.3 20 14c0 4.42-3.58 8-8 8z"></path></svg>';
-            }
-        }
-
-	        newContent += `<div class="due-date-pill ${overdueClass}"><span class="due-icon">${icon}</span><span>${formatShortDate(task.due_date)}</span></div>`;
-    }
-
     if (isTimerColumn) {
         const displayTime = task.active_timer ? formatTime(task) : formatExactTime(task.total_time_spent || 0);
         newContent += `<div class="card-timer" data-task-id="${task.id}">${displayTime}</div>`;
@@ -2073,35 +1745,6 @@ function generateCardHtml(task, columnMode) {
         priorityHtml = `<div class="priority-pill ${levelClass} clickable" onclick="openPriorityModal(${task.id})"><span>${displayValue}</span><span>${emoji}</span></div>`;
     }
 
-    let dueDateHtml = '';
-    if (task.due_date) {
-        const dateStr = task.due_date + (task.due_date.endsWith('Z') || task.due_date.includes('+') ? '' : 'Z');
-        const dueDate = new Date(dateStr);
-        const now = new Date();
-        const isOverdue = dueDate < now;
-
-        let icon;
-        let overdueClass = '';
-        if (task.completed_at) {
-            const completedDate = new Date(task.completed_at + (task.completed_at.endsWith('Z') || task.completed_at.includes('+') ? '' : 'Z'));
-            if (completedDate > dueDate) {
-                icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="7.5" y1="7.5" x2="10.5" y2="10.5"/><line x1="10.5" y1="7.5" x2="7.5" y2="10.5"/><line x1="13.5" y1="7.5" x2="16.5" y2="10.5"/><line x1="16.5" y1="7.5" x2="13.5" y2="10.5"/><line x1="9" y1="16" x2="15" y2="16"/></svg>';
-                overdueClass = 'overdue';
-            } else {
-                icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"/><polyline points="7,12 11,16 17,8"/></svg>';
-            }
-        } else {
-            if (isOverdue) {
-                icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="7.5" y1="7.5" x2="10.5" y2="10.5"/><line x1="10.5" y1="7.5" x2="7.5" y2="10.5"/><line x1="13.5" y1="7.5" x2="16.5" y2="10.5"/><line x1="16.5" y1="7.5" x2="13.5" y2="10.5"/><line x1="9" y1="16" x2="15" y2="16"/></svg>';
-                overdueClass = 'overdue';
-            } else {
-                icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c-4.42 0-8-3.58-8-8 0-3.1 1.76-5.8 4.36-7.14.33-.17.7-.06.88.24.41.69 1.05 1.34 1.7 1.15.65-.19.96-1.55 1.4-3.13C12.8 3.42 13.5 2 14.5 2c.28 0 .54.12.72.32 1.41 1.6 3.1 3.96 4.13 6.08C20.44 10.64 20 12.3 20 14c0 4.42-3.58 8-8 8z"></path></svg>';
-            }
-        }
-
-	        dueDateHtml = `<div class="due-date-pill ${overdueClass}"><span class="due-icon">${icon}</span><span>${formatShortDate(task.due_date)}</span></div>`;
-    }
-
     let timerHtml = '';
     if (columnMode === 'track_time') {
         const displayTime = task.active_timer ? formatTime(task) : formatExactTime(task.total_time_spent || 0);
@@ -2128,8 +1771,8 @@ function generateCardHtml(task, columnMode) {
     }
 
     let footerHtml = '';
-    if (checklistHtml || priorityHtml || dueDateHtml || timerHtml || spentTimeHtml) {
-        footerHtml = `<div class="card-footer">${checklistHtml}${priorityHtml}${dueDateHtml}${timerHtml}${spentTimeHtml}</div>`;
+    if (checklistHtml || priorityHtml || timerHtml || spentTimeHtml) {
+        footerHtml = `<div class="card-footer">${checklistHtml}${priorityHtml}${timerHtml}${spentTimeHtml}</div>`;
     }
 
     return `
@@ -4827,23 +4470,6 @@ async function endDrag() {
                     } else if (targetCol.mode === 'completion') {
                         optimisticTask.completed_at = new Date().toISOString();
                         optimisticTask.active_timer = null;
-
-                        if (optimisticTask.due_date) {
-                            const dueDate = new Date(optimisticTask.due_date + (optimisticTask.due_date.endsWith('Z') || optimisticTask.due_date.includes('+') ? '' : 'Z'));
-                            const completedDate = new Date();
-                            const isOverdue = completedDate > dueDate;
-                            const ddPill = draggedElement.querySelector('.due-date-pill');
-                            if (ddPill) {
-                                const iconEl = ddPill.querySelector('.due-icon');
-                                if (iconEl) {
-                                    iconEl.innerHTML = isOverdue ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="7.5" y1="7.5" x2="10.5" y2="10.5"/><line x1="10.5" y1="7.5" x2="7.5" y2="10.5"/><line x1="13.5" y1="7.5" x2="16.5" y2="10.5"/><line x1="16.5" y1="7.5" x2="13.5" y2="10.5"/><line x1="9" y1="16" x2="15" y2="16"/></svg>' : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"/><polyline points="7,12 11,16 17,8"/></svg>';
-                                }
-                                if (isOverdue) {
-                                    ddPill.classList.add('overdue');
-                                } else {
-                                    ddPill.classList.remove('overdue');
-                                }
-                            }
                         }
                     } else {
                         optimisticTask.completed_at = null;
@@ -5248,54 +4874,6 @@ document.addEventListener('click', async (e) => {
         return;
     }
 
-    const exportModalBtn = target.closest('.modal-export');
-    if (exportModalBtn) {
-        e.stopPropagation();
-        const modal = document.getElementById('task-modal');
-        const taskId = parseInt(modal.dataset.taskId);
-        const exportModal = document.getElementById('export-modal');
-        exportModal.dataset.taskId = taskId;
-        exportModal.classList.add('show');
-
-        const confirmBtn = document.getElementById('btn-confirm-export');
-        const newConfirmBtn = confirmBtn.cloneNode(true);
-        confirmBtn.replaceWith(newConfirmBtn);
-
-        newConfirmBtn.onclick = async () => {
-            const includeAtt = document.getElementById('export-include-att').checked;
-            exportModal.classList.remove('show');
-
-            if (window.pywebview && window.pywebview.api && window.pywebview.api.choose_directory) {
-                const exportDir = await window.pywebview.api.choose_directory();
-                if (exportDir) {
-                    exportModalBtn.style.opacity = '0.5';
-                    fetch(`${API_BASE}/tasks/${taskId}/export`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            export_path: exportDir,
-                            include_attachments: includeAtt
-                        })
-                    }).then(res => {
-                        exportModalBtn.style.opacity = '1';
-                        if (!res.ok) {
-                            window.showToast(t('alerts.error'), 'Ошибка при экспорте', true);
-                        } else {
-                            window.showToast('Экспорт завершён', 'Карточка успешно сохранена');
-                        }
-                    }).catch(err => {
-                        exportModalBtn.style.opacity = '1';
-                        console.error(err);
-                        window.showToast(t('alerts.error'), 'Сетевая ошибка при экспорте', true);
-                    });
-                }
-            } else {
-                window.showToast(t('alerts.error'), 'Экспорт работает только в десктопном приложении Doe', true);
-            }
-        };
-        return;
-    }
-
     const notifyModalBtn = target.closest('.modal-notify');
     if (notifyModalBtn) {
         e.stopPropagation();
@@ -5496,16 +5074,6 @@ document.addEventListener('click', async (e) => {
         };
         updatePos();
 
-        const menuSetDueDate = document.getElementById('menu-set-due-date');
-        const menuClearDueDate = document.getElementById('menu-clear-due-date');
-        if (task && task.due_date) {
-            menuSetDueDate.style.display = 'none';
-            menuClearDueDate.style.display = 'flex';
-        } else {
-            menuSetDueDate.style.display = 'flex';
-            menuClearDueDate.style.display = 'none';
-        }
-
         return;
     }
 
@@ -5633,57 +5201,11 @@ document.addEventListener('click', async (e) => {
                 else if (action === 'move-card-menu') {
                     openMoveTaskModal(taskId);
                 }
-                else if (action === 'export-card') {
-                    if (window.pywebview && window.pywebview.api && window.pywebview.api.choose_directory) {
-                        const exportModal = document.getElementById('export-modal');
-                        exportModal.dataset.taskId = taskId;
-                        exportModal.classList.add('show');
-
-                        const confirmBtn = document.getElementById('btn-confirm-export');
-                        const newConfirmBtn = confirmBtn.cloneNode(true);
-                        confirmBtn.replaceWith(newConfirmBtn);
-
-                        newConfirmBtn.onclick = async () => {
-                            const includeAtt = document.getElementById('export-include-att').checked;
-                            exportModal.classList.remove('show');
-
-                            const exportDir = await window.pywebview.api.choose_directory();
-                            if (exportDir) {
-                                fetch(`${API_BASE}/tasks/${taskId}/export`, {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({
-                                        export_path: exportDir,
-                                        include_attachments: includeAtt
-                                    })
-                                }).then(res => {
-                                    if (!res.ok) {
-                                        window.showToast(t('alerts.error'), 'Ошибка при экспорте', true);
-                                    } else {
-                                        window.showToast('Экспорт завершён', 'Карточка успешно сохранена');
-                                    }
-                                }).catch(err => {
-                                    console.error(err);
-                                    window.showToast(t('alerts.error'), 'Сетевая ошибка при экспорте', true);
-                                });
-                            }
-                        };
-                    } else {
-                        window.showToast(t('alerts.error'), 'Экспорт работает только в десктопном приложении Doe', true);
-                    }
-                }
                 else if (action === 'notify-card') {
                     const task = state.columns.find(c => c.id === parseInt(colEl.dataset.columnId))?.tasks.find(t => t.id === taskId);
                     const taskTitle = task ? task.title : ((cardEl.querySelector('.card-title-input')?.value || cardEl.querySelector('.card-title')?.textContent).trim());
 
                     openNotifyModal(taskId, taskTitle);
-                }
-                else if (action === 'set-due-date') {
-                    const task = state.columns.find(c => c.id === parseInt(colEl.dataset.columnId))?.tasks.find(t => t.id === taskId);
-                    openDueDateModal(taskId, task?.due_date);
-                }
-                else if (action === 'clear-due-date') {
-                    await handleClearDueDate(taskId);
                 }
                 else if (action === 'set-priority') {
                     openPriorityModal(taskId);
@@ -5774,7 +5296,7 @@ document.addEventListener('click', async (e) => {
         }
         else if (action === 'extensions-settings') {
             fetchSettings().then(data => {
-                window.applyExtensionsUI(data.extensions, data.available_extensions);
+                window.applyExtensionsUI(data.extensions);
                 document.getElementById('extensions-modal').classList.add('show');
             }).catch(console.error);
             closeAllDropdowns();
@@ -5863,93 +5385,6 @@ document.addEventListener('click', async (e) => {
             }).catch(console.error);
             closeAllDropdowns();
         }
-        else if (action === 'ai-settings') {
-            closeAllDropdowns();
-            window.openAiSettingsModal();
-        }
-        else if (action === 'export-json') {
-            closeAllDropdowns();
-
-            const jsonModal = document.getElementById('export-json-modal');
-            jsonModal.classList.add('show');
-
-            const confirmBtn = document.getElementById('btn-confirm-json-export');
-            const newConfirmBtn = confirmBtn.cloneNode(true);
-            confirmBtn.replaceWith(newConfirmBtn);
-
-            newConfirmBtn.onclick = async () => {
-                const includeAtt = document.getElementById('export-json-include-att').checked;
-                jsonModal.classList.remove('show');
-
-                if (window.pywebview && window.pywebview.api && window.pywebview.api.choose_directory) {
-                    setTimeout(() => {
-                        window.pywebview.api.choose_directory().then(async dir => {
-                            if (dir) {
-                                try {
-                                    const res = await fetch(`${API_BASE}/system/export-json`, {
-                                        method: 'POST', headers: {'Content-Type': 'application/json'},
-                                        body: JSON.stringify({ path: dir, include_attachments: includeAtt })
-                                    });
-                                    if (res.ok) {
-                                        const data = await res.json().catch(() => ({}));
-                                        const attCount = data.exported_attachments || 0;
-                                        const attSuffix = attCount > 0
-                                            ? (currentLang === 'ru' ? ` (+${attCount} влож.)` : ` (+${attCount} attachments)`)
-                                            : '';
-                                        window.showToast(currentLang === 'ru' ? 'Успех' : 'Success', (currentLang === 'ru' ? 'Бэкап сохранен в выбранную папку' : 'Backup saved to selected folder') + attSuffix);
-                                    }
-                                    else window.showToast(t('alerts.error'), currentLang === 'ru' ? 'Не удалось экспортировать данные' : 'Failed to export data', true);
-                                } catch(e) { window.showToast(t('alerts.error'), 'Network Error', true); }
-                            }
-                        });
-                    }, 50);
-                } else {
-                    window.showToast(t('alerts.error'), currentLang === 'ru' ? 'Только для десктопной версии' : 'Only available on Desktop', true);
-                }
-            };
-        }
-        else if (action === 'import-json') {
-            closeAllDropdowns();
-            if (window.pywebview && window.pywebview.api && window.pywebview.api.choose_file) {
-                setTimeout(() => {
-                    window.pywebview.api.choose_file().then(async file => {
-                        if (file) {
-                            if (!file.toLowerCase().endsWith('.json')) {
-                                window.showToast(t('alerts.error'), currentLang === 'ru' ? 'Выберите файл .json' : 'Please select a .json file', true);
-                                return;
-                            }
-                            try {
-                                const res = await fetch(`${API_BASE}/system/import-json`, {
-                                    method: 'POST', headers: {'Content-Type': 'application/json'},
-                                    body: JSON.stringify({ path: file })
-                                });
-                                if (res.ok) {
-                                    const data = await res.json();
-                                    const attCount = data.imported_attachments || 0;
-                                    const attSuffix = attCount > 0
-                                        ? (currentLang === 'ru' ? ` (+${attCount} влож.)` : ` (+${attCount} attachments)`)
-                                        : '';
-                                    window.showToast(currentLang === 'ru' ? 'Импорт' : 'Import', (currentLang === 'ru' ? 'Данные успешно импортированы' : 'Data imported successfully') + attSuffix);
-
-                                    if (data.new_workspace_id) {
-                                        state.activeWorkspaceId = data.new_workspace_id;
-                                        await updateSettings({ active_workspace_id: data.new_workspace_id });
-                                    }
-                                    await refreshBoard(true, data.new_workspace_id);
-
-                                } else {
-                                    const errData = await res.json().catch(() => ({}));
-                                    const errMsg = errData.detail || (currentLang === 'ru' ? 'Неверный формат файла' : 'Invalid file format');
-                                    window.showToast(t('alerts.error'), errMsg, true);
-                                }
-                            } catch(e) { window.showToast(t('alerts.error'), 'Network Error', true); }
-                        }
-                    });
-                }, 50);
-            } else {
-                window.showToast(t('alerts.error'), currentLang === 'ru' ? 'Только для десктопной версии' : 'Only available on Desktop', true);
-            }
-        }
         else if (action === 'about') {
             document.getElementById('about-modal').classList.add('show');
             closeAllDropdowns();
@@ -5985,7 +5420,7 @@ document.addEventListener('click', async (e) => {
 
         if (!modalToClose) return;
 
-        const nonDismissibleModals = ['task-modal', 'font-settings-modal', 'due-date-modal', 'notify-modal', 'priority-modal', 'priority-settings-modal', 'move-modal'];
+        const nonDismissibleModals = ['task-modal', 'font-settings-modal', 'notify-modal', 'priority-modal', 'priority-settings-modal', 'move-modal'];
         if (nonDismissibleModals.includes(modalToClose.id) && isOverlayClick) {
             return;
         }
@@ -6053,10 +5488,6 @@ document.addEventListener('click', async (e) => {
                     if (breadcrumbs) breadcrumbs.innerHTML = '';
                 }, 300);
             }
-        }
-
-        if (modalToClose.id === 'ai-journal-modal') {
-            localStorage.setItem('doe-ai-last-check', new Date().toDateString());
         }
 
         modalToClose.classList.remove('show');
@@ -6198,7 +5629,6 @@ async function loadTaskIntoModal(taskId, pushToStack = true, highlightQuery = nu
 
         modal.dataset.taskId = task.id;
         modal.dataset.columnId = task.column_id;
-        if (window.DoeMemory) window.DoeMemory.onCardOpen(task);
         titleEl.innerHTML = renderInlineMarkdown(task.title);
         titleEl.dataset.rawTitle = task.title;
 
@@ -6231,60 +5661,8 @@ async function loadTaskIntoModal(taskId, pushToStack = true, highlightQuery = nu
 
             let datesHtml = `<div><span>${t('taskModal.created')}: ${createdStr}</span><span id="task-updated-text">${t('taskModal.updated')}: ${updatedStr}</span>`;
 
-            if (task.due_date) {
-                const dateStr = task.due_date + (task.due_date.endsWith('Z') || task.due_date.includes('+') ? '' : 'Z');
-                const isOverdue = !task.completed_at && new Date(dateStr) < new Date();
-                const overdueStyle = isOverdue ? 'style="color: #D35446; font-weight: 700;"' : '';
-
-                datesHtml += `<span> &middot; </span><span ${overdueStyle} id="task-due-text">Срок: ${formatShortDate(task.due_date)}</span>`;
-            }
             datesHtml += `</div>`;
             datesMetaEl.innerHTML = datesHtml;
-        }
-
-        const modalDueDateBtn = document.getElementById('modal-due-date');
-        if (modalDueDateBtn) {
-            const newBtn = modalDueDateBtn.cloneNode(true);
-            modalDueDateBtn.replaceWith(newBtn);
-
-            newBtn.innerHTML = '';
-
-            const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-            svg.setAttribute("viewBox", "0 0 24 24");
-            svg.setAttribute("fill", "none");
-            svg.setAttribute("stroke", "currentColor");
-            svg.setAttribute("stroke-width", "2");
-            svg.setAttribute("stroke-linecap", "round");
-            svg.setAttribute("stroke-linejoin", "round");
-
-            const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-            path.setAttribute("d", "M12 22c-4.42 0-8-3.58-8-8 0-3.1 1.76-5.8 4.36-7.14.33-.17.7-.06.88.24.41.69 1.05 1.34 1.7 1.15.65-.19.96-1.55 1.4-3.13C12.8 3.42 13.5 2 14.5 2c.28 0 .54.12.72.32 1.41 1.6 3.1 3.96 4.13 6.08C20.44 10.64 20 12.3 20 14c0 4.42-3.58 8-8 8z");
-            svg.appendChild(path);
-
-            if (task.due_date) {
-                newBtn.title = t('menu.clearDueDate');
-
-                const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-                line.setAttribute("x1", "21");
-                line.setAttribute("y1", "3");
-                line.setAttribute("x2", "3");
-                line.setAttribute("y2", "21");
-                svg.appendChild(line);
-
-                newBtn.onclick = (e) => {
-                    e.stopPropagation();
-                    handleClearDueDate(task.id);
-                };
-            } else {
-                newBtn.title = t('modals.dueDateSet');
-
-                newBtn.onclick = (e) => {
-                    e.stopPropagation();
-                    openDueDateModal(task.id, task.due_date);
-                };
-            }
-
-            newBtn.appendChild(svg);
         }
 
         inputArea.value = task.description || "";
@@ -9041,8 +8419,7 @@ function initTaskModalDragAndResize() {
             '.markdown-body, .description-wrapper, ' +
             '.subtask-item, .attachment-item, ' +
             '.breadcrumb-item, .modal-timer-pill, ' +
-            '.due-date-pill, ' +
-            '.memory-card-section, .toggle-switch'
+            '.toggle-switch'
         );
 
         const isScrollbarClick = (e.target.clientWidth > 0 && e.offsetX > e.target.clientWidth) ||
@@ -9818,7 +9195,6 @@ async function showVaultScreen() {
         window.aiAbortController = null;
     }
     if (window.aiState) window.aiState.isTyping = false;
-    if (typeof setAiBtnState === 'function') setAiBtnState(false);
 
     // 🔐 Выход на экран выбора хранилищ = выход из хранилища:
     // закрываем БД и шифруем файлы (если установлен пароль), сбрасываем ключ сессии.
@@ -11550,906 +10926,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 });
 
-let aiState = {
-    supported: false,
-    availableModels: [],
-    downloadedModels: [],
-    selectedModel: localStorage.getItem('doe-ai-model') || null,
-    onlyVisible: localStorage.getItem('doe-ai-visible') !== 'false',
-    chatHistory: [],
-    isTyping: false,
-    hardwareTier: null,
-    ramGb: null,
-    modelsInfo: {}
-};
-
-async function checkAiStatus() {
-    // ЗАЩИТА: Если ИИ выключен в настройках или вырезан при сборке — не опрашиваем бэкенд
-    if (window.appSettings && window.appSettings.extensions && window.appSettings.extensions.ai === false) return;
-
-    try {
-        const res = await fetch(`${API_BASE}/ai/status`);
-        if (res.ok) {
-            const data = await res.json();
-            aiState.supported = data.supported;
-            if (data.available_models) aiState.availableModels = data.available_models;
-            if (data.downloaded_models) aiState.downloadedModels = data.downloaded_models;
-            if (data.hardware) {
-                aiState.hardwareTier = data.hardware.tier;
-                aiState.ramGb = data.hardware.ram_gb;
-            }
-            if (data.models_info) aiState.modelsInfo = data.models_info;
-
-            const downloaded = aiState.downloadedModels || [];
-            const savedModel = localStorage.getItem('doe-ai-model');
-
-            if (downloaded.length === 1) {
-                aiState.selectedModel = downloaded[0];
-                localStorage.setItem('doe-ai-model', downloaded[0]);
-            } else if (downloaded.length >= 2) {
-                if (savedModel && downloaded.includes(savedModel)) {
-                    aiState.selectedModel = savedModel;
-                } else {
-                    aiState.selectedModel = downloaded[0];
-                    localStorage.setItem('doe-ai-model', downloaded[0]);
-                }
-            } else {
-                aiState.selectedModel = null;
-                localStorage.removeItem('doe-ai-model');
-            }
-
-            const menuBtn = document.getElementById('menu-ai-settings');
-            if (menuBtn) {
-                if (!aiState.supported) {
-                    menuBtn.style.opacity = '0.5';
-                    menuBtn.title = "Требуется macOS для локальной LLM";
-                } else {
-                    menuBtn.style.opacity = '1';
-                    menuBtn.title = "";
-                    checkDailyJournal();
-                }
-            }
-
-            const fab = document.getElementById('ai-floating-btn');
-            if (fab) {
-                if (aiState.supported && aiState.downloadedModels.length > 0) {
-                    fab.classList.add('show');
-                } else {
-                    fab.classList.remove('show');
-                }
-            }
-        }
-    } catch (e) {
-        console.error("AI Status Check failed", e);
-    }
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(checkAiStatus, 1000);
-});
-
-
-function formatBytes(bytes) {
-    if (!bytes || bytes === 0) return '0 MB';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-}
-
-function modelSlug(model) {
-    return model.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-}
-
-function startAiDownloadPolling(model) {
-    const slug = modelSlug(model);
-    if (window[`ai_interval_${slug}`]) return;
-
-    window[`ai_interval_${slug}`] = setInterval(async () => {
-        try {
-            const res = await fetch(`${API_BASE}/ai/download-progress?model_name=${encodeURIComponent(model)}`);
-            if (res.ok) {
-                const data = await res.json();
-
-                const pctSpan = document.getElementById(`ai-pct-${slug}`);
-                const sizeSpan = document.getElementById(`ai-size-${slug}`);
-                const cancelBtn = document.getElementById(`ai-cancel-btn-${slug}`);
-
-                if (data.status === 'downloading') {
-                    if (pctSpan) pctSpan.textContent = `${data.progress}%`;
-                    if (sizeSpan && data.total_bytes) {
-                        sizeSpan.textContent = `${formatBytes(data.downloaded_bytes)} / ${formatBytes(data.total_bytes)}`;
-                    }
-                } else if (data.status === 'completed') {
-                    clearInterval(window[`ai_interval_${slug}`]);
-                    delete window[`ai_interval_${slug}`];
-
-                    if (!aiState.downloadedModels.includes(model)) {
-                        aiState.downloadedModels.push(model);
-                    }
-                    aiState.selectedModel = model;
-                    localStorage.setItem('doe-ai-model', model);
-
-                    window.showToast(t('ai.toastReadyTitle'), t('ai.toastReadyMsg', model));
-
-                    const fab = document.getElementById('ai-floating-btn');
-                    if (fab) fab.classList.add('show');
-
-                    if (document.getElementById('ai-settings-modal').classList.contains('show')) {
-                        window.openAiSettingsModal();
-                    }
-                } else if (data.status === 'error') {
-                    clearInterval(window[`ai_interval_${slug}`]);
-                    delete window[`ai_interval_${slug}`];
-
-                    window.showToast(t('ai.toastErrTitle'), data.error || t('ai.toastErrUnknown'), true);
-                    if (document.getElementById('ai-settings-modal').classList.contains('show')) {
-                        window.openAiSettingsModal();
-                    }
-                } else if (data.status === 'cancelled' || data.status === 'idle') {
-                    clearInterval(window[`ai_interval_${slug}`]);
-                    delete window[`ai_interval_${slug}`];
-
-                    if (document.getElementById('ai-settings-modal').classList.contains('show')) {
-                        window.openAiSettingsModal();
-                    }
-                }
-            }
-        } catch (e) { console.error(e); }
-    }, 1000);
-}
-
-window.openAiSettingsModal = async () => {
-    if (!aiState.supported) {
-        window.showToast(t('ai.toastUnsupportedTitle'), t('ai.toastUnsupportedMsg'), true);
-        return;
-    }
-
-    try {
-        const statusRes = await fetch(`${API_BASE}/ai/status`);
-        if (statusRes.ok) {
-            const statusData = await statusRes.json();
-            aiState.downloadedModels = statusData.downloaded_models || [];
-            if (statusData.hardware) {
-                aiState.hardwareTier = statusData.hardware.tier;
-                aiState.ramGb = statusData.hardware.ram_gb;
-            }
-            if (statusData.models_info) aiState.modelsInfo = statusData.models_info;
-
-            const downloaded = aiState.downloadedModels || [];
-            const savedModel = localStorage.getItem('doe-ai-model');
-
-            if (downloaded.length === 1) {
-                aiState.selectedModel = downloaded[0];
-                localStorage.setItem('doe-ai-model', downloaded[0]);
-            } else if (downloaded.length >= 2) {
-                if (savedModel && downloaded.includes(savedModel)) {
-                    aiState.selectedModel = savedModel;
-                } else if (!aiState.selectedModel || !downloaded.includes(aiState.selectedModel)) {
-                    aiState.selectedModel = downloaded[0];
-                    localStorage.setItem('doe-ai-model', downloaded[0]);
-                }
-            } else {
-                aiState.selectedModel = null;
-                localStorage.removeItem('doe-ai-model');
-            }
-        }
-    } catch(e) {}
-
-    await Promise.all(aiState.availableModels.map(async (model) => {
-        try {
-            const pRes = await fetch(`${API_BASE}/ai/download-progress?model_name=${encodeURIComponent(model)}`);
-            if (pRes.ok) {
-                const pData = await pRes.json();
-                if (pData.status === 'downloading') {
-                    startAiDownloadPolling(model);
-                }
-            }
-        } catch(e) {}
-    }));
-
-    const list = document.getElementById('ai-models-list');
-    list.innerHTML = '';
-
-    const tierLabels = { light: t('ai.tierLight'), standard: t('ai.tierStandard'), pro: t('ai.tierPro') };
-    if (aiState.ramGb) {
-        const hwDiv = document.createElement('div');
-        hwDiv.className = 'ai-hardware-info';
-        hwDiv.style.cssText = 'display: flex; justify-content: center; align-items: center; gap: 6px; padding: 8px 12px; margin-bottom: 8px; border-radius: 8px; background: var(--bg-secondary, rgba(128,128,128,0.08));';
-        hwDiv.innerHTML = `<span style="color: var(--text-secondary); font-size: 12px;">${t('ai.hardwareRam')}: <b style="color: var(--text-primary);">${aiState.ramGb} ${t('ai.gbSuffix')}</b> · ${t('ai.hardwareTier')}: <b style="color: var(--text-primary);">${tierLabels[aiState.hardwareTier] || aiState.hardwareTier}</b></span>`;
-        list.appendChild(hwDiv);
-    }
-
-    aiState.availableModels.forEach(model => {
-        const info = aiState.modelsInfo[model] || {};
-        const isDownloaded = aiState.downloadedModels.includes(model);
-        const isSelected = aiState.selectedModel === model;
-        const slug = modelSlug(model);
-        const isPolling = !!window[`ai_interval_${slug}`];
-
-        const div = document.createElement('div');
-        div.className = `setting-row ${isSelected ? 'active' : ''}`;
-
-        let controlsHtml = '';
-        const trashIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
-        const closeIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`;
-
-        if (isDownloaded) {
-            controlsHtml = `
-                <div style="display: flex; gap: 8px; align-items: center; flex-shrink: 0; pointer-events: auto;">
-                    <button class="icon-btn danger-icon ai-delete-btn" data-model="${escapeHtml(model)}" title="${t('ai.btnDeleteTitle')}" style="color: #D35446; width: 28px; height: 28px; margin: 0; z-index: 2;">
-                        ${trashIcon}
-                    </button>
-                    <div class="setting-check" style="margin-left: 0; width: 16px;">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
-                    </div>
-                </div>`;
-        } else if (isPolling) {
-            controlsHtml = `
-                <div style="display: flex; gap: 8px; align-items: center; flex-shrink: 0; pointer-events: auto;">
-                    <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px;">
-                        <span id="ai-pct-${slug}" style="font-size: 13px; font-weight: 700; color: var(--brand-pine); line-height: 1.2;">0%</span>
-                        <span id="ai-size-${slug}" style="font-size: 11px; color: var(--text-secondary); font-family: var(--font-mono); line-height: 1.2; letter-spacing: -0.02em;">0 MB / 0 GB</span>
-                    </div>
-                    <button class="icon-btn danger-icon ai-cancel-btn" id="ai-cancel-btn-${slug}" data-model="${escapeHtml(model)}" title="${t('ai.btnCancelTitle')}" style="color: #D35446; width: 28px; height: 28px; margin: 0; z-index: 2; display: flex; align-items: center; justify-content: center;">
-                        ${closeIcon}
-                    </button>
-                </div>
-            `;
-        } else {
-            const sizeText = info.size_gb ? t('ai.btnDownloadSize', info.size_gb.toFixed(1)) : t('ai.btnDownload');
-            controlsHtml = `
-                <button class="confirm-btn cancel-btn ai-download-btn" data-model="${escapeHtml(model)}" style="padding: 6px 12px; font-size: 12px; flex: none; width: auto; font-weight: 600; z-index: 2; margin: 0;">${sizeText}</button>
-            `;
-        }
-
-        const descParts = [];
-        if (info.params) descParts.push(info.params);
-        if (info.size_gb) descParts.push(`${info.size_gb.toFixed(1)} ${t('ai.gbSuffix')}`);
-        const descText = isDownloaded ? t('ai.statusInstalled') : (descParts.join(' · ') || t('ai.statusRequiresDownload'));
-
-        div.innerHTML = `
-            <div class="setting-text-box">
-                <div class="setting-title">${escapeHtml(model)}</div>
-                <div class="setting-desc">${descText}</div>
-            </div>
-            ${controlsHtml}
-        `;
-
-        if (isDownloaded && !isSelected) {
-            div.onclick = () => {
-                aiState.selectedModel = model;
-                localStorage.setItem('doe-ai-model', model);
-                window.openAiSettingsModal();
-            };
-        }
-
-        const deleteBtn = div.querySelector('.ai-delete-btn');
-        if (deleteBtn) {
-            deleteBtn.onclick = async (e) => {
-                e.stopPropagation();
-
-                const isConfirmed = await showConfirmModal(t('ai.confirmDeleteTitle'), t('ai.confirmDeleteMsg', model));
-                if (!isConfirmed) return;
-
-                deleteBtn.disabled = true;
-                deleteBtn.style.opacity = '0.5';
-                try {
-                    const res = await fetch(`${API_BASE}/ai/delete`, {
-                        method: 'DELETE', headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({model_name: model})
-                    });
-                    if (res.ok) {
-                        aiState.downloadedModels = aiState.downloadedModels.filter(m => m !== model);
-                        if (aiState.selectedModel === model) {
-                            aiState.selectedModel = null;
-                            localStorage.removeItem('doe-ai-model');
-                        }
-                        window.showToast(t('ai.toastDeleted'), t('ai.toastDeletedMsg', model));
-                        window.openAiSettingsModal();
-                    } else {
-                        throw new Error();
-                    }
-                } catch(err) {
-                    window.showToast(t('alerts.error'), t('ai.toastDeleteErr'), true);
-                    deleteBtn.disabled = false;
-                    deleteBtn.style.opacity = '1';
-                }
-            };
-        }
-
-        const downloadBtn = div.querySelector('.ai-download-btn');
-        if (downloadBtn) {
-            downloadBtn.onclick = async (e) => {
-                e.stopPropagation();
-                downloadBtn.textContent = t('ai.starting');
-                downloadBtn.disabled = true;
-                try {
-                    const res = await fetch(`${API_BASE}/ai/download`, {
-                        method: 'POST', headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({model_name: model})
-                    });
-                    if (res.ok) {
-                        startAiDownloadPolling(model);
-                        window.openAiSettingsModal();
-                    } else {
-                        throw new Error();
-                    }
-                } catch (err) {
-                    downloadBtn.textContent = t('ai.errorText');
-                    downloadBtn.disabled = false;
-                }
-            };
-        }
-
-        const cancelBtn = div.querySelector('.ai-cancel-btn');
-        if (cancelBtn) {
-            cancelBtn.onclick = async (e) => {
-                e.stopPropagation();
-                cancelBtn.style.opacity = '0.5';
-                cancelBtn.disabled = true;
-                try {
-                    const res = await fetch(`${API_BASE}/ai/cancel`, {
-                        method: 'POST', headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({model_name: model})
-                    });
-                    if (res.ok) {
-                        window.showToast(t('ai.toastCancelTitle'), t('ai.toastCancelMsg', model));
-                    }
-                } catch (err) {
-                    cancelBtn.style.opacity = '1';
-                    cancelBtn.disabled = false;
-                }
-            };
-        }
-
-        list.appendChild(div);
-    });
-
-
-    document.getElementById('ai-settings-modal').classList.add('show');
-};
-
-function checkDailyJournal() {
-    const aiEnabled = document.getElementById('ext-toggle-ai')?.checked !== false;
-    if (!aiEnabled) return;
-
-    const today = new Date().toDateString();
-    const lastCheck = localStorage.getItem('doe-ai-last-check');
-
-    if (aiState.selectedModel && aiState.downloadedModels.includes(aiState.selectedModel)) {
-        if (lastCheck !== today) {
-            if (state.columns.length > 0) {
-                openDailyJournal();
-            }
-        }
-    }
-}
-
-document.getElementById('ai-floating-btn')?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    openDailyJournal();
-});
-
-function openDailyJournal() {
-    const aiEnabled = document.getElementById('ext-toggle-ai')?.checked !== false;
-    if (!aiEnabled) return;
-
-    if (aiState.chatHistory.length === 0 && !aiState.isTyping) {
-        const chatBox = document.getElementById('ai-chat-history');
-        chatBox.innerHTML = '';
-
-        const greeting = "What to Doe today? ☕️";
-        appendAiMessage(greeting);
-    }
-
-    document.getElementById('ai-journal-modal').classList.add('show');
-    setTimeout(() => {
-        document.getElementById('ai-chat-input').focus();
-    }, 50);
-}
-
-function appendUserMessage(text) {
-    const row = document.createElement('div');
-    row.className = 'ai-msg-row';
-
-    const bubble = document.createElement('div');
-    bubble.className = 'ai-msg user';
-    bubble.textContent = text;
-    row.appendChild(bubble);
-
-    const footer = document.createElement('div');
-    footer.className = 'ai-msg-footer';
-    footer.style.justifyContent = 'flex-end';
-    footer.innerHTML = `<div class="ai-msg-actions"><button class="ai-act-btn" data-action="copy" title="Копировать"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></button><button class="ai-act-btn" data-action="edit" title="Редактировать"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path></svg></button><button class="ai-act-btn danger" data-action="delete" title="Удалить"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button></div>`;
-    row.appendChild(footer);
-
-    document.getElementById('ai-chat-history').appendChild(row);
-    row.scrollIntoView({behavior: 'smooth'});
-    aiState.chatHistory.push({role: "user", content: text});
-}
-
-function appendAiMessage(text, elapsedMs) {
-    const div = document.createElement('div');
-    div.className = 'ai-msg ai';
-
-    let safeText = text.replace(/\]\s+\(doe:\/\/task\//gi, '](doe://task/');
-    safeText = safeText.replace(/(?:Задача|Task|Карточка|Карточку)\s*(?:ID:?|#)?\s*(\d+)(?:\s*['"«](.*?)['"»])?/gi, (match, id, title) => {
-        const linkText = title ? title : t('ai.taskRef', id);
-        return `[${linkText}](doe://task/${id})`;
-    });
-
-    safeText = safeText.replace(/\[(.*?)\]\(doe:\/\/task\/(\d+)\)/gi, (match, title, id) => {
-        const cleanTitle = title.trim().toLowerCase().replace(/^(?:\d+[\.)]\s*|[-•*]\s*)/, '').trim();
-        let realId = id;
-        let foundTask = null;
-
-        for (const col of state.columns) {
-            foundTask = col.tasks.find(t => {
-                const boardTitle = t.title.trim().toLowerCase().replace(/^(?:\d+[\.)]\s*|[-•*]\s*)/, '').trim();
-                return boardTitle === cleanTitle;
-            });
-            if (foundTask) break;
-        }
-
-        if (!foundTask && cleanTitle.length > 3) {
-            for (const col of state.columns) {
-                foundTask = col.tasks.find(t => {
-                    const boardTitle = t.title.trim().toLowerCase().replace(/^(?:\d+[\.)]\s*|[-•*]\s*)/, '').trim();
-                    return boardTitle.includes(cleanTitle) || cleanTitle.includes(boardTitle);
-                });
-                if (foundTask) break;
-            }
-        }
-
-        if (foundTask) {
-            realId = foundTask.id;
-        }
-        return `[${title}](doe://task/${realId})`;
-    });
-
-    div.innerHTML = parseMarkdownWithMath(safeText);
-
-    const row = document.createElement('div');
-    row.className = 'ai-msg-row';
-    row.appendChild(div);
-
-    const footer = document.createElement('div');
-    footer.className = 'ai-msg-footer';
-    footer.innerHTML = `<div class="ai-msg-actions"><button class="ai-act-btn" data-action="copy" title="Копировать"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></button><button class="ai-act-btn danger" data-action="delete" title="Удалить"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button></div>`;
-    if (elapsedMs) {
-        const s = (elapsedMs / 1000).toFixed(1);
-        const unit = (typeof currentLang !== 'undefined' ? currentLang : 'ru') === 'ru' ? 'с' : 's';
-        footer.innerHTML += `<div class="ai-msg-time"><svg class="ai-timer-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> ${s}${unit}</div>`;
-    }
-    row.appendChild(footer);
-
-    document.getElementById('ai-chat-history').appendChild(row);
-    div.scrollIntoView({behavior: 'smooth'});
-    aiState.chatHistory.push({role: "assistant", content: text});
-}
-
-document.getElementById('ai-chat-history')?.addEventListener('click', (e) => {
-    const actBtn = e.target.closest('.ai-act-btn');
-    if (!actBtn) return;
-    const action = actBtn.dataset.action;
-
-    const row = actBtn.closest('.ai-msg-row');
-    if (!row) return;
-    const msgDiv = row.querySelector('.ai-msg');
-    if (!msgDiv) return;
-
-    const allRows = Array.from(document.getElementById('ai-chat-history').querySelectorAll('.ai-msg-row'));
-    const idx = allRows.indexOf(row);
-
-    if (action === 'copy') {
-        const editArea = msgDiv.querySelector('.ai-msg-edit');
-        let text;
-        if (editArea) {
-            text = editArea.querySelector('.ai-edit-textarea').value.trim();
-        } else {
-            const clone = msgDiv.cloneNode(true);
-            const actionBtns = clone.querySelector('.ai-actions-btns');
-            if (actionBtns) actionBtns.remove();
-            text = clone.textContent.trim();
-        }
-        if (text) {
-            navigator.clipboard.writeText(text).catch(() => {});
-            actBtn.style.color = 'var(--success-done)';
-            setTimeout(() => { actBtn.style.color = ''; }, 800);
-        }
-        return;
-    }
-
-    if (action === 'delete') {
-        row.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
-        row.style.opacity = '0';
-        row.style.transform = 'scaleY(0.8)';
-        row.style.pointerEvents = 'none';
-        row.style.transformOrigin = 'top';
-        setTimeout(() => row.remove(), 220);
-        if (idx !== -1 && idx < aiState.chatHistory.length) {
-            aiState.chatHistory.splice(idx, 1);
-        }
-        return;
-    }
-
-    if (action === 'edit') {
-        if (idx === -1 || idx >= aiState.chatHistory.length) return;
-
-        if (aiAbortController) {
-            aiAbortController.abort();
-            aiAbortController = null;
-        }
-        if (aiState.isTyping) {
-            aiState.isTyping = false;
-            setAiBtnState(false);
-            const typingEl = document.querySelector('.typing-indicator');
-            if (typingEl) typingEl.remove();
-        }
-
-        const entry = aiState.chatHistory[idx];
-        const origText = entry.content;
-
-        const editArea = document.createElement('div');
-        editArea.className = 'ai-msg-edit';
-        editArea.innerHTML = `<textarea class="ai-edit-textarea" rows="3">${escapeHtml(origText)}</textarea><div class="ai-edit-btns"><button class="ai-edit-cancel" title="Отмена"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button><button class="ai-edit-send" title="Отправить"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg></button></div>`;
-        msgDiv.innerHTML = '';
-        msgDiv.appendChild(editArea);
-
-        const textarea = editArea.querySelector('.ai-edit-textarea');
-        textarea.focus();
-        textarea.setSelectionRange(textarea.value.length, textarea.value.length);
-
-        const autoGrow = () => {
-            textarea.style.height = 'auto';
-            textarea.style.height = Math.max(44, textarea.scrollHeight) + 'px';
-        };
-        textarea.addEventListener('input', autoGrow);
-        autoGrow();
-
-        textarea.addEventListener('keydown', (ke) => {
-            if (ke.key === 'Enter' && !ke.shiftKey) {
-                ke.preventDefault();
-                editArea.querySelector('.ai-edit-send').click();
-            }
-        });
-
-        editArea.querySelector('.ai-edit-cancel').onclick = () => {
-            msgDiv.innerHTML = entry.role === 'assistant'
-                ? parseMarkdownWithMath(origText)
-                : escapeHtml(origText);
-        };
-
-        editArea.querySelector('.ai-edit-send').onclick = async () => {
-            const newText = textarea.value.trim();
-            if (!newText) return;
-
-            const role = entry.role;
-            aiState.chatHistory = aiState.chatHistory.slice(0, idx);
-            aiState.chatHistory.push({role, content: newText});
-
-            const liveRows = Array.from(document.getElementById('ai-chat-history').querySelectorAll('.ai-msg-row'));
-            const curIdx = liveRows.indexOf(row);
-            if (curIdx !== -1) {
-                liveRows.slice(curIdx + 1).forEach(r => r.remove());
-            }
-
-            msgDiv.innerHTML = role === 'assistant'
-                ? parseMarkdownWithMath(newText)
-                : escapeHtml(newText);
-
-            aiState.isTyping = true;
-            setAiBtnState(true);
-            const typingEl = showAiTyping();
-            aiAbortController = new AbortController();
-
-            const aiStart = Date.now();
-            try {
-                const res = await fetch(`${API_BASE}/ai/chat`, {
-                    method: 'POST', headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({model_name: aiState.selectedModel, messages: aiState.chatHistory}),
-                    signal: aiAbortController.signal
-                });
-                if (!res.ok) throw new Error("Backend error");
-                const data = await res.json();
-                if (typingEl._timerStop) typingEl._timerStop();
-                typingEl.remove();
-                if (data.reply) appendAiMessage(data.reply, Date.now() - aiStart);
-                if (data.proposed_actions && data.proposed_actions.length > 0) appendAiActions(data.proposed_actions);
-            } catch (err) {
-                if (err.name !== 'AbortError') { if (typingEl._timerStop) typingEl._timerStop(); typingEl.remove(); }
-            } finally {
-                aiAbortController = null;
-                aiState.isTyping = false;
-                setAiBtnState(false);
-            }
-        };
-        return;
-    }
-});
-
-document.getElementById('ai-chat-history')?.addEventListener('click', (e) => {
-    const link = e.target.closest('a');
-    if (link) {
-        e.preventDefault();
-        const href = link.getAttribute('href');
-        if (href && href.startsWith('doe://task/')) {
-            const targetTaskId = parseInt(href.split('/').pop());
-            fetch(`${API_BASE}/tasks/${targetTaskId}/context`)
-                .then(res => res.json())
-                .then(context => {
-                    document.getElementById('ai-journal-modal').classList.remove('show');
-                    window.navigateToEntityGlobal(context.workspace_id, context.column_id, targetTaskId, null, true, true);
-                })
-                .catch(err => console.error(err));
-        }
-    }
-});
-
-function showAiTyping() {
-    const div = document.createElement('div');
-    div.className = 'ai-msg ai typing-indicator';
-    div.innerHTML = `<div class="ai-loading-dots"><span></span><span></span><span></span></div><div class="ai-typing-time"><svg class="ai-timer-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> 0.0s</div>`;
-    document.getElementById('ai-chat-history').appendChild(div);
-    div.scrollIntoView({behavior: 'smooth'});
-
-    const start = Date.now();
-    const timeEl = div.querySelector('.ai-typing-time');
-    let _raf;
-    const _tick = () => {
-        const s = ((Date.now() - start) / 1000).toFixed(1);
-        const unit = (typeof currentLang !== 'undefined' ? currentLang : 'ru') === 'ru' ? 'с' : 's';
-        timeEl.innerHTML = `<svg class="ai-timer-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> ${s}${unit}`;
-        _raf = requestAnimationFrame(_tick);
-    };
-    _raf = requestAnimationFrame(_tick);
-    div._timerStop = () => { cancelAnimationFrame(_raf); };
-
-    return div;
-}
-
-function appendAiActions(actions) {
-    const div = document.createElement('div');
-    div.className = 'ai-msg ai ai-actions-box';
-
-    const taskName = (id) => {
-        for (const col of state.columns) {
-            const t = col.tasks?.find(t => t.id === id);
-            if (t) return t.title;
-        }
-        return `#${id}`;
-    };
-    const colName = (id) => {
-        const c = state.columns.find(c => c.id === id);
-        return c ? c.title : `#${id}`;
-    };
-    const wsName = (id) => {
-        const w = state.workspaces.find(w => w.id === id);
-        return w ? w.name : `#${id}`;
-    };
-
-    let html = `<div style="font-weight: 600; margin-bottom: 8px;">${t('ai.actionsHeader')}</div>`;
-    actions.forEach(a => {
-        const p = a.params || {};
-        let text = a.action;
-        if (a.action === 'create_task') text = t('ai.actionCreateTask', p.title ?? '—', colName(p.column_id));
-        else if (a.action === 'move_task') text = t('ai.actionMoveTask', taskName(p.task_id), colName(p.target_column_id));
-        else if (a.action === 'delete_task') text = t('ai.actionDeleteTask', taskName(p.task_id));
-        else if (a.action === 'create_column') text = t('ai.actionCreateColumn', p.title ?? '—');
-        else if (a.action === 'delete_column') text = t('ai.actionDeleteColumn', colName(p.column_id));
-        else if (a.action === 'create_workspace') text = t('ai.actionCreateWorkspace', p.name ?? '—');
-        else if (a.action === 'set_theme') text = t('ai.actionSetTheme', p.theme ?? '—');
-        else if (a.action === 'toggle_extension') text = (p.state ? t('ai.actionToggleExtOn', p.ext_name ?? '—') : t('ai.actionToggleExtOff', p.ext_name ?? '—'));
-        else if (a.action === 'prioritize_all') text = t('ai.actionPrioritizeAll');
-        else if (a.action === 'clear_all_priorities') text = t('ai.actionClearAllPriorities');
-        else if (a.action === 'remember_fact') text = t('ai.actionRememberFact', p.fact ?? '—');
-        else if (a.action === 'forget_fact') text = t('ai.actionForgetFact', p.fact ?? '—');
-        else if (a.action === 'change_language') text = t('ai.actionChangeLang', p.language ?? '—');
-        else if (a.action === 'switch_workspace') text = t('ai.actionSwitchWorkspace', wsName(p.workspace_id));
-        else if (a.action === 'open_task') text = t('ai.actionOpenTask', taskName(p.task_id));
-        else if (a.action === 'update_task') text = t('ai.actionUpdateTask', taskName(p.task_id));
-        else if (a.action === 'clear_chat_context') text = t('ai.actionClearChat');
-        else if (a.action === 'set_reminders') text = t('ai.actionSetReminders', p.reminders?.length ?? 0);
-        else if (a.action === 'delete_reminder') text = t('ai.actionDeleteReminder', p.reminder_id ?? '—');
-        else if (a.action === 'search_board') text = t('ai.actionSearchBoard', p.query ?? '—');
-        else if (a.action === 'get_task_details') text = t('ai.actionGetTaskDetails', taskName(p.task_id));
-        html += `<div class="ai-action-item">- ${escapeHtml(text)}</div>`;
-    });
-
-    html += `
-        <div class="ai-actions-btns">
-            <button class="ai-btn-cancel">${t('cancel')}</button>
-            <button class="ai-btn-confirm">${t('ai.btnConfirm')}</button>
-        </div>
-    `;
-    div.innerHTML = html;
-
-    const cancelBtn = div.querySelector('.ai-btn-cancel');
-    const confirmBtn = div.querySelector('.ai-btn-confirm');
-
-    cancelBtn.onclick = () => {
-        div.innerHTML = `<div style="opacity: 0.6; font-style: italic;">${t('ai.actionsCancelled')}</div>`;
-    };
-
-    confirmBtn.onclick = async () => {
-        confirmBtn.disabled = true;
-        cancelBtn.disabled = true;
-        confirmBtn.textContent = "Выполняю...";
-
-        try {
-            const res = await fetch(`${API_BASE}/ai/execute`, {
-                method: 'POST', headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    actions: actions,
-                    model_name: aiState.selectedModel
-                })
-            });
-            const data = await res.json();
-
-            const failed = Array.isArray(data.failed_actions) ? data.failed_actions : [];
-            if (data.success && failed.length === 0) {
-                div.innerHTML = `<div style="color: var(--brand-pine); font-weight: 600;">${t('ai.actionsExecuted')}</div>`;
-            } else if (data.actions_executed && failed.length > 0) {
-                const failList = failed.map(f => `<div class="ai-action-item">— ${escapeHtml(f.action)}: ${escapeHtml(f.reason || '')}</div>`).join('');
-                div.innerHTML = `<div style="color: var(--brand-pine); font-weight: 600;">${t('ai.actionsPartial')}</div>${failList}`;
-            } else {
-                const failList = failed.map(f => `<div class="ai-action-item">— ${escapeHtml(f.action)}: ${escapeHtml(f.reason || '')}</div>`).join('');
-                div.innerHTML = `<div style="color: #D35446; font-weight: 600;">${t('ai.actionsError')}</div>${failList}`;
-            }
-
-            if (data.actions_executed) refreshBoard();
-            if (data.open_task_id) {
-                loadTaskIntoModal(data.open_task_id, true);
-                document.getElementById('task-modal').classList.add('show');
-            }
-            if (data.clear_chat) {
-                aiState.chatHistory = [];
-                openDailyJournal();
-            }
-            if (actions.some(act => act.action === 'set_reminders' || act.action === 'delete_reminder')) {
-                updateBellBadge();
-            }
-            if (data.settings_changed) {
-                fetchSettings().then(d => {
-                    window.applyExtensionsUI(d.extensions, d.available_extensions);
-                    if (d.theme) {
-                        if (document.startViewTransition) {
-                            document.startViewTransition(() => applyTheme(d.theme, false));
-                        } else {
-                            applyTheme(d.theme, false);
-                        }
-                    }
-                });
-            }
-        } catch(e) {
-            div.innerHTML = `<div style="color: #D35446; font-weight: 600;">${t('ai.actionsError')}</div>`;
-        }
-    };
-
-    const row = document.createElement('div');
-    row.className = 'ai-msg-row';
-    row.appendChild(div);
-    const actionsBar = document.createElement('div');
-    const footer = document.createElement('div');
-    footer.className = 'ai-msg-footer';
-    footer.innerHTML = `<div class="ai-msg-actions"><button class="ai-act-btn" data-action="copy" title="Копировать"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></button><button class="ai-act-btn danger" data-action="delete" title="Удалить"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button></div>`;
-    row.appendChild(footer);
-    document.getElementById('ai-chat-history').appendChild(row);
-    row.scrollIntoView({behavior: 'smooth'});
-}
-
-let aiAbortController = null;
-
-function setAiBtnState(typing) {
-    const btn = document.getElementById('ai-send-btn');
-    if (!btn) return;
-    const sendIcon = btn.querySelector('.ai-icon-send');
-    const stopIcon = btn.querySelector('.ai-icon-stop');
-    if (typing) {
-        btn.classList.add('stop');
-        if (sendIcon) sendIcon.style.display = 'none';
-        if (stopIcon) stopIcon.style.display = '';
-    } else {
-        btn.classList.remove('stop');
-        if (sendIcon) sendIcon.style.display = '';
-        if (stopIcon) stopIcon.style.display = 'none';
-    }
-}
-
-document.getElementById('ai-send-btn')?.addEventListener('click', async () => {
-    const input = document.getElementById('ai-chat-input');
-
-    if (aiState.isTyping) {
-        if (aiAbortController) {
-            aiAbortController.abort();
-            aiAbortController = null;
-        }
-        aiState.isTyping = false;
-        setAiBtnState(false);
-        const typingEl = document.querySelector('.typing-indicator');
-        if (typingEl) {
-            if (typingEl._timerStop) typingEl._timerStop();
-            typingEl.remove();
-        }
-        return;
-    }
-
-    const text = input.value.trim();
-    if (!text) return;
-
-    input.value = '';
-    input.style.height = '';
-    appendUserMessage(text);
-
-    aiState.isTyping = true;
-    setAiBtnState(true);
-    const typingEl = showAiTyping();
-
-    aiAbortController = new AbortController();
-
-    const aiStart2 = Date.now();
-    try {
-        const res = await fetch(`${API_BASE}/ai/chat`, {
-            method: 'POST', headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({
-                model_name: aiState.selectedModel,
-                messages: aiState.chatHistory
-            }),
-            signal: aiAbortController.signal
-        });
-        if (!res.ok) throw new Error("Backend error");
-
-        const data = await res.json();
-        if (typingEl._timerStop) typingEl._timerStop();
-        typingEl.remove();
-
-        if (data.reply) {
-            appendAiMessage(data.reply, Date.now() - aiStart2);
-        }
-
-        if (data.proposed_actions && data.proposed_actions.length > 0) {
-            appendAiActions(data.proposed_actions);
-        }
-    } catch (e) {
-        if (e.name === 'AbortError') {
-        } else {
-            typingEl.remove();
-
-            const div = document.createElement('div');
-            div.className = 'ai-msg ai';
-            div.style.color = '#D35446';
-            div.style.background = 'rgba(211, 84, 70, 0.1)';
-            div.textContent = "Произошла техническая заминка. Пожалуйста, отправьте сообщение еще раз.";
-            document.getElementById('ai-chat-history').appendChild(div);
-            div.scrollIntoView({behavior: 'smooth'});
-
-            aiState.chatHistory.pop();
-            input.value = text;
-        }
-    } finally {
-        aiAbortController = null;
-        aiState.isTyping = false;
-        setAiBtnState(false);
-        input.focus();
-    }
-});
-
-const aiChatInput = document.getElementById('ai-chat-input');
-if (aiChatInput) {
-    aiChatInput.addEventListener('input', function() {
-        this.style.height = '22px';
-        this.style.height = (this.scrollHeight) + 'px';
-    });
-}
-
-document.getElementById('ai-chat-input')?.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        document.getElementById('ai-send-btn').click();
-    }
-});
-
 function openNotifyModal(taskId, taskTitle) {
     const modal = document.getElementById('notify-modal');
     modal.dataset.taskId = taskId;
@@ -12829,107 +11305,6 @@ function openPriorityModal(taskId) {
         } finally {
             newBtnClear.style.opacity = '1';
             newBtnClear.disabled = false;
-        }
-    };
-
-    modal.classList.add('show');
-}
-
-function openDueDateModal(taskId, currentDueDate) {
-    const modal = document.getElementById('due-date-modal');
-    modal.dataset.taskId = taskId;
-
-    if (currentDueDate) {
-        const dateStr = currentDueDate + (currentDueDate.endsWith('Z') || currentDueDate.includes('+') ? '' : 'Z');
-        dpSelectedDate = new Date(dateStr);
-    } else {
-        dpSelectedDate = new Date();
-        dpSelectedDate.setMinutes(dpSelectedDate.getMinutes() + 1);
-        dpSelectedDate.setSeconds(0);
-        dpSelectedDate.setMilliseconds(0);
-    }
-    dpCurrentDate = new Date(dpSelectedDate);
-
-    document.getElementById('dp-hour').value = dpSelectedDate.getHours().toString().padStart(2, '0');
-    document.getElementById('dp-minute').value = dpSelectedDate.getMinutes().toString().padStart(2, '0');
-
-    activeDatePickerTrigger = document.getElementById('due-datepicker-trigger');
-    const trigger = activeDatePickerTrigger;
-
-    trigger.onclick = (e) => {
-        e.stopPropagation();
-        closeAllDropdowns();
-
-        const rect = trigger.getBoundingClientRect();
-        const dropdown = document.getElementById('datepicker-dropdown');
-
-        dropdown.style.visibility = 'hidden';
-        dropdown.style.display = 'flex';
-        dropdown.classList.add('show');
-        const dropHeight = dropdown.offsetHeight;
-        dropdown.classList.remove('show');
-        dropdown.style.visibility = '';
-        dropdown.style.display = '';
-
-        let topPos = rect.bottom + 8;
-        let transformOrigin = 'top center';
-
-        if (topPos + dropHeight > window.innerHeight - 10) {
-            topPos = rect.top - dropHeight - 8;
-            transformOrigin = 'bottom center';
-        }
-
-        dropdown.style.top = `${topPos}px`;
-        dropdown.style.left = `${rect.left + (rect.width / 2)}px`;
-        dropdown.style.transformOrigin = transformOrigin;
-
-        void dropdown.offsetWidth;
-        dropdown.classList.add('show');
-    };
-
-    renderDatePicker();
-    updateDatePickerTrigger();
-
-    const confirmBtn = document.getElementById('btn-confirm-due-date');
-    const newConfirmBtn = confirmBtn.cloneNode(true);
-    confirmBtn.replaceWith(newConfirmBtn);
-
-    newConfirmBtn.onclick = async () => {
-        newConfirmBtn.style.opacity = '0.5';
-        newConfirmBtn.disabled = true;
-        try {
-            const isoString = dpSelectedDate.toISOString();
-            await updateTask(taskId, { due_date: isoString });
-
-            let updatedColId = null;
-            for (let col of state.columns) {
-                let t = col.tasks.find(task => task.id == taskId);
-                if (!t) {
-                    for (let pt of col.tasks) {
-                        if (pt.subtasks) {
-                            t = pt.subtasks.find(s => s.id == taskId);
-                            if (t) break;
-                        }
-                    }
-                }
-                if (t) {
-                    t.due_date = isoString;
-                    updatedColId = col.id;
-                    const cardEl = document.querySelector(`.card[data-card-id="${taskId}"]`);
-                    if (cardEl) updateCardAppearance(cardEl, t, col.mode);
-                    break;
-                }
-            }
-
-            if (updatedColId) await syncColumnDOM(updatedColId);
-
-            loadTaskIntoModal(taskId, false);
-            modal.classList.remove('show');
-        } catch (e) {
-            window.showToast(t('alerts.error'), 'Не удалось установить срок', true);
-        } finally {
-            newConfirmBtn.style.opacity = '1';
-            newConfirmBtn.disabled = false;
         }
     };
 
@@ -14570,8 +12945,6 @@ async function openStatisticsModal() {
         let m = Math.floor((data.total_time % 3600) / 60);
         document.getElementById('stat-val-time').textContent = h > 0 ? `${h}${t('timeUnits.h')} ${m}${t('timeUnits.m')}` : `${m}${t('timeUnits.m')}`;
 
-        document.getElementById('stat-val-overdue').textContent = data.overdue_count;
-
         const applyTrend = (elId, pct) => {
             const el = document.getElementById(elId);
             if (!el) return;
@@ -14728,633 +13101,6 @@ async function openStatisticsModal() {
 }
 
 
-document.getElementById('automations-trigger')?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    closeAllDropdowns();
-    openAutomationsModal();
-});
-
-const AUTO_API = `${API_BASE}/automations`;
-let _editingAutomationId = null;
-let _selectedWeekdays = [];
-
-window.openAutomationsModal = async () => {
-    _editingAutomationId = null;
-    hideAutomationForm();
-    document.getElementById('automations-modal').classList.add('show');
-    await renderAutomationsList();
-};
-
-function hideAutomationForm() {
-    document.getElementById('automation-form').style.display = 'none';
-    document.getElementById('btn-add-automation').style.display = '';
-    document.getElementById('automations-list').style.display = '';
-    const list = document.getElementById('automations-list');
-    document.getElementById('automations-empty').style.display = (list && list.children.length > 0) ? 'none' : '';
-}
-
-function syncCustomSelect(selectEl) {
-    if (!selectEl) return;
-
-    if (!selectEl._customUI) {
-        const wrapper = document.createElement('div');
-        wrapper.className = 'custom-select';
-        wrapper.style.flex = selectEl.style.flex || '1';
-        wrapper.style.width = selectEl.style.width || '100%';
-
-        const trigger = document.createElement('button');
-        trigger.type = 'button';
-        trigger.className = 'setting-input custom-select-trigger';
-        trigger.style.display = 'flex';
-        trigger.style.alignItems = 'center';
-        trigger.style.justifyContent = 'space-between';
-        trigger.style.width = '100%';
-        trigger.style.paddingRight = '12px';
-
-        trigger.innerHTML = `
-            <span class="trigger-text" style="flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-align:left;"></span>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="opacity: 0.5; flex-shrink: 0; margin-left: 8px;"><polyline points="6 9 12 15 18 9"></polyline></svg>
-        `;
-
-        const menu = document.createElement('div');
-        menu.className = 'dropdown-menu custom-select-menu';
-        menu.style.top = '100%';
-        menu.style.left = '0';
-        menu.style.right = '0';
-        menu.style.minWidth = '100%';
-        menu.style.transformOrigin = 'top center';
-        menu.style.marginTop = '4px';
-        menu.style.maxHeight = '200px';
-        menu.style.overflowY = 'auto';
-        menu.style.scrollbarWidth = 'none';
-
-        trigger.onclick = (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            const isShowing = menu.classList.contains('show');
-            closeAllDropdowns();
-            if (!isShowing) {
-                menu.style.visibility = 'hidden';
-                menu.style.display = 'block';
-                menu.classList.add('show');
-                const menuHeight = menu.offsetHeight;
-                menu.classList.remove('show');
-                menu.style.visibility = '';
-                menu.style.display = '';
-
-                const rect = trigger.getBoundingClientRect();
-
-                if (rect.bottom + menuHeight + 10 > window.innerHeight) {
-                    menu.style.top = 'auto';
-                    menu.style.bottom = '100%';
-                    menu.style.marginTop = '0';
-                    menu.style.marginBottom = '4px';
-                    menu.style.transformOrigin = 'bottom center';
-                } else {
-                    menu.style.bottom = 'auto';
-                    menu.style.top = '100%';
-                    menu.style.marginTop = '4px';
-                    menu.style.marginBottom = '0';
-                    menu.style.transformOrigin = 'top center';
-                }
-
-                void menu.offsetWidth;
-                menu.classList.add('show');
-            }
-        };
-
-        wrapper.appendChild(trigger);
-        wrapper.appendChild(menu);
-
-        selectEl.parentNode.insertBefore(wrapper, selectEl.nextSibling);
-        selectEl.style.display = 'none';
-
-        selectEl._customUI = { wrapper, triggerSpan: trigger.querySelector('.trigger-text'), menu };
-    }
-
-    const { triggerSpan, menu } = selectEl._customUI;
-    menu.innerHTML = '';
-    let activeText = '';
-
-    Array.from(selectEl.options).forEach(opt => {
-        const item = document.createElement('div');
-        item.className = 'menu-item';
-
-        if (opt.value === selectEl.value) {
-            item.classList.add('selected');
-            activeText = opt.textContent;
-        }
-
-        item.textContent = opt.textContent;
-        item.onclick = (e) => {
-            e.stopPropagation();
-            selectEl.value = opt.value;
-            selectEl.dispatchEvent(new Event('change'));
-            syncCustomSelect(selectEl);
-            menu.classList.remove('show');
-        };
-        menu.appendChild(item);
-    });
-
-    triggerSpan.textContent = activeText || (selectEl.options[0] ? selectEl.options[0].textContent : '');
-}
-
-function showAutomationForm(autoData = null) {
-    document.getElementById('automation-form').style.display = 'flex';
-    document.getElementById('btn-add-automation').style.display = 'none';
-    document.getElementById('automations-list').style.display = 'none';
-    document.getElementById('automations-empty').style.display = 'none';
-
-    document.querySelectorAll('#automation-form .settings-group-card').forEach(card => {
-        card.style.overflow = 'visible';
-    });
-
-    const select = document.getElementById('auto-column');
-    select.innerHTML = '';
-    state.columns.forEach(col => {
-        const opt = document.createElement('option');
-        opt.value = col.id;
-        opt.textContent = col.title;
-        select.appendChild(opt);
-    });
-
-    if (autoData) {
-        _editingAutomationId = autoData.id;
-        document.getElementById('auto-type').value = autoData.type || 'recurring_card';
-        document.getElementById('auto-name').value = autoData.name || '';
-
-        const cfg = autoData.config || {};
-
-        const colSelect = document.getElementById('auto-column');
-        colSelect.value = cfg.column_id || '';
-
-        if (cfg.column_id && colSelect.value != cfg.column_id) {
-            const opt = document.createElement('option');
-            opt.value = cfg.column_id;
-            opt.textContent = `⚠️ Удаленная колонка (ID: ${cfg.column_id})`;
-            opt.style.color = '#D35446';
-            colSelect.appendChild(opt);
-            colSelect.value = cfg.column_id;
-        }
-
-        document.getElementById('auto-title-template').value = cfg.title_template || '';
-        document.getElementById('auto-desc-template').value = cfg.description_template || '';
-
-        document.getElementById('auto-sort-by').value = cfg.sort_by || 'position';
-        document.getElementById('auto-sort-order').value = cfg.sort_order || 'asc';
-
-        const isImmediate = cfg.max_age_minutes === 0;
-        document.getElementById('auto-clear-immediate').checked = isImmediate;
-        document.getElementById('auto-max-age').value = isImmediate ? 1440 : (cfg.max_age_minutes !== undefined ? cfg.max_age_minutes : 1440);
-
-        const sched = cfg.schedule || {};
-        document.getElementById('auto-schedule-type').value = sched.type || 'daily';
-        const timeParts = (sched.time || '09:00').split(':');
-        document.getElementById('auto-hour').value = timeParts[0] || '09';
-        document.getElementById('auto-minute').value = timeParts[1] || '00';
-        _selectedWeekdays = sched.days || [];
-        document.getElementById('auto-day-of-month').value = sched.day_of_month || 1;
-        document.getElementById('btn-save-automation').textContent = t('modals.btnSave');
-    } else {
-        _editingAutomationId = null;
-        document.getElementById('auto-type').value = 'recurring_card';
-        document.getElementById('auto-name').value = '';
-        document.getElementById('auto-title-template').value = '';
-        document.getElementById('auto-desc-template').value = '';
-        if (state.columns.length > 0) document.getElementById('auto-column').value = state.columns[0].id;
-        document.getElementById('auto-sort-by').value = 'position';
-        document.getElementById('auto-sort-order').value = 'asc';
-        document.getElementById('auto-max-age').value = 1440;
-        document.getElementById('auto-schedule-type').value = 'daily';
-        document.getElementById('auto-hour').value = '09';
-        document.getElementById('auto-minute').value = '00';
-        _selectedWeekdays = [0, 1, 2, 3, 4];
-        document.getElementById('auto-day-of-month').value = 1;
-        document.getElementById('btn-save-automation').textContent = t('modals.btnCreate');
-    }
-
-    updateAutomationTypeUI();
-    updateScheduleUI();
-    renderWeekdayButtons();
-
-    ['auto-type', 'auto-column', 'auto-sort-by', 'auto-sort-order', 'auto-schedule-type'].forEach(id => {
-        syncCustomSelect(document.getElementById(id));
-    });
-}
-
-function updateAutomationTypeUI() {
-    const type = document.getElementById('auto-type').value;
-
-    const recurringSection = document.getElementById('auto-section-recurring-card');
-    const sortSection = document.getElementById('auto-section-sort');
-    const clearSection = document.getElementById('auto-section-clear');
-    const scheduleSection = document.getElementById('auto-section-schedule');
-
-    if (recurringSection) recurringSection.style.display = 'none';
-    if (sortSection) sortSection.style.display = 'none';
-    if (clearSection) clearSection.style.display = 'none';
-    if (scheduleSection) scheduleSection.style.display = 'none';
-
-    switch (type) {
-        case 'recurring_card':
-            if (recurringSection) recurringSection.style.display = 'flex';
-            if (scheduleSection) scheduleSection.style.display = 'flex';
-            break;
-        case 'sort_column':
-            if (sortSection) sortSection.style.display = 'flex';
-            break;
-        case 'clear_column':
-            if (clearSection) clearSection.style.display = 'flex';
-            const isImmediate = document.getElementById('auto-clear-immediate').checked;
-            if (isImmediate) {
-                if (scheduleSection) scheduleSection.style.display = 'none';
-                document.getElementById('auto-clear-age-wrapper').style.display = 'none';
-            } else {
-                if (scheduleSection) scheduleSection.style.display = 'flex';
-                document.getElementById('auto-clear-age-wrapper').style.display = 'flex';
-            }
-            break;
-    }
-}
-
-document.getElementById('auto-clear-immediate')?.addEventListener('change', updateAutomationTypeUI);
-document.getElementById('auto-type')?.addEventListener('change', () => {
-    updateAutomationTypeUI();
-    updateScheduleUI();
-    renderWeekdayButtons();
-});
-
-function updateScheduleUI() {
-    const type = document.getElementById('auto-schedule-type').value;
-    document.getElementById('auto-weekdays').style.display = type === 'weekly' ? 'flex' : 'none';
-    document.getElementById('auto-monthly-day').style.display = type === 'monthly' ? 'flex' : 'none';
-}
-
-function renderWeekdayButtons() {
-    const container = document.getElementById('auto-weekdays');
-    if (!container) return;
-    container.querySelectorAll('.auto-wday-btn').forEach(btn => {
-        const day = parseInt(btn.dataset.day);
-        const active = _selectedWeekdays.includes(day);
-        btn.classList.toggle('active', active);
-        btn.setAttribute('aria-pressed', active ? 'true' : 'false');
-    });
-}
-
-document.getElementById('auto-weekdays')?.addEventListener('click', (e) => {
-    const btn = e.target.closest('.auto-wday-btn');
-    if (!btn) return;
-    toggleWeekdayBtn(btn);
-});
-
-document.getElementById('auto-weekdays')?.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        const btn = e.target.closest('.auto-wday-btn');
-        if (btn) toggleWeekdayBtn(btn);
-    }
-});
-
-function toggleWeekdayBtn(btn) {
-    const day = parseInt(btn.dataset.day);
-    if (_selectedWeekdays.includes(day)) {
-        _selectedWeekdays = _selectedWeekdays.filter(d => d !== day);
-    } else {
-        _selectedWeekdays.push(day);
-    }
-    renderWeekdayButtons();
-}
-
-document.getElementById('auto-schedule-type')?.addEventListener('change', updateScheduleUI);
-
-window.cancelAutomationForm = () => {
-    _editingAutomationId = null;
-    hideAutomationForm();
-    renderAutomationsList();
-};
-
-document.getElementById('btn-save-automation')?.addEventListener('click', async () => {
-    const autoType = document.getElementById('auto-type').value;
-    const name = document.getElementById('auto-name').value.trim();
-    const columnId = parseInt(document.getElementById('auto-column').value);
-
-    if (!name || !columnId) {
-        showToast(t('alerts.error'), t('modals.autoValidationError'), true);
-        return;
-    }
-
-    let config = { column_id: columnId };
-
-    switch (autoType) {
-        case 'recurring_card': {
-            const titleTemplate = document.getElementById('auto-title-template').value.trim();
-            const descTemplate = document.getElementById('auto-desc-template').value.trim();
-            if (!titleTemplate) {
-                showToast(t('alerts.error'), t('modals.autoValidationError'), true);
-                return;
-            }
-            const schedType = document.getElementById('auto-schedule-type').value;
-            const autoH = (document.getElementById('auto-hour').value || '09').padStart(2, '0');
-            const autoM = (document.getElementById('auto-minute').value || '00').padStart(2, '0');
-            const schedTime = `${autoH}:${autoM}`;
-            const dayOfMonth = parseInt(document.getElementById('auto-day-of-month').value) || 1;
-            if (schedType === 'weekly' && _selectedWeekdays.length === 0) {
-                showToast(t('alerts.error'), t('modals.autoNoDaysError'), true);
-                return;
-            }
-            config.title_template = titleTemplate;
-            config.description_template = descTemplate;
-            config.schedule = {
-                type: schedType,
-                time: schedTime,
-                days: _selectedWeekdays.sort((a, b) => a - b),
-                day_of_month: dayOfMonth,
-            };
-            break;
-        }
-        case 'sort_column': {
-            config.sort_by = document.getElementById('auto-sort-by').value;
-            config.sort_order = document.getElementById('auto-sort-order').value;
-            break;
-        }
-        case 'clear_column': {
-            const isImmediate = document.getElementById('auto-clear-immediate').checked;
-            if (isImmediate) {
-                config.max_age_minutes = 0;
-            } else {
-                const rawAge = parseInt(document.getElementById('auto-max-age').value);
-                const maxAge = isNaN(rawAge) ? 1440 : Math.max(1, rawAge);
-                const schedType = document.getElementById('auto-schedule-type').value;
-                const autoH = (document.getElementById('auto-hour').value || '09').padStart(2, '0');
-                const autoM = (document.getElementById('auto-minute').value || '00').padStart(2, '0');
-                const schedTime = `${autoH}:${autoM}`;
-                const dayOfMonth = parseInt(document.getElementById('auto-day-of-month').value) || 1;
-                if (schedType === 'weekly' && _selectedWeekdays.length === 0) {
-                    showToast(t('alerts.error'), t('modals.autoNoDaysError'), true);
-                    return;
-                }
-                config.max_age_minutes = maxAge;
-                config.schedule = {
-                    type: schedType,
-                    time: schedTime,
-                    days: _selectedWeekdays.sort((a, b) => a - b),
-                    day_of_month: dayOfMonth,
-                };
-            }
-            break;
-        }
-    }
-
-    const payload = {
-        type: autoType,
-        name,
-        enabled: true,
-        config
-    };
-
-    try {
-        let res;
-        if (_editingAutomationId) {
-            res = await fetch(`${AUTO_API}/${_editingAutomationId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-        } else {
-            res = await fetch(AUTO_API, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-        }
-
-        if (res.ok) {
-            _editingAutomationId = null;
-            hideAutomationForm();
-            await renderAutomationsList();
-            if (window.syncColumnDOM) {
-                await window.syncColumnDOM(columnId);
-            } else {
-                await refreshBoard();
-            }
-        } else {
-            const err = await res.json().catch(() => ({}));
-            showToast(t('alerts.error'), err.detail || t('modals.autoSaveError'), true);
-        }
-    } catch (e) {
-        console.error(e);
-        showToast(t('alerts.error'), t('modals.autoNetworkError'), true);
-    }
-});
-
-async function renderAutomationsList() {
-    const list = document.getElementById('automations-list');
-    const empty = document.getElementById('automations-empty');
-    if (!list) return;
-
-    try {
-        const res = await fetch(AUTO_API);
-        if (!res.ok) throw new Error('Failed to fetch');
-        const automations = await res.json();
-
-        list.innerHTML = '';
-
-        if (automations.length === 0) {
-            if (empty) empty.style.display = '';
-            return;
-        }
-        if (empty) empty.style.display = 'none';
-
-        automations.forEach(auto => {
-            const cfg = auto.config || {};
-            let typeLabel = '';
-            let typeIcon = '';
-            let desc = '';
-
-            switch (auto.type) {
-                case 'recurring_card': {
-                    typeIcon = '🔄';
-                    typeLabel = t('modals.autoTypeRecurring') || 'Повторяющаяся карточка';
-                    const sched = cfg.schedule || {};
-                    switch (sched.type) {
-                        case 'hourly': desc = t('modals.autoHourly'); break;
-                        case 'daily': desc = `${t('modals.autoDaily')}, ${sched.time || '09:00'}`; break;
-                        case 'weekdays': desc = `${t('modals.autoWeekdays')}, ${sched.time || '09:00'}`; break;
-                        case 'weekly': {
-                            const dayKeys = ['cal.dayMon','cal.dayTue','cal.dayWed','cal.dayThu','cal.dayFri','cal.daySat','cal.daySun'];
-                            const days = (sched.days || []).map(d => t(dayKeys[d]) || '').filter(Boolean).join(',');
-                            desc = `${t('modals.autoWeekly')} (${days}), ${sched.time || '09:00'}`;
-                            break;
-                        }
-                        case 'monthly': {
-                            const dom = sched.day_of_month || 1;
-                            desc = `${t('modals.autoMonthly')} (${dom}${t('modals.autoOrdinal', dom)}), ${sched.time || '09:00'}`;
-                            break;
-                        }
-                        default: desc = sched.type || '';
-                    }
-                    break;
-                }
-                case 'sort_column': {
-                    typeIcon = '↕️';
-                    typeLabel = t('modals.autoTypeSort') || 'Сортировка колонки';
-                    const sortLabels = {
-                        position: t('modals.autoSortPosition') || 'Позиции',
-                        title: t('modals.autoSortTitle') || 'Названию',
-                        created_at: t('modals.autoSortCreated') || 'Дате создания',
-                        priority: t('modals.autoSortPriority') || 'Приоритету',
-                        due_date: t('modals.autoSortDue') || 'Сроку',
-                    };
-                    const sortBy = sortLabels[cfg.sort_by] || cfg.sort_by || t('modals.autoSortPosition');
-                    const sortOrder = cfg.sort_order === 'desc' ? '↓' : '↑';
-                    desc = `${sortBy} ${sortOrder}`;
-                    break;
-                }
-                case 'clear_column': {
-                    typeIcon = '🧹';
-                    typeLabel = t('modals.autoTypeClear') || 'Очистка колонки';
-                    const maxAge = cfg.max_age_minutes !== undefined ? cfg.max_age_minutes : 1440;
-
-                    if (maxAge === 0) {
-                        desc = t('modals.autoClearImmediateDesc') || 'Мгновенное удаление при попадании в колонку';
-                    } else {
-                        if (maxAge < 60) {
-                            desc = `${t('modals.autoClearOlder')}: ${maxAge} ${t('timeUnitsFull.m')}`;
-                        } else if (maxAge < 1440) {
-                            desc = `${t('modals.autoClearOlder')}: ${Math.round(maxAge / 60)} ${t('timeUnitsFull.h')}`;
-                        } else {
-                            desc = `${t('modals.autoClearOlder')}: ${Math.round(maxAge / 1440)} ${t('timeUnitsFull.d')}`;
-                        }
-                        const sched = cfg.schedule || {};
-                        if (sched.type) {
-                            desc += ` · ${t('modals.autoCheck')}: ${sched.type === 'daily' ? t('modals.autoDaily') : sched.type}`;
-                        }
-                    }
-                    break;
-                }
-                default: {
-                    typeIcon = '⚡';
-                    typeLabel = auto.type;
-                    desc = '';
-                }
-            }
-
-            const nextRun = auto.next_run_at
-                ? new Date(auto.next_run_at + 'Z').toLocaleString(currentLang === 'ru' ? 'ru-RU' : 'en-US', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
-                : ((auto.type === 'sort_column' || (auto.type === 'clear_column' && cfg.max_age_minutes === 0)) ? (t('modals.autoOnEvent') || 'По событию') : '—');
-
-            const row = document.createElement('div');
-            row.className = 'setting-row';
-            row.style.cssText = 'cursor: default; align-items: flex-start; gap: 12px; padding: 14px 12px;';
-            row.innerHTML = `
-                <div style="display: flex; align-items: flex-start; gap: 10px; flex: 1; min-width: 0;">
-                    <div style="width: 24px; height: 24px; border-radius: 8px; background: var(--brand-pale); color: var(--brand-pine); display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; opacity: ${auto.enabled ? '1' : '0.4'}; font-size: 12px;">
-                        ${escapeHtml(typeIcon)}
-                    </div>
-                    <div style="flex: 1; min-width: 0; padding-top: 2px;">
-                        <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 2px;">
-                            <div style="font-size: 14px; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(auto.name)}</div>
-                            <span style="font-size: 10px; font-weight: 500; color: var(--text-secondary); opacity: 0.6; background: rgba(0,0,0,0.04); padding: 2px 6px; border-radius: 4px; white-space: nowrap;">${escapeHtml(typeLabel)}</span>
-                        </div>
-                        <div style="font-size: 12px; color: var(--text-secondary); line-height: 1.4;">${escapeHtml(desc)}</div>
-                        <div style="font-size: 11px; color: var(--text-secondary); opacity: 0.6; margin-top: 4px; font-family: var(--font-mono);">${t('modals.autoNextRun')}: ${nextRun}</div>
-                    </div>
-                </div>
-                <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px; flex-shrink: 0;">
-                    <label class="toggle-switch" style="transform: scale(0.8); transform-origin: right center;" onclick="event.stopPropagation();">
-                        <input type="checkbox" ${auto.enabled ? 'checked' : ''} onchange="toggleAutomation(${auto.id}, this.checked, this)">
-                        <span class="toggle-slider"></span>
-                    </label>
-                    <div style="display: flex; gap: 4px; margin-top: auto;">
-                        <button class="icon-btn" title="${t('modals.autoRunNow')}" onclick="event.stopPropagation(); runAutomationNow(${auto.id})" style="width: 28px; height: 28px; background: rgba(0,0,0,0.03);">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                        </button>
-                        <button class="icon-btn" title="${t('modals.autoEdit')}" onclick="event.stopPropagation(); editAutomation(${auto.id})" style="width: 28px; height: 28px; background: rgba(0,0,0,0.03);">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
-                        </button>
-                        <button class="icon-btn danger-icon" title="${t('modals.autoDelete')}" onclick="event.stopPropagation(); deleteAutomation(${auto.id})" style="width: 28px; height: 28px; background: rgba(211,84,70,0.08); color: #D35446;">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                        </button>
-                    </div>
-                </div>
-            `;
-            list.appendChild(row);
-        });
-    } catch (e) {
-        console.error('Failed to load automations', e);
-    }
-}
-
-window.toggleAutomation = async (id, enabled, checkbox) => {
-    try {
-        await fetch(`${AUTO_API}/${id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ enabled })
-        });
-    } catch (e) {
-        console.error(e);
-        if (checkbox) checkbox.checked = !enabled;
-        showToast(t('alerts.error'), t('modals.autoNetworkError'), true);
-    }
-};
-
-window.runAutomationNow = async (id) => {
-    try {
-        const res = await fetch(`${AUTO_API}/${id}/run`, { method: 'POST' });
-        if (res.ok) {
-            const data = await res.json();
-            if (data.type === 'clear_column') {
-                showToast(t('modals.autoRunNow'), t('modals.autoRunDoneClear', data.deleted));
-            } else if (data.type === 'sort_column') {
-                const msg = currentLang === 'ru' ? `Отсортировано карточек: ${data.affected}` : `Sorted cards: ${data.affected}`;
-                showToast(t('modals.autoRunNow'), msg);
-            } else if (data.type === 'recurring_card') {
-                showToast(t('modals.autoRunNow'), t('modals.autoRunDone', data.task_id));
-            } else {
-                showToast(t('modals.autoRunNow'), 'Выполнено');
-            }
-            await renderAutomationsList();
-            setTimeout(async () => {
-                await refreshBoard();
-            }, 50);
-            } else {
-                showToast(t('alerts.error'), t('modals.autoRunError'), true);
-            }
-    } catch (e) {
-        console.error(e);
-        showToast(t('alerts.error'), t('modals.autoNetworkError'), true);
-    }
-};
-
-window.editAutomation = async (id) => {
-    try {
-        const res = await fetch(`${AUTO_API}/${id}`);
-        if (res.ok) {
-            const auto = await res.json();
-            showAutomationForm(auto);
-        } else {
-            showToast(t('alerts.error'), t('modals.autoNetworkError'), true);
-        }
-    } catch (e) {
-        console.error(e);
-    }
-};
-
-window.deleteAutomation = async (id) => {
-    const confirmed = await showConfirmModal(t('modals.autoDeleteTitle'), t('modals.autoDeleteConfirm'));
-    if (!confirmed) return;
-    try {
-        await fetch(`${AUTO_API}/${id}`, { method: 'DELETE' });
-        setTimeout(async () => {
-            await renderAutomationsList();
-        }, 100);
-    } catch (e) {
-        console.error(e);
-    }
-};
-
-// ============================================================================
 // 🔒 МОСТ К БЭКЕНДУ ВМЕСТО HTTP-СЕРВЕРА
 // Раньше фронт ходил на http://127.0.0.1:8000/api/v1/*. Теперь сетевого сервера
 // нет: все запросы к /api/v1/* уходят в window.pywebview.api.api_request, где
@@ -15727,7 +13473,7 @@ document.addEventListener('keydown', async (e) => {
             try {
                 if (settingsData.theme) applyTheme(settingsData.theme, false);
                 if (settingsData.language) applyLanguage(settingsData.language, false);
-                window.applyExtensionsUI(settingsData.extensions, settingsData.available_extensions);
+                window.applyExtensionsUI(settingsData.extensions);
                 updateAppFont(settingsData.ui_font, settingsData.custom_font);
             } catch (e) {}
 
@@ -15766,7 +13512,7 @@ document.addEventListener('keydown', async (e) => {
         if (isTabsHidden) document.body.classList.add('tabs-hidden');
         else document.body.classList.remove('tabs-hidden');
 
-        window.applyExtensionsUI(settingsData.extensions, settingsData.available_extensions);
+        window.applyExtensionsUI(settingsData.extensions);
 
         if (settingsData.priority_settings) applyPriorityStyles(settingsData.priority_settings);
         else applyPriorityStyles(window.prioritySettings);
@@ -16688,11 +14434,6 @@ async function applyColumnSort(columnId, criteria, dir) {
             valB = b.priority != null ? parseFloat(b.priority) : null;
             isNullA = valA === null;
             isNullB = valB === null;
-        } else if (criteria === 'deadline') {
-            valA = a.due_date ? new Date(a.due_date).getTime() : null;
-            valB = b.due_date ? new Date(b.due_date).getTime() : null;
-            isNullA = valA === null;
-            isNullB = valB === null;
         } else if (criteria === 'created') {
             valA = new Date(a.created_at).getTime();
             valB = new Date(b.created_at).getTime();
@@ -16873,599 +14614,4 @@ async function applyColumnSort(columnId, criteria, dir) {
         api()?.toggle_maximize_window?.();
     }, true);
 
-})();
-
-/* ============================================================
-   DoeMemory — интервальное повторение (spaced repetition)
-   ============================================================ */
-(function () {
-    const L = (ru, en) => (typeof currentLang !== 'undefined' && currentLang === 'en' ? en : ru);
-    const BASE = (typeof API_BASE !== 'undefined') ? API_BASE : '/api/v1';
-    const toast = (t, m, e) => { if (window.showToast) window.showToast(t, m, e); };
-
-    const M = {
-        enabled: false, // <-- ПО УМОЛЧАНИЮ ВЫКЛЮЧЕНО
-        settings: null,
-        poller: null,
-        queue: [],
-        qIndex: 0,
-        revealed: false,
-    };
-
-    async function api(path, opts) {
-        const res = await fetch(`${BASE}${path}`, opts);
-        if (!res.ok) {
-            let detail = res.statusText;
-            try { detail = (await res.json()).detail || detail; } catch (e) {}
-            throw new Error(detail);
-        }
-        if (res.status === 204) return null;
-        return res.json();
-    }
-    const jpost = (path, body) => api(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) });
-
-    function escapeHtml(s) {
-        return (s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-    }
-
-    function fmtDue(iso) {
-        if (!iso) return '';
-        const due = new Date(iso); // backend uses naive UTC + 'Z'
-        const now = new Date();
-        let diff = (due.getTime() - now.getTime()) / 1000; // sec
-        const past = diff < 0;
-        diff = Math.abs(diff);
-        let txt;
-        if (diff < 60) txt = L('< 1 мин', '< 1 min');
-        else if (diff < 3570) txt = `${Math.round(diff / 60)} ${L('мин', 'min')}`;
-        else if (diff < 86400) txt = `${Math.round(diff / 3600)} ${L('ч', 'h')}`;
-        else if (diff < 86400 * 30) txt = `${Math.round(diff / 86400)} ${L('дн', 'd')}`;
-        else if (diff < 86400 * 365) txt = `${Math.round(diff / 86400 / 30)} ${L('мес', 'mo')}`;
-        else txt = `${(diff / 86400 / 365).toFixed(1)} ${L('г', 'y')}`;
-        if (past) return L('пора', 'due');
-        return L('через ', 'in ') + txt;
-    }
-
-    // ---------- инъекция модалок ----------
-    function ensureModals() {
-        if (document.getElementById('memory-hub-modal')) return;
-        const wrap = document.createElement('div');
-        wrap.innerHTML = `
-        <div class="modal-overlay" id="memory-hub-modal">
-          <div class="modal-card" style="width:340px;">
-            <div class="modal-header">
-              <span class="modal-title">🧠 ${L('Запоминание', 'Memory')}</span>
-              <button class="modal-close" data-mem-close="memory-hub-modal" aria-label="Закрыть">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-              </button>
-            </div>
-            <div class="modal-body" style="padding:16px; gap:14px;">
-              <div class="mem-hub-stats" id="mem-hub-stats"></div>
-              <button class="confirm-btn vault-submit-btn" id="mem-hub-start" style="color:#fff;">${L('Начать повторение', 'Start review')}</button>
-              <button class="confirm-btn cancel-btn" id="mem-hub-settings">${L('Настройки запоминания', 'Memory settings')}</button>
-            </div>
-          </div>
-        </div>
-
-        <div class="modal-overlay" id="memory-settings-modal">
-          <div class="modal-card" style="width:400px;">
-            <div class="modal-header">
-              <span class="modal-title">${L('Настройки запоминания', 'Memory Settings')}</span>
-              <button class="modal-close" data-mem-close="memory-settings-modal" aria-label="Закрыть">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-              </button>
-            </div>
-            <div class="modal-body" style="padding:16px; gap:16px;">
-
-              <div class="settings-group-card">
-                <div class="setting-row" style="cursor: default; flex-direction: column; align-items: flex-start; gap: 10px;">
-                    <div class="setting-text-box" style="width: 100%;">
-                        <div class="setting-title">${L('Интервалы изучения', 'Learning steps')}</div>
-                        <div class="setting-desc">${L('Шаги в минутах до закрепления факта (например: 1, 10, 60)', 'Steps in minutes before fact graduates (e.g. 1, 10, 60)')}</div>
-                    </div>
-                    <input type="text" id="mem-set-steps" class="setting-input" placeholder="10, 60, 540">
-                </div>
-                <div class="setting-row" style="cursor: default; gap: 12px;">
-                    <div class="setting-text-box">
-                        <div class="setting-title">${L('Интервал выпуска', 'Graduating interval')}</div>
-                        <div class="setting-desc">${L('Через сколько дней показать закреплённую карточку', 'Days until first review after learning')}</div>
-                    </div>
-                    <input type="number" min="0.1" step="0.1" id="mem-set-grad" class="setting-input compact-input" style="width: 60px;">
-                </div>
-                <div class="setting-row" style="cursor: default; gap: 12px;">
-                    <div class="setting-text-box">
-                        <div class="setting-title">${L('Бонус за «Легко»', 'Easy bonus')}</div>
-                        <div class="setting-desc">${L('На сколько дней отложить при лёгком ответе', 'Days to skip if answered easily')}</div>
-                    </div>
-                    <input type="number" min="0.1" step="0.1" id="mem-set-easy" class="setting-input compact-input" style="width: 60px;">
-                </div>
-              </div>
-
-              <div class="settings-group-card">
-                <div class="setting-row" style="cursor: default;">
-                    <div class="setting-text-box">
-                        <div class="setting-title">${L('Всплывать на доске', 'Surface on board')}</div>
-                        <div class="setting-desc">${L('Предлагать повторение прямо в интерфейсе', 'Suggest reviews directly in the UI')}</div>
-                    </div>
-                    <label class="toggle-switch"><input type="checkbox" id="mem-set-surface"><span class="toggle-slider"></span></label>
-                </div>
-                <div class="setting-row" style="cursor: default;">
-                    <div class="setting-text-box">
-                        <div class="setting-title">${L('Системные уведомления', 'System notifications')}</div>
-                        <div class="setting-desc">${L('Присылать пуши от ОС, когда пришло время', 'Send OS push notifications when due')}</div>
-                    </div>
-                    <label class="toggle-switch"><input type="checkbox" id="mem-set-osnotif"><span class="toggle-slider"></span></label>
-                </div>
-              </div>
-
-              <div class="confirm-actions" style="padding: 0; margin-top: 4px;">
-                <button class="confirm-btn cancel-btn" data-mem-close="memory-settings-modal">${L('Отмена', 'Cancel')}</button>
-                <button class="confirm-btn vault-submit-btn" id="mem-set-save" style="color:#fff;">${L('Сохранить', 'Save')}</button>
-              </div>
-
-            </div>
-          </div>
-        </div>
-
-        <div class="modal-overlay" id="memory-review-modal">
-          <div class="modal-card mem-review-card" style="width:480px; max-width:92vw;">
-            <div class="modal-header">
-              <span class="modal-title" id="mem-review-progress">${L('Повторение', 'Review')}</span>
-              <button class="modal-close" data-mem-close="memory-review-modal" aria-label="Закрыть">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-              </button>
-            </div>
-            <div class="modal-body" style="padding:18px; gap:14px;">
-              <div class="mem-review-title" id="mem-review-title"></div>
-              <div class="mem-review-prompt" id="mem-review-prompt">${L('Вспомни содержимое, затем покажи ответ.', 'Recall it, then reveal the answer.')}</div>
-              <div class="mem-review-answer" id="mem-review-answer" style="display:none;"></div>
-              <button class="confirm-btn vault-submit-btn" id="mem-review-reveal" style="color:#fff;">${L('Показать ответ', 'Show answer')}</button>
-              <div class="mem-grade-row" id="mem-grade-row" style="display:none;">
-                <button class="mem-grade-btn g-again" data-grade="1"><b>${L('Забыл', 'Again')}</b><small data-g="again"></small></button>
-                <button class="mem-grade-btn g-hard"  data-grade="2"><b>${L('Трудно', 'Hard')}</b><small data-g="hard"></small></button>
-                <button class="mem-grade-btn g-good"  data-grade="3"><b>${L('Хорошо', 'Good')}</b><small data-g="good"></small></button>
-                <button class="mem-grade-btn g-easy"  data-grade="4"><b>${L('Легко', 'Easy')}</b><small data-g="easy"></small></button>
-              </div>
-              <button class="mem-open-card" id="mem-review-open">${L('Открыть карточку', 'Open card')}</button>
-            </div>
-          </div>
-        </div>`;
-        document.body.appendChild(wrap);
-
-        // закрытия
-        wrap.querySelectorAll('[data-mem-close]').forEach(b =>
-            b.addEventListener('click', () => closeModal(b.getAttribute('data-mem-close'))));
-        wrap.querySelectorAll('.modal-overlay').forEach(ov =>
-            ov.addEventListener('click', e => { if (e.target === ov) closeModal(ov.id); }));
-
-        document.getElementById('mem-hub-start').addEventListener('click', () => { closeModal('memory-hub-modal'); startReview(); });
-        document.getElementById('mem-hub-settings').addEventListener('click', () => { closeModal('memory-hub-modal'); openSettings(); });
-        document.getElementById('mem-set-save').addEventListener('click', saveSettings);
-        document.getElementById('mem-review-reveal').addEventListener('click', reveal);
-        document.getElementById('mem-review-open').addEventListener('click', openCurrentCard);
-        document.querySelectorAll('.mem-grade-btn').forEach(b =>
-            b.addEventListener('click', () => gradeCurrent(parseInt(b.getAttribute('data-grade'), 10))));
-    }
-
-    const openModal = id => { ensureModals(); document.getElementById(id).classList.add('show'); };
-    const closeModal = id => { const el = document.getElementById(id); if (el) el.classList.remove('show'); };
-
-    // ---------- настройки ----------
-    async function loadSettings() {
-        try {
-            const s = await api('/system/settings?t=' + Date.now());
-            M.settings = s.memory_settings || {};
-        } catch (e) { M.settings = {}; }
-        return M.settings;
-    }
-
-    async function openSettings() {
-        ensureModals();
-        await loadSettings();
-        const s = M.settings || {};
-        document.getElementById('mem-set-steps').value = (s.learning_steps_min || [10, 60, 540]).join(', ');
-        document.getElementById('mem-set-grad').value = s.graduating_interval_days ?? 1;
-        document.getElementById('mem-set-easy').value = s.easy_interval_days ?? 4;
-        document.getElementById('mem-set-surface').checked = s.surface_on_board !== false;
-        document.getElementById('mem-set-osnotif').checked = s.os_notification !== false;
-        openModal('memory-settings-modal');
-    }
-
-    async function saveSettings() {
-        const steps = document.getElementById('mem-set-steps').value
-            .split(',').map(x => parseFloat(x.trim())).filter(x => !isNaN(x) && x > 0);
-        const payload = {
-            memory_settings: {
-                learning_steps_min: steps.length ? steps : [10, 60, 540],
-                graduating_interval_days: parseFloat(document.getElementById('mem-set-grad').value) || 1,
-                easy_interval_days: parseFloat(document.getElementById('mem-set-easy').value) || 4,
-                surface_on_board: document.getElementById('mem-set-surface').checked,
-                os_notification: document.getElementById('mem-set-osnotif').checked,
-            }
-        };
-        try {
-            await api('/system/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-            M.settings = payload.memory_settings;
-            closeModal('memory-settings-modal');
-            toast(L('Сохранено', 'Saved'), L('Настройки запоминания обновлены', 'Memory settings updated'));
-        } catch (e) {
-            toast(L('Ошибка', 'Error'), e.message, true);
-        }
-    }
-
-    // ---------- секция в карточке ----------
-    async function onCardOpen(task) {
-        const section = document.getElementById('memory-card-section');
-        if (!section) return;
-        if (!M.enabled) { section.style.display = 'none'; return; }
-        section.style.display = '';
-        section.dataset.taskId = task.id;
-        await renderCardSection(task.id);
-    }
-
-    async function renderCardSection(taskId) {
-        const list = document.getElementById('memory-items-list');
-        const countEl = document.getElementById('memory-items-count');
-        if (!list) return;
-        let items = [];
-        try { items = (await api('/memory/cards/' + taskId)).items || []; } catch (e) {}
-        if (countEl) countEl.textContent = items.length;
-
-        const whole = items.find(i => !i.fragment_text);
-        const frags = items.filter(i => i.fragment_text);
-
-        let html = `
-          <div class="mem-row">
-            <span class="mem-row-label">${L('Запоминать всю карточку', 'Memorize whole card')}</span>
-            <label class="toggle-switch mem-whole-switch"><input type="checkbox" id="mem-whole-toggle" ${whole ? 'checked' : ''} tabindex="-1"><span class="toggle-slider"></span></label>
-          </div>`;
-        if (frags.length) {
-            html += '<div class="mem-frag-list">' + frags.map(f => `
-              <div class="mem-frag">
-                <span class="mem-frag-text">«${escapeHtml((f.fragment_text || '').slice(0, 120))}${(f.fragment_text || '').length > 120 ? '…' : ''}»</span>
-                <span class="mem-frag-meta">${f.state === 'learning' ? L('обучение', 'learning') : L('повтор', 'review')} · ${fmtDue(f.due_at)}</span>
-                <button class="mem-frag-del" data-id="${f.id}" title="${L('Удалить', 'Delete')}">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                </button>
-              </div>`).join('') + '</div>';
-        }
-        html += `<div class="mem-hint">${L('Выдели текст в заголовке или описании — рядом появится кнопка «Запомнить».', 'Select text in the title or description — a “Memorize” button will appear.')}</div>`;
-        list.innerHTML = html;
-
-        // Переключаем явно через JS: нативный default-action чекбокса в модалке
-        // карточки гасится делегированными preventDefault-обработчиками.
-        const toggleLabel = list.querySelector('.mem-whole-switch');
-        if (toggleLabel) toggleLabel.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            const wt = document.getElementById('mem-whole-toggle');
-            const desired = !whole;            // целевое состояние (не зависим от checkbox.checked)
-            if (wt) wt.checked = desired;       // мгновенный визуальный отклик
-            toggleWholeCard(taskId, desired, whole);
-        });
-        list.querySelectorAll('.mem-frag-del').forEach(b =>
-            b.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); deleteItem(parseInt(b.getAttribute('data-id'), 10), taskId); }));
-    }
-
-    async function toggleWholeCard(taskId, on, wholeItem) {
-        try {
-            if (on && !wholeItem) await jpost('/memory/cards/' + taskId, { fragment_text: null });
-            else if (!on && wholeItem) await api('/memory/items/' + wholeItem.id, { method: 'DELETE' });
-            await renderCardSection(taskId);
-            pollDue();
-        } catch (e) { toast(L('Ошибка', 'Error'), e.message, true); }
-    }
-
-    async function addFragment(text) {
-        const section = document.getElementById('memory-card-section');
-        const taskId = section && section.dataset.taskId;
-        if (!taskId || !text) return;
-        try {
-            await jpost('/memory/cards/' + taskId, { fragment_text: text });
-            await renderCardSection(parseInt(taskId, 10));
-            pollDue();
-            toast(L('Добавлено', 'Added'), L('Фрагмент поставлен на запоминание.', 'Fragment scheduled for memory.'));
-        } catch (e) { toast(L('Ошибка', 'Error'), e.message, true); }
-    }
-
-    // --- всплывающая кнопка «Запомнить» у выделения текста ---
-    function ensureSelBtn() {
-        if (M.selBtn) return M.selBtn;
-        const b = document.createElement('button');
-        b.className = 'mem-select-btn';
-        b.type = 'button';
-        b.innerHTML = `<span class="mem-select-ic">🧠</span><span>${L('Запомнить', 'Memorize')}</span>`;
-        b.style.display = 'none';
-        b.addEventListener('mousedown', (e) => { e.preventDefault(); e.stopPropagation(); });
-        b.addEventListener('click', (e) => {
-            e.preventDefault(); e.stopPropagation();
-            const text = M.pendingSel;
-            hideSelBtn();
-            try { window.getSelection().removeAllRanges(); } catch (e2) {}
-            if (text) addFragment(text);
-        });
-        document.body.appendChild(b);
-        M.selBtn = b;
-        return b;
-    }
-
-    function hideSelBtn() {
-        if (M.selBtn) M.selBtn.style.display = 'none';
-        M.pendingSel = null;
-    }
-
-    function showSelBtn(rect, text) {
-        const b = ensureSelBtn();
-        M.pendingSel = text;
-        b.style.display = 'inline-flex';
-        const bw = b.offsetWidth || 120, bh = b.offsetHeight || 32;
-        let left = rect.left + rect.width / 2 - bw / 2;
-        let top = rect.top - bh - 8;
-        if (top < 8) top = rect.bottom + 8;
-        left = Math.max(8, Math.min(left, window.innerWidth - bw - 8));
-        b.style.left = Math.round(left) + 'px';
-        b.style.top = Math.round(top) + 'px';
-    }
-
-    function selectionWithinCard() {
-        if (!M.enabled) return null;
-        const modal = document.getElementById('task-modal');
-        if (!modal || !modal.classList.contains('show')) return null;
-        const section = document.getElementById('memory-card-section');
-        if (!section || section.style.display === 'none' || !section.dataset.taskId) return null;
-
-        const sel = window.getSelection && window.getSelection();
-        if (!sel || sel.isCollapsed || !sel.rangeCount) return null;
-        const range = sel.getRangeAt(0);
-        const node = range.commonAncestorContainer;
-        const host = (node.nodeType === 3 ? node.parentElement : node);
-        if (!host || !host.closest || !host.closest('#task-desc-render, #task-modal-title')) return null;
-        const text = sel.toString().trim();
-        if (text.length < 1 || text.length > 1000) return null;
-        const rect = range.getBoundingClientRect();
-        if (!rect || (rect.width === 0 && rect.height === 0)) return null;
-        return { text, rect };
-    }
-
-    function onSelectionChange() {
-        const r = selectionWithinCard();
-        if (r) showSelBtn(r.rect, r.text);
-        else hideSelBtn();
-    }
-
-    async function deleteItem(itemId, taskId) {
-        try { await api('/memory/items/' + itemId, { method: 'DELETE' }); await renderCardSection(taskId); pollDue(); }
-        catch (e) { toast(L('Ошибка', 'Error'), e.message, true); }
-    }
-
-    // ---------- повторение ----------
-    async function startReview() {
-        let due = [];
-        try { due = (await api('/memory/due?limit=100')).items || []; } catch (e) {}
-        if (!due.length) { toast(L('Нечего повторять', 'Nothing to review'), L('Сейчас нет карточек к повторению.', 'No cards are due right now.')); return; }
-        M.queue = due; M.qIndex = 0;
-        openModal('memory-review-modal');
-        showCurrent();
-    }
-
-    // --- рендер Markdown (как в самой карточке) ---
-    function mdInline(t) {
-        try { return (typeof renderInlineMarkdown === 'function') ? renderInlineMarkdown(t || '') : escapeHtml(t || ''); }
-        catch (e) { return escapeHtml(t || ''); }
-    }
-    function mdBlock(t) {
-        try { return (typeof parseMarkdownWithMath === 'function') ? parseMarkdownWithMath(t || '') : escapeHtml(t || '').replace(/\n/g, '<br>'); }
-        catch (e) { return escapeHtml(t || '').replace(/\n/g, '<br>'); }
-    }
-    function enhance(el) { try { if (el && typeof enhanceCodeBlocks === 'function') enhanceCodeBlocks(el); } catch (e) {} }
-
-    // cloze через текстовые токены: переживают и Markdown-рендер, и экранирование HTML
-    const TOK = { blank: 'ZZMEMBLANKZZ', start: 'ZZMEMSTARTZZ', end: 'ZZMEMENDZZ' };
-    function injectToken(raw, frag, reveal) {
-        const idx = (raw || '').indexOf(frag);
-        if (idx === -1) return { raw, hit: false };
-        const mid = reveal ? (TOK.start + frag + TOK.end) : TOK.blank;
-        return { raw: raw.slice(0, idx) + mid + raw.slice(idx + frag.length), hit: true };
-    }
-    function postCloze(html) {
-        return html
-            .split(TOK.blank).join('<span class="mem-cloze">' + '·'.repeat(6) + '</span>')
-            .split(TOK.start).join('<mark class="mem-hl">')
-            .split(TOK.end).join('</mark>');
-    }
-
-    // Собирает HTML карточки (заголовок + описание). fragment!=null → cloze/reveal.
-    function renderCard(title, desc, fragment, reveal) {
-        let t = title || '', d = desc || '';
-        if (fragment) {
-            const it = injectToken(t, fragment, reveal);
-            if (it.hit) t = it.raw;
-            else { const id = injectToken(d, fragment, reveal); if (id.hit) d = id.raw; }
-        }
-        let html = '';
-        if (t && t.trim()) html += `<div class="mem-card-title">${postCloze(mdInline(t))}</div>`;
-        if (d && d.trim()) html += `<div class="mem-card-desc markdown-body">${postCloze(mdBlock(d))}</div>`;
-        if (!html) html = `<div class="mem-card-desc"><i>${L('(пустая карточка)', '(empty card)')}</i></div>`;
-        return html;
-    }
-
-    async function showCurrent() {
-        M.revealed = false;
-        const item = M.queue[M.qIndex];
-        if (!item) { finishReview(); return; }
-        document.getElementById('mem-review-progress').textContent =
-            `${L('Повторение', 'Review')} • ${M.qIndex + 1}/${M.queue.length}`;
-
-        const cueEl = document.getElementById('mem-review-title');
-        const promptEl = document.getElementById('mem-review-prompt');
-        const ansEl = document.getElementById('mem-review-answer');
-        const revealBtn = document.getElementById('mem-review-reveal');
-        const gradeRow = document.getElementById('mem-grade-row');
-        const title = item.task_title || '';
-        const desc = item.task_description || '';
-        const hasDesc = !!(desc && desc.trim());
-        let hasAnswer = true;
-
-        if (item.fragment_text) {
-            // фрагмент = cloze: прячем выделенный кусок (в заголовке или описании)
-            cueEl.innerHTML = renderCard(title, desc, item.fragment_text, false);
-            promptEl.textContent = L('Вспомни скрытый фрагмент, затем покажи ответ.', 'Recall the hidden part, then reveal.');
-            ansEl.innerHTML = renderCard(title, desc, item.fragment_text, true);
-        } else if (hasDesc) {
-            // вся карточка = флэш-карта: заголовок (лицо) → описание (ответ)
-            cueEl.innerHTML = `<div class="mem-card-title">${mdInline(title) || '<i>' + L('(без названия)', '(untitled)') + '</i>'}</div>`;
-            promptEl.textContent = L('Вспомни, что внутри, затем покажи ответ.', 'Recall the contents, then reveal.');
-            ansEl.innerHTML = `<div class="mem-card-desc markdown-body">${mdBlock(desc)}</div>`;
-        } else {
-            // нет описания → узнавание: показываем заголовок и сразу оценку
-            cueEl.innerHTML = `<div class="mem-card-title">${mdInline(title) || '<i>' + L('(без названия)', '(untitled)') + '</i>'}</div>`;
-            promptEl.textContent = L('Помнишь эту карточку?', 'Do you remember this card?');
-            ansEl.innerHTML = '';
-            hasAnswer = false;
-        }
-        enhance(cueEl); enhance(ansEl);
-
-        ansEl.style.display = 'none';
-        promptEl.style.display = '';
-        revealBtn.style.display = hasAnswer ? '' : 'none';
-        gradeRow.style.display = hasAnswer ? 'none' : 'grid';
-        loadPreview(item.id);
-    }
-
-    async function loadPreview(itemId) {
-        try {
-            const pv = await api('/memory/items/' + itemId + '/preview');
-            ['again', 'hard', 'good', 'easy'].forEach(k => {
-                const el = document.querySelector(`.mem-grade-btn small[data-g="${k}"]`);
-                if (el) el.textContent = fmtDue(pv[k]);
-            });
-        } catch (e) {}
-    }
-
-    function reveal() {
-        M.revealed = true;
-        document.getElementById('mem-review-answer').style.display = '';
-        document.getElementById('mem-review-prompt').style.display = 'none';
-        document.getElementById('mem-review-reveal').style.display = 'none';
-        document.getElementById('mem-grade-row').style.display = 'grid';
-    }
-
-    async function gradeCurrent(grade) {
-        const item = M.queue[M.qIndex];
-        if (!item) return;
-        try { await jpost('/memory/items/' + item.id + '/grade', { grade }); }
-        catch (e) { toast(L('Ошибка', 'Error'), e.message, true); }
-        M.qIndex++;
-        if (M.qIndex >= M.queue.length) finishReview();
-        else showCurrent();
-        pollDue();
-    }
-
-    function finishReview() {
-        closeModal('memory-review-modal');
-        toast(L('Готово', 'Done'), L('Сессия повторения завершена 🎉', 'Review session finished 🎉'));
-        pollDue();
-    }
-
-    function openCurrentCard() {
-        const item = M.queue[M.qIndex];
-        if (item && typeof loadTaskIntoModal === 'function') {
-            closeModal('memory-review-modal');
-
-            // Загружаем данные
-            loadTaskIntoModal(item.task_id, true);
-            // Показываем окно
-            document.getElementById('task-modal').classList.add('show');
-
-            // Опционально: фокусируем доску на этой карточке на фоне
-            if (window.navigateToEntityGlobal && item.workspace_id && item.column_id) {
-                window.navigateToEntityGlobal(item.workspace_id, item.column_id, item.task_id, null, true, false);
-            }
-        }
-    }
-
-    // ---------- поллер / бейдж / хаб ----------
-    async function pollDue() {
-        if (!M.enabled) { setBadge(0); return; }
-        try {
-            const r = await api('/memory/due?limit=100');
-            const n = r.count || 0;
-            // тост на «нарастающем фронте»: было 0 — стало больше нуля
-            if (n > 0 && (M._lastDue || 0) === 0 && !document.getElementById('memory-review-modal')?.classList.contains('show')) {
-                toast('🧠 ' + L('Запоминание', 'Memory'),
-                      n === 1 ? L('1 карточка ждёт повторения', '1 card is due')
-                              : `${n} ${L('карточек ждут повторения', 'cards are due')}`);
-            }
-            M._lastDue = n;
-            setBadge(n);
-        } catch (e) {}
-    }
-
-    function setBadge(n) {
-        const badge = document.getElementById('memory-badge');
-        if (!badge) return;
-        if (n > 0) { badge.textContent = n > 99 ? '99+' : n; badge.style.display = 'flex'; }
-        else { badge.style.display = 'none'; }
-    }
-
-    async function openHub() {
-        ensureModals();
-        let stats = { due: 0, total: 0, learning: 0, review: 0 };
-        try { stats = await api('/memory/stats'); } catch (e) {}
-        document.getElementById('mem-hub-stats').innerHTML = `
-          <div class="mem-stat"><b>${stats.due}</b><span>${L('к повторению', 'due')}</span></div>
-          <div class="mem-stat"><b>${stats.learning}</b><span>${L('учится', 'learning')}</span></div>
-          <div class="mem-stat"><b>${stats.review}</b><span>${L('на повторе', 'review')}</span></div>
-          <div class="mem-stat"><b>${stats.total}</b><span>${L('всего', 'total')}</span></div>`;
-        const startBtn = document.getElementById('mem-hub-start');
-        startBtn.disabled = !stats.due;
-        startBtn.style.opacity = stats.due ? '1' : '0.5';
-        openModal('memory-hub-modal');
-    }
-
-    function setEnabled(v) {
-        M.enabled = !!v;
-        if (M.enabled) {
-            startPoller();
-            pollDue();
-            scheduleOffline();
-        } else {
-            stopPoller();
-            setBadge(0);
-            hideSelBtn(); // <-- Скрываем кнопку, если она зависла
-            const s = document.getElementById('memory-card-section');
-            if (s) s.style.display = 'none';
-        }
-    }
-
-    function startPoller() { stopPoller(); M.poller = setInterval(pollDue, 60000); }
-    function stopPoller() { if (M.poller) { clearInterval(M.poller); M.poller = null; } }
-
-    function scheduleOffline() {
-        // Планируем системные уведомления только при открытии/закрытии приложения,
-        // НЕ во время работы — чтобы не плодить процессы (мелькание в Dock).
-        try { fetch(`${BASE}/memory/schedule-offline`, { method: 'POST', keepalive: true }); } catch (e) {}
-    }
-
-    function init() {
-        ensureModals();
-        const btn = document.getElementById('memory-trigger');
-        if (btn) btn.addEventListener('click', openHub);
-
-        // Фрагмент добавляется выделением текста
-        document.addEventListener('selectionchange', onSelectionChange);
-        document.addEventListener('scroll', hideSelBtn, true);
-        loadSettings();
-
-        // ВЫРЕЗАНЫ БЕЗУСЛОВНЫЕ startPoller(), pollDue() и scheduleOffline()
-        // Теперь их запускает только setEnabled(true), когда придут настройки с сервера!
-
-        window.addEventListener('pagehide', () => { if (M.enabled) scheduleOffline(); });
-        window.addEventListener('beforeunload', () => { if (M.enabled) scheduleOffline(); });
-    }
-
-    window.DoeMemory = { init, setEnabled, openSettings, openHub, onCardOpen, pollDue, renderCardSection };
-
-    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
-    else init();
 })();

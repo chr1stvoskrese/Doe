@@ -149,13 +149,6 @@ async def create_task(db: AsyncSession, task_in: TaskCreate) -> TaskModel:
     await db.refresh(db_task, attribute_names=['timer_sessions', 'parents'])
     _calculate_task_time(db_task)
 
-    # 🔁 Автоматизация: сортировка колонки после создания карточки
-    try:
-        from src.services.automation_service import trigger_sort_for_column
-        await trigger_sort_for_column(db, task_in.column_id)
-    except Exception as e:
-        print(f"[Automation] Hook error in create_task: {e}")
-
     return db_task
 
 async def get_task_context(db: AsyncSession, task_id: int) -> dict:
@@ -199,10 +192,6 @@ async def update_task(db: AsyncSession, task_id: int, task_in: TaskUpdate) -> Ta
             for p in task.parents:
                 p.updated_at = datetime.utcnow()
                 db.add(p) # Принудительно помечаем родительский объект как "грязный" (dirty) для сессии
-
-    # 🚀 Срезаем таймзону, чтобы SQLite не падал с 500 ошибкой
-    if "due_date" in update_data and update_data["due_date"] is not None:
-        update_data["due_date"] = update_data["due_date"].replace(tzinfo=None)
 
     col_res = await db.execute(select(ColumnModel).where(ColumnModel.id == task.column_id))
     col = col_res.scalar_one()
@@ -248,13 +237,6 @@ async def update_task(db: AsyncSession, task_id: int, task_in: TaskUpdate) -> Ta
     await db.commit()
     await db.refresh(task)
     _calculate_task_time(task)
-
-    # 🔁 Автоматизация: сортировка колонки при изменении карточки
-    try:
-        from src.services.automation_service import trigger_sort_for_column
-        await trigger_sort_for_column(db, task.column_id)
-    except Exception as e:
-        print(f"[Automation] Hook error in update_task: {e}")
 
     return task
 
@@ -328,7 +310,6 @@ async def _get_full_task_snapshot(db: AsyncSession, task_id: int, visited: set =
         "column_id": task.column_id,
         "position": task.position,
         "completed_at": task.completed_at.isoformat() + "Z" if task.completed_at else None,
-        "due_date": task.due_date.isoformat() + "Z" if task.due_date else None,
         "priority": task.priority,
         "priority_data": task.priority_data,
         "is_visible_on_board": task.is_visible_on_board,
@@ -435,15 +416,6 @@ async def move_task(db: AsyncSession, task_id: int, target_column_id: int) -> Ta
     
     _calculate_task_time(task)
 
-    # 🔁 Автоматизация: сортировка колонок при перемещении
-    try:
-        from src.services.automation_service import trigger_sort_for_column
-        await trigger_sort_for_column(db, target_column_id)
-        if source_column.id != target_column_id:
-            await trigger_sort_for_column(db, source_column.id)
-    except Exception as e:
-        print(f"[Automation] Hook error in move_task: {e}")
-
     return task
 
 async def reorder_tasks(db: AsyncSession, ordered_ids: list[int]) -> None:
@@ -458,14 +430,7 @@ async def reorder_tasks(db: AsyncSession, ordered_ids: list[int]) -> None:
             
     await db.commit()
 
-    # 🔁 Автоматизация: сортировка колонок после ручного переупорядочивания
-    try:
-        from src.services.automation_service import trigger_sort_for_column
-        affected_columns = set(t.column_id for t in tasks)
-        for col_id in affected_columns:
-            await trigger_sort_for_column(db, col_id)
-    except Exception as e:
-        print(f"[Automation] Hook error in reorder_tasks: {e}")
+
 
 
 async def delete_task(db: AsyncSession, task_id: int) -> dict:
@@ -485,15 +450,11 @@ async def delete_task(db: AsyncSession, task_id: int) -> dict:
     deleted_ids = await _get_all_child_ids(db, task_id)
 
     from src.core.config import remove_reminders_for_task
-    from src.db.models import MemoryItemModel
 
-    # Явно удаляем сессии таймера и элементы памяти перед удалением карточек,
+    # Явно удаляем сессии таймера перед удалением карточек,
     # чтобы предотвратить нарушение ограничений внешних ключей (Foreign Key Constraint) в SQLite
     await db.execute(
         sql_delete(TimerSessionModel).where(TimerSessionModel.task_id.in_(deleted_ids))
-    )
-    await db.execute(
-        sql_delete(MemoryItemModel).where(MemoryItemModel.task_id.in_(deleted_ids))
     )
 
     # Гарантированно удаляем из таблицы tasks саму карточку и все её подзадачи
@@ -534,7 +495,6 @@ async def restore_task_full(db: AsyncSession, req) -> TaskModel:
         column_id=target_column_id,
         position=req.position if req.position is not None else 1.0,
         completed_at=req.completed_at,
-        due_date=req.due_date,
         priority=req.priority,
         priority_data=req.priority_data,
         is_visible_on_board=bool(req.is_visible_on_board),
@@ -607,12 +567,7 @@ async def clear_task_timer(db: AsyncSession, task_id: int) -> TaskModel:
     
     _calculate_task_time(task)
 
-    # 🔁 Автоматизация: сортировка колонки при изменении времени
-    try:
-        from src.services.automation_service import trigger_sort_for_column
-        await trigger_sort_for_column(db, task.column_id)
-    except Exception as e:
-        print(f"[Automation] Hook error in set_task_time: {e}")
+
 
     return task
 
@@ -643,75 +598,6 @@ async def get_task_with_details(db: AsyncSession, task_id: int) -> TaskModel:
         
     return task
 
-async def export_task_to_markdown(
-    db: AsyncSession, 
-    task_id: int, 
-    export_base_path: str, 
-    include_attachments: bool = True
-) -> dict:
-    result = await db.execute(
-        select(TaskModel)
-        .options(selectinload(TaskModel.subtasks))
-        .where(TaskModel.id == task_id)
-    )
-    task = result.scalar_one_or_none()
-    
-    if not task:
-        raise ValueError("Задача не найдена")
-
-    # 1. Очищаем название для использования как имя папки и файла (кроссплатформенно)
-    safe_title = re.sub(r'[\\/*?:"<>|]', "", task.title).strip()
-    if not safe_title:
-        safe_title = f"Card_{task.id}"
-
-    # 2. Формируем пути
-    export_dir = Path(export_base_path) / safe_title
-    export_dir.mkdir(parents=True, exist_ok=True)
-    
-    md_file_path = export_dir / f"{safe_title}.md"
-    attachments_export_dir = export_dir / "attachments"
-
-    # 3. Подготавливаем содержимое Markdown (в стиле Obsidian)
-    md_content = f"# {task.title}\n\n"
-    
-    if task.description:
-        exported_description = task.description.replace("(doe/", "(attachments/")
-        md_content += exported_description + "\n\n"
-
-    # Добавляем подзадачи как Markdown чек-лист
-    if task.subtasks:
-        md_content += "## Чек-лист\n"
-        sorted_subs = sorted(task.subtasks, key=lambda s: s.position)
-        for sub in sorted_subs:
-            checked = "x" if sub.completed_at else " "
-            md_content += f"- [{checked}] {sub.title}\n"
-        md_content += "\n"
-
-    # 4. Копирование вложений
-    if task.description:
-        att_dir = get_attachments_dir()
-        pattern = re.compile(r'\]\((doe/[^\)]+)\)')
-        matches = pattern.findall(task.description)
-        
-        if matches and include_attachments:
-            attachments_export_dir.mkdir(exist_ok=True)
-            for match in matches:
-                decoded_path = unquote(match)
-                filename = decoded_path.replace("doe/", "", 1)
-                src_file = att_dir / filename
-                
-                if src_file.exists() and src_file.is_file():
-                    dst_file = attachments_export_dir / filename
-                    try:
-                        shutil.copy2(src_file, dst_file)
-                    except Exception as e:
-                        print(f"[Export] Failed to copy {src_file.name}: {e}")
-
-    # 5. Записываем Markdown файл
-    with open(md_file_path, "w", encoding="utf-8") as f:
-        f.write(md_content)
-
-    return {"success": True, "path": str(export_dir)}
 
 async def set_task_time(db: AsyncSession, task_id: int, total_seconds: int) -> TaskModel:
     result = await db.execute(
@@ -795,11 +681,6 @@ async def set_task_time(db: AsyncSession, task_id: int, total_seconds: int) -> T
     
     _calculate_task_time(task)
 
-    # 🔁 Автоматизация: сортировка колонки при изменении времени
-    try:
-        from src.services.automation_service import trigger_sort_for_column
-        await trigger_sort_for_column(db, task.column_id)
-    except Exception as e:
-        print(f"[Automation] Hook error in set_task_time: {e}")
+
 
     return task

@@ -38,12 +38,6 @@ async def startup():
 
         if initialized is not None:
             print(f"✅ База данных инициализирована в: {vault_path}")
-            from src.db.database import get_session_factory
-            from src.core.config import get_ui_settings
-            exts = get_ui_settings().get("extensions", {})
-            if exts.get("automations", True):
-                from src.services.automation_service import start_scheduler
-                start_scheduler(get_session_factory())
             startup_state["state"] = "ready"
         else:
             print("⚠️ Хранилище не выбрано, защищено паролем или удалено. Ждем действий пользователя.")
@@ -56,11 +50,9 @@ async def startup():
 
 
 async def shutdown():
-    """Штатное завершение: гасим scheduler/watcher, закрываем БД и шифруем
+    """Штатное завершение: гасим watcher, закрываем БД и шифруем
     защищённое хранилище (ключ сессии ещё в памяти)."""
     from src.core.config import get_active_vault
-    from src.services.automation_service import stop_scheduler
-    stop_scheduler()
     vault_observer.stop()  # <-- ГЛУШИМ WATCHER
     await close_database()
     try:
@@ -159,24 +151,10 @@ async def get_logo():
         return FileResponse(logo_path)
     return Response(status_code=404)
 
-@app.get("/ai-logo.png", include_in_schema=False)
-async def get_ai_logo():
-    logo_path = base_dir / "ai-logo.png"
-    if logo_path.exists():
-        return FileResponse(logo_path)
-    return Response(status_code=404)
-
-from src.api.v1 import ai
-from src.api.v1 import automations
-from src.api.v1 import memory
-
 app.include_router(columns.router, prefix="/api/v1")
 app.include_router(tasks.router, prefix="/api/v1")
 app.include_router(system.router, prefix="/api/v1")
 app.include_router(workspaces.router, prefix="/api/v1")
-app.include_router(ai.router, prefix="/api/v1") # <--- ПОДКЛЮЧЕНИЕ
-app.include_router(automations.router, prefix="/api/v1")
-app.include_router(memory.router, prefix="/api/v1")
 
 if getattr(sys, 'frozen', False):
     base_dir = Path(sys._MEIPASS)

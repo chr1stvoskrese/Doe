@@ -6,7 +6,7 @@
     MyVault/
       .doe.board.json          ← маркер формата (скрытый)
       .doe.index.db.doe        ← SQLite-индекс (скрытый; доска пересобирается из файлов,
-                                  служебные данные — таймеры, SRS, автоматизации — живут тут)
+                                  служебные данные — таймеры — живут тут)
       doe/                     ← вложения (как раньше)
       <Вкладка>/               ← workspace = папка
         .doe.json              ← {id, position, name?}
@@ -20,7 +20,7 @@
 - Запись сквозная: каждый commit SQLAlchemy зеркалируется в файлы
   (хуки after_flush/after_commit → асинхронный воркер).
 - Правки извне (Obsidian) подхватывает watcher → reconcile → WebSocket.
-- Служебные таблицы (timer_sessions, memory_items, automations) остаются
+- Служебные таблицы (timer_sessions) остаются
   только в индексе и привязаны к карточкам по стабильным doe_id.
 - Шифрование не затрагивается: lock_vault/unlock_vault и так работают
   пофайлово и рекурсивно, структура папок восстанавливается из контейнеров.
@@ -221,8 +221,6 @@ def _serialize_task(task: TaskModel, parent_ids: list[int], filename_stem: str) 
         fm["updated"] = _dt_out(task.updated_at)
     if task.completed_at:
         fm["completed"] = _dt_out(task.completed_at)
-    if task.due_date:
-        fm["due"] = _dt_out(task.due_date)
     if task.priority is not None:
         fm["priority"] = float(task.priority)
     if task.priority_data:
@@ -717,7 +715,6 @@ async def _apply_snapshot(session, snapshot: dict) -> None:
                         created_at=_dt_in(fm.get("created")) or datetime.utcnow(),
                         updated_at=_dt_in(fm.get("updated")) or datetime.utcnow(),
                         completed_at=_dt_in(fm.get("completed")),
-                        due_date=_dt_in(fm.get("due")),
                         priority=float(priority) if priority is not None else None,
                         priority_data=p_data,
                         is_visible_on_board=bool(fm.get("visible_on_board", False)),
@@ -733,7 +730,6 @@ async def _apply_snapshot(session, snapshot: dict) -> None:
                     task.column_id = col.id
                     task.position = float(tpos)
                     task.completed_at = _dt_in(fm.get("completed"))
-                    task.due_date = _dt_in(fm.get("due"))
                     task.priority = float(priority) if priority is not None else None
                     task.priority_data = p_data
                     task.is_visible_on_board = bool(fm.get("visible_on_board", False))

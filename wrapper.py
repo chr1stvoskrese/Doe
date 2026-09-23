@@ -12,14 +12,6 @@ import threading
 from datetime import datetime, timezone
 from pathlib import Path
 
-# === КРИТИЧЕСКИЙ ФИКС ДЛЯ MACOS + PYINSTALLER + LLAMA.CPP ===
-# macOS даёт фоновым потокам всего 512 KB памяти (в отличие от 8 MB для главного).
-# При аллокации графа нейросети в asyncio.to_thread стек переполняется и приложение падает (SIGABRT).
-# Заставляем Python создавать фоновые потоки с 8 MB памяти:
-if sys.platform == 'darwin':
-    threading.stack_size(8 * 1024 * 1024)
-# ============================================================
-
 # DPI FIX (Windows, 4K/мульти-мониторы): объявляем Per-Monitor V2 awareness
 
 # DPI FIX (Windows, 4K/мульти-мониторы): объявляем Per-Monitor V2 awareness
@@ -1696,7 +1688,7 @@ class WindowAPI:
         return True # Освобождаем мост!
 
     def close_window(self):
-        """Закрывает окно (красная кнопка) — abort AI в JS уже сделан, просто выходим."""
+        """Закрывает окно (красная кнопка) — просто выходим."""
         import sys
         if sys.platform == 'darwin':
             # ── Сохраняем геометрию окна ПЕРЕД os._exit ──
@@ -3019,12 +3011,6 @@ if __name__ == '__main__':
             print("[Main] WebView crashed:")
             traceback.print_exc()
         finally:
-            # Чистим LLM при штатном закрытии окна
-            try:
-                from src.services.ai_service import _cleanup_llm
-                _cleanup_llm()
-            except Exception:
-                pass
             print("[System] Window closed. Shutting down.")
             _lock_vault_before_exit() # 🔐 шифруем защищённое хранилище (идемпотентно)
             try:

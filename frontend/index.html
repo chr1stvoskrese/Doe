@@ -156,20 +156,6 @@
                     <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
                     <span data-i18n="menu.prioritySettings">Приоритетность</span>
                 </div>
-                <div class="menu-divider" id="divider-ai"></div>
-                <div class="menu-item" data-action="ai-settings" id="menu-ai-settings">
-                    <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"></path></svg>
-                    <span data-i18n="modals.extAi">ИИ-ассистент</span>
-                </div>
-                <div class="menu-divider"></div>
-                <div class="menu-item" data-action="export-json">
-                    <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                    <span data-i18n="menu.exportJson">Экспорт в JSON</span>
-                </div>
-                <div class="menu-item" data-action="import-json">
-                    <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                    <span data-i18n="menu.importJson">Импорт из JSON</span>
-                </div>
                 <div class="menu-divider"></div>
                 <div class="menu-item" data-action="about">
                   <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -213,12 +199,6 @@
             </svg>
         </button>
 
-        <button class="icon-btn" id="automations-trigger" aria-label="Автоматизации">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-            </svg>
-        </button>
-
         <button class="icon-btn" id="calendar-trigger" aria-label="Календарь">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
@@ -234,15 +214,6 @@
                 <line x1="12" y1="20" x2="12" y2="4"></line>
                 <line x1="6" y1="20" x2="6" y2="14"></line>
             </svg>
-        </button>
-
-        <button class="icon-btn" id="memory-trigger" aria-label="Запоминание">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 5a3 3 0 0 0-5.997.142 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"></path>
-                <path d="M12 5a3 3 0 0 1 5.997.142 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"></path>
-                <path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"></path>
-            </svg>
-            <span class="bell-badge" id="memory-badge" style="display: none;"></span>
         </button>
 
         <div class="search-wrapper" id="global-search-wrapper">
@@ -584,42 +555,6 @@
     </div>
 </div>
 
-<div class="modal-overlay" id="export-modal">
-    <div class="modal-card confirm-card">
-        <div class="confirm-body">
-            <h3 class="confirm-title" data-i18n="modals.exportTitle">Экспорт карточки</h3>
-            <div style="margin-top: 16px; display: flex; flex-direction: column; align-items: flex-start; gap: 12px; padding: 0 16px;">
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <input type="checkbox" id="export-include-att" checked style="width: 16px; height: 16px; accent-color: var(--brand-pine); flex-shrink: 0; cursor: pointer;">
-                    <label for="export-include-att" style="font-size: 13px; color: var(--text-primary); cursor: pointer; user-select: none;" data-i18n="modals.exportIncludeAtt">Экспортировать с вложениями</label>
-                </div>
-            </div>
-        </div>
-        <div class="confirm-actions">
-            <button class="confirm-btn cancel-btn" onclick="document.getElementById('export-modal').classList.remove('show')" data-i18n="cancel">Отмена</button>
-            <button class="confirm-btn vault-submit-btn" style="color: white;" id="btn-confirm-export" data-i18n="modals.btnExport">Экспортировать</button>
-        </div>
-    </div>
-</div>
-
-<div class="modal-overlay" id="export-json-modal">
-    <div class="modal-card confirm-card">
-        <div class="confirm-body">
-            <h3 class="confirm-title" data-i18n="menu.exportJson">Экспорт в JSON</h3>
-            <div style="margin-top: 16px; display: flex; flex-direction: column; align-items: flex-start; gap: 12px; padding: 0 16px;">
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <input type="checkbox" id="export-json-include-att" checked style="width: 16px; height: 16px; accent-color: var(--brand-pine); flex-shrink: 0; cursor: pointer;">
-                    <label for="export-json-include-att" style="font-size: 13px; color: var(--text-primary); cursor: pointer; user-select: none;" data-i18n="modals.exportIncludeAtt">Экспортировать с вложениями</label>
-                </div>
-            </div>
-        </div>
-        <div class="confirm-actions">
-            <button class="confirm-btn cancel-btn" onclick="document.getElementById('export-json-modal').classList.remove('show')" data-i18n="cancel">Отмена</button>
-            <button class="confirm-btn vault-submit-btn" style="color: white;" id="btn-confirm-json-export" data-i18n="modals.btnExport">Экспортировать</button>
-        </div>
-    </div>
-</div>
-
 <div class="modal-overlay" id="task-modal">
     <div class="modal-card task-detail-card">
         <div class="resizer r-top"></div>
@@ -666,14 +601,6 @@
                                 <path d="M4 17c0-3.5 3-4.5 3-9a5 5 0 0 1 10 0c0 4.5 3 5.5 3 9H4z"></path>
                                 <line x1="10" y1="21" x2="14" y2="21"></line>
                             </svg>
-                        </button>
-                        <button class="modal-due-date" id="modal-due-date" aria-label="Установить дедлайн">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M12 22c-4.42 0-8-3.58-8-8 0-3.1 1.76-5.8 4.36-7.14.33-.17.7-.06.88.24.41.69 1.05 1.34 1.7 1.15.65-.19.96-1.55 1.4-3.13C12.8 3.42 13.5 2 14.5 2c.28 0 .54.12.72.32 1.41 1.6 3.1 3.96 4.13 6.08C20.44 10.64 20 12.3 20 14c0 4.42-3.58 8-8 8z"></path>
-                            </svg>
-                        </button>
-                        <button class="modal-export" aria-label="Экспорт">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                         </button>
                         <button class="modal-priority" id="modal-priority-btn" aria-label="Приоритетность">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
@@ -745,15 +672,6 @@
                 <div id="subtask-form-container" class="subtask-add-wrapper">
                 </div>
             </div>
-
-            <div class="subtasks-section memory-card-section" id="memory-card-section" style="display: none;">
-                <div class="subtasks-header">
-                    <span>🧠 <span data-i18n="modals.extMemory">Запоминание</span></span>
-                    <span class="subtasks-count" id="memory-items-count">0</span>
-                </div>
-                <div id="memory-items-list" class="subtasks-list memory-items-list">
-                </div>
-            </div>
         </div>
     </div>
 </div>
@@ -794,10 +712,6 @@
         <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
         <span data-i18n="menu.copyCardLink">Скопировать ссылку</span>
     </div>
-    <div class="menu-item" data-action="export-card">
-        <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        <span data-i18n="menu.exportCard">Экспорт в Markdown</span>
-    </div>
     <div class="menu-item" data-action="move-card-menu">
         <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><polyline points="12 5 19 12 12 19"/></svg>
         <span data-i18n="menu.moveCard">Переместить...</span>
@@ -805,19 +719,6 @@
     <div class="menu-item" data-action="set-priority" id="menu-set-priority">
         <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
         <span data-i18n="menu.priority">Приоритетность</span>
-    </div>
-    <div class="menu-item" data-action="set-due-date" id="menu-set-due-date">
-        <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 22c-4.42 0-8-3.58-8-8 0-3.1 1.76-5.8 4.36-7.14.33-.17.7-.06.88.24.41.69 1.05 1.34 1.7 1.15.65-.19.96-1.55 1.4-3.13C12.8 3.42 13.5 2 14.5 2c.28 0 .54.12.72.32 1.41 1.6 3.1 3.96 4.13 6.08C20.44 10.64 20 12.3 20 14c0 4.42-3.58 8-8 8z"></path>
-        </svg>
-        <span data-i18n="menu.dueDate">Установить дедлайн</span>
-    </div>
-    <div class="menu-item" data-action="clear-due-date" id="menu-clear-due-date" style="display: none;">
-        <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 22c-4.42 0-8-3.58-8-8 0-3.1 1.76-5.8 4.36-7.14.33-.17.7-.06.88.24.41.69 1.05 1.34 1.7 1.15.65-.19.96-1.55 1.4-3.13C12.8 3.42 13.5 2 14.5 2c.28 0 .54.12.72.32 1.41 1.6 3.1 3.96 4.13 6.08C20.44 10.64 20 12.3 20 14c0 4.42-3.58 8-8 8z"></path>
-            <line x1="21" y1="3" x2="3" y2="21"></line>
-        </svg>
-        <span data-i18n="menu.clearDueDate">Очистить дедлайн</span>
     </div>
     <div class="menu-item" data-action="notify-card">
         <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -897,29 +798,6 @@
         </div>
     </div>
 </div>
-
-<div class="modal-overlay" id="due-date-modal">
-    <div class="modal-card">
-        <div class="modal-header">
-            <div style="display: flex; align-items: center; gap: 8px;">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-secondary); flex-shrink: 0;">
-                    <path d="M12 22c-4.42 0-8-3.58-8-8 0-3.1 1.76-5.8 4.36-7.14.33-.17.7-.06.88.24.41.69 1.05 1.34 1.7 1.15.65-.19.96-1.55 1.4-3.13C12.8 3.42 13.5 2 14.5 2c.28 0 .54.12.72.32 1.41 1.6 3.1 3.96 4.13 6.08C20.44 10.64 20 12.3 20 14c0 4.42-3.58 8-8 8z"></path>
-                </svg>
-                <span class="modal-title" data-i18n="modals.dueDateTitle">Срок выполнения</span>
-            </div>
-            <button class="modal-close" aria-label="Закрыть">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-            </button>
-        </div>
-        <div class="modal-body">
-            <div class="notify-field datepicker-trigger" id="due-datepicker-trigger"></div>
-            
-            <div class="confirm-actions" style="padding: 0;">
-                <button class="confirm-btn cancel-btn" onclick="document.getElementById('due-date-modal').classList.remove('show')" data-i18n="cancel">Отмена</button>
-                <button class="confirm-btn cancel-btn" id="btn-confirm-due-date" data-i18n="modals.btnSet">Установить</button>
-            </div>
-        </div>
-    </div>
 </div>
 
 <div class="dropdown-menu datepicker-dropdown" id="datepicker-dropdown">
@@ -987,13 +865,6 @@
                             <span class="stats-trend" id="stat-trend-done" style="display: none;">0%</span>
                         </div>
                         <div class="stats-metric-value" id="stat-val-done">0</div>
-                    </div>
-
-                    <div class="stats-metric-card">
-                        <div class="stats-metric-header">
-                            <span class="stats-metric-label" data-i18n="stats.overdue">Просрочено</span>
-                        </div>
-                        <div class="stats-metric-value" id="stat-val-overdue" style="color: #D35446;">0</div>
                     </div>
                 </div>
 
@@ -1072,12 +943,6 @@
         </div>
     </div>
 </div>
-
-<button id="ai-floating-btn" class="ai-floating-btn" data-i18n-title="ai.floatingBtnTitle" title="ИИ-ассистент">
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"></path>
-    </svg>
-</button>
 
 <div id="app-toast" class="app-toast">
     <div class="app-toast-icon">
@@ -1159,50 +1024,10 @@
 
                 <div class="setting-row" style="cursor: default;">
                     <div class="setting-text-box">
-                        <div class="setting-title" data-i18n="modals.extDeadlines">Дедлайны</div>
-                    </div>
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="ext-toggle-deadlines" onchange="toggleExtension('deadlines', this.checked)">
-                        <span class="toggle-slider"></span>
-                    </label>
-                </div>
-
-                <div class="setting-row" style="cursor: default;">
-                    <div class="setting-text-box">
-                        <div class="setting-title" data-i18n="modals.extExport">Экспорт карточек</div>
-                    </div>
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="ext-toggle-export" onchange="toggleExtension('export', this.checked)">
-                        <span class="toggle-slider"></span>
-                    </label>
-                </div>
-
-                <div class="setting-row" style="cursor: default;">
-                    <div class="setting-text-box">
                         <div class="setting-title" data-i18n="modals.extPriority">Приоритетность</div>
                     </div>
                     <label class="toggle-switch">
                         <input type="checkbox" id="ext-toggle-priority" onchange="toggleExtension('priority', this.checked)">
-                        <span class="toggle-slider"></span>
-                    </label>
-                </div>
-
-                <div class="setting-row" style="cursor: default;">
-                    <div class="setting-text-box">
-                        <div class="setting-title" data-i18n="modals.extAi">ИИ-ассистент</div>
-                    </div>
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="ext-toggle-ai" onchange="toggleExtension('ai', this.checked)">
-                        <span class="toggle-slider"></span>
-                    </label>
-                </div>
-
-                <div class="setting-row" style="cursor: default;">
-                    <div class="setting-text-box">
-                        <div class="setting-title" data-i18n="modals.extAutomations">Автоматизации</div>
-                    </div>
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="ext-toggle-automations" onchange="toggleExtension('automations', this.checked)">
                         <span class="toggle-slider"></span>
                     </label>
                 </div>
@@ -1215,20 +1040,6 @@
                         <input type="checkbox" id="ext-toggle-statistics" onchange="toggleExtension('statistics', this.checked)">
                         <span class="toggle-slider"></span>
                     </label>
-                </div>
-
-                <div class="setting-row" style="cursor: default;">
-                    <div class="setting-text-box">
-                        <div class="setting-title" data-i18n="modals.extMemory">Запоминание</div>
-                    </div>
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="ext-toggle-memory" onchange="toggleExtension('memory', this.checked)">
-                        <span class="toggle-slider"></span>
-                    </label>
-                </div>
-
-                <div class="setting-row" id="ai-settings-row" style="display: none; justify-content: center; background: transparent; border: none;">
-                    <button class="confirm-btn cancel-btn" onclick="openAiSettingsModal()" style="font-size: 12px; padding: 6px 12px;" data-i18n="ai.setupBtn">✨ Настроить ИИ-ассистента</button>
                 </div>
 
             </div>
@@ -1276,9 +1087,7 @@
                 <div class="setting-row sort-option-priority" data-sort="priority">
                     <div class="setting-text-box"><div class="setting-title" data-i18n="sort.priority">По приоритетности</div></div>
                     <div class="setting-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-                </div>
-                <div class="setting-row ext-deadlines-dependent" data-sort="deadline">
-                    <div class="setting-text-box"><div class="setting-title" data-i18n="sort.deadline">По дедлайну</div></div>
+                </div></div>
                     <div class="setting-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
                 </div>
             </div>
@@ -1509,191 +1318,7 @@
             </div>
         </div>
     </div>
-</div>
-
-<div class="modal-overlay" id="ai-settings-modal">
-    <div class="modal-card" style="width: 360px;">
-        <div class="modal-header">
-            <span class="modal-title" data-i18n="modals.extAi">ИИ-ассистент</span>
-            <button class="modal-close" aria-label="Закрыть">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-            </button>
-        </div>
-        <div class="modal-body" style="padding: 12px 16px 16px; gap: 12px;">
-            <div class="setting-hint" data-i18n="ai.hintText">Локальная нейросеть анализирует ваше состояние каждое утро и умно расставляет приоритеты задач. Не требует интернета.</div>
-            
-            <div class="settings-group-card" id="ai-models-list">
-            </div>
-
-            
-            <button class="confirm-btn vault-submit-btn" style="color: white;" onclick="document.getElementById('ai-settings-modal').classList.remove('show')" data-i18n="ai.readyBtn">Готово</button>
-        </div>
-    </div>
-</div>
-
-<div class="modal-overlay" id="automations-modal">
-    <div class="modal-card" style="width: 420px;">
-        <div class="modal-header">
-            <div style="display: flex; align-items: center; gap: 8px;">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-                </svg>
-                <span class="modal-title" data-i18n="modals.autoTitle">Автоматизации</span>
-            </div>
-            <button class="modal-close" data-i18n-aria="close" aria-label="Закрыть">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-            </button>
-        </div>
-        <div class="modal-body" style="padding: 12px 16px 16px; gap: 12px;">
-            <div id="automations-list" style="display: flex; flex-direction: column; gap: 4px;">
-            </div>
-            <div id="automations-empty" class="setting-hint" style="text-align: center; padding: 12px;" data-i18n="modals.autoEmpty">
-                Нет автоматизаций. Нажмите «+» чтобы создать.
-            </div>
-            <div id="automation-form" style="display: none; flex-direction: column; gap: 12px; margin-top: 4px;">
-                
-                <div class="settings-group-card" style="padding: 12px; display: flex; flex-direction: column; gap: 4px;">
-                    <label for="auto-type" style="font-size: 11px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px;" data-i18n="modals.autoType">Тип автоматизации</label>
-                    <select id="auto-type" class="setting-input custom-select-arrow">
-                        <option value="recurring_card" data-i18n="modals.autoTypeRecurring">🔄 Повторяющаяся карточка</option>
-                        <option value="sort_column" data-i18n="modals.autoTypeSort">↕️ Сортировка колонки</option>
-                        <option value="clear_column" data-i18n="modals.autoTypeClear">🧹 Очистка колонки</option>
-                    </select>
-                </div>
-
-                <div id="auto-section-basic" class="settings-group-card" style="padding: 12px; display: flex; flex-direction: column; gap: 8px;">
-                    <input type="text" id="auto-name" class="setting-input" style="font-size: 14px; font-weight: 600; padding: 10px 12px;" data-i18n="modals.autoNamePlaceholder" placeholder="Название автоматизации..." autocomplete="off" spellcheck="false">
-                    <label for="auto-column" style="font-size: 11px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;" data-i18n="modals.autoColumn">Колонка</label>
-                    <select id="auto-column" class="setting-input custom-select-arrow"></select>
-                </div>
-
-                <div id="auto-section-recurring-card" class="settings-group-card" style="padding: 12px; display: flex; flex-direction: column; gap: 8px;">
-                    <input type="text" id="auto-title-template" class="setting-input" data-i18n="modals.autoTitlePlaceholder" placeholder="Шаблон заголовка, например: Обзор {date}" autocomplete="off" spellcheck="false">
-                    <textarea id="auto-desc-template" class="setting-input" data-i18n="modals.autoDescPlaceholder" placeholder="Шаблон описания (опционально)..." rows="3" style="resize: none; min-height: 60px;" autocomplete="off" spellcheck="false"></textarea>
-                    <div class="setting-hint" style="font-size: 11px; padding: 0 4px; margin-top: -2px;" data-i18n="modals.autoVarsHint">
-                        Переменные: {date}, {date:формат}, {time}, {weekday}, {week_number}, {month_name}
-                    </div>
-                </div>
-
-                <div id="auto-section-sort" class="settings-group-card" style="padding: 12px; display: none; flex-direction: column; gap: 8px;">
-                    <div style="display: flex; gap: 8px; align-items: center;">
-                        <label for="auto-sort-by" style="font-size: 12px; font-weight: 500; color: var(--text-secondary); flex: 0 0 auto;" data-i18n="modals.autoSortBy">Сортировать по:</label>
-                        <select id="auto-sort-by" class="setting-input custom-select-arrow" style="flex: 1;">
-                            <option value="position" data-i18n="modals.autoSortPosition">Позиции</option>
-                            <option value="title" data-i18n="modals.autoSortTitle">Названию</option>
-                            <option value="created_at" data-i18n="modals.autoSortCreated">Дате создания</option>
-                            <option value="priority" data-i18n="modals.autoSortPriority">Приоритету</option>
-                            <option value="due_date" data-i18n="modals.autoSortDue">Сроку</option>
-                        </select>
-                    </div>
-                    <div style="display: flex; gap: 8px; align-items: center;">
-                        <label for="auto-sort-order" style="font-size: 12px; font-weight: 500; color: var(--text-secondary); flex: 0 0 auto;" data-i18n="modals.autoSortOrder">Порядок:</label>
-                        <select id="auto-sort-order" class="setting-input custom-select-arrow" style="flex: 1;">
-                            <option value="asc" data-i18n="modals.autoSortAsc">По возрастанию</option>
-                            <option value="desc" data-i18n="modals.autoSortDesc">По убыванию</option>
-                        </select>
-                    </div>
-                    <div class="setting-hint" style="font-size: 11px; padding: 0 4px;" data-i18n="modals.autoSortHint">
-                        Срабатывает автоматически при создании или перемещении карточки в эту колонку.
-                    </div>
-                </div>
-
-                <div id="auto-section-clear" class="settings-group-card" style="padding: 12px; display: none; flex-direction: column; gap: 8px;">
-                    <div style="display: flex; align-items: center; padding: 4px 0;">
-                        <div class="setting-text-box">
-                            <div class="setting-title" style="font-size: 13px;" data-i18n="modals.autoClearImmediateTitle">Мгновенное удаление</div>
-                            <div class="setting-desc" style="font-size: 11px;" data-i18n="modals.autoClearImmediateDesc">Удалять карточку сразу при её попадании в колонку</div>
-                        </div>
-                        <label class="toggle-switch" style="transform: scale(0.8); transform-origin: right center;">
-                            <input type="checkbox" id="auto-clear-immediate">
-                            <span class="toggle-slider"></span>
-                        </label>
-                    </div>
-                    <div style="display: flex; gap: 8px; align-items: center; padding-top: 4px;" id="auto-clear-age-wrapper">
-                        <label for="auto-max-age" style="font-size: 12px; font-weight: 500; color: var(--text-secondary); flex: 1;" data-i18n="modals.autoMaxAge">Удалять карточки старше:</label>
-                        <input type="number" id="auto-max-age" class="setting-input" value="1440" min="1" max="43200" style="width: 80px; text-align: center; padding: 6px 8px;">
-                        <span style="font-size: 12px; color: var(--text-secondary); flex: 0 0 auto;" data-i18n="modals.autoMaxAgeUnit">мин.</span>
-                    </div>
-                </div>
-
-                <div id="auto-section-schedule" class="settings-group-card" style="padding: 12px; display: flex; flex-direction: column; gap: 12px;">
-                    <div style="font-size: 11px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;" data-i18n="modals.autoSchedule">Расписание</div>
-                    <div style="display: flex; gap: 8px; align-items: center;">
-                        <select id="auto-schedule-type" class="setting-input custom-select-arrow" style="flex: 1;">
-                            <option value="hourly" data-i18n="modals.autoHourly">Каждый час</option>
-                            <option value="daily" data-i18n="modals.autoDaily">Ежедневно</option>
-                            <option value="weekdays" data-i18n="modals.autoWeekdays">По будням</option>
-                            <option value="weekly" data-i18n="modals.autoWeekly">Еженедельно</option>
-                            <option value="monthly" data-i18n="modals.autoMonthly">Ежемесячно</option>
-                        </select>
-                        <label style="font-size: 12px; font-weight: 500; color: var(--text-secondary); flex: 0 0 auto;" data-i18n="modals.autoTime">Время:</label>
-                        <div class="time-inputs" style="flex: none; justify-content: center;">
-                            <input type="number" class="time-input" id="auto-hour" min="0" max="23" value="09">
-                            <span>:</span>
-                            <input type="number" class="time-input" id="auto-minute" min="0" max="59" value="00">
-                        </div>
-                    </div>
-                    
-                    <div id="auto-weekdays" class="auto-weekdays-group" style="display: none;">
-                        <span class="auto-wday-btn" data-day="0" data-i18n="cal.dayMon" tabindex="0" role="button">ПН</span>
-                        <span class="auto-wday-btn" data-day="1" data-i18n="cal.dayTue" tabindex="0" role="button">ВТ</span>
-                        <span class="auto-wday-btn" data-day="2" data-i18n="cal.dayWed" tabindex="0" role="button">СР</span>
-                        <span class="auto-wday-btn" data-day="3" data-i18n="cal.dayThu" tabindex="0" role="button">ЧТ</span>
-                        <span class="auto-wday-btn" data-day="4" data-i18n="cal.dayFri" tabindex="0" role="button">ПТ</span>
-                        <span class="auto-wday-btn" data-day="5" data-i18n="cal.daySat" tabindex="0" role="button">СБ</span>
-                        <span class="auto-wday-btn" data-day="6" data-i18n="cal.daySun" tabindex="0" role="button">ВС</span>
-                    </div>
-
-                    <div id="auto-monthly-day" style="display: none; gap: 8px; align-items: center; background: rgba(0,0,0,0.02); padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-light);">
-                        <label for="auto-day-of-month" style="font-size: 12px; font-weight: 500; color: var(--text-secondary); flex: 1;" data-i18n="modals.autoDayOfMonth">День месяца:</label>
-                        <input type="number" id="auto-day-of-month" class="setting-input" value="1" min="1" max="28" style="width: 60px; text-align: center; padding: 4px 8px;">
-                    </div>
-                </div>
-
-                <div class="confirm-actions" style="padding: 0; margin-top: 4px;">
-                    <button class="confirm-btn cancel-btn" onclick="cancelAutomationForm()" data-i18n="cancel">Отмена</button>
-                    <button class="confirm-btn vault-submit-btn" style="color: white;" id="btn-save-automation" data-i18n="modals.btnSave">Сохранить</button>
-                </div>
-            </div>
-            <button id="btn-add-automation" class="confirm-btn cancel-btn" onclick="showAutomationForm()" style="width: 100%; font-size: 13px; padding: 8px;" data-i18n="modals.autoAddBtn">+ Новая автоматизация</button>
-        </div>
-    </div>
-</div>
-
-<div class="modal-overlay" id="ai-journal-modal" style="backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);">
-    <div class="modal-card ai-journal-card" style="position: relative;">
-        <button class="modal-close" aria-label="Закрыть" style="position: absolute; top: 16px; right: 16px; z-index: 10;">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-        </button>
-        
-        <div class="ai-journal-body">
-            
-            <div class="ai-journal-logo-container">
-                <img src="../ai-logo.png" alt="AI Logo" class="ai-journal-logo">
-            </div>
-
-            <div id="ai-chat-history" class="ai-chat-history">
-            </div>
-
-            <div class="ai-journal-input-wrapper">
-                <textarea id="ai-chat-input" class="ai-chat-input" data-i18n="ai.chatPlaceholder" placeholder="Расскажите, что тревожит или вдохновляет сегодня..." rows="1" spellcheck="false"></textarea>
-                <button id="ai-send-btn" class="ai-send-btn" data-i18n-aria="ai.sendAria" aria-label="Отправить">
-                    <svg class="ai-icon-send" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="22" y1="2" x2="11" y2="13"></line>
-                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-                    </svg>
-                    <svg class="ai-icon-stop" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
-                        <rect x="4" y="4" width="16" height="16" rx="3"></rect>
-                    </svg>
-                </button>
-            </div>
-            
-            
-        </div>
-    </div>
-</div>
-
-<!-- ============ 🌌 Space — бесконечный холст ============ -->
+</div><!-- ============ 🌌 Space — бесконечный холст ============ -->
 <div class="space-view" id="space-view">
     <div class="space-viewport" id="space-viewport" data-tool="select">
         <div class="space-world" id="space-world">

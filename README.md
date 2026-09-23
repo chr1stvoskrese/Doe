@@ -70,18 +70,6 @@
 <tr>
   <td width="50%" valign="top">
 
-**🧠 Local AI** `🚧 beta` — Built-in AI assistant powered by **Gemma 4** — fully offline with Apple Silicon acceleration. Discuss tasks, search the board, create cards, remember facts between sessions.
-
-  </td>
-  <td width="50%" valign="top">
-
-**🔁 Automations** — Recurring cards on schedule (daily, weekly…), auto-sort columns, auto-cleanup of old tasks.
-
-  </td>
-</tr>
-<tr>
-  <td width="50%" valign="top">
-
 **⏱️ Built-in Time Tracker** — Start a timer on a task — time is written to the database. The calendar shows your daily breakdown. Statistics sum up your week.
 
   </td>
@@ -164,17 +152,15 @@ pip install -r requirements.txt
 python wrapper.py
 ```
 
-### Build
-
-Single cross-platform builder with an interactive menu (works on both macOS and Windows):
+### Build (macOS arm64)
 
 ```bash
-python build.py
+make install   # virtualenv + dependencies (first time)
+make build     # dist/Doe.app
+make install-app  # build + install into /Applications
 ```
 
-The script auto-detects your system and suggests targets: Apple Silicon (with AI), Intel (without AI, for older Macs), or both. The Intel environment is created automatically. Output: `dist/Doe.app` (arm64) and/or `dist-intel/Doe.app` (Intel).
-
-Menu-less (for CI): `python build.py --target arm64|intel|both|windows`.
+Other useful targets: `make run` (dev mode), `make check` (backend smoke test), `make clean`.
 
 ### Windows
 
@@ -190,13 +176,8 @@ pip install -r requirements.txt
 
 :: 3. Run
 python wrapper.py
-
-:: 4. Build (.exe)
-python build.py
 ```
 
-> **Note:** The AI assistant (llama-cpp) only works on macOS arm64 with Apple Silicon.
-> On Windows and Intel Macs, AI is unavailable — everything else works fully.
 
 ---
 
@@ -220,9 +201,6 @@ plain ASGI library. Zero network attack surface, fully offline.
 │  │  /api/v1/tasks          CRUD + move    │  │
 │  │  /api/v1/workspaces                    │  │
 │  │  /api/v1/system     vault/settings     │  │
-│  │  /api/v1/ai            local LLM       │  │
-│  │  /api/v1/automations                   │  │
-│  │  /api/v1/memory       spaced repetition│  │
 │  └────────────────────┬───────────────────┘  │
 │  ┌────────────────────┴───────────────────┐  │
 │  │  SQLAlchemy 2.0 (async) + aiosqlite    │  │
@@ -246,8 +224,7 @@ plain ASGI library. Zero network attack surface, fully offline.
 | **Migrations** | Alembic |
 | **Desktop** | pywebview (native OS WebView) |
 | **Build** | PyInstaller (`.app` / `.exe`) |
-| **AI** | llama-cpp-python · Gemma 4 (Metal-accelerated) |
-| **Frontend** | Vanilla JS (~17k lines) · CSS (~10k lines) · space.js (~1.7k) |
+| **Frontend** | Vanilla JS (~15k lines) · CSS (~9k lines) · space.js (~1.7k) |
 | **Storage** | SQLite (+aiosqlite) **and** Obsidian-compatible file store (FS Store v2) |
 | **Editor** | CodeMirror · Marked.js · Prism.js · KaTeX |
 | **Sync** | pywebview bridge push · watchdog |
@@ -263,7 +240,6 @@ plain ASGI library. Zero network attack surface, fully offline.
 - Drag-and-drop cards between and within columns
 - Three column modes: **Normal**, **Time Tracker**, **Close-out**
 - Collapsible columns, adjustable width, keyboard shortcuts
-- JSON export/import of the entire board or individual cards
 
 </details>
 
@@ -272,7 +248,6 @@ plain ASGI library. Zero network attack surface, fully offline.
 
 - Markdown description with live preview
 - Checklists (subtasks) via many-to-many relations
-- Deadlines with native macOS/Windows notifications
 - Attachments: drag-and-drop, file picker, auto-cleanup of orphaned files
 - Priorities: 9-factor model with visual indicators
 - Time tracking: start/stop timer, accumulated time, manual adjustment
@@ -280,42 +255,18 @@ plain ASGI library. Zero network attack surface, fully offline.
 </details>
 
 <details>
-<summary><strong>🧩 Extensions (13 modules)</strong></summary>
+<summary><strong>🧩 Extensions (8 modules)</strong></summary>
 
 | Module | Description |
 |---|---|
 | **Search** | Global search with boolean expressions (`&&`, `\|\|`) and tag search |
-| **Calendar** | Day/week/month: deadlines and time blocks |
+| **Calendar** | Day/week/month: time blocks |
 | **Reminders** | System notifications on schedule |
 | **Graph** | Task relationship visualization (D3.js force-directed graph) |
 | **Statistics** | Weekly analytics: trends, top tasks, daily breakdown |
-| **AI Assistant** `🚧 beta` | Local LLM: chat, search, task creation, memory |
-| **Automations** | Recurring cards, auto-sort, auto-cleanup |
-| **Deadlines** | Overdue and upcoming deadlines |
 | **Priorities** | Color labels and emoji for priorities |
-| **Export** | Export cards to Markdown |
 | **Tabs** | Switch between workspaces |
 | **Space** `🚧 beta` | Infinite vector canvas (DoeSpace): drawing, text, connections |
-| **Memory** | Spaced repetition (SRS, SM-2 algorithm) for facts and notes |
-
-</details>
-
-<details>
-<summary><strong>🤖 AI Assistant</strong> · 🚧 beta</summary>
-
-> **In active development.** The assistant is functional but still being polished — behaviour, tool coverage, and the model line-up may change.
-
-Runs **fully offline** — local **Gemma 4** (Google), Apple Silicon with Metal acceleration and flash-attention (macOS arm64). Models are downloaded via HuggingFace:
-
-| Model | Parameters | Size |
-|---|---|---|
-| Gemma 4 E2B | 2.3B | ~3.1 GB |
-| Gemma 4 E4B | 4.5B | ~4.8 GB |
-| Gemma 4 12B | 12B | ~6.5 GB |
-| Gemma 4 26B (A4B MoE) | 26B | ~13.5 GB |
-
-- **Can:** search the board, create/edit/delete tasks, move cards, create columns and workspaces, change theme and language, toggle extensions, prioritize tasks, set reminders
-- **Memory:** remembers facts between sessions (`~/.doe_app/memory/`)
 
 </details>
 
@@ -352,15 +303,15 @@ alembic downgrade -1
 ```
 # Project structure
 src/
-├── api/v1/          # FastAPI routers (columns, tasks, workspaces, system, ai, automations, memory)
+├── api/v1/          # FastAPI routers (columns, tasks, workspaces, system)
 ├── core/            # config, watcher, vault_crypto, biometric, fs_store (Obsidian-vault), attach_jobs
 ├── db/              # database.py, models.py
-├── services/        # task_service, column_service, workspace_service, ai_service, automation_service, memory_service, srs, hardware
-└── schemas/         # Pydantic DTOs (task, column, workspace, automation)
+├── services/        # task_service, column_service, workspace_service
+└── schemas/         # Pydantic DTOs (task, column, workspace)
 frontend/
-├── index.html       # entry point (~1.9k lines)
-├── app.js           # all logic (~17k lines)
-├── styles.css       # styles (~10k lines)
+├── index.html       # entry point (~1.5k lines)
+├── app.js           # all logic (~15k lines)
+├── styles.css       # styles (~9k lines)
 └── space.js         # «Space» extension (~1.7k lines)
 tools/
 ├── rewrite.py       # AI-powered refactoring via git
@@ -368,8 +319,9 @@ tools/
 └── dev_stats.py     # development statistics
 wrapper.py           # entry point: window management + pywebview bridge
 main.py              # FastAPI app (in-process ASGI, no network server)
+Makefile             # install / run / build / install-app / check / clean (macOS arm64)
 notify_worker.py     # background notification worker
-build.py             # cross-platform builder
+build.py             # macOS arm64 builder (called via `make build`)
 make_dmg.sh          # DMG image builder
 ```
 
@@ -377,7 +329,6 @@ make_dmg.sh          # DMG image builder
 
 ## 🚧 Roadmap
 
-- **Local AI assistant** — polishing tool coverage, streaming responses, and broader model support
 - **Space (infinite canvas)** — richer drawing tools and inline card embedding
 - **Screenshots & demo GIFs** in this README
 

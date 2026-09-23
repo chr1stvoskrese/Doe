@@ -11,7 +11,6 @@ class TaskBase(BaseModel):
     """Общие поля задачи."""
     title: str = Field(..., min_length=1, max_length=1000, description="Текст задачи")
     is_visible_on_board: bool = False
-    due_date: Optional[datetime] = None # <--- СРОК ВЫПОЛНЕНИЯ
     priority: Optional[float] = None # <--- ПРИОРИТЕТНОСТЬ
     priority_data: Optional[dict] = None # <--- ДАННЫЕ ПОЛЗУНКОВ
 
@@ -32,7 +31,6 @@ class TaskUpdate(BaseModel):
     position: Optional[float] = None
     attachments_order: Optional[List[str]] = None
     completed_at: Optional[datetime] = None
-    due_date: Optional[datetime] = None # <--- СРОК ВЫПОЛНЕНИЯ
     priority: Optional[float] = None
     priority_data: Optional[dict] = None
     is_visible_on_board: Optional[bool] = None
@@ -42,12 +40,6 @@ class TaskUpdate(BaseModel):
 class TaskMove(BaseModel):
     """Схема для перемещения задачи в другую колонку."""
     target_column_id: int = Field(..., description="ID колонки, куда перемещается задача")
-
-
-class TaskExportReq(BaseModel):
-    """Схема для запроса экспорта карточки."""
-    export_path: str = Field(..., description="Абсолютный путь к папке для экспорта")
-    include_attachments: bool = Field(True, description="Копировать ли физически папку вложений")
 
 
 class TimerSessionResponse(BaseModel):
@@ -134,7 +126,6 @@ class TaskRestoreReq(BaseModel):
     description: Optional[str] = None
     position: Optional[float] = None
     completed_at: Optional[datetime] = None
-    due_date: Optional[datetime] = None
     priority: Optional[float] = None
     priority_data: Optional[dict] = None
     is_visible_on_board: Optional[bool] = False

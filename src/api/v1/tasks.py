@@ -14,7 +14,6 @@ from src.schemas.task import (
     TaskResponse,
     TaskCreateResponse,
     TaskReorder,
-    TaskExportReq,
     TaskSetTimeReq,
     TaskNotifyReq,
     TaskRestoreReq,
@@ -72,18 +71,6 @@ async def clear_task_timer_endpoint(task_id: int, db: AsyncSession = Depends(get
         return task
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
-
-@router.post("/{task_id}/export")
-async def export_task_endpoint(task_id: int, req: TaskExportReq, db: AsyncSession = Depends(get_session)):
-    try:
-        result = await task_service.export_task_to_markdown(
-            db, task_id, req.export_path, req.include_attachments
-        )
-        return result
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/{task_id}", response_model=TaskResponse)
 async def get_task(task_id: int, db: AsyncSession = Depends(get_session)):
