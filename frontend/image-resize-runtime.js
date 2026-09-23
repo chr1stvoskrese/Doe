@@ -117,7 +117,7 @@
     };
 
     // Block the description divider when the pointer starts on an image.
-    // This capture listener runs before app.js installs its divider listener.
+    // This capture listener runs before js/65_card_content.js installs its divider listener.
     document.addEventListener('pointerdown', (event) => {
         if (event.button !== 0) return;
         if (event.target.closest?.('.image-resizer-wrapper')) {
