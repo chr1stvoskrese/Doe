@@ -1,0 +1,105 @@
+/* ============================================================
+   📖 Obsidian-совместимый Markdown: callouts, подсветка, сноски,
+   вики-ссылки. Цвета подобраны под палитру Doe (обе темы).
+   ============================================================ */
+
+.markdown-body mark {
+    background: rgba(255, 208, 0, 0.35);
+    color: inherit;
+    border-radius: 3px;
+    padding: 0 2px;
+}
+[data-theme="dark"] .markdown-body mark {
+    background: rgba(255, 208, 0, 0.25);
+}
+
+/* --- Callouts --- */
+.callout {
+    --callout-color: 68, 138, 255;
+    border-radius: 10px;
+    border-left: 3px solid rgb(var(--callout-color));
+    background: rgba(var(--callout-color), 0.07);
+    padding: 10px 14px;
+    margin: 10px 0;
+    overflow: hidden;
+}
+.callout .callout-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    color: rgb(var(--callout-color));
+    line-height: 1.4;
+}
+.callout .callout-icon { flex-shrink: 0; font-style: normal; }
+.callout .callout-content { margin-top: 6px; }
+.callout .callout-content > *:first-child { margin-top: 0; }
+.callout .callout-content > *:last-child { margin-bottom: 0; }
+
+/* Сворачиваемые callout'ы (details/summary) */
+details.callout > summary { cursor: pointer; list-style: none; }
+details.callout > summary::-webkit-details-marker { display: none; }
+details.callout .callout-fold {
+    margin-left: auto;
+    transition: transform 0.2s ease;
+    transform: rotate(90deg);
+    opacity: 0.6;
+}
+details.callout:not([open]) .callout-fold { transform: rotate(0deg); }
+
+/* Палитра типов (в духе Obsidian, приглушено под эстетику Doe) */
+.callout-note     { --callout-color: 74, 90, 72; }      /* brand-pine */
+.callout-abstract { --callout-color: 0, 150, 136; }
+.callout-info     { --callout-color: 2, 122, 255; }
+.callout-todo     { --callout-color: 2, 122, 255; }
+.callout-tip      { --callout-color: 0, 150, 136; }
+.callout-success  { --callout-color: 68, 148, 86; }
+.callout-question { --callout-color: 224, 146, 0; }
+.callout-warning  { --callout-color: 224, 146, 0; }
+.callout-failure  { --callout-color: 211, 76, 62; }
+.callout-danger   { --callout-color: 211, 76, 62; }
+.callout-bug      { --callout-color: 211, 76, 62; }
+.callout-example  { --callout-color: 120, 82, 238; }
+.callout-quote    { --callout-color: 130, 138, 128; }   /* text-secondary */
+
+[data-theme="dark"] .callout { background: rgba(var(--callout-color), 0.12); }
+[data-theme="dark"] .callout-note { --callout-color: 137, 160, 133; }
+
+/* --- Сноски --- */
+.doe-footnote-ref a {
+    text-decoration: none;
+    font-weight: 600;
+    color: var(--brand-pine);
+    padding: 0 2px;
+}
+[data-theme="dark"] .doe-footnote-ref a { color: var(--success-done); }
+.doe-footnotes {
+    margin-top: 24px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-light);
+    font-size: 0.9em;
+    color: var(--text-secondary);
+}
+.doe-footnotes ol { margin: 0; padding-left: 20px; }
+.doe-footnotes li { margin: 4px 0; }
+.doe-footnotes li > p { display: inline; margin: 0; }
+.doe-footnote-backref {
+    margin-left: 6px;
+    text-decoration: none;
+    color: var(--brand-pine);
+}
+[data-theme="dark"] .doe-footnote-backref { color: var(--success-done); }
+
+/* --- Вики-ссылки на заметки [[...]] --- */
+.doe-wikilink {
+    color: var(--brand-pine);
+    text-decoration: none;
+    border-bottom: 1px dashed var(--border-dashed);
+    cursor: pointer;
+}
+.doe-wikilink:hover { border-bottom-style: solid; }
+[data-theme="dark"] .doe-wikilink {
+    color: var(--success-done);
+    border-bottom-color: rgba(137, 160, 133, 0.5);
+}
+

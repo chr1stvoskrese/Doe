@@ -1,0 +1,459 @@
+/* ============================================================
+   Фикс: триггеры создания колонок/карточек не должны появляться,
+   пока открыт любой дропдаун (напр. уведомления) или модал.
+   У дропдаунов и триггеров одинаковый z-index (100), поэтому
+   линия создания могла отрисовываться ПОВЕРХ открытого меню,
+   а ховер в промежутке между колонками срабатывал сквозь него.
+   ============================================================ */
+body:has(.dropdown-menu.show) .column-inline-trigger,
+body:has(.modal-overlay.show) .column-inline-trigger,
+body:has(.dropdown-menu.show) .card-inline-trigger,
+body:has(.modal-overlay.show) .card-inline-trigger {
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+/* --- 🫆 Touch ID --- */
+.vault-touchid-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    margin-top: 2px;
+    padding: 9px 12px;
+    font-family: var(--font-main);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--brand-pine);
+    background: var(--brand-pale);
+    border: 1px solid var(--border-light);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.vault-touchid-btn:hover {
+    background: rgba(74, 90, 72, 0.15);
+}
+
+.vault-touchid-btn:active {
+    transform: scale(0.98);
+}
+
+[data-theme="dark"] .vault-touchid-btn {
+    background: rgba(137, 160, 133, 0.12);
+}
+
+[data-theme="dark"] .vault-touchid-btn:hover {
+    background: rgba(137, 160, 133, 0.2);
+}
+
+.vault-touchid-btn.is-busy {
+    pointer-events: none;
+    opacity: 0.6;
+}
+
+/* Переключатель в стиле приложения */
+.doe-switch {
+    width: 36px;
+    height: 22px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.12);
+    position: relative;
+    flex-shrink: 0;
+    margin-left: 10px;
+    transition: background 0.2s ease;
+}
+
+[data-theme="dark"] .doe-switch {
+    background: rgba(255, 255, 255, 0.14);
+}
+
+.doe-switch .doe-switch-knob {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+    transition: left 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.doe-switch.on {
+    background: var(--brand-pine);
+}
+
+.doe-switch.on .doe-switch-knob {
+    left: 16px;
+}
+
+/* ============================================================
+   Код-блоки: тулбар (перенос строк, нумерация, копирование)
+   ============================================================ */
+.code-tools {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    gap: 5px;
+    opacity: 0;
+    transition: opacity 0.18s ease;
+    z-index: 10;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.markdown-body pre:hover .code-tools,
+.code-tools:focus-within {
+    opacity: 1;
+}
+
+/* Кнопка тулбара: собственный класс без наследия .code-copy-btn —
+   никакого absolute-позиционирования и transition: all */
+.code-tool {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border-radius: 7px;
+    background: var(--surface-card);
+    border: 1px solid var(--border-light);
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.code-tool:hover {
+    background: var(--brand-pale);
+    color: var(--brand-pine);
+    border-color: rgba(74, 90, 72, 0.25);
+}
+
+.code-tool svg {
+    width: 14px;
+    height: 14px;
+    pointer-events: none; /* клик всегда попадает в кнопку, не в svg */
+    display: block;
+}
+
+.code-tool.active {
+    color: var(--brand-pine);
+    background: var(--brand-pale);
+    border-color: rgba(74, 90, 72, 0.3);
+}
+
+[data-theme="dark"] .code-tool.active {
+    border-color: rgba(137, 160, 133, 0.4);
+}
+
+.code-tool.disabled {
+    opacity: 0.35;
+    pointer-events: none;
+}
+
+.code-tool.copied {
+    color: var(--success-done);
+    border-color: var(--success-done);
+}
+
+/* Перенос строк в коде */
+.markdown-body pre.is-wrapped {
+    overflow-x: hidden !important;
+}
+
+.markdown-body pre.is-wrapped code {
+    white-space: pre-wrap !important;
+    word-break: break-word !important;
+    overflow-wrap: anywhere !important;
+}
+
+/* Нумерация строк: мягкие цифры без плашек и фонов */
+.markdown-body pre.is-numbered {
+    display: flex;
+    align-items: flex-start;
+}
+
+.code-gutter {
+    display: none;
+}
+
+.markdown-body pre.is-numbered .code-gutter {
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    padding-right: 14px;
+    text-align: right;
+    user-select: none;
+    -webkit-user-select: none;
+    color: var(--text-secondary);
+    opacity: 0.45;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.markdown-body pre.is-numbered code {
+    flex: 1;
+    min-width: 0;
+}
+
+/* ============================================================
+   🖼 Ряд изображений: соседние ![]() рендерятся в одну строку
+   и адаптируются под ширину модалки
+   ============================================================ */
+.markdown-body p.image-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: flex-start;
+    line-height: 0;
+}
+
+.markdown-body p.image-row .image-resizer-wrapper {
+    margin: 0;
+    flex: 1 1 180px;
+    min-width: 120px;
+    max-width: 100%;
+}
+
+.markdown-body p.image-row .image-resizer-wrapper.has-custom-size {
+    flex: 0 1 auto;
+    max-width: 100%;
+}
+
+.markdown-body p.image-row .image-resizer-wrapper img {
+    width: 100%;
+    height: auto;
+}
+
+
+/* ============================================================
+
+   🧩 Коллаж изображений: несколько ![]() без пустой строки
+
+   собираются в адаптивную сетку. Пустая строка разделяет коллажи.
+
+   ============================================================ */
+
+.markdown-body p.image-collage {
+
+    display: grid;
+
+    grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
+
+    gap: 10px;
+
+    align-items: start;
+
+    line-height: 0;
+
+}
+
+
+
+.markdown-body p.image-collage .image-resizer-wrapper {
+
+    margin: 0;
+
+    min-width: 0;
+
+    max-width: 100%;
+
+    width: 100%;
+
+}
+
+
+
+.markdown-body p.image-collage .image-resizer-wrapper img {
+
+    width: 100%;
+
+    height: auto;
+
+    object-fit: contain;
+
+}
+
+
+
+/* Collage images are sized automatically; manual resizing is disabled. */
+.markdown-body p.image-collage .image-resizer-wrapper {
+    outline: none !important;
+    border: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    cursor: zoom-in !important;
+}
+.markdown-body p.image-collage .image-resizer-wrapper img {
+    width: 100% !important;
+    height: auto !important;
+    max-width: 100%;
+    object-fit: contain !important;
+}
+.markdown-body p.image-collage .image-resize-handle {
+    display: none !important;
+}
+
+.markdown-body p.image-collage .image-resizer-wrapper.has-custom-size {
+
+    width: auto;
+
+    justify-self: start;
+
+}
+
+
+/* ============================================================
+   🧩 Коллаж изображений: несколько ![]() без пустой строки
+   собираются в адаптивную сетку. Пустая строка разделяет коллажи.
+   ============================================================ */
+.markdown-body p.image-collage {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
+    gap: 10px;
+    align-items: start;
+    line-height: 0;
+}
+
+.markdown-body p.image-collage .image-resizer-wrapper {
+    margin: 0;
+    min-width: 0;
+    max-width: 100%;
+    width: 100%;
+}
+
+.markdown-body p.image-collage .image-resizer-wrapper img {
+    width: 100%;
+    height: auto;
+    object-fit: contain;
+}
+
+.markdown-body p.image-collage .image-resizer-wrapper.has-custom-size {
+    width: auto;
+    justify-self: start;
+}
+
+/* Курсор подсказывает, что изображение кликабельно */
+.image-resizer-wrapper {
+    cursor: zoom-in;
+}
+
+/* ============================================================
+   🔍 Лайтбокс изображений
+   ============================================================ */
+.image-lightbox {
+    position: fixed;
+    inset: 0;
+    /* Выше модалов (.modal-overlay: 9999999) — лайтбокс открывается ИЗ модалки карточки */
+    z-index: 10000001;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(12, 14, 11, 0.78);
+    -webkit-backdrop-filter: blur(24px);
+    backdrop-filter: blur(24px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+    cursor: zoom-out;
+}
+
+.image-lightbox.show {
+    opacity: 1;
+    pointer-events: all;
+}
+
+.image-lightbox img {
+    max-width: 92vw;
+    max-height: 92vh;
+    border-radius: 12px;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
+    transform: scale(0.96);
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.image-lightbox.show img {
+    transform: scale(1);
+}
+
+/* ============================================================
+   📎 Чип загрузки вложения
+   ============================================================ */
+.upload-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 12px;
+    border-radius: 10px;
+    background: var(--brand-pale);
+    border: 1px dashed var(--border-dashed);
+    color: var(--text-secondary);
+    font-size: 13px;
+    line-height: 1.3;
+    margin: 2px 0;
+    max-width: 100%;
+}
+
+[data-theme="dark"] .upload-chip {
+    border-color: rgba(137, 160, 133, 0.4);
+}
+
+.upload-chip-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.upload-chip-spinner {
+    width: 12px;
+    height: 12px;
+    border: 2px solid rgba(74, 90, 72, 0.25);
+    border-top-color: var(--brand-pine);
+    border-radius: 50%;
+    animation: vu-spin 0.8s linear infinite;
+    flex-shrink: 0;
+}
+
+/* ============================================================
+   Код и формулы в заголовках карточек / крошках / уведомлениях
+   ============================================================ */
+.card-title code,
+.subtask-title code,
+#task-modal-title code,
+.breadcrumb-item code,
+.reminder-task-title code,
+.app-toast-message code {
+    font-family: var(--font-mono);
+    font-size: 0.85em;
+    padding: 1px 5px;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="dark"] .card-title code,
+[data-theme="dark"] .subtask-title code,
+[data-theme="dark"] #task-modal-title code,
+[data-theme="dark"] .breadcrumb-item code,
+[data-theme="dark"] .reminder-task-title code,
+[data-theme="dark"] .app-toast-message code {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.card-title .katex,
+.subtask-title .katex,
+#task-modal-title .katex,
+.breadcrumb-item .katex,
+.reminder-task-title .katex {
+    font-size: 1em;
+    white-space: normal;
+}
+

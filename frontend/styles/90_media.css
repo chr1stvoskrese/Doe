@@ -1,3 +1,145 @@
+/* ============================================================
+   🎬 Медиа-встраивания: PDF, видео, аудио, YouTube + подсветка
+   фрагментов и чекбоксы задач (- [ ]) в описании.
+   ============================================================ */
+
+.doe-pdf-embed {
+    display: block;
+    border: 1px solid var(--border-light);
+    border-radius: 12px;
+    background: var(--surface-card);
+    margin: 8px 0;
+    max-width: 100%;
+}
+
+.doe-video-embed {
+    display: block;
+    max-width: 100%;
+    border-radius: 12px;
+    margin: 8px 0;
+    background: #000;
+    outline: none;
+}
+
+.doe-audio-embed {
+    display: block;
+    width: 100%;
+    max-width: 480px;
+    margin: 8px 0;
+}
+
+.doe-media-embed.doe-youtube-embed {
+    display: block;
+    position: relative;
+    width: 100%;
+    max-width: 720px;
+    aspect-ratio: 16 / 9;
+    margin: 8px 0;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #000;
+}
+.doe-media-embed.doe-youtube-embed iframe {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+}
+
+/* --- Встроенный просмотрщик PDF (ссылки с #page=N) --- */
+#doe-pdf-overlay { display: none; position: fixed; inset: 0; z-index: 9000; }
+#doe-pdf-overlay.show { display: block; }
+#doe-pdf-overlay .doe-pdf-overlay-backdrop {
+    position: absolute; inset: 0;
+    background: rgba(20, 24, 20, 0.55);
+    backdrop-filter: blur(4px);
+}
+#doe-pdf-overlay .doe-pdf-overlay-panel {
+    position: absolute; inset: 4vh 6vw;
+    background: var(--surface-card);
+    border-radius: 16px;
+    box-shadow: var(--shadow-menu);
+    overflow: hidden;
+}
+#doe-pdf-overlay .doe-pdf-overlay-panel iframe {
+    width: 100%; height: 100%; border: 0;
+}
+#doe-pdf-overlay .doe-pdf-overlay-close {
+    position: absolute; top: 10px; right: 10px; z-index: 2;
+    width: 32px; height: 32px;
+    border: none; border-radius: 50%;
+    background: rgba(0, 0, 0, 0.45); color: #fff;
+    font-size: 14px; cursor: pointer;
+    transition: background 0.2s;
+}
+#doe-pdf-overlay .doe-pdf-overlay-close:hover { background: rgba(0, 0, 0, 0.7); }
+
+/* --- Подсветка фрагмента по ссылке doe://task/ID#text=... --- */
+::highlight(doe-fragment) {
+    background-color: rgba(255, 208, 0, 0.45);
+    color: var(--text-primary);
+}
+[data-theme="dark"] ::highlight(doe-fragment) {
+    background-color: rgba(255, 208, 0, 0.3);
+    color: #FFFFFF;
+}
+
+/* --- Чекбоксы задач Obsidian (- [ ] / - [x]) в описании --- */
+.markdown-body li:has(> input[type="checkbox"]) {
+    list-style: none;
+    margin-left: -20px;
+}
+.markdown-body li > input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    margin: 0 8px -3px 0;
+    border: 1.5px solid var(--text-secondary);
+    border-radius: 5px;
+    background: var(--surface-card);
+    cursor: pointer;
+    position: relative;
+    transition: background 0.15s ease, border-color 0.15s ease;
+    vertical-align: baseline;
+}
+.markdown-body li > input[type="checkbox"]:hover {
+    border-color: var(--brand-pine);
+}
+.markdown-body li > input[type="checkbox"]:checked {
+    background: var(--brand-pine);
+    border-color: var(--brand-pine);
+}
+.markdown-body li > input[type="checkbox"]:checked::after {
+    content: '';
+    position: absolute;
+    left: 4.5px;
+    top: 1.5px;
+    width: 4px;
+    height: 8px;
+    border: solid #fff;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+/* Завершённый пункт — приглушаем и зачёркиваем, как в Obsidian */
+.markdown-body li:has(> input[type="checkbox"]:checked) {
+    color: var(--text-secondary);
+    text-decoration: line-through;
+    text-decoration-color: rgba(130, 138, 128, 0.5);
+}
+[data-theme="dark"] .markdown-body li > input[type="checkbox"]:checked {
+    background: var(--success-done);
+    border-color: var(--success-done);
+}
+[data-theme="dark"] .markdown-body li > input[type="checkbox"]:checked::after {
+    border-color: #1E231E;
+}
+
+
+/* ============================================================
+   merged ex-file: borderless-description.css (описание — часть карточки)
+   ============================================================ */
 /* Borderless description + coherent Markdown rhythm. */
 
 /* The description is part of the card surface, not an inset panel. */
@@ -317,4 +459,116 @@ html body .task-detail-body .markdown-body .image-resize-handle::after {
     border-bottom: 2px solid white;
     transform: rotate(45deg);
     margin: -1px 1px 1px -1px;
+}
+
+
+/* ============================================================
+   merged: description-scroll-overlay.css (ex-file, скроллбар описания)
+   ============================================================ */
+/* Two-level scrollbar geometry.
+   The description keeps its own Markdown scrollbar; the full card keeps its
+   outer scrollbar. The description scrollbar lives in the reserved right
+   gutter instead of overlapping the Markdown text. */
+html body .task-detail-body {
+    --description-scrollbar-width: 6px;
+    --description-scrollbar-gap: 8px;
+}
+
+/* Leave the card's outer scrollbar at the far right. The description viewport
+   ends before it, creating a deliberate gap without changing left alignment. */
+html body .task-detail-body .description-wrapper {
+    width: calc(100% - var(--description-scrollbar-width) - var(--description-scrollbar-gap)) !important;
+    max-width: calc(100% - var(--description-scrollbar-width) - var(--description-scrollbar-gap)) !important;
+    align-self: flex-start;
+}
+
+/* The Markdown owns the description scrollbar. Extend its scroll viewport into
+   the reserved right gutter and put that extension entirely inside padding so
+   the text width stays where it was while the scrollbar moves to the right. */
+html body .task-detail-body .description-wrapper .markdown-body {
+    overflow-y: auto !important;
+    overflow-x: visible !important;
+    width: calc(100% + var(--description-scrollbar-width) + var(--description-scrollbar-gap)) !important;
+    max-width: none !important;
+    padding-right: calc(var(--description-scrollbar-width) + var(--description-scrollbar-gap)) !important;
+    box-sizing: border-box !important;
+    scrollbar-gutter: stable;
+}
+
+/* Identical scrollbar dimensions for the description and the full card. */
+html body .task-detail-body::-webkit-scrollbar,
+html body .task-detail-body .description-wrapper .markdown-body::-webkit-scrollbar {
+    width: var(--description-scrollbar-width);
+    height: var(--description-scrollbar-width);
+}
+
+html body .task-detail-body::-webkit-scrollbar-track,
+html body .task-detail-body .description-wrapper .markdown-body::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 999px;
+}
+
+html body .task-detail-body::-webkit-scrollbar-thumb,
+html body .task-detail-body .description-wrapper .markdown-body::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 999px;
+}
+
+html body .task-detail-body::-webkit-scrollbar-thumb:hover,
+html body .task-detail-body .description-wrapper .markdown-body::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover);
+}
+
+html body .task-detail-body,
+html body .task-detail-body .description-wrapper .markdown-body {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+
+/* Original image resize handle: green 24x24 corner with white resize mark. */
+html body .task-detail-body .markdown-body .image-resize-handle {
+    position: absolute !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 24px !important;
+    height: 24px !important;
+    cursor: nwse-resize !important;
+    background-color: var(--brand-pine) !important;
+    background-image: none !important;
+    border-top-left-radius: 8px !important;
+    border-bottom-right-radius: 8px !important;
+    opacity: 0 !important;
+    transition: opacity 0.2s !important;
+    z-index: 30 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0 !important;
+    border-right: 0 !important;
+    border-bottom: 0 !important;
+    box-shadow: none !important;
+    pointer-events: auto !important;
+}
+
+html body .task-detail-body .markdown-body .image-resize-handle::before {
+    content: none !important;
+    display: none !important;
+}
+
+html body .task-detail-body .markdown-body .image-resize-handle::after {
+    content: '' !important;
+    width: 8px !important;
+    height: 8px !important;
+    border-right: 2px solid white !important;
+    border-bottom: 2px solid white !important;
+    margin-top: -2px !important;
+    margin-left: -2px !important;
+    transform: none !important;
+    display: block !important;
+    position: static !important;
+}
+
+html body .task-detail-body .markdown-body .image-resizer-wrapper:hover .image-resize-handle,
+html body .task-detail-body .markdown-body .image-resizer-wrapper.is-resizing .image-resize-handle {
+    opacity: 1 !important;
 }
