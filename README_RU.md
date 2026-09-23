@@ -101,35 +101,6 @@
   <em>Скоро здесь будут скриншоты.</em>
 </p>
 
-<!--
-  Готовый шаблон галереи. Положи четыре изображения в assets/screenshots/
-  (точные имена файлов — в assets/screenshots/README.md), затем удали
-  эти комментарии-маркеры, чтобы сетка отобразилась.
-
-<table>
-<tr>
-  <td width="50%" valign="top">
-    <img src="assets/screenshots/board.png" alt="Kanban-доска">
-    <p align="center"><sub>Kanban-доска — тёмная тема</sub></p>
-  </td>
-  <td width="50%" valign="top">
-    <img src="assets/screenshots/card.png" alt="Карточка задачи с Markdown-редактором">
-    <p align="center"><sub>Карточка задачи — Markdown-редактор с живым предпросмотром</sub></p>
-  </td>
-</tr>
-<tr>
-  <td width="50%" valign="top">
-    <img src="assets/screenshots/graph.png" alt="Граф связей задач">
-    <p align="center"><sub>Граф связей задач (D3.js)</sub></p>
-  </td>
-  <td width="50%" valign="top">
-    <img src="assets/screenshots/stats.png" alt="Недельная статистика">
-    <p align="center"><sub>Недельная статистика и тайм-трекинг</sub></p>
-  </td>
-</tr>
-</table>
--->
-
 ---
 
 ## 🚀 Быстрый старт
@@ -318,7 +289,6 @@ main.py              # FastAPI-приложение (in-process ASGI, без с�
 Makefile             # install / run / build / install-app / check / clean (macOS arm64)
 notify_worker.py     # фоновый воркер уведомлений
 build.py             # сборщик под macOS arm64 (вызывается через `make build`)
-make_dmg.sh          # сборка DMG-образов
 ```
 
 ---

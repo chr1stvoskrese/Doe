@@ -101,35 +101,6 @@
   <em>Screenshots coming soon.</em>
 </p>
 
-<!--
-  Gallery template — ready to go. Add the four images to assets/screenshots/
-  (see assets/screenshots/README.md for the exact filenames), then delete
-  these comment markers to publish the grid.
-
-<table>
-<tr>
-  <td width="50%" valign="top">
-    <img src="assets/screenshots/board.png" alt="Kanban board">
-    <p align="center"><sub>Kanban board — dark theme</sub></p>
-  </td>
-  <td width="50%" valign="top">
-    <img src="assets/screenshots/card.png" alt="Task card with Markdown editor">
-    <p align="center"><sub>Task card — Markdown editor with live preview</sub></p>
-  </td>
-</tr>
-<tr>
-  <td width="50%" valign="top">
-    <img src="assets/screenshots/graph.png" alt="Task relationship graph">
-    <p align="center"><sub>Task relationship graph (D3.js)</sub></p>
-  </td>
-  <td width="50%" valign="top">
-    <img src="assets/screenshots/stats.png" alt="Weekly statistics">
-    <p align="center"><sub>Weekly statistics &amp; time tracking</sub></p>
-  </td>
-</tr>
-</table>
--->
-
 ---
 
 ## 🚀 Quick Start
@@ -318,7 +289,6 @@ main.py              # FastAPI app (in-process ASGI, no network server)
 Makefile             # install / run / build / install-app / check / clean (macOS arm64)
 notify_worker.py     # background notification worker
 build.py             # macOS arm64 builder (called via `make build`)
-make_dmg.sh          # DMG image builder
 ```
 
 ---
