@@ -5,6 +5,7 @@ from typing import Optional
 import anyio
 
 from src.core.config import get_active_vault, get_ui_settings
+from src.db.database import lock_active_vault
 from src.core import vault_crypto, fs_store
 from src.schemas.system import (
     VaultUnlockRequest, VaultPasswordSetRequest, VaultPasswordRemoveRequest,
