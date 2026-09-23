@@ -303,17 +303,17 @@ alembic downgrade -1
 ```
 # Project structure
 src/
-├── api/v1/          # FastAPI routers (columns, tasks, workspaces, system)
-├── core/            # config, watcher, vault_crypto, biometric, fs_store (Obsidian-vault), attach_jobs
+├── api/v1/          # columns, tasks, workspaces, system/ (vault, security, settings, attachments, stats, reminders, search, graph, calendar, fonts)
+├── core/            # config, watcher, vault_crypto, biometric, fs_store (Obsidian-vault), attach_jobs, notifications
 ├── db/              # database.py, models.py
 ├── services/        # task_service, column_service, workspace_service
-└── schemas/         # Pydantic DTOs (task, column, workspace)
+└── schemas/         # Pydantic DTOs (task, column, workspace, system)
 frontend/
-├── index.html       # entry point (~1.5k lines)
-├── app.js           # all logic (~15k lines)
-├── styles.css       # styles (~9k lines)
-└── space.js         # «Space» extension (~1.7k lines)
-wrapper.py           # entry point: window management + pywebview bridge
+├── index.html       # entry point, ordered <script> / <link> includes
+├── js/              # logic in 15 ordered scripts (00_core … 110_chrome, no bundler)
+└── styles/          # styles by feature (00_base … 90_media, link order matters)
+wrapper.py           # thin entry point (worker mode + GUI bootstrap)
+launcher/            # GUI runtime: bridge, api (WindowAPI), main, macos, platform, logging_setup, vault_exit
 main.py              # FastAPI app (in-process ASGI, no network server)
 Makefile             # install / run / build / install-app / check / clean (macOS arm64)
 notify_worker.py     # background notification worker
