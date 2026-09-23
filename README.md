@@ -283,7 +283,6 @@ frontend/
 ├── index.html       # entry point, ordered <script> / <link> includes
 ├── js/              # logic in 27 ordered scripts (00_core … 110_chrome, no bundler)
 └── styles/          # styles by feature (00_base … 90_media, link order matters)
-wrapper.py           # thin entry point (worker mode + GUI bootstrap)
 launcher/            # GUI runtime: bridge, api (WindowAPI), main, macos, platform, logging_setup, vault_exit
 main.py              # FastAPI app (in-process ASGI, no network server)
 Makefile             # install / run / build / install-app / check / clean (macOS arm64)

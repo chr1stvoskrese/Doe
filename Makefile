@@ -11,6 +11,7 @@ VENV      := venv
 PY        := $(VENV)/bin/python3
 APP       := dist/Doe.app
 TARGET    := /Applications/Doe.app
+SRC       := $(shell find src launcher frontend main.py wrapper.py notify_worker.py build.py requirements.txt alembic.ini -type f 2>/dev/null)
 
 .PHONY: help install run build install-app check clean
 
@@ -30,10 +31,12 @@ install:
 run:
 	$(PY) wrapper.py
 
-build:
+$(APP): $(SRC)
 	$(PY) build.py
 
-install-app: build
+build: $(APP)
+
+install-app: $(APP)
 	rm -rf "$(TARGET)"
 	ditto "$(APP)" "$(TARGET)"
 	xattr -cr "$(TARGET)"

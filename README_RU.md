@@ -283,7 +283,6 @@ frontend/
 ├── index.html       # точка входа, упорядоченные <script> / <link>
 ├── js/              # логика в 27 упорядоченных скриптах (00_core … 110_chrome, без сборщика)
 └── styles/          # стили по фичам (00_base … 90_media, порядок важен)
-wrapper.py           # тонкая точка входа (worker-режим + старт GUI)
 launcher/            # рантайм GUI: bridge, api (WindowAPI), main, macos, platform, logging_setup, vault_exit
 main.py              # FastAPI-приложение (in-process ASGI, без сетевого сервера)
 Makefile             # install / run / build / install-app / check / clean (macOS arm64)
