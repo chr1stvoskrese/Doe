@@ -29,7 +29,6 @@ ADD_DATA = [
     ("src", "src"),
     ("alembic.ini", "."),
     ("alembic", "alembic"),
-    ("THIRD_PARTY_LICENSES.md", "."),
 ]
 HIDDEN = [
     "src.api.v1.columns",
