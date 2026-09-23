@@ -313,10 +313,6 @@ frontend/
 ├── app.js           # вся логика (~15k строк)
 ├── styles.css       # стили (~9k строк)
 └── space.js         # расширение «Пространство» (~1.7k строк)
-tools/
-├── rewrite.py       # AI-рефакторинг через git
-├── gather_context.py# сбор контекста кода для AI-диалогов
-└── dev_stats.py     # статистика разработки
 wrapper.py           # точка входа: окно + мост pywebview
 main.py              # FastAPI-приложение (in-process ASGI, без сетевого сервера)
 Makefile             # install / run / build / install-app / check / clean (macOS arm64)

@@ -313,10 +313,6 @@ frontend/
 ├── app.js           # all logic (~15k lines)
 ├── styles.css       # styles (~9k lines)
 └── space.js         # «Space» extension (~1.7k lines)
-tools/
-├── rewrite.py       # AI-powered refactoring via git
-├── gather_context.py# code context collector for AI dialogues
-└── dev_stats.py     # development statistics
 wrapper.py           # entry point: window management + pywebview bridge
 main.py              # FastAPI app (in-process ASGI, no network server)
 Makefile             # install / run / build / install-app / check / clean (macOS arm64)
