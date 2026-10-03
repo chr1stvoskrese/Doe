@@ -13,29 +13,29 @@ No network server: FastAPI runs **in-process**, frontend calls it via
 
 ## Entry points
 
-- `wrapper.py` (83) — PyInstaller entry. `--worker …` (7 args) → `src/core/notifications.py`;
+- `wrapper.py` (83) — PyInstaller entry. `--worker` + 6 args (`len(argv) >= 8`) → `src/core/notifications.py`;
   else macOS early init → logging → re-exports (`WindowAPI`, `runtime_index_url`,
   `DATA_LOOP` — required, backend finds them via `sys.modules['wrapper']`) → `launcher.main:main()`
 - `main.py` (225) — FastAPI `app` (in-process only) + `startup()`/`shutdown()` (called by DataLoop thread)
 - `notify_worker.py` (26) — thin shim over `src/core/notifications.py` (built as separate console binary inside `.app`)
 - `build.py` (208) — arm64-only builder, called by `make build`
 
-## Backend map (`src/`)
+## Backend map (`src/` + top-level `launcher/`)
 
-- `api/v1/columns.py` (112), `tasks.py` (145), `workspaces.py` (36) — CRUD routers
-- `api/v1/system/` — 44 endpoints, split by domain (aggregate `router` in `__init__.py`, prefix `/system`):
+- `src/api/v1/columns.py` (112), `tasks.py` (145), `workspaces.py` (36) — CRUD routers
+- `src/api/v1/system/` — 44 endpoints, split by domain (aggregate `router` in `__init__.py`, prefix `/system`):
   `vault.py` (494: vault/switch/create/history/highlight/startup) · `security.py` (256: unlock/lock/password/Touch ID)
   · `settings.py` (154) · `attachments.py` (533: upload/stream/pdfjs/attach/open-link/reveal/cleanup)
   · `stats.py` (173) · `reminders.py` (36) · `search.py` (502: boolean `&&`/`||` parser + tags)
   · `graph.py` (42) · `calendar.py` (53, timer sessions only) · `fonts.py` (111)
-- `schemas/` — `task.py`, `column.py`, `workspace.py`, `system.py` (144: all system DTOs)
-- `services/` — `task_service.py` (686), `column_service.py` (219), `workspace_service.py` (52)
-- `core/` — `config.py` (467: `~/.doe_config.json`, extensions allowlist = search,calendar,reminders,graph,tabs,priority,statistics)
+- `src/schemas/` — `task.py`, `column.py`, `workspace.py`, `system.py` (144: all system DTOs)
+- `src/services/` — `task_service.py` (686), `column_service.py` (219), `workspace_service.py` (52)
+- `src/core/` — `config.py` (467: `~/.doe_config.json`, extensions allowlist = 7 keys: search,calendar,reminders,graph,tabs,priority,statistics; Space beta is frontend-only, no key)
   · `fs_store.py` (980: Obsidian-compatible `.md` vault = source of truth, SQLite is an index)
   · `vault_crypto.py` (559: AES-256-GCM+scrypt) · `notifications.py` (417: shared worker logic, stdlib-only)
   · `watcher.py` (170: watchdog) · `attach_jobs.py` (214) · `biometric.py` (187: Touch ID)
-- `db/` — `models.py` (130: workspaces→columns→tasks, M2M `task_relations`, timer_sessions), `database.py` (399)
-- `launcher/` — `bridge.py` (206: DataLoop, `runtime_index_url`, `DATA_LOOP`)
+- `src/db/` — `models.py` (130: workspaces→columns→tasks, M2M `task_relations`, timer_sessions), `database.py` (399)
+- `launcher/` at repo root (not `src/launcher/`) — `bridge.py` (206: DataLoop, `runtime_index_url`, `DATA_LOOP`)
   · `api.py` (634: `WindowAPI` = `_DataBridgeMixin` + `_WinChromeMixin`) · `api_data.py` (78) · `api_winchrome.py` (491)
   · `main.py` (333: signals/window/webview loop) · `macos.py` (555: AppKit patches, DnD intercept, `odoc` handler)
   · `platform.py` (407: geometry/DPI) · `logging_setup.py` (129) · `vault_exit.py` (47)
@@ -65,6 +65,6 @@ No network server: FastAPI runs **in-process**, frontend calls it via
 3. CSS link order IS the cascade. JS numeric order IS execution order. Never reorder includes.
 4. Backend contract: paths/methods under `/api/v1/*` are the frontend API — compare route sets before/after refactors.
 5. `sys.modules['wrapper']` must expose `WindowAPI` + `runtime_index_url` (used by `system/vault.py`).
-6. Worker argv: `wrapper.py --worker due title message task_id vault reminder` (8+); `notify_worker` reads vault from config by reminder_id. Shared flow in `src/core/notifications.py` (stdlib-only — keep it so).
+6. Worker argv: `wrapper.py --worker due title message task_id vault reminder` (`len(argv) >= 8`); `notify_worker` reads vault from config by reminder_id. Shared flow in `src/core/notifications.py` (stdlib-only — keep it so).
 7. State locations: `~/.doe_config.json`, vault dir = `.md` files + `.doe.index.db.doe`, `~/.doe_runtime/`, `~/.doe/vendor/`, logs `~/.log.doe.txt` or `<vault>/<vault>.log.doe.txt`.
 8. Tests: no suite — verify with `make check` + ASGI spot-checks + `make build`; GUI needs manual click-through.

@@ -15,7 +15,6 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey" alt="Platform">
-  <img src="https://img.shields.io/badge/version-v1-blue" alt="Version">
   <img src="https://img.shields.io/badge/python-3.12-3776ab?logo=python&logoColor=white" alt="Python 3.12">
   <img src="https://img.shields.io/badge/frontend-vanilla%20JS-f7df1e?logo=javascript&logoColor=black" alt="Vanilla JS">
   <img src="https://img.shields.io/badge/backend-FastAPI-009688?logo=fastapi&logoColor=white" alt="FastAPI">
@@ -63,7 +62,7 @@
   </td>
   <td width="50%" valign="top">
 
-**🔗 Связи между задачами** — Многие-ко-многим: родительские, дочерние, зависимые. Граф связей визуализируется через D3.js.
+**🔗 Связи между задачами** — Многие-ко-многим: родительские, дочерние, зависимые. Граф связей — самописный canvas-граф (без D3).
 
   </td>
 </tr>
@@ -92,14 +91,6 @@
   </td>
 </tr>
 </table>
-
----
-
-## 🖼 Скриншоты
-
-<p align="center">
-  <em>Скоро здесь будут скриншоты.</em>
-</p>
 
 ---
 
@@ -180,17 +171,22 @@ python wrapper.py
 └───────────────────────┼──────────────────────┘
                         │
 ┌───────────────────────┴──────────────────────┐
-│       Папка-хранилище (vault) на диске       │
-│  ├── .doe.index.db.doe  (SQLite-индекс)      │
-│  ├── Колонки/        (.md + frontmatter)     │
-│  └── вложения/                               │
+│       Папка-хранилище (vault) на диске (FS Store v2) │
+│  ├── .doe.board.json   (маркер формата)         │
+│  ├── .doe.index.db.doe (SQLite-индекс)          │
+│  ├── doe/              (вложения)                │
+│  └── <Вкладка>/        (workspace = папка)      │
+│      ├── .doe.json     (мета workspace)         │
+│      └── <Колонка>/     (column = папка)         │
+│          ├── .doe.json (мета: mode и т.д.)      │
+│          └── <Заметка>.md (задача: frontmatter+текст) │
 │  Совместимо с Obsidian                       │
 └──────────────────────────────────────────────┘
 ```
 
 | Слой | Технология |
 |---|---|
-| **Рантайм** | Python 3.12 · FastAPI 0.115 (in-process ASGI, без сетевого сервера) |
+| **Рантайм** | Python 3.12 · FastAPI (in-process ASGI, без сетевого сервера) |
 | **База данных** | SQLite (aiosqlite) · SQLAlchemy 2.0 (async) |
 | **Миграции** | Alembic |
 | **Десктоп** | pywebview (нативный WebView ОС) |
@@ -221,12 +217,12 @@ python wrapper.py
 - Чек-листы (подзадачи) через связи многие-ко-многим
 - Вложения: drag-and-drop, файл-пикер, авто-очистка осиротевших файлов
 - Приоритеты: 9-факторная модель с визуальными индикаторами
-- Тайм-трекинг: запуск/стоп таймера, накопление времени, ручная правка
+- Тайм-трекинг: запуск/стоп таймера, накопление времени
 
 </details>
 
 <details>
-<summary><strong>🧩 Расширения (8 модулей)</strong></summary>
+<summary><strong>🧩 Расширения (7 модулей)</strong></summary>
 
 | Модуль | Описание |
 |---|---|
@@ -237,7 +233,6 @@ python wrapper.py
 | **Статистика** | Недельная аналитика: тренды, топ задач, разбивка по дням |
 | **Приоритеты** | Цветовые метки и эмодзи приоритетов |
 | **Табы** | Переключение между рабочими пространствами |
-| **Пространство** `🚧 beta` | Бесконечный векторный холст (DoeSpace): рисование, текст, соединения |
 
 </details>
 
@@ -289,13 +284,6 @@ Makefile             # install / run / build / install-app / check / clean (macO
 notify_worker.py     # фоновый воркер уведомлений
 build.py             # сборщик под macOS arm64 (вызывается через `make build`)
 ```
-
----
-
-## 🚧 Планы
-
-- **Пространство (бесконечный холст)** — богаче инструменты рисования и встраивание карточек
-- **Скриншоты и демо-GIF** в этом README
 
 ---
 

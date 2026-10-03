@@ -15,7 +15,6 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey" alt="Platform">
-  <img src="https://img.shields.io/badge/version-v1-blue" alt="Version">
   <img src="https://img.shields.io/badge/python-3.12-3776ab?logo=python&logoColor=white" alt="Python 3.12">
   <img src="https://img.shields.io/badge/frontend-vanilla%20JS-f7df1e?logo=javascript&logoColor=black" alt="Vanilla JS">
   <img src="https://img.shields.io/badge/backend-FastAPI-009688?logo=fastapi&logoColor=white" alt="FastAPI">
@@ -63,7 +62,7 @@
   </td>
   <td width="50%" valign="top">
 
-**🔗 Task Links** — Many-to-many relationships: parent, child, dependent tasks. The relationship graph is visualized with D3.js.
+**🔗 Task Links** — Many-to-many relationships: parent, child, dependent tasks. The relationship graph is a hand-rolled canvas graph (no D3).
 
   </td>
 </tr>
@@ -92,14 +91,6 @@
   </td>
 </tr>
 </table>
-
----
-
-## 🖼 Screenshots
-
-<p align="center">
-  <em>Screenshots coming soon.</em>
-</p>
 
 ---
 
@@ -180,17 +171,22 @@ plain ASGI library. Zero network attack surface, fully offline.
 └───────────────────────┼──────────────────────┘
                         │
 ┌───────────────────────┴──────────────────────┐
-│             Vault folder on disk             │
-│  ├── .doe.index.db.doe   (SQLite index)      │
-│  ├── Columns/             (.md + frontmatter)│
-│  └── attachments/                            │
+│             Vault folder on disk (FS Store v2)  │
+│  ├── .doe.board.json   (format marker)          │
+│  ├── .doe.index.db.doe (SQLite index)           │
+│  ├── doe/              (attachments)             │
+│  └── <Workspace>/      (workspace = folder)     │
+│      ├── .doe.json     (workspace meta)          │
+│      └── <Column>/      (column = folder)        │
+│          ├── .doe.json (column meta: mode, etc.) │
+│          └── <Note>.md (task: frontmatter+body)  │
 │  Obsidian-compatible                         │
 └──────────────────────────────────────────────┘
 ```
 
 | Layer | Technology |
 |---|---|
-| **Runtime** | Python 3.12 · FastAPI 0.115 (in-process ASGI, no network server) |
+| **Runtime** | Python 3.12 · FastAPI (in-process ASGI, no network server) |
 | **Database** | SQLite (aiosqlite) · SQLAlchemy 2.0 (async) |
 | **Migrations** | Alembic |
 | **Desktop** | pywebview (native OS WebView) |
@@ -221,12 +217,12 @@ plain ASGI library. Zero network attack surface, fully offline.
 - Checklists (subtasks) via many-to-many relations
 - Attachments: drag-and-drop, file picker, auto-cleanup of orphaned files
 - Priorities: 9-factor model with visual indicators
-- Time tracking: start/stop timer, accumulated time, manual adjustment
+- Time tracking: start/stop timer, accumulated time
 
 </details>
 
 <details>
-<summary><strong>🧩 Extensions (8 modules)</strong></summary>
+<summary><strong>🧩 Extensions (7 modules)</strong></summary>
 
 | Module | Description |
 |---|---|
@@ -237,7 +233,6 @@ plain ASGI library. Zero network attack surface, fully offline.
 | **Statistics** | Weekly analytics: trends, top tasks, daily breakdown |
 | **Priorities** | Color labels and emoji for priorities |
 | **Tabs** | Switch between workspaces |
-| **Space** `🚧 beta` | Infinite vector canvas (DoeSpace): drawing, text, connections |
 
 </details>
 
@@ -289,13 +284,6 @@ Makefile             # install / run / build / install-app / check / clean (macO
 notify_worker.py     # background notification worker
 build.py             # macOS arm64 builder (called via `make build`)
 ```
-
----
-
-## 🚧 Roadmap
-
-- **Space (infinite canvas)** — richer drawing tools and inline card embedding
-- **Screenshots & demo GIFs** in this README
 
 ---
 
