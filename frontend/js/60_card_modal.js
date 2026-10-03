@@ -157,6 +157,9 @@ async function loadTaskIntoModal(taskId, pushToStack = true, highlightQuery = nu
         const attachmentsList = document.getElementById('attachments-list');
         const attachmentsCount = document.getElementById('attachments-count');
 
+        // Рендер описания изолирован: его падение (битый markdown, вложения)
+        // не должно убивать остальную модалку, включая чек-лист ниже.
+        try {
         if (task.description) {
             let extracted = extractAttachments(task.description, task.attachments_order || []);
             extracted = await enrichAttachments(extracted);
@@ -202,26 +205,51 @@ async function loadTaskIntoModal(taskId, pushToStack = true, highlightQuery = nu
             renderDiv.innerHTML = `<span class="markdown-empty">${t('taskModal.descPlaceholder')}</span>`;
             if (highlightQuery) applyHighlight(titleEl, highlightQuery);
         }
+        } catch (descErr) {
+            console.error('Ошибка рендера описания/вложений:', descErr);
+            try {
+                attachmentsCount.textContent = '0';
+                attachmentsList.innerHTML = '';
+                renderDiv.innerHTML = `<span class="markdown-empty">${escapeHtml(task.description || '')}</span>`;
+            } catch (e) {}
+        }
 
         renderDiv.style.display = 'block';
 
-        subtasksList.innerHTML = '';
-        subtasksCount.textContent = task.subtasks.length;
+        // Чек-лист рендерим fault-isolated: падение любого пункта или
+        // соседней секции не должно убивать кнопку добавления.
+        const subs = Array.isArray(task.subtasks) ? task.subtasks : [];
+        try {
+            subtasksList.innerHTML = '';
+            subtasksCount.textContent = subs.length;
 
-        const parentColumn = state.columns.find(c => c.id === task.column_id);
-        const parentMode = parentColumn ? parentColumn.mode : 'default';
+            const parentColumn = state.columns.find(c => c.id === task.column_id);
+            const parentMode = parentColumn ? parentColumn.mode : 'default';
 
-        task.subtasks.sort((a, b) => a.position - b.position).forEach(sub => {
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = generateSubtaskHtml(sub, parentMode).trim();
-            const subItem = tempDiv.firstChild;
+            subs.slice().sort((a, b) => (a.position || 0) - (b.position || 0)).forEach(sub => {
+                try {
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = generateSubtaskHtml(sub, parentMode).trim();
+                    const subItem = tempDiv.firstChild;
+                    if (!subItem) return;
 
-            bindSubtaskEvents(subItem, sub, task, parentMode);
+                    bindSubtaskEvents(subItem, sub, task, parentMode);
 
-            subtasksList.appendChild(subItem);
-        });
-
-        renderSubtaskAddButton(formContainer);
+                    subtasksList.appendChild(subItem);
+                } catch (subErr) {
+                    console.error('Ошибка рендера подзадачи:', subErr);
+                }
+            });
+        } catch (err) {
+            console.error('Ошибка рендера чек-листа:', err);
+            try {
+                subtasksList.innerHTML = '';
+                subtasksCount.textContent = subs.length;
+            } catch (e) {}
+        } finally {
+            try { renderSubtaskAddButton(formContainer); }
+            catch (e) { console.error('Ошибка рендера кнопки добавления:', e); }
+        }
 
         const modalTimeTracker = document.getElementById('modal-time-tracker');
         const modalTimerPill = document.getElementById('modal-task-timer');
