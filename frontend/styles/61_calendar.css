@@ -448,10 +448,15 @@
 .CodeMirror pre.CodeMirror-line-like {
     font-family: var(--font-main) !important;
     font-size: 15px !important;
+    /* Вендорный CodeMirror ставит padding: 0 4px на строки — это сдвигало
+       печатаемый текст вправо от вертикали заголовка/превью. */
+    padding: 0 !important;
 }
 
 .CodeMirror-scroll {
-    padding: 12px !important;
+    /* Та же геометрия, что у превью (.markdown-body: 14px 0 24px), чтобы
+       каретка и текст шли строго по вертикали заголовка карточки. */
+    padding: 14px 0 24px !important;
     overflow-x: hidden !important;
 }
 
