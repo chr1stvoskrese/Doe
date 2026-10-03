@@ -4,6 +4,11 @@ function startDrag(element, type, e) {
         document.activeElement.blur();
     }
 
+    // Повторный вход невозможен: pointermove уже проверяет !isDragging,
+    // но прямой вызов при активном драге перезатёр бы клон и класс курсора.
+    if (isDragging) return;
+    if (!element || !document.body.contains(element)) return;
+    dragSessionId = (typeof dragSessionId === 'number' ? dragSessionId : 0) + 1;
     isDragging = true;
     dragType = type;
     draggedElement = element;
@@ -450,7 +455,34 @@ function renderPhysics() {
     rafId = requestAnimationFrame(renderPhysics);
 }
 
+// Снимает ЛЮБОЙ залипший курсор перетаскивания. Раньше снимался только
+// точечный `is-dragging-${dragType}`: если dragType успевал обнулиться
+// хвостом предыдущего endDrag (или endDrag вообще не вызывался из-за
+// пропущенного pointerup), класс оставался на body и курсор навсегда
+// оставался сжатым кулаком (cursor:grabbing !important).
+function clearDraggingCursor() {
+    try {
+        document.body.classList.remove(
+            'is-dragging-card', 'is-dragging-column', 'is-dragging-tab',
+            'is-dragging-subtask', 'is-dragging-attachment', 'is-dragging-vault-history'
+        );
+        Array.from(document.body.classList).forEach(cls => {
+            if (cls.indexOf('is-dragging-') === 0) document.body.classList.remove(cls);
+        });
+    } catch (e) {}
+    try { document.body.style.userSelect = ''; } catch (e) {}
+}
+
 async function endDrag() {
+    // Снапшот завершаемого драга: дальше функция асинхронная (await'ы
+    // сохранений), и за это время может стартовать новый драг с новыми
+    // глобалами. Глобалы зачищаем только если сессия всё ещё наша.
+    const myType = dragType;
+    let myEl = draggedElement;
+    const myClone = dragClone;
+    const myId = (typeof dragSessionId === 'number' ? dragSessionId : 0);
+    const isCurrent = () => (typeof dragSessionId === 'number' ? dragSessionId : 0) === myId;
+
     isDragging = false;
     cancelAnimationFrame(rafId);
     clearTimeout(tabSwitchTimeout);
@@ -465,14 +497,19 @@ async function endDrag() {
     currentScrollSpeedX = 0;
     currentScrollSpeedY = 0;
 
-    document.body.classList.remove(`is-dragging-${dragType}`);
-    document.body.style.userSelect = '';
+    document.body.classList.remove(`is-dragging-${myType}`);
+    clearDraggingCursor();
 
     let isInvalidDrop = false;
-    if (dragType === 'card' && !draggedElement.closest('.column')) isInvalidDrop = true;
-    if (dragType === 'column' && !draggedElement.closest('.board')) isInvalidDrop = true;
+    if (myType === 'card' && !(myEl && myEl.closest('.column'))) isInvalidDrop = true;
+    if (myType === 'column' && !(myEl && myEl.closest('.board'))) isInvalidDrop = true;
 
-    if (isInvalidDrop && (dragType === 'card' || dragType === 'column')) {
+    if (isInvalidDrop && (myType === 'card' || myType === 'column')) {
+        const invalidEl = myEl;
+        const invalidClone = myClone;
+        const invalidId = myId;
+        const invalidIsCurrent = isCurrent;
+        let invalidLiveEl = invalidEl;
         (async () => {
             if (state.activeWorkspaceId !== originalWorkspaceId) {
                 state.activeWorkspaceId = originalWorkspaceId;
@@ -489,14 +526,14 @@ async function endDrag() {
                     state.columns = columns.map(col => ({ ...col, collapsed: col.collapsed || false }));
                     renderBoard();
 
-                    if (dragType === 'card') {
-                        draggedElement = document.querySelector(`.card[data-card-id="${draggedElement.dataset.cardId}"]`);
-                    } if (dragType === 'column') {
+                    if (myType === 'card' && invalidEl) {
+                        invalidLiveEl = document.querySelector(`.card[data-card-id="${invalidEl.dataset.cardId}"]`);
+                    } if (myType === 'column') {
                         const currentColumns = Array.from(document.querySelectorAll('#board .column:not(.column-drag-clone)'));
                         const orderedIds = currentColumns.map(col => parseInt(col.dataset.columnId));
-                        const colId = parseInt(draggedElement.dataset.columnId);
+                        const colId = invalidEl ? parseInt(invalidEl.dataset.columnId) : NaN;
 
-                        if (state.activeWorkspaceId !== originalWorkspaceId) {
+                        if (state.activeWorkspaceId !== originalWorkspaceId && !isNaN(colId)) {
                             try {
                                 await updateColumn(colId, { workspace_id: state.activeWorkspaceId });
                             }
@@ -511,32 +548,34 @@ async function endDrag() {
 
                         try { await saveColumnsOrder(orderedIds); } catch (e) {}
                     }
-                    if (draggedElement) draggedElement.classList.add('is-ghost');
+                    if (invalidLiveEl) invalidLiveEl.classList.add('is-ghost');
                 } catch (e) {}
             }
 
             let targetRect = null;
-            if (draggedElement && document.body.contains(draggedElement)) {
-                targetRect = draggedElement.getBoundingClientRect();
+            if (invalidLiveEl && document.body.contains(invalidLiveEl)) {
+                targetRect = invalidLiveEl.getBoundingClientRect();
             }
 
-            if (dragClone) {
-                dragClone.style.transition = 'all 0.35s cubic-bezier(0.2, 0.8, 0.2, 1)';
+            if (invalidClone) {
+                invalidClone.style.transition = 'all 0.35s cubic-bezier(0.2, 0.8, 0.2, 1)';
                 if (targetRect) {
-                    dragClone.style.transform = `translate3d(${targetRect.left}px, ${targetRect.top}px, 0) rotate(0deg) scale(1) translate3d(0px, 0px, 0)`;
-                    dragClone.style.opacity = '1';
+                    invalidClone.style.transform = `translate3d(${targetRect.left}px, ${targetRect.top}px, 0) rotate(0deg) scale(1) translate3d(0px, 0px, 0)`;
+                    invalidClone.style.opacity = '1';
                 } else {
-                    dragClone.style.transform = `translate3d(${mouseX}px, -100px, 0) scale(0) translate3d(0px, 0px, 0)`;
-                    dragClone.style.opacity = '0';
+                    invalidClone.style.transform = `translate3d(${mouseX}px, -100px, 0) scale(0) translate3d(0px, 0px, 0)`;
+                    invalidClone.style.opacity = '0';
                 }
             }
 
             setTimeout(() => {
-                if (dragClone) dragClone.remove();
-                dragClone = null;
-                if (draggedElement) draggedElement.classList.remove('is-ghost');
-                dragType = null;
-                draggedElement = null;
+                // Таймер может сработать уже во время следующего драга —
+                // чужой клон и чужие глобалы не трогаем.
+                if (invalidId !== (typeof dragSessionId === 'number' ? dragSessionId : 0)) return;
+                if (invalidClone) invalidClone.remove();
+                if (dragClone === invalidClone) dragClone = null;
+                if (invalidLiveEl) invalidLiveEl.classList.remove('is-ghost');
+                if (invalidIsCurrent()) { dragType = null; draggedElement = null; }
 
                 revertAutoExpandedColumn();
             }, 350);
@@ -544,26 +583,29 @@ async function endDrag() {
         return;
     }
 
-    if (dragType === 'subtask') {
+    if (myType === 'subtask') {
         const currentSubtasks = Array.from(document.querySelectorAll('#subtasks-list .subtask-item:not(.subtask-drag-clone)'));
         const orderedIds = currentSubtasks.map(s => parseInt(s.dataset.subtaskId));
         try { await saveTasksOrder(orderedIds); } catch (e) { console.error(e); }
     }
 
-    if (dragType === 'attachment') {
+    if (myType === 'attachment') {
         const currentAttachments = Array.from(document.querySelectorAll('#attachments-list .attachment-item:not(.attachment-drag-clone)'));
         const orderedPaths = currentAttachments.map(el => el.dataset.path);
-        const taskId = document.getElementById('task-modal').dataset.taskId;
-        try {
-            await updateTask(taskId, { attachments_order: orderedPaths });
-            for (let col of state.columns) {
-                let task = col.tasks.find(t => t.id == parseInt(taskId));
-                if (task) { task.attachments_order = orderedPaths; break; }
-            }
-        } catch (e) { console.error(e); }
+        const taskModal = document.getElementById('task-modal');
+        const taskId = taskModal ? taskModal.dataset.taskId : null;
+        if (taskId) {
+            try {
+                await updateTask(taskId, { attachments_order: orderedPaths });
+                for (let col of state.columns) {
+                    let task = col.tasks.find(t => t.id == parseInt(taskId));
+                    if (task) { task.attachments_order = orderedPaths; break; }
+                }
+            } catch (e) { console.error(e); }
+        }
     }
 
-    if (dragType === 'vault-history') {
+    if (myType === 'vault-history') {
         const currentItems = Array.from(document.querySelectorAll('#vault-history-list .vault-history-item:not(.vault-history-drag-clone)'));
         const orderedPaths = currentItems.map(el => el.dataset.path);
         try {
@@ -574,20 +616,22 @@ async function endDrag() {
         } catch (e) { console.error(e); }
     }
 
-    if (dragClone) {
-        dragClone.remove();
-        dragClone = null;
+    // Убираем только СВОЙ клон: за время await'ов мог стартовать новый драг
+    // с новым глобальным dragClone — его трогать нельзя.
+    if (myClone) {
+        try { myClone.remove(); } catch (e) {}
+        if (isCurrent() && dragClone === myClone) dragClone = null;
     }
 
     revertAutoExpandedColumn();
 
-    if (draggedElement) {
-        if (dragType === 'card') {
-            const newColumnEl = draggedElement.closest('.column');
+    if (myEl) {
+        if (myType === 'card') {
+            const newColumnEl = myEl.closest('.column');
             if (newColumnEl) {
                 const newColumnId = parseInt(newColumnEl.dataset.columnId);
-                const sourceColumnId = parseInt(draggedElement.dataset.sourceColumnId);
-                const taskId = parseInt(draggedElement.dataset.cardId);
+                const sourceColumnId = parseInt(myEl.dataset.sourceColumnId);
+                const taskId = parseInt(myEl.dataset.cardId);
                 const targetCol = state.columns.find(c => c.id === newColumnId);
                 const sourceCol = state.columns.find(c => c.id === sourceColumnId);
 
@@ -597,7 +641,10 @@ async function endDrag() {
                         const foundTask = sourceCol.tasks.find(t => t.id === taskId);
                         if (foundTask) optimisticTask = JSON.parse(JSON.stringify(foundTask));
                     }
-                    if (!optimisticTask) optimisticTask = { id: taskId, title: draggedElement.querySelector('.card-title').textContent };
+                    if (!optimisticTask) {
+                        const titleNode = myEl.querySelector('.card-title');
+                        optimisticTask = { id: taskId, title: titleNode ? titleNode.textContent : '' };
+                    }
 
                     if (targetCol.mode === 'track_time') {
                         optimisticTask.completed_at = null;
@@ -605,22 +652,21 @@ async function endDrag() {
                     } else if (targetCol.mode === 'completion') {
                         optimisticTask.completed_at = new Date().toISOString();
                         optimisticTask.active_timer = null;
-                        }
                     } else {
                         optimisticTask.completed_at = null;
                         optimisticTask.active_timer = null;
                     }
-                    updateCardAppearance(draggedElement, optimisticTask, targetCol.mode);
+                    updateCardAppearance(myEl, optimisticTask, targetCol.mode);
                 }
             }
         }
 
-        draggedElement.style.transition = 'none';
-        draggedElement.classList.remove('is-ghost');
-        void draggedElement.offsetWidth;
-        draggedElement.style.transition = '';
+        myEl.style.transition = 'none';
+        myEl.classList.remove('is-ghost');
+        void myEl.offsetWidth;
+        myEl.style.transition = '';
 
-        const droppedEl = draggedElement;
+        const droppedEl = myEl;
         const rect = droppedEl.getBoundingClientRect();
 
         if (mouseX >= rect.left && mouseX <= rect.right && mouseY >= rect.top && mouseY <= rect.bottom) {
@@ -632,7 +678,7 @@ async function endDrag() {
             setTimeout(() => document.addEventListener('pointermove', cleanupHover), 50);
         }
 
-        if (dragType === 'tab') {
+        if (myType === 'tab') {
             const currentTabs = Array.from(document.querySelectorAll('#tabs-container .board-tab:not(.hb-separator)'));
             const orderedIds = currentTabs.map(tab => parseInt(tab.dataset.workspaceId));
             state.workspaces.forEach(ws => { ws.position = orderedIds.indexOf(ws.id); });
@@ -655,10 +701,10 @@ async function endDrag() {
             try { await saveWorkspacesOrder(orderedIds); } catch (e) {}
         }
 
-        if (dragType === 'column') {
+        if (myType === 'column') {
             const currentColumns = Array.from(document.querySelectorAll('#board .column:not(.column-drag-clone)'));
             const orderedIds = currentColumns.map(col => parseInt(col.dataset.columnId));
-            const colId = parseInt(draggedElement.dataset.columnId);
+            const colId = parseInt(myEl.dataset.columnId);
 
             if (state.activeWorkspaceId !== originalWorkspaceId) {
                 try { await updateColumn(colId, { workspace_id: state.activeWorkspaceId }); }
@@ -681,12 +727,12 @@ async function endDrag() {
             } catch (e) { console.error("Ошибка сохранения порядка колонок", e); }
         }
 
-        if (dragType === 'card') {
-            const newColumnEl = draggedElement.closest('.column');
+        if (myType === 'card') {
+            const newColumnEl = myEl.closest('.column');
             if (newColumnEl) {
                 const newColumnId = parseInt(newColumnEl.dataset.columnId);
-                const sourceColumnId = parseInt(draggedElement.dataset.sourceColumnId);
-                const taskId = parseInt(draggedElement.dataset.cardId);
+                const sourceColumnId = parseInt(myEl.dataset.sourceColumnId);
+                const taskId = parseInt(myEl.dataset.cardId);
 
                 const currentCards = Array.from(newColumnEl.querySelectorAll('.card:not(.card-drag-clone)'));
                 const orderedIds = currentCards.map(c => parseInt(c.dataset.cardId));
@@ -720,8 +766,8 @@ async function endDrag() {
                             targetCol.tasks.push(updatedTask);
                         }
 
-                        updateCardAppearance(draggedElement, taskForUI, targetCol.mode);
-                        draggedElement.dataset.sourceColumnId = newColumnId;
+                        updateCardAppearance(myEl, taskForUI, targetCol.mode);
+                        myEl.dataset.sourceColumnId = newColumnId;
 
                         if (updatedTask.parent_ids && updatedTask.parent_ids.length > 0) {
                             updatedTask.parent_ids.forEach(parentId => {
@@ -773,8 +819,16 @@ async function endDrag() {
         }
     }
 
-    dragType = null;
-    draggedElement = null;
-    currentRotation = targetRotation = 0;
+    // Глобалы зачищаем только если за время await'ов не стартовал новый драг.
+    // Иначе обнулили бы его dragType/draggedElement, и его endDrag снял бы
+    // класс `is-dragging-null` вместо настоящего — кулак залипал бы.
+    // По той же причине финальный clearDraggingCursor только для своей
+    // сессии: чужой (более новый) драг владеет курсором сам.
+    if (isCurrent()) {
+        dragType = null;
+        draggedElement = null;
+        currentRotation = targetRotation = 0;
+        clearDraggingCursor();
+    }
 }
 

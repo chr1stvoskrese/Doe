@@ -399,6 +399,7 @@ function startColumnResize(colDiv, column, e) {
 
         document.removeEventListener('pointermove', onMove);
         document.removeEventListener('pointerup', onUp);
+        document.removeEventListener('pointercancel', onUp);
         document.body.style.cursor = '';
         document.body.style.userSelect = '';
 
@@ -420,6 +421,9 @@ function startColumnResize(colDiv, column, e) {
     document.body.style.userSelect = 'none';
     document.addEventListener('pointermove', onMove);
     document.addEventListener('pointerup', onUp);
+    // Иначе при отмене жеста (трекпад, Alt-Tab) инлайновый ew-resize
+    // оставался бы на body, как и кулак после борд-драга.
+    document.addEventListener('pointercancel', onUp);
 }
 
 async function handleColumnMenu(action, columnEl, menuItem) {

@@ -653,6 +653,11 @@ let isDragging = false;
 let dragType = null;
 let draggedElement = null;
 let dragClone = null;
+// Счётчик сессий перетаскивания: каждый startDrag увеличивает его.
+// endDrag работает со снапшотом (myType/myEl/myId) и трогает глобалы
+// только если сессия всё ещё текущая — иначе быстрый второй драг
+// затирался бы хвостом первого (залипший cursor:grabbing, убитый клон).
+let dragSessionId = 0;
 let mouseX = 0, mouseY = 0, lastMouseX = 0;
 let currentRotation = 0, targetRotation = 0;
 let rafId = null;
@@ -760,11 +765,40 @@ document.addEventListener('pointermove', (e) => {
 document.addEventListener('pointerup', async (e) => {
     isPointerDown = false;
     potentialDragTarget = null;
+    potentialDragType = null;
 
     if (isDragging) {
         window._isAfterDrag = true;
         setTimeout(() => window._isAfterDrag = false, 250);
-        await endDrag();
+        try { await endDrag(); } catch (err) { console.error(err); if (typeof clearDraggingCursor === "function") clearDraggingCursor(); }
+    }
+});
+
+// Страховка от залипшего состояния: pointercancel (трекпад-жесты, DnD ОС,
+// потеря захвата) и blur окна (Alt-Tab в момент драга) — pointerup в этих
+// случаях не приходит, и без этого класс is-dragging-* с cursor:grabbing
+// оставался бы на body навсегда.
+document.addEventListener('pointercancel', async () => {
+    isPointerDown = false;
+    potentialDragTarget = null;
+    potentialDragType = null;
+
+    if (isDragging) {
+        window._isAfterDrag = true;
+        setTimeout(() => window._isAfterDrag = false, 250);
+        try { await endDrag(); } catch (err) { console.error(err); if (typeof clearDraggingCursor === "function") clearDraggingCursor(); }
+    }
+});
+
+window.addEventListener('blur', () => {
+    isPointerDown = false;
+    potentialDragTarget = null;
+    potentialDragType = null;
+
+    if (isDragging) {
+        window._isAfterDrag = true;
+        setTimeout(() => window._isAfterDrag = false, 250);
+        try { endDrag().catch(() => { if (typeof clearDraggingCursor === "function") clearDraggingCursor(); }); } catch (err) { if (typeof clearDraggingCursor === "function") clearDraggingCursor(); }
     }
 });
 
